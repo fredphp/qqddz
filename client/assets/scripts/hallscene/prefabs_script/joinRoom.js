@@ -1,4 +1,4 @@
-var myglobal = require("../../mygolbal.js")
+// 使用全局变量，不使用 require
 
 cc.Class({
     extends: cc.Component,
@@ -27,6 +27,7 @@ cc.Class({
     //  },
 
     onButtonClick(event,customData){
+        var myglobal = window.myglobal
         if(customData.length===1){
             this.joinid += customData
             this.cur_input_count += 1

@@ -1,4 +1,4 @@
-var myglobal = require("../../mygolbal.js")
+// 使用全局变量，不使用 require
 
 cc.Class({
     extends: cc.Component,
@@ -11,6 +11,11 @@ cc.Class({
     // LIFE-CYCLE CALLBACKS:
 
     onLoad () {
+        var myglobal = window.myglobal
+        if (!myglobal) {
+            console.error("myglobal 未定义")
+            return
+        }
 
         this.btn_gamestart.active = false
         this.btn_ready.active = false
@@ -31,11 +36,6 @@ cc.Class({
         }.bind(this))
 
         //监听服务器发送来的消息
-        // myglobal.socket.onGameStart(function(){
-        //     console.log("gamebrforeUI onGameStart revice")
-        //     this.node.active = false
-        // }.bind(this))
-
         myglobal.socket.onChangeHouseManage(function(data){
             console.log("gamebrforeUI onChangeHouseManage revice"+JSON.stringify(data))
             myglobal.playerData.housemanageid = data
@@ -58,15 +58,13 @@ cc.Class({
     // update (dt) {},
     
     onButtonClick(event,customData){
+        var myglobal = window.myglobal
         switch(customData){
             case "btn_ready":
                 console.log("btn_ready")
                 myglobal.socket.requestReady()
                 break
             case "btn_start":
-                // if(isopen_sound){
-                //    cc.audioEngine.play(cc.url.raw("resources/sound/start_a.ogg")) 
-                //  }
                  console.log("btn_start")
                  myglobal.socket.requestStart(function(err,data){
                     if(err!=0){

@@ -1,4 +1,4 @@
-// 玩家数据 - Cocos Creator 2.x CommonJS 风格
+// 玩家数据 - 纯全局变量方式
 
 var getRandomStr = function (count) {
     var str = '';
@@ -8,7 +8,7 @@ var getRandomStr = function (count) {
     return str;
 };
 
-var playerData = function(){
+window.playerData = function(){
     var that = {}
 
     that.uniqueID = "1" + getRandomStr(6)
@@ -25,5 +25,4 @@ var playerData = function(){
     return that;
 }
 
-// Cocos Creator 2.x CommonJS 导出
-module.exports = playerData;
+console.log("player.js loaded");

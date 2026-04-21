@@ -1,4 +1,4 @@
-var myglobal = require("./../mygolbal.js")
+// 使用全局变量，不使用 require
 
 cc.Class({
     extends: cc.Component, 
@@ -14,6 +14,11 @@ cc.Class({
     // LIFE-CYCLE CALLBACKS:
 
     onLoad () {
+       var myglobal = window.myglobal
+       if (!myglobal || !myglobal.playerData) {
+           console.error("myglobal 或 playerData 未定义")
+           return
+       }
        this.nickname_label.string = myglobal.playerData.nickName
        this.gobal_count.string = ":" + myglobal.playerData.gobal_count
      },

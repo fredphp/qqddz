@@ -1,4 +1,4 @@
-var myglobal = require("../../mygolbal.js")
+// 使用全局变量，不使用 require
 
 cc.Class({
     extends: cc.Component,
@@ -16,6 +16,7 @@ cc.Class({
     },
 
     _createroom(rate){
+        var myglobal = window.myglobal
         if(rate<0 || rate>4){
             console.log("create room rate error"+ rate)
             return
@@ -33,22 +34,21 @@ cc.Class({
         }
 
         var room_para = {
-                global:global,
-                rate:rate
-                }
-                //播放一个等待动画
-                myglobal.socket.request_creatroom(room_para,function(err,result){
-                    if (err!=0){
-                        console.log("create_room err:"+err)
-                    }else{
-                        console.log("create_room" + JSON.stringify(result))
-                        //网络数据包
-                        myglobal.playerData.bottom = result.bottom
-                        myglobal.playerData.rate = result.rate
-                        cc.director.loadScene("gameScene")
-                    }
-
-                })
+            global:global,
+            rate:rate
+        }
+        //播放一个等待动画
+        myglobal.socket.request_creatroom(room_para,function(err,result){
+            if (err!=0){
+                console.log("create_room err:"+err)
+            }else{
+                console.log("create_room" + JSON.stringify(result))
+                //网络数据包
+                myglobal.playerData.bottom = result.bottom
+                myglobal.playerData.rate = result.rate
+                cc.director.loadScene("gameScene")
+            }
+        })
     },
 
     // update (dt) {},

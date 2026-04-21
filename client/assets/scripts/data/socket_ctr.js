@@ -1,17 +1,15 @@
 /**
  * 斗地主客户端通信层
  * 使用 WebSocket 连接 Go 后端
- * Cocos Creator 2.x CommonJS 风格
+ * 纯全局变量方式
  */
 
-var eventLister = require("../util/event_lister.js");
-
-var socketCtr = function(){
+window.socketCtr = function(){
     var that = {}
     var respone_map = {} 
     var call_index = 0
     var _socket = null
-    var event = eventLister({})
+    var event = window.eventLister({})
     var _isConnected = false
     var _playerId = ""
     var _playerName = ""
@@ -150,14 +148,13 @@ var socketCtr = function(){
                 break
                 
             case MessageType.BID_TURN:
-                event.fire("canrob_notify", data)
+                event.fire("canrob_notify", data.player_id)
                 break
                 
             case MessageType.BID_RESULT:
                 event.fire("canrob_state_notify", {
-                    playerid: data.player_id,
-                    player_name: data.player_name,
-                    bid: data.bid
+                    accountid: data.player_id,
+                    state: data.bid
                 })
                 break
                 
@@ -170,29 +167,21 @@ var socketCtr = function(){
                 break
                 
             case MessageType.PLAY_TURN:
-                event.fire("can_chu_card_notify", {
-                    player_id: data.player_id,
-                    timeout: data.timeout,
-                    must_play: data.must_play,
-                    can_beat: data.can_beat
-                })
+                event.fire("can_chu_card_notify", data.player_id)
                 break
                 
             case MessageType.CARD_PLAYED:
                 var cards = _convertCards(data.cards || [])
                 event.fire("other_chucard_notify", {
-                    player_id: data.player_id,
-                    player_name: data.player_name,
+                    accountid: data.player_id,
                     cards: cards,
-                    cards_left: data.cards_left,
-                    hand_type: data.hand_type
+                    cards_left: data.cards_left
                 })
                 break
                 
             case MessageType.PLAYER_PASS:
                 event.fire("other_chucard_notify", {
-                    player_id: data.player_id,
-                    player_name: data.player_name,
+                    accountid: data.player_id,
                     cards: [],
                     is_pass: true
                 })
@@ -224,6 +213,7 @@ var socketCtr = function(){
                 value: cardValue,
                 suit: card.suit,
                 color: card.color,
+                index: card.rank, // 添加 index 属性
                 str: _cardToString(card)
             }
         })
@@ -309,11 +299,9 @@ var socketCtr = function(){
     that.request_creatroom = function(req, callback){
         _request(MessageType.CREATE_ROOM, {}, function(result, data){
             callback && callback(result, {
-                data: {
-                    roomid: data.room_code,
-                    bottom: 100,
-                    rate: 1
-                }
+                roomid: data.room_code,
+                bottom: 100,
+                rate: 1
             })
         })
     }
@@ -324,12 +312,10 @@ var socketCtr = function(){
         }, function(result, data){
             if (result === 0) {
                 callback && callback(0, {
-                    data: {
-                        roomid: data.room_code,
-                        bottom: 100,
-                        rate: 1,
-                        gold: 1000
-                    }
+                    roomid: data.room_code,
+                    bottom: 100,
+                    rate: 1,
+                    gold: 1000
                 })
             } else {
                 callback && callback(-1, {})
@@ -454,5 +440,4 @@ var socketCtr = function(){
     return that
 }
 
-// Cocos Creator 2.x CommonJS 导出
-module.exports = socketCtr;
+console.log("socket_ctr.js loaded");

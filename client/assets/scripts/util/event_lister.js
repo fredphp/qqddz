@@ -1,6 +1,6 @@
-// 事件监听器 - Cocos Creator 2.x CommonJS 风格
+// 事件监听器 - 纯全局变量方式
 
-var eventLister = function(obj){
+window.eventLister = function(obj){
     var register = {}
 
     obj.on = function(type, method){
@@ -20,7 +20,6 @@ var eventLister = function(obj){
                 for(var j = 1; j < arguments.length; ++j){
                     args.push(arguments[j])
                 }
-                console.log("event fire: " + type)
                 handle.apply(this, args)
             }
         }
@@ -37,5 +36,4 @@ var eventLister = function(obj){
     return obj
 }
 
-// Cocos Creator 2.x CommonJS 导出
-module.exports = eventLister;
+console.log("event_lister.js loaded");

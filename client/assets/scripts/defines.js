@@ -1,5 +1,5 @@
 // 斗地主配置文件
-// Cocos Creator 2.x CommonJS 风格
+// 纯全局变量方式，不使用 module.exports
 
 var defines = {};
 
@@ -10,7 +10,7 @@ defines.serverUrl = "ws://localhost:1780/ws";
 window.defines = defines;
 
 // 房间状态
-var RoomState = {
+window.RoomState = {
     ROOM_INVALID: -1,
     ROOM_WAITREADY: 1,  // 等待游戏
     ROOM_GAMESTART: 2,  // 开始游戏
@@ -19,42 +19,23 @@ var RoomState = {
     ROOM_SHOWBOTTOMCARD: 5, // 显示底牌
     ROOM_PLAYING: 6,    // 出牌阶段
 };
-window.RoomState = RoomState;
 
 // 抢地主状态
-var qian_state = {
+window.qian_state = {
     "buqiang": 0,
     "qian": 1,
 };
-window.qian_state = qian_state;
 
 // 创建房间配置
-var createRoomConfig = {
-    'rate_1': {
-        needCostGold: 10,
-        bottom: 1,
-        rate: 1
-    },
-    'rate_2': {
-        needCostGold: 100,
-        bottom: 10,
-        rate: 2
-    },
-    'rate_3': {
-        needCostGold: 200,
-        bottom: 20,
-        rate: 3
-    },
-    'rate_4': {
-        needCostGold: 500,
-        bottom: 50,
-        rate: 4
-    }
+window.createRoomConfig = {
+    'rate_1': { needCostGold: 10, bottom: 1, rate: 1 },
+    'rate_2': { needCostGold: 100, bottom: 10, rate: 2 },
+    'rate_3': { needCostGold: 200, bottom: 20, rate: 3 },
+    'rate_4': { needCostGold: 500, bottom: 50, rate: 4 }
 };
-window.createRoomConfig = createRoomConfig;
 
 // 牌型定义
-var CardsValue = {
+window.CardsValue = {
     'one': { name: 'One', value: 1 },
     'double': { name: 'Double', value: 1 },
     'three': { name: 'Three', value: 1 },
@@ -68,11 +49,8 @@ var CardsValue = {
     'doubleScroll': { name: 'DoubleScroll', value: 1 },
     'kingboom': { name: 'kingboom', value: 3 },
 };
-window.CardsValue = CardsValue;
 
 // 音效开关
-var isopen_sound = 1;
-window.isopen_sound = isopen_sound;
+window.isopen_sound = 1;
 
-// Cocos Creator 2.x CommonJS 导出
-module.exports = defines;
+console.log("defines.js loaded");
