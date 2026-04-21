@@ -1,0 +1,18 @@
+package myjava.awt.datatransfer;
+
+import java.io.IOException;
+
+public abstract interface Transferable
+{
+  public abstract Object getTransferData(DataFlavor paramDataFlavor)
+    throws UnsupportedFlavorException, IOException;
+
+  public abstract DataFlavor[] getTransferDataFlavors();
+
+  public abstract boolean isDataFlavorSupported(DataFlavor paramDataFlavor);
+}
+
+/* Location:           D:\jd-gui-0.3.5.windows对jar文件反编译\classes_dex2jar.jar
+ * Qualified Name:     myjava.awt.datatransfer.Transferable
+ * JD-Core Version:    0.6.2
+ */

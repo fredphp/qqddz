@@ -1,0 +1,43 @@
+package org.apache.harmony.awt.datatransfer;
+
+import java.awt.datatransfer.DataFlavor;
+
+public abstract interface DataProvider
+{
+  public static final String FORMAT_FILE_LIST = "application/x-java-file-list";
+  public static final String FORMAT_HTML = "text/html";
+  public static final String FORMAT_IMAGE = "image/x-java-image";
+  public static final String FORMAT_TEXT = "text/plain";
+  public static final String FORMAT_URL = "application/x-java-url";
+  public static final String TYPE_FILELIST = "application/x-java-file-list";
+  public static final String TYPE_HTML = "text/html";
+  public static final String TYPE_IMAGE = "image/x-java-image";
+  public static final String TYPE_PLAINTEXT = "text/plain";
+  public static final String TYPE_SERIALIZED = "application/x-java-serialized-object";
+  public static final String TYPE_TEXTENCODING = "application/x-java-text-encoding";
+  public static final String TYPE_URILIST = "text/uri-list";
+  public static final String TYPE_URL = "application/x-java-url";
+  public static final DataFlavor uriFlavor = new DataFlavor("text/uri-list", "URI");
+  public static final DataFlavor urlFlavor = new DataFlavor("application/x-java-url;class=java.net.URL", "URL");
+
+  public abstract String[] getFileList();
+
+  public abstract String getHTML();
+
+  public abstract String[] getNativeFormats();
+
+  public abstract RawBitmap getRawBitmap();
+
+  public abstract byte[] getSerializedObject(Class<?> paramClass);
+
+  public abstract String getText();
+
+  public abstract String getURL();
+
+  public abstract boolean isNativeFormatAvailable(String paramString);
+}
+
+/* Location:           D:\jd-gui-0.3.5.windows对jar文件反编译\classes_dex2jar.jar
+ * Qualified Name:     org.apache.harmony.awt.datatransfer.DataProvider
+ * JD-Core Version:    0.6.2
+ */

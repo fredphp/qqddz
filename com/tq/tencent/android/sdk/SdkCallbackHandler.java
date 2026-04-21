@@ -1,0 +1,13 @@
+package com.tq.tencent.android.sdk;
+
+public abstract interface SdkCallbackHandler
+{
+  public abstract void onFailure(SdkCallException paramSdkCallException);
+
+  public abstract void onSuccess(String paramString, int paramInt);
+}
+
+/* Location:           D:\jd-gui-0.3.5.windows对jar文件反编译\classes_dex2jar.jar
+ * Qualified Name:     com.tq.tencent.android.sdk.SdkCallbackHandler
+ * JD-Core Version:    0.6.2
+ */

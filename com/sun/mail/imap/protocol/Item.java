@@ -1,0 +1,10 @@
+package com.sun.mail.imap.protocol;
+
+public abstract interface Item
+{
+}
+
+/* Location:           D:\jd-gui-0.3.5.windows对jar文件反编译\classes_dex2jar.jar
+ * Qualified Name:     com.sun.mail.imap.protocol.Item
+ * JD-Core Version:    0.6.2
+ */

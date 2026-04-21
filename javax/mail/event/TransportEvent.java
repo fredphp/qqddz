@@ -1,0 +1,73 @@
+package javax.mail.event;
+
+import javax.mail.Address;
+import javax.mail.Message;
+import javax.mail.Transport;
+
+public class TransportEvent extends MailEvent
+{
+  public static final int MESSAGE_DELIVERED = 1;
+  public static final int MESSAGE_NOT_DELIVERED = 2;
+  public static final int MESSAGE_PARTIALLY_DELIVERED = 3;
+  private static final long serialVersionUID = -4729852364684273073L;
+  protected transient Address[] invalid;
+  protected transient Message msg;
+  protected int type;
+  protected transient Address[] validSent;
+  protected transient Address[] validUnsent;
+
+  public TransportEvent(Transport paramTransport, int paramInt, Address[] paramArrayOfAddress1, Address[] paramArrayOfAddress2, Address[] paramArrayOfAddress3, Message paramMessage)
+  {
+    super(paramTransport);
+    this.type = paramInt;
+    this.validSent = paramArrayOfAddress1;
+    this.validUnsent = paramArrayOfAddress2;
+    this.invalid = paramArrayOfAddress3;
+    this.msg = paramMessage;
+  }
+
+  public void dispatch(Object paramObject)
+  {
+    if (this.type == 1)
+    {
+      ((TransportListener)paramObject).messageDelivered(this);
+      return;
+    }
+    if (this.type == 2)
+    {
+      ((TransportListener)paramObject).messageNotDelivered(this);
+      return;
+    }
+    ((TransportListener)paramObject).messagePartiallyDelivered(this);
+  }
+
+  public Address[] getInvalidAddresses()
+  {
+    return this.invalid;
+  }
+
+  public Message getMessage()
+  {
+    return this.msg;
+  }
+
+  public int getType()
+  {
+    return this.type;
+  }
+
+  public Address[] getValidSentAddresses()
+  {
+    return this.validSent;
+  }
+
+  public Address[] getValidUnsentAddresses()
+  {
+    return this.validUnsent;
+  }
+}
+
+/* Location:           D:\jd-gui-0.3.5.windows对jar文件反编译\classes_dex2jar.jar
+ * Qualified Name:     javax.mail.event.TransportEvent
+ * JD-Core Version:    0.6.2
+ */
