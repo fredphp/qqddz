@@ -1,7 +1,7 @@
 /**
  * 斗地主客户端通信层
  * 使用 WebSocket 连接 Go 后端
- * 纯全局变量方式
+ * 纯全局变量方式，延迟初始化
  */
 
 window.socketCtr = function(){
@@ -9,7 +9,7 @@ window.socketCtr = function(){
     var respone_map = {} 
     var call_index = 0
     var _socket = null
-    var event = window.eventLister({})
+    var event = null  // 延迟初始化
     var _isConnected = false
     var _playerId = ""
     var _playerName = ""
@@ -19,6 +19,18 @@ window.socketCtr = function(){
     var _serverUrl = "ws://localhost:1780/ws"
     if (typeof window !== 'undefined' && window.defines && window.defines.serverUrl) {
         _serverUrl = window.defines.serverUrl
+    }
+    
+    // 确保 event 初始化
+    var _getEvent = function() {
+        if (!event) {
+            if (typeof window.eventLister === 'undefined') {
+                console.error("eventLister 未定义，请确保 event_lister.js 已作为插件脚本加载")
+                return null
+            }
+            event = window.eventLister({})
+        }
+        return event
     }
 
     // 消息类型映射（与 Go 后端保持一致）
@@ -81,6 +93,9 @@ window.socketCtr = function(){
     var _handleMessage = function(msgData){
         console.log("收到消息:", JSON.stringify(msgData))
         
+        var evt = _getEvent()
+        if (!evt) return
+        
         var type = msgData.type
         var data = msgData.data || {}
         var callIndex = msgData.callIndex
@@ -101,19 +116,19 @@ window.socketCtr = function(){
                 _reconnectToken = data.reconnect_token
                 _isConnected = true
                 console.log("连接成功，玩家ID:", _playerId)
-                event.fire("connection_success", data)
+                evt.fire("connection_success", data)
                 break
                 
             case MessageType.ROOM_CREATED:
-                event.fire("room_created", data)
+                evt.fire("room_created", data)
                 break
                 
             case MessageType.ROOM_JOINED:
-                event.fire("room_joined", data)
+                evt.fire("room_joined", data)
                 break
                 
             case MessageType.PLAYER_JOINED:
-                event.fire("player_joinroom_notify", {
+                evt.fire("player_joinroom_notify", {
                     accountid: data.player ? data.player.id : "",
                     nick_name: data.player ? data.player.name : "",
                     avatarUrl: "avatar_1",
@@ -123,36 +138,36 @@ window.socketCtr = function(){
                 break
                 
             case MessageType.PLAYER_LEFT:
-                event.fire("player_left", data)
+                evt.fire("player_left", data)
                 break
                 
             case MessageType.PLAYER_READY:
-                event.fire("player_ready_notify", data)
+                evt.fire("player_ready_notify", data)
                 break
                 
             case MessageType.MATCH_FOUND:
-                event.fire("match_found", data)
+                evt.fire("match_found", data)
                 break
                 
             case MessageType.GAME_START:
-                event.fire("gameStart_notify", data)
+                evt.fire("gameStart_notify", data)
                 break
                 
             case MessageType.DEAL_CARDS:
                 var cards = _convertCards(data.cards || [])
                 var bottomCards = _convertCards(data.bottom_cards || [])
-                event.fire("pushcard_notify", {
+                evt.fire("pushcard_notify", {
                     cards: cards,
                     bottom_cards: bottomCards
                 })
                 break
                 
             case MessageType.BID_TURN:
-                event.fire("canrob_notify", data.player_id)
+                evt.fire("canrob_notify", data.player_id)
                 break
                 
             case MessageType.BID_RESULT:
-                event.fire("canrob_state_notify", {
+                evt.fire("canrob_state_notify", {
                     accountid: data.player_id,
                     state: data.bid
                 })
@@ -160,19 +175,19 @@ window.socketCtr = function(){
                 
             case MessageType.LANDLORD:
                 var bottomCards = _convertCards(data.bottom_cards || [])
-                event.fire("change_master_notify", data.player_id)
-                event.fire("change_showcard_notify", {
+                evt.fire("change_master_notify", data.player_id)
+                evt.fire("change_showcard_notify", {
                     cards: bottomCards
                 })
                 break
                 
             case MessageType.PLAY_TURN:
-                event.fire("can_chu_card_notify", data.player_id)
+                evt.fire("can_chu_card_notify", data.player_id)
                 break
                 
             case MessageType.CARD_PLAYED:
                 var cards = _convertCards(data.cards || [])
-                event.fire("other_chucard_notify", {
+                evt.fire("other_chucard_notify", {
                     accountid: data.player_id,
                     cards: cards,
                     cards_left: data.cards_left
@@ -180,7 +195,7 @@ window.socketCtr = function(){
                 break
                 
             case MessageType.PLAYER_PASS:
-                event.fire("other_chucard_notify", {
+                evt.fire("other_chucard_notify", {
                     accountid: data.player_id,
                     cards: [],
                     is_pass: true
@@ -188,17 +203,17 @@ window.socketCtr = function(){
                 break
                 
             case MessageType.GAME_OVER:
-                event.fire("game_over", data)
+                evt.fire("game_over", data)
                 break
                 
             case MessageType.ERROR:
                 console.error("服务器错误:", data.message)
-                event.fire("error", data)
+                evt.fire("error", data)
                 break
                 
             default:
                 console.log("未处理的消息类型:", type)
-                event.fire(type, data)
+                evt.fire(type, data)
         }
     }
 
@@ -241,6 +256,12 @@ window.socketCtr = function(){
         
     // 初始化 WebSocket 连接
     that.initSocket = function(){
+        var evt = _getEvent()
+        if (!evt) {
+            console.error("无法初始化 WebSocket：eventLister 未定义")
+            return
+        }
+        
         var wsUrl = _serverUrl
         if (wsUrl.indexOf("ws://") !== 0 && wsUrl.indexOf("wss://") !== 0) {
             wsUrl = "ws://" + wsUrl + "/ws"
@@ -266,13 +287,13 @@ window.socketCtr = function(){
             
             _socket.onerror = function(error){
                 console.error("WebSocket 错误:", error)
-                event.fire("connection_error", error)
+                evt.fire("connection_error", error)
             }
             
-            _socket.onclose = function(evt){
+            _socket.onclose = function(event){
                 console.log("WebSocket 连接关闭")
                 _isConnected = false
-                event.fire("connection_closed", evt)
+                evt.fire("connection_closed", event)
             }
         } catch(e) {
             console.error("创建 WebSocket 失败:", e)
@@ -282,13 +303,16 @@ window.socketCtr = function(){
     // ========== 登录相关 ==========
     
     that.request_wxLogin = function(req, callback){
+        var evt = _getEvent()
+        if (!evt) return
+        
         if (_isConnected) {
             callback && callback(0, {
                 player_id: _playerId,
                 player_name: _playerName
             })
         } else {
-            event.on("connection_success", function(data){
+            evt.on("connection_success", function(data){
                 callback && callback(0, data)
             })
         }
@@ -379,51 +403,63 @@ window.socketCtr = function(){
     // ========== 事件监听 ==========
     
     that.onPlayerJoinRoom = function(callback){
-        event.on("player_joinroom_notify", callback)
+        var evt = _getEvent()
+        if (evt) evt.on("player_joinroom_notify", callback)
     }
 
     that.onPlayerReady = function(callback){
-        event.on("player_ready_notify", callback)
+        var evt = _getEvent()
+        if (evt) evt.on("player_ready_notify", callback)
     }
 
     that.onGameStart = function(callback){
-        event.on("gameStart_notify", callback)
+        var evt = _getEvent()
+        if (evt) evt.on("gameStart_notify", callback)
     }
 
     that.onChangeHouseManage = function(callback){
-        event.on("changehousemanage_notify", callback)
+        var evt = _getEvent()
+        if (evt) evt.on("changehousemanage_notify", callback)
     }
 
     that.onPushCards = function(callback){
-        event.on("pushcard_notify", callback)
+        var evt = _getEvent()
+        if (evt) evt.on("pushcard_notify", callback)
     }
 
     that.onCanRobState = function(callback){
-        event.on("canrob_notify", callback)
+        var evt = _getEvent()
+        if (evt) evt.on("canrob_notify", callback)
     }
 
     that.onRobState = function(callback){
-        event.on("canrob_state_notify", callback)
+        var evt = _getEvent()
+        if (evt) evt.on("canrob_state_notify", callback)
     }
 
     that.onChangeMaster = function(callback){
-        event.on("change_master_notify", callback)
+        var evt = _getEvent()
+        if (evt) evt.on("change_master_notify", callback)
     }
 
     that.onShowBottomCard = function(callback){
-        event.on("change_showcard_notify", callback)
+        var evt = _getEvent()
+        if (evt) evt.on("change_showcard_notify", callback)
     }
 
     that.onCanChuCard = function(callback){
-        event.on("can_chu_card_notify", callback)
+        var evt = _getEvent()
+        if (evt) evt.on("can_chu_card_notify", callback)
     }
 
     that.onRoomChangeState = function(callback){
-        event.on("room_state_notify", callback)
+        var evt = _getEvent()
+        if (evt) evt.on("room_state_notify", callback)
     }
 
     that.onOtherPlayerChuCard = function(callback){
-        event.on("other_chucard_notify", callback)
+        var evt = _getEvent()
+        if (evt) evt.on("other_chucard_notify", callback)
     }
     
     that.isConnected = function(){
