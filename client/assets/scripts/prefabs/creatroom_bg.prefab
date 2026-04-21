@@ -371,7 +371,7 @@
       "__id__": 1
     },
     "component": "",
-    "_componentId": "e85c8xPVuxKX5zdxLJ1e12h",
+    "_componentId": "e85c86FyNOKrDRLmee/fjwMf3Ow",
     "handler": "onButtonClick",
     "customEventData": "create_room_1"
   },
@@ -557,7 +557,7 @@
       "__id__": 1
     },
     "component": "",
-    "_componentId": "e85c8xPVuxKX5zdxLJ1e12h",
+    "_componentId": "e85c86FyNOKrDRLmee/fjwMf3Ow",
     "handler": "onButtonClick",
     "customEventData": "create_room_2"
   },
@@ -927,7 +927,7 @@
       "__id__": 1
     },
     "component": "",
-    "_componentId": "e85c8xPVuxKX5zdxLJ1e12h",
+    "_componentId": "e85c86FyNOKrDRLmee/fjwMf3Ow",
     "handler": "onButtonClick",
     "customEventData": "create_room_4"
   },
@@ -1116,7 +1116,7 @@
       "__id__": 1
     },
     "component": "",
-    "_componentId": "e85c8xPVuxKX5zdxLJ1e12h",
+    "_componentId": "e85c86FyNOKrDRLmee/fjwMf3Ow",
     "handler": "onButtonClick",
     "customEventData": "create_room_close"
   },
@@ -1251,7 +1251,7 @@
     "_id": ""
   },
   {
-    "__type__": "e85c8xPVuxKX5zdxLJ1e12h",
+    "__type__": "e85c86FyNOKrDRLmee/fjwMf3Ow",
     "_name": "",
     "_objFlags": 0,
     "node": {

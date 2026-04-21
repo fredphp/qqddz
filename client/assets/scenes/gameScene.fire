@@ -1278,7 +1278,7 @@
     "_id": "8dszjhe9lPCqt0WfJNLgoT"
   },
   {
-    "__type__": "fc5fbLb+LFG+rCIt1gYkSVX",
+    "__type__": "fc5fb/F+y2/ixRvqwiLdYGJElVw",
     "_name": "",
     "_objFlags": 0,
     "node": {
@@ -1542,7 +1542,7 @@
       "__id__": 22
     },
     "component": "",
-    "_componentId": "fc5fbLb+LFG+rCIt1gYkSVX",
+    "_componentId": "fc5fb/F+y2/ixRvqwiLdYGJElVw",
     "handler": "onButtonClick",
     "customEventData": "btn_qiandz"
   },
@@ -1715,7 +1715,7 @@
       "__id__": 22
     },
     "component": "",
-    "_componentId": "fc5fbLb+LFG+rCIt1gYkSVX",
+    "_componentId": "fc5fb/F+y2/ixRvqwiLdYGJElVw",
     "handler": "onButtonClick",
     "customEventData": "btn_buqiandz"
   },
@@ -2198,7 +2198,7 @@
       "__id__": 22
     },
     "component": "",
-    "_componentId": "fc5fbLb+LFG+rCIt1gYkSVX",
+    "_componentId": "fc5fb/F+y2/ixRvqwiLdYGJElVw",
     "handler": "onButtonClick",
     "customEventData": "nopushcard"
   },
@@ -2552,7 +2552,7 @@
       "__id__": 22
     },
     "component": "",
-    "_componentId": "fc5fbLb+LFG+rCIt1gYkSVX",
+    "_componentId": "fc5fb/F+y2/ixRvqwiLdYGJElVw",
     "handler": "onButtonClick",
     "customEventData": "tipcard"
   },
@@ -2725,7 +2725,7 @@
       "__id__": 22
     },
     "component": "",
-    "_componentId": "fc5fbLb+LFG+rCIt1gYkSVX",
+    "_componentId": "fc5fb/F+y2/ixRvqwiLdYGJElVw",
     "handler": "onButtonClick",
     "customEventData": "pushcard"
   },
@@ -2967,7 +2967,7 @@
       "__id__": 57
     },
     "component": "",
-    "_componentId": "34b69bK3SJBFbE0zzOU1X9M",
+    "_componentId": "34b69NLaWyt0iQRWxNM8zlNV/TA",
     "handler": "onButtonClick",
     "customEventData": "btn_ready"
   },
@@ -3209,12 +3209,12 @@
       "__id__": 57
     },
     "component": "",
-    "_componentId": "34b69bK3SJBFbE0zzOU1X9M",
+    "_componentId": "34b69NLaWyt0iQRWxNM8zlNV/TA",
     "handler": "onButtonClick",
     "customEventData": "btn_start"
   },
   {
-    "__type__": "34b69bK3SJBFbE0zzOU1X9M",
+    "__type__": "34b69NLaWyt0iQRWxNM8zlNV/TA",
     "_name": "",
     "_objFlags": 0,
     "node": {
@@ -3247,7 +3247,7 @@
     "_id": "67Fm5ThL5InICqA0g/s+dr"
   },
   {
-    "__type__": "cf22aez0/xDaaC1kRqxn/pw",
+    "__type__": "cf22azyKns9P8Q2mgtZEasZ/6cA",
     "_name": "",
     "_objFlags": 0,
     "node": {

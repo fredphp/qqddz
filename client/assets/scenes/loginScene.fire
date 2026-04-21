@@ -499,7 +499,7 @@
       "__id__": 2
     },
     "component": "",
-    "_componentId": "b05a68gSOpBWr8ddvT03Jpj",
+    "_componentId": "b05a6sFpvIEjqQVq/HXb09NyaYw",
     "handler": "onButtonCilck",
     "customEventData": "wx_login"
   },
@@ -1272,7 +1272,7 @@
     "_id": "7a7t29dQ5C24znEkDlFh4x"
   },
   {
-    "__type__": "b05a68gSOpBWr8ddvT03Jpj",
+    "__type__": "b05a6sFpvIEjqQVq/HXb09NyaYw",
     "_name": "",
     "_objFlags": 0,
     "node": {

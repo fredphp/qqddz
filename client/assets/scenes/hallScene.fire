@@ -1765,7 +1765,7 @@
       "__id__": 2
     },
     "component": "",
-    "_componentId": "9eee7bdCqVB/LXv3XqKAza9",
+    "_componentId": "9eee7nu523QqlQfy17916igM2vQ",
     "handler": "onButtonClick",
     "customEventData": "create_room"
   },
@@ -1938,7 +1938,7 @@
       "__id__": 2
     },
     "component": "",
-    "_componentId": "9eee7bdCqVB/LXv3XqKAza9",
+    "_componentId": "9eee7nu523QqlQfy17916igM2vQ",
     "handler": "onButtonClick",
     "customEventData": "join_room"
   },
@@ -2509,7 +2509,7 @@
     "_id": "2fiYPXXOpKtLa0KGaFNzPi"
   },
   {
-    "__type__": "9eee7bdCqVB/LXv3XqKAza9",
+    "__type__": "9eee7nu523QqlQfy17916igM2vQ",
     "_name": "",
     "_objFlags": 0,
     "node": {
