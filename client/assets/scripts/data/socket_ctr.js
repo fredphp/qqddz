@@ -1,4 +1,5 @@
 import eventlister from "../util/event_lister.js"
+import defines from "../defines.js"
 
 /**
  * 斗地主客户端通信层

@@ -1,23 +1,33 @@
+// 斗地主配置文件
+// 兼容 Cocos Creator 2.x 模块系统
+
 const defines = {};
+
 // Go 后端 WebSocket 地址
 defines.serverUrl = "ws://localhost:1780/ws";
+
+// 是否开启音效
 const isopen_sound = 1;
-//exports.roomFullPlayerCount = 3;
-qian_state = {
-    "buqiang":0,
-    "qian":1,
+
+// 抢地主状态
+const qian_state = {
+    "buqiang": 0,
+    "qian": 1,
 };
+
+// 房间状态
 const RoomState = {
     ROOM_INVALID: -1,
-    ROOM_WAITREADY: 1,  //等待游戏
-    ROOM_GAMESTART: 2,  //开始游戏
-    ROOM_PUSHCARD: 3,   //发牌
-    ROOM_ROBSTATE:4,    //抢地主
-    ROOM_SHOWBOTTOMCARD:5, //显示底牌
-    ROOM_PLAYING:6,     //出牌阶段  
+    ROOM_WAITREADY: 1,  // 等待游戏
+    ROOM_GAMESTART: 2,  // 开始游戏
+    ROOM_PUSHCARD: 3,   // 发牌
+    ROOM_ROBSTATE: 4,   // 抢地主
+    ROOM_SHOWBOTTOMCARD: 5, // 显示底牌
+    ROOM_PLAYING: 6,    // 出牌阶段
 };
-createRoomConfig = {
-//exports.createRoomConfig = {
+
+// 创建房间配置
+const createRoomConfig = {
     'rate_1': {
         needCostGold: 10,
         bottom: 1,
@@ -40,8 +50,8 @@ createRoomConfig = {
     }
 };
 
-  //牌型定义
-  const CardsValue = {
+// 牌型定义
+const CardsValue = {
     'one': {
         name: 'One',
         value: 1
@@ -54,7 +64,7 @@ createRoomConfig = {
         name: 'Three',
         value: 1
     },
-    'boom': { //炸弹
+    'boom': { // 炸弹
         name: 'Boom',
         value: 2
     },
@@ -78,20 +88,27 @@ createRoomConfig = {
         name: 'PlaneWithTwo',
         value: 1
     },
-    'scroll': { //顺子
+    'scroll': { // 顺子
         name: 'Scroll',
         value: 1
     },
-    'doubleScroll': {  //连队
+    'doubleScroll': { // 连队
         name: 'DoubleScroll',
         value: 1
     },
-    'kingboom':{ //王炸
+    'kingboom': { // 王炸
         name: 'kingboom',
         value: 3
     },
 };
 
+// 导出模块 (Cocos Creator 2.x 兼容写法)
 window.defines = defines;
+window.RoomState = RoomState;
+window.qian_state = qian_state;
+window.createRoomConfig = createRoomConfig;
+window.CardsValue = CardsValue;
 
-//https://www.iqiyi.com/v_19rshq4vz0.html
+// 同时导出为 ES6 模块
+export default defines;
+export { RoomState, qian_state, createRoomConfig, CardsValue };
