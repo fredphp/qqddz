@@ -1,6 +1,14 @@
 // 斗地主配置文件
 // 兼容 Cocos Creator 2.x 模块系统
 
+// 立即定义全局变量（确保在任何模块加载前可用）
+(function() {
+    if (typeof window !== 'undefined') {
+        window.defines = window.defines || {};
+        window.defines.serverUrl = "ws://localhost:1780/ws";
+    }
+})();
+
 const defines = {};
 
 // Go 后端 WebSocket 地址
@@ -103,12 +111,15 @@ const CardsValue = {
 };
 
 // 导出模块 (Cocos Creator 2.x 兼容写法)
-window.defines = defines;
-window.RoomState = RoomState;
-window.qian_state = qian_state;
-window.createRoomConfig = createRoomConfig;
-window.CardsValue = CardsValue;
+if (typeof window !== 'undefined') {
+    window.defines = defines;
+    window.RoomState = RoomState;
+    window.qian_state = qian_state;
+    window.createRoomConfig = createRoomConfig;
+    window.CardsValue = CardsValue;
+    window.isopen_sound = isopen_sound;
+}
 
-// 同时导出为 ES6 模块
+// ES6 模块导出
 export default defines;
-export { RoomState, qian_state, createRoomConfig, CardsValue };
+export { RoomState, qian_state, createRoomConfig, CardsValue, isopen_sound };

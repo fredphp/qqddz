@@ -1,22 +1,62 @@
-import eventlister from "../util/event_lister.js"
-import defines from "../defines.js"
-
 /**
  * 斗地主客户端通信层
  * 使用 WebSocket 连接 Go 后端
  * 消息格式：JSON (简化版，不使用 Protocol Buffers)
  */
+
+// 使用 window.defines 确保在 Cocos Creator 2.x 中正常工作
+const getServerUrl = function() {
+    if (typeof defines !== 'undefined' && defines.serverUrl) {
+        return defines.serverUrl;
+    }
+    if (window.defines && window.defines.serverUrl) {
+        return window.defines.serverUrl;
+    }
+    // 默认值
+    return "ws://localhost:1780/ws";
+};
+
 const socketCtr = function(){
     var that = {}
     var respone_map = {} 
     var call_index = 0
     var _socket = null
-    var event = eventlister({})
+    var event = null
     var _isConnected = false
     var _playerId = ""
     var _playerName = ""
     var _reconnectToken = ""
-    var _serverUrl = defines.serverUrl
+    var _serverUrl = getServerUrl()
+
+    // 延迟初始化 event（避免循环依赖）
+    const _getEvent = function() {
+        if (!event) {
+            // 尝试从 window 获取
+            if (window.myglobal && window.myglobal.eventlister) {
+                event = window.myglobal.eventlister
+            } else {
+                // 创建简单的事件系统
+                event = {
+                    _listeners: {},
+                    on: function(type, callback) {
+                        if (!this._listeners[type]) {
+                            this._listeners[type] = [];
+                        }
+                        this._listeners[type].push(callback);
+                    },
+                    fire: function(type, data) {
+                        var listeners = this._listeners[type];
+                        if (listeners) {
+                            for (var i = 0; i < listeners.length; i++) {
+                                listeners[i](data);
+                            }
+                        }
+                    }
+                };
+            }
+        }
+        return event;
+    }
 
     // 消息类型映射（与 Go 后端保持一致）
     const MessageType = {
@@ -90,6 +130,8 @@ const socketCtr = function(){
             return
         }
         
+        var evt = _getEvent();
+        
         // 处理服务端推送的消息
         switch(type){
             case MessageType.CONNECTED:
@@ -98,20 +140,20 @@ const socketCtr = function(){
                 _reconnectToken = data.reconnect_token
                 _isConnected = true
                 console.log("连接成功，玩家ID:", _playerId)
-                event.fire("connection_success", data)
+                evt.fire("connection_success", data)
                 break
                 
             case MessageType.ROOM_CREATED:
-                event.fire("room_created", data)
+                evt.fire("room_created", data)
                 break
                 
             case MessageType.ROOM_JOINED:
-                event.fire("room_joined", data)
+                evt.fire("room_joined", data)
                 break
                 
             case MessageType.PLAYER_JOINED:
                 // 适配原有格式
-                event.fire("player_joinroom_notify", {
+                evt.fire("player_joinroom_notify", {
                     accountid: data.player?.id || "",
                     nick_name: data.player?.name || "",
                     avatarUrl: "avatar_1",
@@ -121,37 +163,37 @@ const socketCtr = function(){
                 break
                 
             case MessageType.PLAYER_LEFT:
-                event.fire("player_left", data)
+                evt.fire("player_left", data)
                 break
                 
             case MessageType.PLAYER_READY:
-                event.fire("player_ready_notify", data)
+                evt.fire("player_ready_notify", data)
                 break
                 
             case MessageType.MATCH_FOUND:
-                event.fire("match_found", data)
+                evt.fire("match_found", data)
                 break
                 
             case MessageType.GAME_START:
-                event.fire("gameStart_notify", data)
+                evt.fire("gameStart_notify", data)
                 break
                 
             case MessageType.DEAL_CARDS:
                 // 转换卡牌格式
                 var cards = _convertCards(data.cards || [])
                 var bottomCards = _convertCards(data.bottom_cards || [])
-                event.fire("pushcard_notify", {
+                evt.fire("pushcard_notify", {
                     cards: cards,
                     bottom_cards: bottomCards
                 })
                 break
                 
             case MessageType.BID_TURN:
-                event.fire("canrob_notify", data)
+                evt.fire("canrob_notify", data)
                 break
                 
             case MessageType.BID_RESULT:
-                event.fire("canrob_state_notify", {
+                evt.fire("canrob_state_notify", {
                     playerid: data.player_id,
                     player_name: data.player_name,
                     bid: data.bid
@@ -161,17 +203,17 @@ const socketCtr = function(){
             case MessageType.LANDLORD:
                 // 地主确定，显示底牌
                 var bottomCards = _convertCards(data.bottom_cards || [])
-                event.fire("change_master_notify", {
+                evt.fire("change_master_notify", {
                     landlord_id: data.player_id,
                     landlord_name: data.player_name
                 })
-                event.fire("change_showcard_notify", {
+                evt.fire("change_showcard_notify", {
                     cards: bottomCards
                 })
                 break
                 
             case MessageType.PLAY_TURN:
-                event.fire("can_chu_card_notify", {
+                evt.fire("can_chu_card_notify", {
                     player_id: data.player_id,
                     timeout: data.timeout,
                     must_play: data.must_play,
@@ -181,7 +223,7 @@ const socketCtr = function(){
                 
             case MessageType.CARD_PLAYED:
                 var cards = _convertCards(data.cards || [])
-                event.fire("other_chucard_notify", {
+                evt.fire("other_chucard_notify", {
                     player_id: data.player_id,
                     player_name: data.player_name,
                     cards: cards,
@@ -191,7 +233,7 @@ const socketCtr = function(){
                 break
                 
             case MessageType.PLAYER_PASS:
-                event.fire("other_chucard_notify", {
+                evt.fire("other_chucard_notify", {
                     player_id: data.player_id,
                     player_name: data.player_name,
                     cards: [],
@@ -200,17 +242,17 @@ const socketCtr = function(){
                 break
                 
             case MessageType.GAME_OVER:
-                event.fire("game_over", data)
+                evt.fire("game_over", data)
                 break
                 
             case MessageType.ERROR:
                 console.error("服务器错误:", data.message)
-                event.fire("error", data)
+                evt.fire("error", data)
                 break
                 
             default:
                 console.log("未处理的消息类型:", type)
-                event.fire(type, data)
+                evt.fire(type, data)
         }
     }
 
@@ -255,6 +297,9 @@ const socketCtr = function(){
         
     // 初始化 WebSocket 连接
     that.initSocket = function(){
+        // 重新获取服务器地址（可能在运行时被修改）
+        _serverUrl = getServerUrl()
+        
         // 转换 URL 格式
         var wsUrl = _serverUrl
         if (!wsUrl.startsWith("ws://") && !wsUrl.startsWith("wss://")) {
@@ -281,13 +326,13 @@ const socketCtr = function(){
             
             _socket.onerror = function(error){
                 console.error("WebSocket 错误:", error)
-                event.fire("connection_error", error)
+                _getEvent().fire("connection_error", error)
             }
             
             _socket.onclose = function(event){
                 console.log("WebSocket 连接关闭")
                 _isConnected = false
-                event.fire("connection_closed", event)
+                _getEvent().fire("connection_closed", event)
             }
         } catch(e) {
             console.error("创建 WebSocket 失败:", e)
@@ -305,7 +350,7 @@ const socketCtr = function(){
                 player_name: _playerName
             })
         } else {
-            event.on("connection_success", function(data){
+            _getEvent().on("connection_success", function(data){
                 callback && callback(0, data)
             })
         }
@@ -384,51 +429,51 @@ const socketCtr = function(){
     // ========== 事件监听 ==========
     
     that.onPlayerJoinRoom = function(callback){
-        event.on("player_joinroom_notify", callback)
+        _getEvent().on("player_joinroom_notify", callback)
     }
 
     that.onPlayerReady = function(callback){
-        event.on("player_ready_notify", callback)
+        _getEvent().on("player_ready_notify", callback)
     }
 
     that.onGameStart = function(callback){
-        event.on("gameStart_notify", callback)
+        _getEvent().on("gameStart_notify", callback)
     }
 
     that.onChangeHouseManage = function(callback){
-        event.on("changehousemanage_notify", callback)
+        _getEvent().on("changehousemanage_notify", callback)
     }
 
     that.onPushCards = function(callback){
-        event.on("pushcard_notify", callback)
+        _getEvent().on("pushcard_notify", callback)
     }
 
     that.onCanRobState = function(callback){
-        event.on("canrob_notify", callback)
+        _getEvent().on("canrob_notify", callback)
     }
 
     that.onRobState = function(callback){
-        event.on("canrob_state_notify", callback)
+        _getEvent().on("canrob_state_notify", callback)
     }
 
     that.onChangeMaster = function(callback){
-        event.on("change_master_notify", callback)
+        _getEvent().on("change_master_notify", callback)
     }
 
     that.onShowBottomCard = function(callback){
-        event.on("change_showcard_notify", callback)
+        _getEvent().on("change_showcard_notify", callback)
     }
 
     that.onCanChuCard = function(callback){
-        event.on("can_chu_card_notify", callback)
+        _getEvent().on("can_chu_card_notify", callback)
     }
 
     that.onRoomChangeState = function(callback){
-        event.on("room_state_notify", callback)
+        _getEvent().on("room_state_notify", callback)
     }
 
     that.onOtherPlayerChuCard = function(callback){
-        event.on("other_chucard_notify", callback)
+        _getEvent().on("other_chucard_notify", callback)
     }
     
     // 获取连接状态
@@ -443,8 +488,15 @@ const socketCtr = function(){
             name: _playerName
         }
     }
+    
+    // 设置事件系统
+    that.setEvent = function(eventSystem){
+        event = eventSystem
+    }
 
     return that
 }
 
-export default socketCtr
+// 兼容 Cocos Creator 2.x 的导出方式
+window.socketCtr = socketCtr;
+export default socketCtr;
