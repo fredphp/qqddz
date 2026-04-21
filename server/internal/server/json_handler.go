@@ -24,6 +24,215 @@ type CardData struct {
 	Color int64 `json:"color"`
 }
 
+// JSONMode 支持JSON模式的客户端
+type JSONMode struct {
+	client *Client
+}
+
+// NewJSONMode 创建JSON模式处理器
+func NewJSONMode(client *Client) *JSONMode {
+	return &JSONMode{client: client}
+}
+
+// TryHandleJSON 尝试处理JSON消息，返回是否为JSON消息
+func (j *JSONMode) TryHandleJSON(message []byte) bool {
+	// 检查是否为JSON格式（以 { 开头）
+	if len(message) > 0 && message[0] == '{' {
+		var msg JSONMessage
+		if err := json.Unmarshal(message, &msg); err != nil {
+			return false
+		}
+		j.handleJSONMessage(&msg)
+		return true
+	}
+	return false
+}
+
+func (j *JSONMode) handleJSONMessage(msg *JSONMessage) {
+	log.Printf("[JSON] 收到消息: type=%s, callIndex=%d", msg.Type, msg.CallIndex)
+
+	switch msg.Type {
+	case "create_room":
+		j.handleCreateRoom(msg)
+	case "join_room":
+		j.handleJoinRoom(msg)
+	case "leave_room":
+		j.handleLeaveRoom(msg)
+	case "quick_match":
+		j.handleQuickMatch(msg)
+	case "ready":
+		j.handleReady(msg)
+	case "cancel_ready":
+		j.handleCancelReady(msg)
+	case "bid":
+		j.handleBid(msg)
+	case "play_cards":
+		j.handlePlayCards(msg)
+	case "pass":
+		j.handlePass(msg)
+	case "chat":
+		j.handleChat(msg)
+	default:
+		log.Printf("[JSON] 未知消息类型: %s", msg.Type)
+	}
+}
+
+// handleCreateRoom 创建房间
+func (j *JSONMode) handleCreateRoom(msg *JSONMessage) {
+	protoMsg, err := codec.NewMessage(protocol.MsgCreateRoom, nil)
+	if err != nil {
+		log.Printf("[JSON] 创建消息失败: %v", err)
+		return
+	}
+	j.client.server.handler.Handle(j.client, protoMsg)
+}
+
+// handleJoinRoom 加入房间
+func (j *JSONMode) handleJoinRoom(msg *JSONMessage) {
+	var data struct {
+		RoomCode string `json:"room_code"`
+	}
+	if len(msg.Data) > 0 {
+		_ = json.Unmarshal(msg.Data, &data)
+	}
+
+	protoMsg, err := codec.NewMessage(protocol.MsgJoinRoom, &protocol.JoinRoomPayload{
+		RoomCode: data.RoomCode,
+	})
+	if err != nil {
+		log.Printf("[JSON] 创建消息失败: %v", err)
+		return
+	}
+	j.client.server.handler.Handle(j.client, protoMsg)
+}
+
+// handleLeaveRoom 离开房间
+func (j *JSONMode) handleLeaveRoom(msg *JSONMessage) {
+	protoMsg, err := codec.NewMessage(protocol.MsgLeaveRoom, nil)
+	if err != nil {
+		log.Printf("[JSON] 创建消息失败: %v", err)
+		return
+	}
+	j.client.server.handler.Handle(j.client, protoMsg)
+}
+
+// handleQuickMatch 快速匹配
+func (j *JSONMode) handleQuickMatch(msg *JSONMessage) {
+	protoMsg, err := codec.NewMessage(protocol.MsgQuickMatch, nil)
+	if err != nil {
+		log.Printf("[JSON] 创建消息失败: %v", err)
+		return
+	}
+	j.client.server.handler.Handle(j.client, protoMsg)
+}
+
+// handleReady 准备
+func (j *JSONMode) handleReady(msg *JSONMessage) {
+	protoMsg, err := codec.NewMessage(protocol.MsgReady, nil)
+	if err != nil {
+		log.Printf("[JSON] 创建消息失败: %v", err)
+		return
+	}
+	j.client.server.handler.Handle(j.client, protoMsg)
+}
+
+// handleCancelReady 取消准备
+func (j *JSONMode) handleCancelReady(msg *JSONMessage) {
+	protoMsg, err := codec.NewMessage(protocol.MsgCancelReady, nil)
+	if err != nil {
+		log.Printf("[JSON] 创建消息失败: %v", err)
+		return
+	}
+	j.client.server.handler.Handle(j.client, protoMsg)
+}
+
+// handleBid 叫地主
+func (j *JSONMode) handleBid(msg *JSONMessage) {
+	var data struct {
+		Bid bool `json:"bid"`
+	}
+	if len(msg.Data) > 0 {
+		_ = json.Unmarshal(msg.Data, &data)
+	}
+
+	protoMsg, err := codec.NewMessage(protocol.MsgBid, &protocol.BidPayload{
+		Bid: data.Bid,
+	})
+	if err != nil {
+		log.Printf("[JSON] 创建消息失败: %v", err)
+		return
+	}
+	j.client.server.handler.Handle(j.client, protoMsg)
+}
+
+// handlePlayCards 出牌
+func (j *JSONMode) handlePlayCards(msg *JSONMessage) {
+	var data struct {
+		Cards []CardData `json:"cards"`
+	}
+	if len(msg.Data) > 0 {
+		_ = json.Unmarshal(msg.Data, &data)
+	}
+
+	// 转换卡牌格式
+	cards := make([]card.Card, len(data.Cards))
+	for i, c := range data.Cards {
+		cards[i] = card.Card{
+			Suit:  card.Suit(c.Suit),
+			Rank:  card.Rank(c.Rank),
+			Color: card.CardColor(c.Color),
+		}
+	}
+
+	// 转换为proto格式
+	cardInfos := make([]protocol.CardInfo, len(cards))
+	for i, c := range cards {
+		cardInfos[i] = protocol.CardInfo{
+			Suit:  int(c.Suit),
+			Rank:  int(c.Rank),
+			Color: int(c.Color),
+		}
+	}
+
+	protoMsg, err := codec.NewMessage(protocol.MsgPlayCards, &protocol.PlayCardsPayload{
+		Cards: cardInfos,
+	})
+	if err != nil {
+		log.Printf("[JSON] 创建消息失败: %v", err)
+		return
+	}
+	j.client.server.handler.Handle(j.client, protoMsg)
+}
+
+// handlePass 不出
+func (j *JSONMode) handlePass(msg *JSONMessage) {
+	protoMsg, err := codec.NewMessage(protocol.MsgPass, nil)
+	if err != nil {
+		log.Printf("[JSON] 创建消息失败: %v", err)
+		return
+	}
+	j.client.server.handler.Handle(j.client, protoMsg)
+}
+
+// handleChat 聊天
+func (j *JSONMode) handleChat(msg *JSONMessage) {
+	var data struct {
+		Message string `json:"message"`
+	}
+	if len(msg.Data) > 0 {
+		_ = json.Unmarshal(msg.Data, &data)
+	}
+
+	protoMsg, err := codec.NewMessage(protocol.MsgChat, &protocol.ChatPayload{
+		Content: data.Message,
+	})
+	if err != nil {
+		log.Printf("[JSON] 创建消息失败: %v", err)
+		return
+	}
+	j.client.server.handler.Handle(j.client, protoMsg)
+}
+
 // JSONHandler JSON 消息处理器
 type JSONHandler struct {
 	server *Server
@@ -75,7 +284,11 @@ func (h *JSONHandler) HandleJSONMessage(client *Client, data []byte) error {
 
 // handleCreateRoom 创建房间
 func (h *JSONHandler) handleCreateRoom(client *Client, msg *JSONMessage) {
-	protoMsg := codec.NewMessage(protocol.MsgTypeCreateRoom, nil)
+	protoMsg, err := codec.NewMessage(protocol.MsgCreateRoom, nil)
+	if err != nil {
+		log.Printf("创建消息失败: %v", err)
+		return
+	}
 	h.server.handler.Handle(client, protoMsg)
 }
 
@@ -88,33 +301,53 @@ func (h *JSONHandler) handleJoinRoom(client *Client, msg *JSONMessage) {
 		_ = json.Unmarshal(msg.Data, &data)
 	}
 
-	protoMsg := codec.NewMessage(protocol.MsgTypeJoinRoom, &protocol.JoinRoomPayload{
+	protoMsg, err := codec.NewMessage(protocol.MsgJoinRoom, &protocol.JoinRoomPayload{
 		RoomCode: data.RoomCode,
 	})
+	if err != nil {
+		log.Printf("创建消息失败: %v", err)
+		return
+	}
 	h.server.handler.Handle(client, protoMsg)
 }
 
 // handleLeaveRoom 离开房间
 func (h *JSONHandler) handleLeaveRoom(client *Client, msg *JSONMessage) {
-	protoMsg := codec.NewMessage(protocol.MsgTypeLeaveRoom, nil)
+	protoMsg, err := codec.NewMessage(protocol.MsgLeaveRoom, nil)
+	if err != nil {
+		log.Printf("创建消息失败: %v", err)
+		return
+	}
 	h.server.handler.Handle(client, protoMsg)
 }
 
 // handleQuickMatch 快速匹配
 func (h *JSONHandler) handleQuickMatch(client *Client, msg *JSONMessage) {
-	protoMsg := codec.NewMessage(protocol.MsgTypeQuickMatch, nil)
+	protoMsg, err := codec.NewMessage(protocol.MsgQuickMatch, nil)
+	if err != nil {
+		log.Printf("创建消息失败: %v", err)
+		return
+	}
 	h.server.handler.Handle(client, protoMsg)
 }
 
 // handleReady 准备
 func (h *JSONHandler) handleReady(client *Client, msg *JSONMessage) {
-	protoMsg := codec.NewMessage(protocol.MsgTypeReady, nil)
+	protoMsg, err := codec.NewMessage(protocol.MsgReady, nil)
+	if err != nil {
+		log.Printf("创建消息失败: %v", err)
+		return
+	}
 	h.server.handler.Handle(client, protoMsg)
 }
 
 // handleCancelReady 取消准备
 func (h *JSONHandler) handleCancelReady(client *Client, msg *JSONMessage) {
-	protoMsg := codec.NewMessage(protocol.MsgTypeCancelReady, nil)
+	protoMsg, err := codec.NewMessage(protocol.MsgCancelReady, nil)
+	if err != nil {
+		log.Printf("创建消息失败: %v", err)
+		return
+	}
 	h.server.handler.Handle(client, protoMsg)
 }
 
@@ -127,9 +360,13 @@ func (h *JSONHandler) handleBid(client *Client, msg *JSONMessage) {
 		_ = json.Unmarshal(msg.Data, &data)
 	}
 
-	protoMsg := codec.NewMessage(protocol.MsgTypeBid, &protocol.BidPayload{
+	protoMsg, err := codec.NewMessage(protocol.MsgBid, &protocol.BidPayload{
 		Bid: data.Bid,
 	})
+	if err != nil {
+		log.Printf("创建消息失败: %v", err)
+		return
+	}
 	h.server.handler.Handle(client, protoMsg)
 }
 
@@ -143,34 +380,32 @@ func (h *JSONHandler) handlePlayCards(client *Client, msg *JSONMessage) {
 	}
 
 	// 转换卡牌格式
-	cards := make([]card.Card, len(data.Cards))
+	cardInfos := make([]protocol.CardInfo, len(data.Cards))
 	for i, c := range data.Cards {
-		cards[i] = card.Card{
-			Suit:  card.Suit(c.Suit),
-			Rank:  card.Rank(c.Rank),
-			Color: card.CardColor(c.Color),
+		cardInfos[i] = protocol.CardInfo{
+			Suit:  int(c.Suit),
+			Rank:  int(c.Rank),
+			Color: int(c.Color),
 		}
 	}
 
-	// 转换为proto格式
-	cardInfos := make([]*protocol.CardInfo, len(cards))
-	for i, c := range cards {
-		cardInfos[i] = &protocol.CardInfo{
-			Suit:  int64(c.Suit),
-			Rank:  int64(c.Rank),
-			Color: int64(c.Color),
-		}
-	}
-
-	protoMsg := codec.NewMessage(protocol.MsgTypePlayCards, &protocol.PlayCardsPayload{
+	protoMsg, err := codec.NewMessage(protocol.MsgPlayCards, &protocol.PlayCardsPayload{
 		Cards: cardInfos,
 	})
+	if err != nil {
+		log.Printf("创建消息失败: %v", err)
+		return
+	}
 	h.server.handler.Handle(client, protoMsg)
 }
 
 // handlePass 不出
 func (h *JSONHandler) handlePass(client *Client, msg *JSONMessage) {
-	protoMsg := codec.NewMessage(protocol.MsgTypePass, nil)
+	protoMsg, err := codec.NewMessage(protocol.MsgPass, nil)
+	if err != nil {
+		log.Printf("创建消息失败: %v", err)
+		return
+	}
 	h.server.handler.Handle(client, protoMsg)
 }
 
@@ -183,9 +418,13 @@ func (h *JSONHandler) handleChat(client *Client, msg *JSONMessage) {
 		_ = json.Unmarshal(msg.Data, &data)
 	}
 
-	protoMsg := codec.NewMessage(protocol.MsgTypeChat, &protocol.ChatPayload{
-		Message: data.Message,
+	protoMsg, err := codec.NewMessage(protocol.MsgChat, &protocol.ChatPayload{
+		Content: data.Message,
 	})
+	if err != nil {
+		log.Printf("创建消息失败: %v", err)
+		return
+	}
 	h.server.handler.Handle(client, protoMsg)
 }
 
