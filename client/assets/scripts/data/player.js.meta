@@ -1,12 +1,8 @@
 {
   "ver": "1.1.0",
   "uuid": "ec2a07d8-3efd-404a-bf18-4ce2a9dcda7f",
-<<<<<<< Updated upstream
-  "isPlugin": true,
-=======
   "importer": "javascript",
-  "isPlugin": false,
->>>>>>> Stashed changes
+  "isPlugin": true,
   "loadPluginInWeb": true,
   "loadPluginInNative": true,
   "loadPluginInEditor": false,
