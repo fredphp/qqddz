@@ -1,30 +1,16 @@
 // 斗地主配置文件
-// 兼容 Cocos Creator 2.x 模块系统
+// Cocos Creator 2.x CommonJS 风格
 
-// 立即定义全局变量（确保在任何模块加载前可用）
-(function() {
-    if (typeof window !== 'undefined') {
-        window.defines = window.defines || {};
-        window.defines.serverUrl = "ws://localhost:1780/ws";
-    }
-})();
-
-const defines = {};
+var defines = {};
 
 // Go 后端 WebSocket 地址
 defines.serverUrl = "ws://localhost:1780/ws";
 
-// 是否开启音效
-const isopen_sound = 1;
-
-// 抢地主状态
-const qian_state = {
-    "buqiang": 0,
-    "qian": 1,
-};
+// 设置全局变量
+window.defines = defines;
 
 // 房间状态
-const RoomState = {
+var RoomState = {
     ROOM_INVALID: -1,
     ROOM_WAITREADY: 1,  // 等待游戏
     ROOM_GAMESTART: 2,  // 开始游戏
@@ -33,9 +19,17 @@ const RoomState = {
     ROOM_SHOWBOTTOMCARD: 5, // 显示底牌
     ROOM_PLAYING: 6,    // 出牌阶段
 };
+window.RoomState = RoomState;
+
+// 抢地主状态
+var qian_state = {
+    "buqiang": 0,
+    "qian": 1,
+};
+window.qian_state = qian_state;
 
 // 创建房间配置
-const createRoomConfig = {
+var createRoomConfig = {
     'rate_1': {
         needCostGold: 10,
         bottom: 1,
@@ -57,69 +51,28 @@ const createRoomConfig = {
         rate: 4
     }
 };
+window.createRoomConfig = createRoomConfig;
 
 // 牌型定义
-const CardsValue = {
-    'one': {
-        name: 'One',
-        value: 1
-    },
-    'double': {
-        name: 'Double',
-        value: 1
-    },
-    'three': {
-        name: 'Three',
-        value: 1
-    },
-    'boom': { // 炸弹
-        name: 'Boom',
-        value: 2
-    },
-    'threeWithOne': {
-        name: 'ThreeWithOne',
-        value: 1
-    },
-    'threeWithTwo': {
-        name: 'ThreeWithTwo',
-        value: 1
-    },
-    'plane': {
-        name: 'Plane',
-        value: 1
-    },
-    'planeWithOne': {
-        name: 'PlaneWithOne',
-        value: 1
-    },
-    'planeWithTwo': {
-        name: 'PlaneWithTwo',
-        value: 1
-    },
-    'scroll': { // 顺子
-        name: 'Scroll',
-        value: 1
-    },
-    'doubleScroll': { // 连队
-        name: 'DoubleScroll',
-        value: 1
-    },
-    'kingboom': { // 王炸
-        name: 'kingboom',
-        value: 3
-    },
+var CardsValue = {
+    'one': { name: 'One', value: 1 },
+    'double': { name: 'Double', value: 1 },
+    'three': { name: 'Three', value: 1 },
+    'boom': { name: 'Boom', value: 2 },
+    'threeWithOne': { name: 'ThreeWithOne', value: 1 },
+    'threeWithTwo': { name: 'ThreeWithTwo', value: 1 },
+    'plane': { name: 'Plane', value: 1 },
+    'planeWithOne': { name: 'PlaneWithOne', value: 1 },
+    'planeWithTwo': { name: 'PlaneWithTwo', value: 1 },
+    'scroll': { name: 'Scroll', value: 1 },
+    'doubleScroll': { name: 'DoubleScroll', value: 1 },
+    'kingboom': { name: 'kingboom', value: 3 },
 };
+window.CardsValue = CardsValue;
 
-// 导出模块 (Cocos Creator 2.x 兼容写法)
-if (typeof window !== 'undefined') {
-    window.defines = defines;
-    window.RoomState = RoomState;
-    window.qian_state = qian_state;
-    window.createRoomConfig = createRoomConfig;
-    window.CardsValue = CardsValue;
-    window.isopen_sound = isopen_sound;
-}
+// 音效开关
+var isopen_sound = 1;
+window.isopen_sound = isopen_sound;
 
-// ES6 模块导出
-export default defines;
-export { RoomState, qian_state, createRoomConfig, CardsValue, isopen_sound };
+// Cocos Creator 2.x CommonJS 导出
+module.exports = defines;

@@ -1,4 +1,5 @@
-import myglobal from "../../mygolbal.js"
+var myglobal = require("../../mygolbal.js")
+var RoomState = window.RoomState
 
 cc.Class({
     extends: cc.Component,

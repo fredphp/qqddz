@@ -1,4 +1,6 @@
-import myglobal from "../mygolbal.js"
+var myglobal = require("../mygolbal.js")
+var isopen_sound = window.isopen_sound || 1
+
 cc.Class({
     extends: cc.Component,
 

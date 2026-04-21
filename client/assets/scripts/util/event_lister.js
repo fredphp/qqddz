@@ -1,10 +1,12 @@
-const eventLister = function(obj){
+// 事件监听器 - Cocos Creator 2.x CommonJS 风格
+
+var eventLister = function(obj){
     var register = {}
 
-    obj.on = function(type,method){
+    obj.on = function(type, method){
         if(register.hasOwnProperty(type)){
             register[type].push(method)
-        }else{
+        } else {
             register[type] = [method]
         }
     }
@@ -12,17 +14,15 @@ const eventLister = function(obj){
     obj.fire = function(type){
         if(register.hasOwnProperty(type)) {
             var methodList = register[type]
-            for(var i=0;i<methodList.length;++i){
+            for(var i = 0; i < methodList.length; ++i){
                 var handle = methodList[i]
                 var args = []
-                for(var i = 1;i<arguments.length;++i){
-                    args.push(arguments[i])
+                for(var j = 1; j < arguments.length; ++j){
+                    args.push(arguments[j])
                 }
-
-                //handle.call(this,args)
-                console.log("handle.call(this,args) type:"+type)
-                handle.apply(this,args)
-            } 
+                console.log("event fire: " + type)
+                handle.apply(this, args)
+            }
         }
     }
 
@@ -37,4 +37,5 @@ const eventLister = function(obj){
     return obj
 }
 
-export default eventLister
+// Cocos Creator 2.x CommonJS 导出
+module.exports = eventLister;

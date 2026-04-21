@@ -1,4 +1,5 @@
-import myglobal from "../../mygolbal.js"
+var myglobal = require("../../mygolbal.js")
+var qian_state = window.qian_state || { buqiang: 0, qian: 1 }
 
 cc.Class({
     extends: cc.Component,

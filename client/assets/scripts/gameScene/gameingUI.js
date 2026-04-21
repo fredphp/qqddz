@@ -1,4 +1,7 @@
-import myglobal from "../../mygolbal.js"
+var myglobal = require("../../mygolbal.js")
+var isopen_sound = window.isopen_sound || 1
+var qian_state = window.qian_state || { buqiang: 0, qian: 1 }
+var CardsValue = window.CardsValue || {}
 
 cc.Class({
     extends: cc.Component,

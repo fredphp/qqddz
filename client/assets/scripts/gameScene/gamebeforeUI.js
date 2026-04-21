@@ -1,4 +1,4 @@
-import myglobal from "../../mygolbal.js"
+var myglobal = require("../../mygolbal.js")
 
 cc.Class({
     extends: cc.Component,

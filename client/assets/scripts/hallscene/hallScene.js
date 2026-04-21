@@ -1,4 +1,4 @@
-import myglobal from "./../mygolbal.js"
+var myglobal = require("./../mygolbal.js")
 
 cc.Class({
     extends: cc.Component, 
@@ -14,7 +14,7 @@ cc.Class({
     // LIFE-CYCLE CALLBACKS:
 
     onLoad () {
-       this.nickname_label = myglobal.playerData.nickName
+       this.nickname_label.string = myglobal.playerData.nickName
        this.gobal_count.string = ":" + myglobal.playerData.gobal_count
      },
 
