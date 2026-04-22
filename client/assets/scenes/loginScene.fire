@@ -90,6 +90,9 @@
         "__id__": 13
       },
       {
+        "__id__": 36
+      },
+      {
         "__id__": 17
       },
       {
@@ -382,15 +385,15 @@
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
-        -485,
+        -220,
         36,
         0,
         0,
         0,
         0,
         1,
-        0.8,
-        0.8,
+        0.7,
+        0.7,
         1
       ]
     }
@@ -552,15 +555,15 @@
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
-        -485,
-        111,
+        220,
+        36,
         0,
         0,
         0,
         0,
         1,
-        0.8,
-        0.8,
+        0.7,
+        0.7,
         1
       ]
     }
@@ -779,6 +782,9 @@
     "_components": [
       {
         "__id__": 18
+      },
+      {
+        "__id__": 35
       }
     ],
     "_prefab": null,
@@ -854,7 +860,14 @@
     "_isTrimmedMode": true,
     "_state": 0,
     "_atlas": null,
-    "_id": "ac29im6MZFVIpzST6kOxjt"
+    "_id": "ac29im6MZFVIpzST6kOxjt",
+    "target": {
+      "__id__": 2
+    },
+    "component": "",
+    "_componentId": "b05a6f20-48ea-415a-bf1d-76f4f4dc9a63",
+    "handler": "onButtonCilck",
+    "customEventData": "user_agreement"
   },
   {
     "__type__": "cc.Node",
@@ -1252,7 +1265,6 @@
     "loadimage_target": {
       "__id__": 23
     },
-
     "lblContent": {
       "__id__": 27
     },
@@ -1368,7 +1380,10 @@
     "user_agreement_prefabs": {
       "__uuid__": "c3d4e5f6-7890-abcd-ef12-3456789abcde"
     },
-    "_id": "4eHBTtC69KtIKDTJf4XvDD"
+    "_id": "4eHBTtC69KtIKDTJf4XvDD",
+    "agreement_toggle": {
+      "__id__": 35
+    }
   },
   {
     "__type__": "cc.Widget",
@@ -1395,5 +1410,193 @@
     "_isAbsVerticalCenter": true,
     "_originalWidth": 0,
     "_originalHeight": 0
+  },
+  {
+    "__type__": "cc.Toggle",
+    "_name": "",
+    "_objFlags": 0,
+    "node": {
+      "__id__": 17
+    },
+    "_enabled": true,
+    "checkMark": {
+      "__id__": 18
+    },
+    "checkEvents": [],
+    "_N$target": null,
+    "_id": ""
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "login_phone",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 2
+    },
+    "_children": [],
+    "_active": true,
+    "_level": 2,
+    "_components": [
+      {
+        "__id__": 37
+      },
+      {
+        "__id__": 38
+      }
+    ],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 208,
+      "height": 69
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_quat": {
+      "__type__": "cc.Quat",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "w": 1
+    },
+    "_skewX": 0,
+    "_skewY": 0,
+    "groupIndex": 0,
+    "_id": "",
+    "_trs": {
+      "__type__": "TypedArray",
+      "ctor": "Float64Array",
+      "array": [
+        0,
+        36,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0.7,
+        0.7,
+        1
+      ]
+    }
+  },
+  {
+    "__type__": "cc.Sprite",
+    "_name": "",
+    "_objFlags": 0,
+    "node": {
+      "__id__": 36
+    },
+    "_enabled": true,
+    "_srcBlendFactor": 770,
+    "_dstBlendFactor": 771,
+    "_spriteFrame": {
+      "__uuid__": "21464690-a416-4d5e-abed-a50668afea81"
+    },
+    "_type": 0,
+    "_sizeMode": 0,
+    "_fillType": 0,
+    "_fillCenter": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "_fillStart": 0,
+    "_fillRange": 0,
+    "_isTrimmedMode": true,
+    "_state": 0,
+    "_atlas": null,
+    "_id": ""
+  },
+  {
+    "__type__": "cc.Button",
+    "_name": "",
+    "_objFlags": 0,
+    "node": {
+      "__id__": 36
+    },
+    "_enabled": true,
+    "duration": 0.1,
+    "zoomScale": 1.1,
+    "clickEvents": [
+      {
+        "__id__": 39
+      }
+    ],
+    "_N$interactable": true,
+    "_N$enableAutoGrayEffect": false,
+    "_N$transition": 3,
+    "transition": 3,
+    "_N$normalColor": {
+      "__type__": "cc.Color",
+      "r": 214,
+      "g": 214,
+      "b": 214,
+      "a": 255
+    },
+    "_N$pressedColor": {
+      "__type__": "cc.Color",
+      "r": 211,
+      "g": 211,
+      "b": 211,
+      "a": 255
+    },
+    "pressedColor": {
+      "__type__": "cc.Color",
+      "r": 211,
+      "g": 211,
+      "b": 211,
+      "a": 255
+    },
+    "_N$hoverColor": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "hoverColor": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "_N$disabledColor": {
+      "__type__": "cc.Color",
+      "r": 124,
+      "g": 124,
+      "b": 124,
+      "a": 255
+    },
+    "_N$normalSprite": null,
+    "_N$pressedSprite": null,
+    "pressedSprite": null,
+    "_N$hoverSprite": null,
+    "hoverSprite": null,
+    "_N$disabledSprite": null,
+    "_N$target": null,
+    "_id": ""
+  },
+  {
+    "__type__": "cc.ClickEvent",
+    "target": {
+      "__id__": 2
+    },
+    "component": "",
+    "_componentId": "b05a6f20-48ea-415a-bf1d-76f4f4dc9a63",
+    "handler": "onButtonCilck",
+    "customEventData": "phone_login"
   }
 ]
