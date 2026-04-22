@@ -48,6 +48,9 @@ cc.Class({
         // 当前登录方式: 'wx' 或 'phone'
         this._loginType = 'wx';
         
+        // 修复复选框结构
+        this._fixCheckboxStructure();
+        
         // 确保 myglobal 存在
         if (typeof window.myglobal === 'undefined') {
             console.error("myglobal 未定义，尝试等待...");
@@ -56,6 +59,65 @@ cc.Class({
         }
         
         this._initAndStart();
+    },
+    
+    // 修复复选框结构
+    _fixCheckboxStructure: function() {
+        if (!this.agreement_toggle) {
+            console.log("agreement_toggle 未设置，尝试查找...");
+            // 尝试通过节点名查找
+            var checkMarkNode = this.node.getChildByName("check_mark");
+            if (checkMarkNode) {
+                this.agreement_toggle = checkMarkNode.getComponent(cc.Toggle);
+                console.log("找到 check_mark 节点，Toggle组件:", !!this.agreement_toggle);
+            }
+        }
+        
+        if (this.agreement_toggle && this.agreement_toggle.node) {
+            var toggleNode = this.agreement_toggle.node;
+            var sprite = toggleNode.getComponent(cc.Sprite);
+            
+            // 检查是否已经有子节点结构
+            if (toggleNode.children.length === 0 && sprite) {
+                console.log("修复复选框结构...");
+                
+                // 保存原始图片
+                var originalSpriteFrame = sprite.spriteFrame;
+                
+                // 创建一个新的子节点来显示勾
+                var checkIcon = new cc.Node("check_icon");
+                checkIcon.parent = toggleNode;
+                checkIcon.setPosition(0, 0);
+                
+                // 将勾的图片移到子节点
+                var checkSprite = checkIcon.addComponent(cc.Sprite);
+                checkSprite.spriteFrame = originalSpriteFrame;
+                checkSprite.sizeMode = cc.Sprite.SizeMode.RAW;
+                
+                // 设置子节点尺寸
+                checkIcon.width = originalSpriteFrame ? originalSpriteFrame.getOriginalSize().width : 40;
+                checkIcon.height = originalSpriteFrame ? originalSpriteFrame.getOriginalSize().height : 40;
+                
+                // 清除父节点的图片（作为透明背景）
+                sprite.spriteFrame = null;
+                sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+                
+                // 设置父节点作为边框背景
+                toggleNode.width = 50;
+                toggleNode.height = 50;
+                
+                // 添加一个简单的边框效果（使用颜色）
+                toggleNode.color = cc.Color.WHITE;
+                
+                // 更新Toggle的checkMark指向新的子节点Sprite
+                this.agreement_toggle.checkMark = checkSprite;
+                
+                // 初始状态：未勾选，隐藏勾图标
+                checkIcon.active = this.agreement_toggle.isChecked;
+                
+                console.log("复选框结构修复完成");
+            }
+        }
     },
     
     _waitForMyglobal: function() {
