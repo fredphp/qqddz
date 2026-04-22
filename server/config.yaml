@@ -20,7 +20,7 @@ api:
   port: 1781
   # 数据加密密钥（32字节用于AES-256，可通过 hex 编码或直接字符串）
   # 建议使用: openssl rand -hex 16 生成16字节随机数作为密钥
-  crypto_key: "qqddz2026gameaes256secretkey!"
+  crypto_key: "qqddz2026gameaes256secretkey123!"
   # 是否启用加密
   enable_crypto: true
 

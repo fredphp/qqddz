@@ -641,7 +641,7 @@ func (h *JSONHandler) SendJSON(client *Client, msgType string, data interface{},
                 return
         }
 
-        client.send <- msgBytes
+        client.send <- outgoingMessage{data: msgBytes, isJSON: true}
 }
 
 // SendJSONResult 发送带结果的 JSON 消息
@@ -665,5 +665,5 @@ func (h *JSONHandler) SendJSONResult(client *Client, msgType string, result int6
                 return
         }
 
-        client.send <- msgBytes
+        client.send <- outgoingMessage{data: msgBytes, isJSON: true}
 }

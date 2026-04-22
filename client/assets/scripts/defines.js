@@ -7,10 +7,10 @@ var defines = {};
 defines.serverUrl = "ws://localhost:1780/ws";
 
 // Go 后端 HTTP API 地址 (如果Go服务不可用，可使用Next.js API: "")
-defines.apiUrl = "";
+defines.apiUrl = "http://localhost:1781";
 
-// API 数据加密密钥（与服务端配置一致）
-defines.cryptoKey = "qqddz2026gameaes256secretkey!";
+// API 数据加密密钥（与服务端配置一致，必须是32字节）
+defines.cryptoKey = "qqddz2026gameaes256secretkey123!";
 
 // 设置全局变量
 window.defines = defines;
