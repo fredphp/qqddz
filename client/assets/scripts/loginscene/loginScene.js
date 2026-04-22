@@ -13,11 +13,6 @@ cc.Class({
             type: cc.Prefab,
             default: null
         },
-        // 复选框节点
-        agreement_toggle: {
-            type: cc.Toggle,
-            default: null
-        },
         // 手机号输入框
         phone_input: {
             type: cc.EditBox,
@@ -51,8 +46,8 @@ cc.Class({
         // 勾选状态
         this._isChecked = false;
         
-        // 初始化复选框
-        this._initCheckbox();
+        // 初始化复选框和用户协议
+        this._initAgreementArea();
         
         // 确保 myglobal 存在
         if (typeof window.myglobal === 'undefined') {
@@ -64,9 +59,19 @@ cc.Class({
         this._initAndStart();
     },
     
-    // 初始化复选框
-    _initCheckbox: function() {
-        var checkMarkNode = this.node.getChildByName("check_mark");
+    // 初始化协议区域（复选框和用户协议文字）
+    _initAgreementArea: function() {
+        console.log("初始化协议区域...");
+        
+        // 查找协议区域节点
+        var agreementArea = this.node.getChildByName("agreement_area");
+        if (!agreementArea) {
+            console.error("agreement_area 节点未找到");
+            return;
+        }
+        
+        // 查找复选框节点
+        var checkMarkNode = agreementArea.getChildByName("check_mark");
         if (!checkMarkNode) {
             console.error("check_mark 节点未找到");
             return;
@@ -75,12 +80,18 @@ cc.Class({
         console.log("找到 check_mark 节点");
         this._checkMarkNode = checkMarkNode;
         
-        // 移除 Toggle 组件（它导致了问题）
-        var toggle = checkMarkNode.getComponent(cc.Toggle);
-        if (toggle) {
-            toggle.destroy();
-            console.log("移除了 Toggle 组件");
+        // 获取 Sprite 组件并保存原始图片
+        var sprite = checkMarkNode.getComponent(cc.Sprite);
+        if (sprite && sprite.spriteFrame) {
+            this._checkSpriteFrame = sprite.spriteFrame;
+            console.log("保存了勾的图片");
         }
+        
+        // 创建边框背景
+        this._createCheckboxBackground(checkMarkNode);
+        
+        // 设置初始状态：未勾选，不显示勾
+        sprite.spriteFrame = null;
         
         // 添加 Button 组件用于点击
         var button = checkMarkNode.getComponent(cc.Button);
@@ -95,52 +106,67 @@ cc.Class({
         checkMarkNode.off(cc.Node.EventType.TOUCH_END);
         checkMarkNode.on(cc.Node.EventType.TOUCH_END, this._onCheckboxClick, this);
         
-        // 获取 Sprite 组件
-        var sprite = checkMarkNode.getComponent(cc.Sprite);
-        if (sprite && sprite.spriteFrame) {
-            // 保存原始图片（勾的图片）
-            this._checkSpriteFrame = sprite.spriteFrame;
-            console.log("保存了勾的图片");
+        // 查找用户协议文字节点并添加点击事件
+        var agreementLabel = agreementArea.getChildByName("agreement_label");
+        if (agreementLabel) {
+            console.log("找到 agreement_label 节点");
+            this._agreementLabelNode = agreementLabel;
+            
+            // 添加 Button 组件
+            var labelButton = agreementLabel.getComponent(cc.Button);
+            if (!labelButton) {
+                labelButton = agreementLabel.addComponent(cc.Button);
+            }
+            labelButton.transition = cc.Button.Transition.SCALE;
+            labelButton.duration = 0.1;
+            labelButton.zoomScale = 1.05;
+            
+            // 添加点击事件 - 点击文字显示用户协议
+            agreementLabel.off(cc.Node.EventType.TOUCH_END);
+            agreementLabel.on(cc.Node.EventType.TOUCH_END, this._onAgreementLabelClick, this);
         }
         
-        // 创建边框
-        this._createCheckboxBorder(checkMarkNode);
-        
-        // 设置初始状态：未勾选，不显示勾
-        this._updateCheckboxVisual();
-        
-        console.log("复选框初始化完成");
+        console.log("协议区域初始化完成");
     },
     
-    // 创建复选框边框
-    _createCheckboxBorder: function(node) {
-        // 设置节点大小
-        var boxSize = 55;
-        node.width = boxSize;
-        node.height = boxSize;
-        
+    // 创建复选框背景（边框）
+    _createCheckboxBackground: function(node) {
         // 添加 Graphics 组件绘制边框
         var graphics = node.getComponent(cc.Graphics);
         if (!graphics) {
             graphics = node.addComponent(cc.Graphics);
         }
         
-        // 绘制白色边框
+        // 绘制半透明背景
         graphics.clear();
+        graphics.fillColor = new cc.Color(0, 0, 0, 100);
+        graphics.rect(-20, -20, 40, 40);
+        graphics.fill();
+        
+        // 绘制白色边框
         graphics.strokeColor = cc.Color.WHITE;
         graphics.lineWidth = 2;
-        graphics.rect(-boxSize/2 + 2, -boxSize/2 + 2, boxSize - 4, boxSize - 4);
+        graphics.rect(-20, -20, 40, 40);
         graphics.stroke();
         
-        console.log("边框绘制完成");
+        console.log("复选框背景绘制完成");
     },
     
     // 复选框点击事件
     _onCheckboxClick: function(event) {
         console.log("复选框被点击");
+        event.stopPropagation();
+        
         this._isChecked = !this._isChecked;
         this._updateCheckboxVisual();
         console.log("勾选状态:", this._isChecked);
+    },
+    
+    // 用户协议文字点击事件
+    _onAgreementLabelClick: function(event) {
+        console.log("用户协议文字被点击");
+        event.stopPropagation();
+        this._showUserAgreement();
     },
     
     // 更新复选框视觉状态
@@ -152,7 +178,6 @@ cc.Class({
             if (this._isChecked) {
                 // 显示勾
                 sprite.spriteFrame = this._checkSpriteFrame;
-                sprite.sizeMode = cc.Sprite.SizeMode.RAW;
             } else {
                 // 隐藏勾
                 sprite.spriteFrame = null;
@@ -540,15 +565,42 @@ cc.Class({
     _showUserAgreement: function() {
         console.log("_showUserAgreement called");
         
+        var self = this;
+        
         if (this.user_agreement_prefabs) {
             console.log("Instantiating user agreement prefab");
-            var userAgreement_popup = cc.instantiate(this.user_agreement_prefabs);
-            userAgreement_popup.parent = this.node;
-            userAgreement_popup.zIndex = 100;
-            userAgreement_popup.setPosition(0, 0);
+            try {
+                var userAgreement_popup = cc.instantiate(this.user_agreement_prefabs);
+                userAgreement_popup.parent = this.node;
+                userAgreement_popup.zIndex = 100;
+                userAgreement_popup.setPosition(0, 0);
+                console.log("用户协议弹窗创建成功");
+            } catch (e) {
+                console.error("创建用户协议弹窗失败:", e);
+                self._showError("无法显示用户协议");
+            }
         } else {
-            console.error("用户协议prefab未设置");
-            this._showError("无法显示用户协议");
+            console.error("用户协议prefab未设置，尝试动态加载");
+            
+            // 尝试动态加载预制体
+            cc.resources.load("prefabs/user_agreement", cc.Prefab, function(err, prefab) {
+                if (err) {
+                    console.error("动态加载用户协议预制体失败:", err);
+                    self._showError("无法显示用户协议");
+                    return;
+                }
+                
+                try {
+                    var userAgreement_popup = cc.instantiate(prefab);
+                    userAgreement_popup.parent = self.node;
+                    userAgreement_popup.zIndex = 100;
+                    userAgreement_popup.setPosition(0, 0);
+                    console.log("用户协议弹窗动态加载成功");
+                } catch (e) {
+                    console.error("创建用户协议弹窗失败:", e);
+                    self._showError("无法显示用户协议");
+                }
+            });
         }
     },
     
