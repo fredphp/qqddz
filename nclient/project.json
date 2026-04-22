@@ -7,5 +7,6 @@
   "title": "NClient Game",
   "creator": {
     "version": "2.4.15"
-  }
+  },
+  "isNew": false
 }

@@ -17,10 +17,33 @@
         "__id__": 2
       }
     ],
+<<<<<<< Updated upstream
     "_active": false,
     "_level": 0,
     "_components": [],
     "_prefab": null,
+=======
+    "_activeObjects": [],
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_ContentSize": {
+      "__type__": "cc.Size",
+      "width": 0,
+      "height": 0
+    },
+    "_anchorX": 0.5,
+    "_anchorY": 0.5,
+    "_skewX": 0,
+    "_skewY": 0,
+    "_rotationX": 0,
+    "_rotationY": 0,
+    "_localZOrder": 0,
+    "_globalZOrder": 0,
+    "_opacityModifyRGB": false,
+>>>>>>> Stashed changes
     "_opacity": 255,
     "_color": {
       "__type__": "cc.Color",
@@ -29,6 +52,7 @@
       "b": 255,
       "a": 255
     },
+<<<<<<< Updated upstream
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 0,
@@ -49,6 +73,14 @@
     "groupIndex": 0,
     "autoReleaseAssets": false,
     "_id": "4e766df2-6e55-49e2-b48f-1943368ec005",
+=======
+    "_cascadeOpacityEnabled": true,
+    "_cascadeColorEnabled": true,
+    "_active": true,
+    "_components": [],
+    "_prefab": null,
+    "autoReleaseAssets": false,
+>>>>>>> Stashed changes
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
@@ -60,8 +92,13 @@
         0,
         0,
         1,
+<<<<<<< Updated upstream
         0.3694444444444442,
         0.3694444444444442,
+=======
+        1,
+        1,
+>>>>>>> Stashed changes
         1
       ]
     }
@@ -1162,6 +1199,7 @@
       "x": 0.5,
       "y": 0.5
     },
+<<<<<<< Updated upstream
     "_quat": {
       "__type__": "cc.Quat",
       "x": 0,
@@ -1173,12 +1211,21 @@
     "_skewY": 0,
     "groupIndex": 0,
     "_id": "b4bXJaKhhMaav5C6hciKFa",
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+>>>>>>> Stashed changes
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
+<<<<<<< Updated upstream
         -43,
         -252,
+=======
+        640,
+        360,
+>>>>>>> Stashed changes
         0,
         0,
         0,
@@ -1186,7 +1233,11 @@
         1,
         1,
         1,
+<<<<<<< Updated upstream
         1
+=======
+        null
+>>>>>>> Stashed changes
       ]
     }
   },
@@ -1345,6 +1396,7 @@
       "x": 0.5,
       "y": 0.5
     },
+<<<<<<< Updated upstream
     "_quat": {
       "__type__": "cc.Quat",
       "x": 0,
@@ -1356,12 +1408,20 @@
     "_skewY": 0,
     "groupIndex": 0,
     "_id": "8bxtfBQ3ZFLrHk3vuThLiP",
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+>>>>>>> Stashed changes
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
         0,
+<<<<<<< Updated upstream
         -21,
+=======
+        0,
+>>>>>>> Stashed changes
         0,
         0,
         0,
@@ -1369,6 +1429,7 @@
         1,
         1,
         1,
+<<<<<<< Updated upstream
         1
       ]
     }
@@ -1545,6 +1606,11 @@
     "_componentId": "fc5fb/F+y2/ixRvqwiLdYGJElVw",
     "handler": "onButtonClick",
     "customEventData": "btn_qiandz"
+=======
+        null
+      ]
+    }
+>>>>>>> Stashed changes
   },
   {
     "__type__": "cc.Node",
@@ -1930,6 +1996,7 @@
       "x": 0.5,
       "y": 0.5
     },
+<<<<<<< Updated upstream
     "_quat": {
       "__type__": "cc.Quat",
       "x": 0,
@@ -1941,12 +2008,21 @@
     "_skewY": 0,
     "groupIndex": 0,
     "_id": "5fkjkUBydM5o0RMAOg/KVP",
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+>>>>>>> Stashed changes
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
+<<<<<<< Updated upstream
         -27,
         316,
+=======
+        0,
+        280,
+>>>>>>> Stashed changes
         0,
         0,
         0,
@@ -1954,7 +2030,11 @@
         1,
         1,
         1,
+<<<<<<< Updated upstream
         1
+=======
+        null
+>>>>>>> Stashed changes
       ]
     }
   },
@@ -2001,6 +2081,7 @@
       "x": 0.5,
       "y": 0.5
     },
+<<<<<<< Updated upstream
     "_quat": {
       "__type__": "cc.Quat",
       "x": 0,
@@ -2012,12 +2093,20 @@
     "_skewY": 0,
     "groupIndex": 0,
     "_id": "2bsFE3qqtF77XFiG99GdKR",
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+>>>>>>> Stashed changes
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
         0,
+<<<<<<< Updated upstream
         59,
+=======
+        -280,
+>>>>>>> Stashed changes
         0,
         0,
         0,
@@ -2025,7 +2114,11 @@
         1,
         1,
         1,
+<<<<<<< Updated upstream
         1
+=======
+        null
+>>>>>>> Stashed changes
       ]
     }
   },
@@ -2770,6 +2863,7 @@
       "x": 0.5,
       "y": 0.5
     },
+<<<<<<< Updated upstream
     "_quat": {
       "__type__": "cc.Quat",
       "x": 0,
@@ -2781,12 +2875,21 @@
     "_skewY": 0,
     "groupIndex": 0,
     "_id": "cejTKEc9ZG/Y2n7UU2QFNx",
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+>>>>>>> Stashed changes
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
+<<<<<<< Updated upstream
         8,
         0,
+=======
+        0,
+        -50,
+>>>>>>> Stashed changes
         0,
         0,
         0,
@@ -2794,7 +2897,11 @@
         1,
         1,
         1,
+<<<<<<< Updated upstream
         1
+=======
+        null
+>>>>>>> Stashed changes
       ]
     }
   },
@@ -2835,6 +2942,7 @@
       "x": 0.5,
       "y": 0.5
     },
+<<<<<<< Updated upstream
     "_quat": {
       "__type__": "cc.Quat",
       "x": 0,
@@ -2846,12 +2954,21 @@
     "_skewY": 0,
     "groupIndex": 0,
     "_id": "124DMBkYhA3p8hAlwI7CGK",
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+>>>>>>> Stashed changes
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
+<<<<<<< Updated upstream
         0,
         0,
+=======
+        -620,
+        340,
+>>>>>>> Stashed changes
         0,
         0,
         0,
@@ -2859,6 +2976,7 @@
         1,
         1,
         1,
+<<<<<<< Updated upstream
         1
       ]
     }
@@ -2970,6 +3088,11 @@
     "_componentId": "34b69NLaWyt0iQRWxNM8zlNV/TA",
     "handler": "onButtonClick",
     "customEventData": "btn_ready"
+=======
+        null
+      ]
+    }
+>>>>>>> Stashed changes
   },
   {
     "__type__": "cc.Node",
@@ -3060,12 +3183,33 @@
       "x": 0,
       "y": 0
     },
+<<<<<<< Updated upstream
     "_fillStart": 0,
     "_fillRange": 0,
     "_isTrimmedMode": true,
     "_state": 0,
     "_atlas": null,
     "_id": "e7IVl7ygxN2rlkoaDwqI4Z"
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+    "_trs": {
+      "__type__": "TypedArray",
+      "ctor": "Float64Array",
+      "array": [
+        -500,
+        340,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        null
+      ]
+    }
+>>>>>>> Stashed changes
   },
   {
     "__type__": "cc.Button",
@@ -3103,14 +3247,295 @@
       "b": 211,
       "a": 255
     },
+<<<<<<< Updated upstream
     "_N$hoverColor": {
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+    "_trs": {
+      "__type__": "TypedArray",
+      "ctor": "Float64Array",
+      "array": [
+        0,
+        -180,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        null
+      ]
+    }
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "PlayCardsBtn",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 2
+    },
+    "_children": [],
+    "_active": false,
+    "_components": [
+      {
+        "__type__": "cc.Sprite",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 9
+        },
+        "_enabled": true,
+        "_type": 1,
+        "_sizeMode": 0,
+        "_fillType": 0,
+        "_fillCenter": {
+          "__type__": "cc.Vec2",
+          "x": 0,
+          "y": 0
+        },
+        "_fillStart": 0,
+        "_fillRange": 0,
+        "_isTrimmedMode": true,
+        "_srcBlendFactor": 770,
+        "_dstBlendFactor": 771,
+        "_atlas": null,
+        "_spriteFrame": null
+      },
+      {
+        "__type__": "cc.Label",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 9
+        },
+        "_enabled": true,
+        "_useOriginalSize": true,
+        "_string": "出牌",
+        "_horizontalAlign": 1,
+        "_verticalAlign": 1,
+        "_actualFontSize": 28,
+        "_fontSize": 28,
+        "_fontFamily": "Arial",
+        "_lineHeight": 36,
+        "_overflow": 0,
+        "_enableWrapText": true,
+        "_font": null,
+        "_isSystemFontUsed": true,
+        "_spacingX": 0,
+        "_isItalic": false,
+        "_isBold": false,
+        "_isUnderline": false,
+        "_underlineHeight": 2,
+        "_cacheMode": 0,
+        "_color": {
+          "__type__": "cc.Color",
+          "r": 255,
+          "g": 255,
+          "b": 255,
+          "a": 255
+        }
+      }
+    ],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+>>>>>>> Stashed changes
       "__type__": "cc.Color",
       "r": 255,
       "g": 255,
       "b": 255,
       "a": 255
     },
+<<<<<<< Updated upstream
     "hoverColor": {
+=======
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 100,
+      "height": 45
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_rotation": 0,
+    "_localZOrder": 0,
+    "_trs": {
+      "__type__": "TypedArray",
+      "ctor": "Float64Array",
+      "array": [
+        0,
+        -180,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        null
+      ]
+    }
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "PassBtn",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 2
+    },
+    "_children": [],
+    "_active": false,
+    "_components": [
+      {
+        "__type__": "cc.Sprite",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 10
+        },
+        "_enabled": true,
+        "_type": 1,
+        "_sizeMode": 0,
+        "_fillType": 0,
+        "_fillCenter": {
+          "__type__": "cc.Vec2",
+          "x": 0,
+          "y": 0
+        },
+        "_fillStart": 0,
+        "_fillRange": 0,
+        "_isTrimmedMode": true,
+        "_srcBlendFactor": 770,
+        "_dstBlendFactor": 771,
+        "_atlas": null,
+        "_spriteFrame": null
+      },
+      {
+        "__type__": "cc.Label",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 10
+        },
+        "_enabled": true,
+        "_useOriginalSize": true,
+        "_string": "不出",
+        "_horizontalAlign": 1,
+        "_verticalAlign": 1,
+        "_actualFontSize": 28,
+        "_fontSize": 28,
+        "_fontFamily": "Arial",
+        "_lineHeight": 36,
+        "_overflow": 0,
+        "_enableWrapText": true,
+        "_font": null,
+        "_isSystemFontUsed": true,
+        "_spacingX": 0,
+        "_isItalic": false,
+        "_isBold": false,
+        "_isUnderline": false,
+        "_underlineHeight": 2,
+        "_cacheMode": 0,
+        "_color": {
+          "__type__": "cc.Color",
+          "r": 255,
+          "g": 255,
+          "b": 255,
+          "a": 255
+        }
+      }
+    ],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 100,
+      "g": 100,
+      "b": 100,
+      "a": 255
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 100,
+      "height": 45
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_rotation": 0,
+    "_localZOrder": 0,
+    "_trs": {
+      "__type__": "TypedArray",
+      "ctor": "Float64Array",
+      "array": [
+        120,
+        -180,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        null
+      ]
+    }
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "BackToHallBtn",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 2
+    },
+    "_children": [],
+    "_active": true,
+    "_components": [
+      {
+        "__type__": "cc.Label",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 11
+        },
+        "_enabled": true,
+        "_useOriginalSize": true,
+        "_string": "返回大厅",
+        "_horizontalAlign": 1,
+        "_verticalAlign": 1,
+        "_actualFontSize": 20,
+        "_fontSize": 20,
+        "_fontFamily": "Arial",
+        "_lineHeight": 26,
+        "_overflow": 0,
+        "_enableWrapText": true,
+        "_font": null,
+        "_isSystemFontUsed": true,
+        "_spacingX": 0,
+        "_isItalic": false,
+        "_isBold": false,
+        "_isUnderline": false,
+        "_underlineHeight": 2,
+        "_cacheMode": 0,
+        "_color": {
+          "__type__": "cc.Color",
+          "r": 255,
+          "g": 200,
+          "b": 100,
+          "a": 255
+        }
+      }
+    ],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+>>>>>>> Stashed changes
       "__type__": "cc.Color",
       "r": 255,
       "g": 255,
@@ -3124,6 +3549,7 @@
       "b": 124,
       "a": 255
     },
+<<<<<<< Updated upstream
     "_N$normalSprite": null,
     "_N$pressedSprite": null,
     "pressedSprite": null,
@@ -3132,6 +3558,31 @@
     "_N$disabledSprite": null,
     "_N$target": null,
     "_id": "b0X33I9gdK4rAf8hkky4pu"
+=======
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 1,
+      "y": 0.5
+    },
+    "_rotation": 0,
+    "_localZOrder": 0,
+    "_trs": {
+      "__type__": "TypedArray",
+      "ctor": "Float64Array",
+      "array": [
+        620,
+        340,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        null
+      ]
+    }
+>>>>>>> Stashed changes
   },
   {
     "__type__": "cc.Button",
@@ -3194,6 +3645,7 @@
       "b": 124,
       "a": 255
     },
+<<<<<<< Updated upstream
     "_N$normalSprite": null,
     "_N$pressedSprite": null,
     "pressedSprite": null,
@@ -3202,6 +3654,26 @@
     "_N$disabledSprite": null,
     "_N$target": null,
     "_id": "28xvD4RXFCi7NxzEhFGgFf"
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+    "_trs": {
+      "__type__": "TypedArray",
+      "ctor": "Float64Array",
+      "array": [
+        -80,
+        -180,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        null
+      ]
+    }
+>>>>>>> Stashed changes
   },
   {
     "__type__": "cc.ClickEvent",
@@ -3227,7 +3699,33 @@
     "btn_gamestart": {
       "__id__": 62
     },
+<<<<<<< Updated upstream
     "_id": "44VcL1hSxDXbbM1FT56yfH"
+=======
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_rotation": 0,
+    "_localZOrder": 0,
+    "_trs": {
+      "__type__": "TypedArray",
+      "ctor": "Float64Array",
+      "array": [
+        80,
+        -180,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        null
+      ]
+    }
+>>>>>>> Stashed changes
   },
   {
     "__type__": "cc.Canvas",
