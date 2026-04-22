@@ -335,7 +335,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "login_wx",
+    "_name": "login_phone",
     "_objFlags": 0,
     "_parent": {
       "__id__": 2
@@ -362,8 +362,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 208,
-      "height": 69
+      "width": 250,
+      "height": 80
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -386,7 +386,7 @@
       "ctor": "Float64Array",
       "array": [
         -220,
-        -220,
+        -180,
         0,
         0,
         0,
@@ -504,7 +504,7 @@
     "component": "",
     "_componentId": "b05a6f20-48ea-415a-bf1d-76f4f4dc9a63",
     "handler": "onButtonCilck",
-    "customEventData": "wx_login"
+    "customEventData": "phone_login"
   },
   {
     "__type__": "cc.Node",
@@ -532,8 +532,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 208,
-      "height": 69
+      "width": 250,
+      "height": 80
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -556,7 +556,7 @@
       "ctor": "Float64Array",
       "array": [
         220,
-        -220,
+        -180,
         0,
         0,
         0,
@@ -785,9 +785,6 @@
       },
       {
         "__id__": 35
-      },
-      {
-        "__id__": 42
       }
     ],
     "_prefab": null,
@@ -863,14 +860,7 @@
     "_isTrimmedMode": true,
     "_state": 0,
     "_atlas": null,
-    "_id": "ac29im6MZFVIpzST6kOxjt",
-    "target": {
-      "__id__": 2
-    },
-    "component": "",
-    "_componentId": "b05a6f20-48ea-415a-bf1d-76f4f4dc9a63",
-    "handler": "onButtonCilck",
-    "customEventData": "user_agreement"
+    "_id": "ac29im6MZFVIpzST6kOxjt"
   },
   {
     "__type__": "cc.Node",
@@ -1438,7 +1428,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "login_phone",
+    "_name": "login_wx",
     "_objFlags": 0,
     "_parent": {
       "__id__": 2
@@ -1465,8 +1455,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 208,
-      "height": 69
+      "width": 250,
+      "height": 80
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -1489,7 +1479,7 @@
       "ctor": "Float64Array",
       "array": [
         0,
-        -220,
+        -180,
         0,
         0,
         0,
@@ -1607,7 +1597,7 @@
     "component": "",
     "_componentId": "b05a6f20-48ea-415a-bf1d-76f4f4dc9a63",
     "handler": "onButtonCilck",
-    "customEventData": "phone_login"
+    "customEventData": "wx_login"
   },
   {
     "__type__": "cc.ClickEvent",
@@ -1628,73 +1618,5 @@
     "_componentId": "b05a6f20-48ea-415a-bf1d-76f4f4dc9a63",
     "handler": "onButtonCilck",
     "customEventData": "user_agreement"
-  },
-  {
-    "__type__": "cc.Button",
-    "_name": "",
-    "_objFlags": 0,
-    "node": {
-      "__id__": 17
-    },
-    "_enabled": true,
-    "duration": 0.1,
-    "zoomScale": 1.1,
-    "clickEvents": [],
-    "_N$interactable": true,
-    "_N$enableAutoGrayEffect": false,
-    "_N$transition": 0,
-    "transition": 0,
-    "_N$normalColor": {
-      "__type__": "cc.Color",
-      "r": 255,
-      "g": 255,
-      "b": 255,
-      "a": 255
-    },
-    "_N$pressedColor": {
-      "__type__": "cc.Color",
-      "r": 255,
-      "g": 255,
-      "b": 255,
-      "a": 255
-    },
-    "pressedColor": {
-      "__type__": "cc.Color",
-      "r": 255,
-      "g": 255,
-      "b": 255,
-      "a": 255
-    },
-    "_N$hoverColor": {
-      "__type__": "cc.Color",
-      "r": 255,
-      "g": 255,
-      "b": 255,
-      "a": 255
-    },
-    "hoverColor": {
-      "__type__": "cc.Color",
-      "r": 255,
-      "g": 255,
-      "b": 255,
-      "a": 255
-    },
-    "_N$disabledColor": {
-      "__type__": "cc.Color",
-      "r": 255,
-      "g": 255,
-      "b": 255,
-      "a": 255
-    },
-    "_N$normalSprite": null,
-    "_N$pressedSprite": null,
-    "pressedSprite": null,
-    "_N$hoverSprite": null,
-    "hoverSprite": null,
-    "_N$disabledSprite": null,
-    "_N$target": {
-      "__id__": 17
-    },
-    "_id": ""
   }
 ]
