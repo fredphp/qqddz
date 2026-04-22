@@ -5,15 +5,30 @@ cc.Class({
 
     properties: {
         // 标题标签
-        title_label: cc.Label,
+        title_label: {
+            type: cc.Label,
+            default: null
+        },
         // 内容标签
-        content_label: cc.Label,
+        content_label: {
+            type: cc.Label,
+            default: null
+        },
         // 版本标签
-        version_label: cc.Label,
+        version_label: {
+            type: cc.Label,
+            default: null
+        },
         // 加载提示节点
-        loading_node: cc.Node,
+        loading_node: {
+            type: cc.Node,
+            default: null
+        },
         // 内容滚动视图
-        scroll_view: cc.ScrollView,
+        scroll_view: {
+            type: cc.ScrollView,
+            default: null
+        }
     },
 
     // LIFE-CYCLE CALLBACKS:

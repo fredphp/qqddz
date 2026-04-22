@@ -5,8 +5,14 @@ cc.Class({
     extends: cc.Component,
 
     properties: {
-       wait_node: cc.Node,
-       user_agreement_prefabs: cc.Prefab,
+        wait_node: {
+            type: cc.Node,
+            default: null
+        },
+        user_agreement_prefabs: {
+            type: cc.Prefab,
+            default: null
+        }
     },
 
     // LIFE-CYCLE CALLBACKS:
