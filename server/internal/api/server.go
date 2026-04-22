@@ -75,15 +75,15 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 // RegisterRoutes 注册路由
 func RegisterRoutes(mux *http.ServeMux, h *Handler) {
-        // 公开接口（不需要加密）
-        mux.HandleFunc("/api/v1/user-agreement/latest", h.agreement.GetLatest)
-        mux.HandleFunc("/api/v1/user-agreement/get", h.agreement.GetByID)
-        mux.HandleFunc("/api/v1/user-agreement/list", h.agreement.List)
+        // 公开接口（加密响应）
+        mux.HandleFunc("/api/v1/user-agreement/latest", h.EncryptMiddleware(h.agreement.GetLatest))
+        mux.HandleFunc("/api/v1/user-agreement/get", h.EncryptMiddleware(h.agreement.GetByID))
+        mux.HandleFunc("/api/v1/user-agreement/list", h.EncryptMiddleware(h.agreement.List))
 
-        // 内部接口（用于后台管理调用，刷新缓存）
+        // 内部接口（用于后台管理调用，刷新缓存，不加密）
         mux.HandleFunc("/api/internal/cache/refresh/user-agreement", h.agreement.RefreshCache)
 
-        // 健康检查
+        // 健康检查（不加密）
         mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
                 w.WriteHeader(http.StatusOK)
                 w.Write([]byte("OK"))

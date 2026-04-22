@@ -9,6 +9,7 @@ cc.Class({
         gobal_count:cc.Label,
         creatroom_prefabs:cc.Prefab,
         joinroom_prefabs:cc.Prefab,
+        user_agreement_prefabs:cc.Prefab,
     },
 
     // LIFE-CYCLE CALLBACKS:
@@ -40,6 +41,15 @@ cc.Class({
                 var join_Room = cc.instantiate(this.joinroom_prefabs)
                 join_Room.parent = this.node 
                 join_Room.zIndex = 100
+                break
+            case "user_agreement":
+                if (this.user_agreement_prefabs) {
+                    var userAgreement_popup = cc.instantiate(this.user_agreement_prefabs)
+                    userAgreement_popup.parent = this.node 
+                    userAgreement_popup.zIndex = 100
+                } else {
+                    console.error("用户协议prefab未设置")
+                }
                 break
             default:
                 break
