@@ -52,3 +52,26 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# Next.js project files (not needed for this project)
+/src/
+/db/
+/upload/
+/public/
+/prisma/
+/mini-services/
+/examples/
+/components.json
+/next.config.ts
+/next-env.d.ts
+/postcss.config.mjs
+/tailwind.config.ts
+/tsconfig.json
+/eslint.config.mjs
+/package.json
+/bun.lock
+/package-lock.json
+/yarn.lock
+/.env
+/deploy.sh
+/start.sh
