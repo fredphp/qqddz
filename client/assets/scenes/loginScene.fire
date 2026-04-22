@@ -620,7 +620,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "yonghuxieyi",
+    "_name": "agreement_label",
     "_objFlags": 0,
     "_parent": {
       "__id__": 2
@@ -646,20 +646,20 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 400,
-      "height": 43
+      "width": 280,
+      "height": 30
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
-      "x": 0.5,
+      "x": 0,
       "y": 0.5
     },
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
-        -15,
-        -279,
+        -75,
+        -277,
         0,
         0,
         0,
@@ -684,7 +684,7 @@
     "_id": "3cUBrPP6JHa5+nU+AB5ksc"
   },
   {
-    "__type__": "cc.Sprite",
+    "__type__": "cc.Label",
     "_name": "",
     "_objFlags": 0,
     "node": {
@@ -698,22 +698,20 @@
     ],
     "_srcBlendFactor": 770,
     "_dstBlendFactor": 771,
-    "_spriteFrame": {
-      "__uuid__": "0bd5b459-a49d-4a15-b42a-ce3b773fe735"
-    },
-    "_type": 0,
-    "_sizeMode": 0,
-    "_fillType": 0,
-    "_fillCenter": {
-      "__type__": "cc.Vec2",
-      "x": 0,
-      "y": 0
-    },
-    "_fillStart": 0,
-    "_fillRange": 0,
-    "_isTrimmedMode": true,
-    "_atlas": null,
-    "_id": "f5m0KqGOROya8WlrfHxeOD"
+    "_id": "f5m0KqGOROya8WlrfHxeOD",
+    "_string": "我已阅读并同意《用户协议》",
+    "_N$string": "我已阅读并同意《用户协议》",
+    "_fontSize": 20,
+    "_lineHeight": 30,
+    "_enableWrapText": false,
+    "_N$file": null,
+    "_isSystemFontUsed": true,
+    "_spacingX": 0,
+    "_N$horizontalAlign": 0,
+    "_N$verticalAlign": 1,
+    "_N$fontFamily": "Arial",
+    "_N$overflow": 0,
+    "_N$cacheMode": 0
   },
   {
     "__type__": "cc.Button",

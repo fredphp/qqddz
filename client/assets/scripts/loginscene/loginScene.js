@@ -51,8 +51,8 @@ cc.Class({
         // 勾选状态
         this._isChecked = false;
         
-        // 初始化复选框和用户协议
-        this._initAgreementArea();
+        // 初始化复选框
+        this._initCheckbox();
         
         // 确保 myglobal 存在
         if (typeof window.myglobal === 'undefined') {
@@ -64,19 +64,10 @@ cc.Class({
         this._initAndStart();
     },
     
-    // 初始化协议区域（复选框和用户协议文字）
-    _initAgreementArea: function() {
-        console.log("初始化协议区域...");
+    // 初始化复选框
+    _initCheckbox: function() {
+        console.log("初始化复选框...");
         
-        // 查找用户协议图片节点并禁用它
-        var yonghuxieyiNode = this.node.getChildByName("yonghuxieyi");
-        if (yonghuxieyiNode) {
-            // 禁用用户协议图片节点，防止遮挡复选框
-            yonghuxieyiNode.active = false;
-            console.log("已禁用用户协议图片节点");
-        }
-        
-        // 查找复选框节点
         var checkMarkNode = this.node.getChildByName("check_mark");
         if (!checkMarkNode) {
             console.error("check_mark 节点未找到");
@@ -86,7 +77,7 @@ cc.Class({
         console.log("找到 check_mark 节点");
         this._checkMarkNode = checkMarkNode;
         
-        // 移除 Toggle 组件（它导致问题）
+        // 移除 Toggle 组件（它导致了问题）
         var toggle = checkMarkNode.getComponent(cc.Toggle);
         if (toggle) {
             toggle.destroy();
@@ -100,8 +91,27 @@ cc.Class({
             console.log("保存了勾的图片");
         }
         
-        // 创建边框背景
-        this._createCheckboxBackground(checkMarkNode);
+        // 设置节点大小
+        checkMarkNode.width = 40;
+        checkMarkNode.height = 40;
+        
+        // 添加 Graphics 组件绘制边框
+        var graphics = checkMarkNode.getComponent(cc.Graphics);
+        if (!graphics) {
+            graphics = checkMarkNode.addComponent(cc.Graphics);
+        }
+        
+        // 绘制半透明背景
+        graphics.clear();
+        graphics.fillColor = new cc.Color(0, 0, 0, 120);
+        graphics.rect(-20, -20, 40, 40);
+        graphics.fill();
+        
+        // 绘制白色边框
+        graphics.strokeColor = cc.Color.WHITE;
+        graphics.lineWidth = 2;
+        graphics.rect(-20, -20, 40, 40);
+        graphics.stroke();
         
         // 设置初始状态：未勾选，不显示勾
         sprite.spriteFrame = null;
@@ -119,81 +129,13 @@ cc.Class({
         checkMarkNode.off(cc.Node.EventType.TOUCH_END);
         checkMarkNode.on(cc.Node.EventType.TOUCH_END, this._onCheckboxClick, this);
         
-        // 提高复选框的 zIndex，确保在最上层
+        // 设置高 zIndex 确保在最上层
         checkMarkNode.zIndex = 1000;
         
-        // 创建用户协议文字节点
-        this._createAgreementLabel();
+        // 设置 siblingIndex 确保在最后渲染
+        checkMarkNode.setSiblingIndex(999);
         
-        console.log("协议区域初始化完成");
-    },
-    
-    // 创建复选框背景（边框）
-    _createCheckboxBackground: function(node) {
-        // 设置节点大小
-        node.width = 40;
-        node.height = 40;
-        
-        // 添加 Graphics 组件绘制边框
-        var graphics = node.getComponent(cc.Graphics);
-        if (!graphics) {
-            graphics = node.addComponent(cc.Graphics);
-        }
-        
-        // 绘制半透明背景
-        graphics.clear();
-        graphics.fillColor = new cc.Color(0, 0, 0, 100);
-        graphics.rect(-20, -20, 40, 40);
-        graphics.fill();
-        
-        // 绘制白色边框
-        graphics.strokeColor = cc.Color.WHITE;
-        graphics.lineWidth = 2;
-        graphics.rect(-20, -20, 40, 40);
-        graphics.stroke();
-        
-        console.log("复选框背景绘制完成");
-    },
-    
-    // 创建用户协议文字节点
-    _createAgreementLabel: function() {
-        // 创建新的用户协议文字节点
-        var agreementLabel = new cc.Node("agreement_text");
-        agreementLabel.parent = this.node;
-        
-        // 设置位置（在复选框右边）
-        agreementLabel.setPosition(-130, -277, 0);
-        
-        // 添加 Label 组件
-        var label = agreementLabel.addComponent(cc.Label);
-        label.string = "我已阅读并同意《用户协议》";
-        label.fontSize = 20;
-        label.lineHeight = 30;
-        label.fontFamily = "Arial";
-        label.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
-        
-        // 设置白色文字
-        agreementLabel.color = cc.Color.WHITE;
-        
-        // 设置大小
-        agreementLabel.width = 280;
-        agreementLabel.height = 30;
-        agreementLabel.anchorX = 0;
-        agreementLabel.anchorY = 0.5;
-        
-        // 添加 Button 组件
-        var button = agreementLabel.addComponent(cc.Button);
-        button.transition = cc.Button.Transition.SCALE;
-        button.duration = 0.1;
-        button.zoomScale = 1.05;
-        
-        // 添加点击事件 - 点击文字显示用户协议
-        agreementLabel.on(cc.Node.EventType.TOUCH_END, this._onAgreementLabelClick, this);
-        
-        // 提高层级
-        agreementLabel.zIndex = 1000;
-        
-        console.log("用户协议文字节点创建完成");
+        console.log("复选框初始化完成");
     },
     
     // 复选框点击事件
@@ -206,13 +148,6 @@ cc.Class({
         console.log("勾选状态:", this._isChecked);
     },
     
-    // 用户协议文字点击事件
-    _onAgreementLabelClick: function(event) {
-        console.log("用户协议文字被点击");
-        event.stopPropagation();
-        this._showUserAgreement();
-    },
-    
     // 更新复选框视觉状态
     _updateCheckboxVisual: function() {
         if (!this._checkMarkNode) return;
@@ -222,6 +157,7 @@ cc.Class({
             if (this._isChecked) {
                 // 显示勾
                 sprite.spriteFrame = this._checkSpriteFrame;
+                sprite.sizeMode = cc.Sprite.SizeMode.RAW;
             } else {
                 // 隐藏勾
                 sprite.spriteFrame = null;
