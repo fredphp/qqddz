@@ -1,0 +1,21 @@
+package example
+
+import (
+        api "github.com/flipped-aurora/gin-vue-admin/server/api/v1"
+)
+
+type RouterGroup struct {
+        CustomerRouter
+
+        AttachmentCategoryRouter
+        FileUploadAndDownloadRouter
+        SysUserAgreementRouter
+}
+
+var (
+        exaCustomerApi = api.ApiGroupApp.ExampleApiGroup.CustomerApi
+
+        attachmentCategoryApi       = api.ApiGroupApp.ExampleApiGroup.AttachmentCategoryApi
+        exaFileUploadAndDownloadApi = api.ApiGroupApp.ExampleApiGroup.FileUploadAndDownloadApi
+        sysUserAgreementApi         = api.ApiGroupApp.ExampleApiGroup.SysUserAgreementApi
+)
