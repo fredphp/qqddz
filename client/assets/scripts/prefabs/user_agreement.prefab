@@ -893,19 +893,19 @@
     },
     "_enabled": true,
     "title_label": {
-      "__id__": 12
+      "__id__": 14
     },
     "content_label": {
-      "__id__": 19
+      "__id__": 20
     },
     "version_label": {
-      "__id__": 17
-    },
-    "loading_node": {
       "__id__": 18
     },
+    "loading_node": {
+      "__id__": 19
+    },
     "scroll_view": {
-      "__id__": 24
+      "__id__": 25
     },
     "_id": ""
   },
