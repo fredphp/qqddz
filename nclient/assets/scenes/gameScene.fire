@@ -1,0 +1,1168 @@
+[
+  {
+    "__type__": "cc.SceneAsset",
+    "_name": "gameScene",
+    "_objFlags": 0,
+    "_native": "",
+    "scene": {
+      "__id__": 1
+    }
+  },
+  {
+    "__type__": "cc.Scene",
+    "_name": "gameScene",
+    "_objFlags": 0,
+    "_parent": null,
+    "_children": [
+      {
+        "__id__": 2
+      }
+    ],
+    "_activeObjects": [],
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_ContentSize": {
+      "__type__": "cc.Size",
+      "width": 0,
+      "height": 0
+    },
+    "_anchorX": 0.5,
+    "_anchorY": 0.5,
+    "_scaleX": 1,
+    "_scaleY": 1,
+    "_position": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "_skewX": 0,
+    "_skewY": 0,
+    "_rotationX": 0,
+    "_rotationY": 0,
+    "_localZOrder": 0,
+    "_globalZOrder": 0,
+    "_opacityModifyRGB": false,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "_cascadeOpacityEnabled": true,
+    "_cascadeColorEnabled": true,
+    "_active": true,
+    "_components": [],
+    "_prefab": null,
+    "autoReleaseAssets": false
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "Canvas",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 1
+    },
+    "_children": [
+      {
+        "__id__": 3
+      },
+      {
+        "__id__": 4
+      },
+      {
+        "__id__": 5
+      },
+      {
+        "__id__": 6
+      },
+      {
+        "__id__": 7
+      },
+      {
+        "__id__": 8
+      },
+      {
+        "__id__": 9
+      },
+      {
+        "__id__": 10
+      },
+      {
+        "__id__": 11
+      },
+      {
+        "__id__": 12
+      },
+      {
+        "__id__": 13
+      }
+    ],
+    "_active": true,
+    "_components": [
+      {
+        "__id__": 14
+      },
+      {
+        "__id__": 15
+      },
+      {
+        "__id__": 16
+      }
+    ],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 1280,
+      "height": 720
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_position": {
+      "__type__": "cc.Vec2",
+      "x": 640,
+      "y": 360
+    },
+    "_scale": {
+      "__type__": "cc.Vec2",
+      "x": 1,
+      "y": 1
+    },
+    "_rotation": 0,
+    "_localZOrder": 0
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "TableBg",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 2
+    },
+    "_children": [],
+    "_active": true,
+    "_components": [
+      {
+        "__type__": "cc.Sprite",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 3
+        },
+        "_enabled": true,
+        "_type": 0,
+        "_sizeMode": 0,
+        "_fillType": 0,
+        "_fillCenter": {
+          "__type__": "cc.Vec2",
+          "x": 0,
+          "y": 0
+        },
+        "_fillStart": 0,
+        "_fillRange": 0,
+        "_isTrimmedMode": true,
+        "_srcBlendFactor": 770,
+        "_dstBlendFactor": 771,
+        "_atlas": null,
+        "_spriteFrame": null
+      }
+    ],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 34,
+      "g": 85,
+      "b": 51,
+      "a": 255
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 1280,
+      "height": 720
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_position": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "_scale": {
+      "__type__": "cc.Vec2",
+      "x": 1,
+      "y": 1
+    },
+    "_rotation": 0,
+    "_localZOrder": 0
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "BottomCardsNode",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 2
+    },
+    "_children": [],
+    "_active": true,
+    "_components": [],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 0,
+      "height": 0
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_position": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 280
+    },
+    "_scale": {
+      "__type__": "cc.Vec2",
+      "x": 1,
+      "y": 1
+    },
+    "_rotation": 0,
+    "_localZOrder": 0
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "MyCardsNode",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 2
+    },
+    "_children": [],
+    "_active": true,
+    "_components": [],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 0,
+      "height": 0
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_position": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": -280
+    },
+    "_scale": {
+      "__type__": "cc.Vec2",
+      "x": 1,
+      "y": 1
+    },
+    "_rotation": 0,
+    "_localZOrder": 0
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "PlayCardsNode",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 2
+    },
+    "_children": [],
+    "_active": true,
+    "_components": [],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 0,
+      "height": 0
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_position": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": -50
+    },
+    "_scale": {
+      "__type__": "cc.Vec2",
+      "x": 1,
+      "y": 1
+    },
+    "_rotation": 0,
+    "_localZOrder": 0
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "RoomIdLabel",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 2
+    },
+    "_children": [],
+    "_active": true,
+    "_components": [
+      {
+        "__type__": "cc.Label",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 6
+        },
+        "_enabled": true,
+        "_useOriginalSize": true,
+        "_string": "房间: 000000",
+        "_horizontalAlign": 1,
+        "_verticalAlign": 1,
+        "_actualFontSize": 20,
+        "_fontSize": 20,
+        "_fontFamily": "Arial",
+        "_lineHeight": 26,
+        "_overflow": 0,
+        "_enableWrapText": true,
+        "_font": null,
+        "_isSystemFontUsed": true,
+        "_spacingX": 0,
+        "_isItalic": false,
+        "_isBold": false,
+        "_isUnderline": false,
+        "_underlineHeight": 2,
+        "_cacheMode": 0,
+        "_color": {
+          "__type__": "cc.Color",
+          "r": 255,
+          "g": 255,
+          "b": 255,
+          "a": 255
+        }
+      }
+    ],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 114,
+      "height": 26
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0.5
+    },
+    "_position": {
+      "__type__": "cc.Vec2",
+      "x": -620,
+      "y": 340
+    },
+    "_scale": {
+      "__type__": "cc.Vec2",
+      "x": 1,
+      "y": 1
+    },
+    "_rotation": 0,
+    "_localZOrder": 0
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "MultipleLabel",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 2
+    },
+    "_children": [],
+    "_active": true,
+    "_components": [
+      {
+        "__type__": "cc.Label",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 7
+        },
+        "_enabled": true,
+        "_useOriginalSize": true,
+        "_string": "倍数: x1",
+        "_horizontalAlign": 1,
+        "_verticalAlign": 1,
+        "_actualFontSize": 20,
+        "_fontSize": 20,
+        "_fontFamily": "Arial",
+        "_lineHeight": 26,
+        "_overflow": 0,
+        "_enableWrapText": true,
+        "_font": null,
+        "_isSystemFontUsed": true,
+        "_spacingX": 0,
+        "_isItalic": false,
+        "_isBold": false,
+        "_isUnderline": false,
+        "_underlineHeight": 2,
+        "_cacheMode": 0,
+        "_color": {
+          "__type__": "cc.Color",
+          "r": 255,
+          "g": 255,
+          "b": 255,
+          "a": 255
+        }
+      }
+    ],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 90,
+      "height": 26
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0.5
+    },
+    "_position": {
+      "__type__": "cc.Vec2",
+      "x": -500,
+      "y": 340
+    },
+    "_scale": {
+      "__type__": "cc.Vec2",
+      "x": 1,
+      "y": 1
+    },
+    "_rotation": 0,
+    "_localZOrder": 0
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "ReadyBtn",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 2
+    },
+    "_children": [],
+    "_active": true,
+    "_components": [
+      {
+        "__type__": "cc.Sprite",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 8
+        },
+        "_enabled": true,
+        "_type": 1,
+        "_sizeMode": 0,
+        "_fillType": 0,
+        "_fillCenter": {
+          "__type__": "cc.Vec2",
+          "x": 0,
+          "y": 0
+        },
+        "_fillStart": 0,
+        "_fillRange": 0,
+        "_isTrimmedMode": true,
+        "_srcBlendFactor": 770,
+        "_dstBlendFactor": 771,
+        "_atlas": null,
+        "_spriteFrame": null
+      },
+      {
+        "__type__": "cc.Label",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 8
+        },
+        "_enabled": true,
+        "_useOriginalSize": true,
+        "_string": "准备",
+        "_horizontalAlign": 1,
+        "_verticalAlign": 1,
+        "_actualFontSize": 28,
+        "_fontSize": 28,
+        "_fontFamily": "Arial",
+        "_lineHeight": 36,
+        "_overflow": 0,
+        "_enableWrapText": true,
+        "_font": null,
+        "_isSystemFontUsed": true,
+        "_spacingX": 0,
+        "_isItalic": false,
+        "_isBold": false,
+        "_isUnderline": false,
+        "_underlineHeight": 2,
+        "_cacheMode": 0,
+        "_color": {
+          "__type__": "cc.Color",
+          "r": 255,
+          "g": 255,
+          "b": 255,
+          "a": 255
+        }
+      }
+    ],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 0,
+      "g": 180,
+      "b": 100,
+      "a": 255
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 120,
+      "height": 50
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_position": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": -180
+    },
+    "_scale": {
+      "__type__": "cc.Vec2",
+      "x": 1,
+      "y": 1
+    },
+    "_rotation": 0,
+    "_localZOrder": 0
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "PlayCardsBtn",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 2
+    },
+    "_children": [],
+    "_active": false,
+    "_components": [
+      {
+        "__type__": "cc.Sprite",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 9
+        },
+        "_enabled": true,
+        "_type": 1,
+        "_sizeMode": 0,
+        "_fillType": 0,
+        "_fillCenter": {
+          "__type__": "cc.Vec2",
+          "x": 0,
+          "y": 0
+        },
+        "_fillStart": 0,
+        "_fillRange": 0,
+        "_isTrimmedMode": true,
+        "_srcBlendFactor": 770,
+        "_dstBlendFactor": 771,
+        "_atlas": null,
+        "_spriteFrame": null
+      },
+      {
+        "__type__": "cc.Label",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 9
+        },
+        "_enabled": true,
+        "_useOriginalSize": true,
+        "_string": "出牌",
+        "_horizontalAlign": 1,
+        "_verticalAlign": 1,
+        "_actualFontSize": 28,
+        "_fontSize": 28,
+        "_fontFamily": "Arial",
+        "_lineHeight": 36,
+        "_overflow": 0,
+        "_enableWrapText": true,
+        "_font": null,
+        "_isSystemFontUsed": true,
+        "_spacingX": 0,
+        "_isItalic": false,
+        "_isBold": false,
+        "_isUnderline": false,
+        "_underlineHeight": 2,
+        "_cacheMode": 0,
+        "_color": {
+          "__type__": "cc.Color",
+          "r": 255,
+          "g": 255,
+          "b": 255,
+          "a": 255
+        }
+      }
+    ],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 100,
+      "b": 0,
+      "a": 255
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 100,
+      "height": 45
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_position": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": -180
+    },
+    "_scale": {
+      "__type__": "cc.Vec2",
+      "x": 1,
+      "y": 1
+    },
+    "_rotation": 0,
+    "_localZOrder": 0
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "PassBtn",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 2
+    },
+    "_children": [],
+    "_active": false,
+    "_components": [
+      {
+        "__type__": "cc.Sprite",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 10
+        },
+        "_enabled": true,
+        "_type": 1,
+        "_sizeMode": 0,
+        "_fillType": 0,
+        "_fillCenter": {
+          "__type__": "cc.Vec2",
+          "x": 0,
+          "y": 0
+        },
+        "_fillStart": 0,
+        "_fillRange": 0,
+        "_isTrimmedMode": true,
+        "_srcBlendFactor": 770,
+        "_dstBlendFactor": 771,
+        "_atlas": null,
+        "_spriteFrame": null
+      },
+      {
+        "__type__": "cc.Label",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 10
+        },
+        "_enabled": true,
+        "_useOriginalSize": true,
+        "_string": "不出",
+        "_horizontalAlign": 1,
+        "_verticalAlign": 1,
+        "_actualFontSize": 28,
+        "_fontSize": 28,
+        "_fontFamily": "Arial",
+        "_lineHeight": 36,
+        "_overflow": 0,
+        "_enableWrapText": true,
+        "_font": null,
+        "_isSystemFontUsed": true,
+        "_spacingX": 0,
+        "_isItalic": false,
+        "_isBold": false,
+        "_isUnderline": false,
+        "_underlineHeight": 2,
+        "_cacheMode": 0,
+        "_color": {
+          "__type__": "cc.Color",
+          "r": 255,
+          "g": 255,
+          "b": 255,
+          "a": 255
+        }
+      }
+    ],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 100,
+      "g": 100,
+      "b": 100,
+      "a": 255
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 100,
+      "height": 45
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_position": {
+      "__type__": "cc.Vec2",
+      "x": 120,
+      "y": -180
+    },
+    "_scale": {
+      "__type__": "cc.Vec2",
+      "x": 1,
+      "y": 1
+    },
+    "_rotation": 0,
+    "_localZOrder": 0
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "BackToHallBtn",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 2
+    },
+    "_children": [],
+    "_active": true,
+    "_components": [
+      {
+        "__type__": "cc.Label",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 11
+        },
+        "_enabled": true,
+        "_useOriginalSize": true,
+        "_string": "返回大厅",
+        "_horizontalAlign": 1,
+        "_verticalAlign": 1,
+        "_actualFontSize": 20,
+        "_fontSize": 20,
+        "_fontFamily": "Arial",
+        "_lineHeight": 26,
+        "_overflow": 0,
+        "_enableWrapText": true,
+        "_font": null,
+        "_isSystemFontUsed": true,
+        "_spacingX": 0,
+        "_isItalic": false,
+        "_isBold": false,
+        "_isUnderline": false,
+        "_underlineHeight": 2,
+        "_cacheMode": 0,
+        "_color": {
+          "__type__": "cc.Color",
+          "r": 255,
+          "g": 200,
+          "b": 100,
+          "a": 255
+        }
+      }
+    ],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 200,
+      "b": 100,
+      "a": 255
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 80,
+      "height": 26
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 1,
+      "y": 0.5
+    },
+    "_position": {
+      "__type__": "cc.Vec2",
+      "x": 620,
+      "y": 340
+    },
+    "_scale": {
+      "__type__": "cc.Vec2",
+      "x": 1,
+      "y": 1
+    },
+    "_rotation": 0,
+    "_localZOrder": 0
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "CallLandlordBtn",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 2
+    },
+    "_children": [],
+    "_active": false,
+    "_components": [
+      {
+        "__type__": "cc.Sprite",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 12
+        },
+        "_enabled": true,
+        "_type": 1,
+        "_sizeMode": 0,
+        "_fillType": 0,
+        "_fillCenter": {
+          "__type__": "cc.Vec2",
+          "x": 0,
+          "y": 0
+        },
+        "_fillStart": 0,
+        "_fillRange": 0,
+        "_isTrimmedMode": true,
+        "_srcBlendFactor": 770,
+        "_dstBlendFactor": 771,
+        "_atlas": null,
+        "_spriteFrame": null
+      },
+      {
+        "__type__": "cc.Label",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 12
+        },
+        "_enabled": true,
+        "_useOriginalSize": true,
+        "_string": "叫地主",
+        "_horizontalAlign": 1,
+        "_verticalAlign": 1,
+        "_actualFontSize": 28,
+        "_fontSize": 28,
+        "_fontFamily": "Arial",
+        "_lineHeight": 36,
+        "_overflow": 0,
+        "_enableWrapText": true,
+        "_font": null,
+        "_isSystemFontUsed": true,
+        "_spacingX": 0,
+        "_isItalic": false,
+        "_isBold": false,
+        "_isUnderline": false,
+        "_underlineHeight": 2,
+        "_cacheMode": 0,
+        "_color": {
+          "__type__": "cc.Color",
+          "r": 255,
+          "g": 255,
+          "b": 255,
+          "a": 255
+        }
+      }
+    ],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 150,
+      "b": 0,
+      "a": 255
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 120,
+      "height": 50
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_position": {
+      "__type__": "cc.Vec2",
+      "x": -80,
+      "y": -180
+    },
+    "_scale": {
+      "__type__": "cc.Vec2",
+      "x": 1,
+      "y": 1
+    },
+    "_rotation": 0,
+    "_localZOrder": 0
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "NoCallBtn",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 2
+    },
+    "_children": [],
+    "_active": false,
+    "_components": [
+      {
+        "__type__": "cc.Sprite",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 13
+        },
+        "_enabled": true,
+        "_type": 1,
+        "_sizeMode": 0,
+        "_fillType": 0,
+        "_fillCenter": {
+          "__type__": "cc.Vec2",
+          "x": 0,
+          "y": 0
+        },
+        "_fillStart": 0,
+        "_fillRange": 0,
+        "_isTrimmedMode": true,
+        "_srcBlendFactor": 770,
+        "_dstBlendFactor": 771,
+        "_atlas": null,
+        "_spriteFrame": null
+      },
+      {
+        "__type__": "cc.Label",
+        "_name": "",
+        "_objFlags": 0,
+        "node": {
+          "__id__": 13
+        },
+        "_enabled": true,
+        "_useOriginalSize": true,
+        "_string": "不叫",
+        "_horizontalAlign": 1,
+        "_verticalAlign": 1,
+        "_actualFontSize": 28,
+        "_fontSize": 28,
+        "_fontFamily": "Arial",
+        "_lineHeight": 36,
+        "_overflow": 0,
+        "_enableWrapText": true,
+        "_font": null,
+        "_isSystemFontUsed": true,
+        "_spacingX": 0,
+        "_isItalic": false,
+        "_isBold": false,
+        "_isUnderline": false,
+        "_underlineHeight": 2,
+        "_cacheMode": 0,
+        "_color": {
+          "__type__": "cc.Color",
+          "r": 255,
+          "g": 255,
+          "b": 255,
+          "a": 255
+        }
+      }
+    ],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 100,
+      "g": 100,
+      "b": 100,
+      "a": 255
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 100,
+      "height": 50
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_position": {
+      "__type__": "cc.Vec2",
+      "x": 80,
+      "y": -180
+    },
+    "_scale": {
+      "__type__": "cc.Vec2",
+      "x": 1,
+      "y": 1
+    },
+    "_rotation": 0,
+    "_localZOrder": 0
+  },
+  {
+    "__type__": "cc.Canvas",
+    "_name": "",
+    "_objFlags": 0,
+    "node": {
+      "__id__": 2
+    },
+    "_enabled": true,
+    "_designResolution": {
+      "__type__": "cc.Size",
+      "width": 1280,
+      "height": 720
+    },
+    "_fitWidth": false,
+    "_fitHeight": true
+  },
+  {
+    "__type__": "cc.Widget",
+    "_name": "",
+    "_objFlags": 0,
+    "node": {
+      "__id__": 2
+    },
+    "_enabled": true,
+    "alignMode": 1,
+    "_target": null,
+    "_alignFlags": 45,
+    "_left": 0,
+    "_right": 0,
+    "_top": 0,
+    "_bottom": 0,
+    "_isAbsLeft": true,
+    "_isAbsRight": true,
+    "_isAbsTop": true,
+    "_isAbsBottom": true
+  },
+  {
+    "__type__": "c8e5csQRQhLw6pVrqKBAYV7",
+    "_name": "",
+    "_objFlags": 0,
+    "node": {
+      "__id__": 2
+    },
+    "_enabled": true,
+    "tableBg": {
+      "__id__": 3
+    },
+    "playerNodes": [],
+    "bottomCardsNode": {
+      "__id__": 4
+    },
+    "myCardsNode": {
+      "__id__": 5
+    },
+    "playCardsNode": {
+      "__id__": 6
+    },
+    "operationNode": null,
+    "callLandlordBtn": {
+      "__id__": 12
+    },
+    "noCallBtn": {
+      "__id__": 13
+    },
+    "grabLandlordBtn": null,
+    "noGrabBtn": null,
+    "playCardsBtn": {
+      "__id__": 9
+    },
+    "passBtn": {
+      "__id__": 10
+    },
+    "hintBtn": null,
+    "readyBtn": {
+      "__id__": 8
+    },
+    "backToHallBtn": {
+      "__id__": 11
+    },
+    "roomInfoNode": null,
+    "roomIdLabel": {
+      "__id__": 7
+    },
+    "multipleLabel": {
+      "__id__": 8
+    },
+    "cardPrefab": null,
+    "playerInfoPrefab": null,
+    "resultPrefab": null
+  }
+]

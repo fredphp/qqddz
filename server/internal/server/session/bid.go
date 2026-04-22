@@ -1,109 +1,124 @@
 package session
 
 import (
-	"math/rand/v2"
-	"sort"
+        "math/rand/v2"
+        "sort"
 
-	"github.com/palemoky/fight-the-landlord/internal/apperrors"
-	"github.com/palemoky/fight-the-landlord/internal/protocol"
-	"github.com/palemoky/fight-the-landlord/internal/protocol/codec"
-	"github.com/palemoky/fight-the-landlord/internal/protocol/convert"
+        "github.com/palemoky/fight-the-landlord/internal/apperrors"
+        "github.com/palemoky/fight-the-landlord/internal/game/database"
+        "github.com/palemoky/fight-the-landlord/internal/protocol"
+        "github.com/palemoky/fight-the-landlord/internal/protocol/codec"
+        "github.com/palemoky/fight-the-landlord/internal/protocol/convert"
 )
 
 // HandleBid 处理叫地主
 func (gs *GameSession) HandleBid(playerID string, bid bool) error {
-	gs.mu.Lock()
-	defer gs.mu.Unlock()
+        gs.mu.Lock()
+        defer gs.mu.Unlock()
 
-	if gs.state != GameStateBidding {
-		return apperrors.ErrGameNotStart
-	}
+        if gs.state != GameStateBidding {
+                return apperrors.ErrGameNotStart
+        }
 
-	currentPlayer := gs.players[gs.currentBidder]
-	if currentPlayer.ID != playerID {
-		return apperrors.ErrNotYourTurn
-	}
+        currentPlayer := gs.players[gs.currentBidder]
+        if currentPlayer.ID != playerID {
+                return apperrors.ErrNotYourTurn
+        }
 
-	// 取消超时计时器
-	gs.stopTimer()
+        // 取消超时计时器
+        gs.stopTimer()
 
-	gs.bidCount++
+        gs.bidCount++
 
-	// 广播叫地主结果
-	gs.room.Broadcast(codec.MustNewMessage(protocol.MsgBidResult, protocol.BidResultPayload{
-		PlayerID:   playerID,
-		PlayerName: currentPlayer.Name,
-		Bid:        bid,
-	}))
+        // 确定叫地主类型
+        bidType := database.BidTypePass // 0-不叫
+        if bid {
+                bidType = database.BidTypeCall // 1-叫地主
+        }
 
-	if bid {
-		gs.highestBidder = gs.currentBidder
-		// 确定地主
-		gs.setLandlord(gs.currentBidder)
-		return nil
-	}
+        // 广播叫地主结果
+        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgBidResult, protocol.BidResultPayload{
+                PlayerID:   playerID,
+                PlayerName: currentPlayer.Name,
+                Bid:        bid,
+        }))
 
-	// 下一个玩家叫地主
-	gs.currentBidder = (gs.currentBidder + 1) % 3
+        if bid {
+                gs.highestBidder = gs.currentBidder
+                // 记录叫地主日志（成功成为地主）
+                gs.gameLogger.RecordBidLog(playerID, gs.bidCount, bidType, 1, 1)
+                // 确定地主
+                gs.setLandlord(gs.currentBidder)
+                return nil
+        }
 
-	// 如果轮了一圈都没人叫，随机指定地主
-	if gs.bidCount >= 3 {
-		if gs.highestBidder == -1 {
-			gs.highestBidder = rand.IntN(3)
-		}
-		gs.setLandlord(gs.highestBidder)
-		return nil
-	}
+        // 记录叫地主日志（不叫）
+        gs.gameLogger.RecordBidLog(playerID, gs.bidCount, bidType, 0, 0)
 
-	// 通知下一个玩家叫地主
-	gs.notifyBidTurn()
-	return nil
+        // 下一个玩家叫地主
+        gs.currentBidder = (gs.currentBidder + 1) % 3
+
+        // 如果轮了一圈都没人叫，随机指定地主
+        if gs.bidCount >= 3 {
+                if gs.highestBidder == -1 {
+                        gs.highestBidder = rand.IntN(3)
+                }
+                gs.setLandlord(gs.highestBidder)
+                return nil
+        }
+
+        // 通知下一个玩家叫地主
+        gs.notifyBidTurn()
+        return nil
 }
 
 // setLandlord 设置地主
 func (gs *GameSession) setLandlord(idx int) {
-	landlord := gs.players[idx]
-	landlord.IsLandlord = true
+        landlord := gs.players[idx]
+        landlord.IsLandlord = true
 
-	// 底牌给地主
-	landlord.Hand = append(landlord.Hand, gs.bottomCards...)
-	sort.Slice(landlord.Hand, func(i, j int) bool {
-		return landlord.Hand[i].Rank > landlord.Hand[j].Rank
-	})
+        // 底牌给地主
+        landlord.Hand = append(landlord.Hand, gs.bottomCards...)
+        sort.Slice(landlord.Hand, func(i, j int) bool {
+                return landlord.Hand[i].Rank > landlord.Hand[j].Rank
+        })
 
-	// 更新房间玩家状态
-	gs.room.Players[landlord.ID].IsLandlord = true
+        // 更新房间玩家状态
+        gs.room.Players[landlord.ID].IsLandlord = true
 
-	// 广播地主信息
-	gs.room.Broadcast(codec.MustNewMessage(protocol.MsgLandlord, protocol.LandlordPayload{
-		PlayerID:    landlord.ID,
-		PlayerName:  landlord.Name,
-		BottomCards: convert.CardsToInfos(gs.bottomCards),
-	}))
+        // 广播地主信息
+        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgLandlord, protocol.LandlordPayload{
+                PlayerID:    landlord.ID,
+                PlayerName:  landlord.Name,
+                BottomCards: convert.CardsToInfos(gs.bottomCards),
+        }))
 
-	// 给地主发送更新后的手牌
-	rp := gs.room.Players[landlord.ID]
-	client := rp.Client
-	client.SendMessage(codec.MustNewMessage(protocol.MsgDealCards, protocol.DealCardsPayload{
-		Cards:       convert.CardsToInfos(landlord.Hand),
-		BottomCards: convert.CardsToInfos(gs.bottomCards),
-	}))
+        // 给地主发送更新后的手牌
+        rp := gs.room.Players[landlord.ID]
+        client := rp.Client
+        client.SendMessage(codec.MustNewMessage(protocol.MsgDealCards, protocol.DealCardsPayload{
+                Cards:       convert.CardsToInfos(landlord.Hand),
+                BottomCards: convert.CardsToInfos(gs.bottomCards),
+        }))
 
-	// 开始游戏，地主先出牌
-	gs.state = GameStatePlaying
-	gs.room.State = RoomStatePlaying
-	gs.currentPlayer = idx
-	gs.lastPlayerIdx = idx
+        // 开始游戏，地主先出牌
+        gs.state = GameStatePlaying
+        gs.room.State = RoomStatePlaying
+        gs.currentPlayer = idx
+        gs.lastPlayerIdx = idx
 
-	gs.notifyPlayTurn()
+        // 开始第一回合
+        gs.gameLogger.StartNewRound()
+
+        gs.notifyPlayTurn()
 }
 
 // notifyBidTurn 通知当前玩家叫地主
 func (gs *GameSession) notifyBidTurn() {
-	player := gs.players[gs.currentBidder]
-	gs.room.Broadcast(codec.MustNewMessage(protocol.MsgBidTurn, protocol.BidTurnPayload{
-		PlayerID: player.ID,
-		Timeout:  gs.gameConfig.BidTimeout,
-	}))
-	gs.startBidTimer()
+        player := gs.players[gs.currentBidder]
+        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgBidTurn, protocol.BidTurnPayload{
+                PlayerID: player.ID,
+                Timeout:  gs.gameConfig.BidTimeout,
+        }))
+        gs.startBidTimer()
 }

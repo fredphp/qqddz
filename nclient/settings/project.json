@@ -1,0 +1,17 @@
+{
+  "engine": "cocos-creator-js",
+  "packages": "packages",
+  "version": "2.4.15",
+  "id": "nclient",
+  "name": "NClient",
+  "title": "NClient Game",
+  "creator": {
+    "version": "2.4.15"
+  },
+  "design-resolution-width": 1280,
+  "design-resolution-height": 720,
+  "fit-width": false,
+  "fit-height": true,
+  "use-project": true,
+  "start-scene": "current"
+}

@@ -1,7 +1,7 @@
-# 斗地主项目 .gitignore
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# 依赖
-node_modules/
+# dependencies
+node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -10,68 +10,45 @@ node_modules/
 !.yarn/releases
 !.yarn/versions
 
-# 测试
+# testing
 /coverage
 
-# 构建输出
-.next/
-out/
-build/
-dist/
+# next.js
+/.next/
+/out/
 
-# 上传文件
-upload/
+# production
+/build
 
-# 日志
-*.log
+# misc
+.DS_Store
+*.pem
+
+# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-dev.log
-dev.out.log
-server.log
 
-# 环境配置
-.env
+# env files (can opt-in for committing if needed)
 .env*
-.env.local
-.env.*.local
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# 系统文件
-.DS_Store
-Thumbs.db
-*.pem
-
-# Cocos Creator 编译缓存
-library/
-temp/
-local/
-local-*
-
-# Go 编译产物
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
 
 # vercel
 .vercel
 
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# Skills directory
-/skills/
+local-*
 .claude
 .z-ai-config
+*.log
+dev.log
+dev.out.log
 test
 prompt
+
+server.log
+# Skills directory
+/skills/

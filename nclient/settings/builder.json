@@ -1,0 +1,100 @@
+{
+  "appVersion": "1.0.0",
+  "appKey": "",
+  "appBundleUrl": "",
+  "buildPath": "build",
+  "debugBuild": false,
+  "inlineSpriteFrames": true,
+  "md5Cache": false,
+  "useBuiltinServer": true,
+  "webOrientation": "auto",
+  "useCustomDefaultFont": false,
+  "defaultFontPath": "",
+  "nativeCode": {
+    "java": "",
+    "objc": ""
+  },
+  "wx": {
+    "appid": "",
+    "orientation": "portrait",
+    "subContext": "",
+    "deviceOrientation": "portrait",
+    "separateEngine": false,
+    "subpackages": [],
+    "wasmSubpackage": false,
+    "useCustomManifest": false,
+    "customManifestPath": ""
+  },
+  "android": {
+    "packageName": "com.game.nclient",
+    "targetApiLevel": "android-28",
+    "appABIs": [
+      "armeabi-v7a",
+      "arm64-v8a"
+    ],
+    "sdkPath": "",
+    "ndkPath": "",
+    "orientation": {
+      "landscapeLeft": true,
+      "landscapeRight": true,
+      "portrait": false,
+      "upsideDown": false
+    },
+    "keystorePath": "",
+    "keystorePassword": "",
+    "keystoreAlias": "",
+    "keystoreAliasPassword": "",
+    "useDebugKeystore": true,
+    "useCustomManifest": false,
+    "customManifestPath": "",
+    "apiLevel": "android-28",
+    "appBundle": false,
+    "googlePlayInstant": false,
+    "skipPrebuildCrashReport": true
+  },
+  "ios": {
+    "packageName": "com.game.nclient",
+    "sdkPath": "",
+    "targetSdkVersion": "",
+    "orientation": {
+      "landscapeLeft": true,
+      "landscapeRight": true,
+      "portrait": false,
+      "upsideDown": false
+    },
+    "iosDevelopmentTeam": "",
+    "iosProvisioningProfile": "",
+    "iosProvisioningProfileName": "",
+    "iosBundleIdentifier": "com.game.nclient",
+    "iosEnableBitcode": false,
+    "iosCustomUrlScheme": [],
+    "iosDeviceFamily": [
+      1,
+      2
+    ],
+    "skipPrebuildCrashReport": true
+  },
+  "mac": {
+    "packageName": "com.game.nclient",
+    "buildVersion": "1.0.0",
+    "skipPrebuildCrashReport": true
+  },
+  "windows": {
+    "packageName": "com.game.nclient",
+    "buildVersion": "1.0.0",
+    "skipPrebuildCrashReport": true
+  },
+  "win32": {
+    "skipPrebuildCrashReport": true
+  },
+  "webMobile": {
+    "embedWebDebugger": false
+  },
+  "fbInstant": {
+    "appid": "",
+    "orientation": "portrait"
+  },
+  "anySDK": {},
+  "subpackages": [],
+  "customCompilerOptions": {}
+}
