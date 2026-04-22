@@ -21,7 +21,8 @@ show_help() {
     echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
     echo ""
     echo -e "${YELLOW}用法:${NC}"
-    echo "  ./start.sh server       启动后端服务"
+    echo "  ./start.sh server       启动后端服务 (需要Redis)"
+    echo "  ./start.sh mock-api     启动Mock API服务 (无需Redis)"
     echo "  ./start.sh --daemon     后台启动后端服务"
     echo "  ./start.sh --stop       停止后端服务"
     echo "  ./start.sh --status     查看服务状态"
@@ -33,16 +34,32 @@ start_server() {
     echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
     echo -e "${BLUE}  启动后端服务                                              ${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
-    
+
     cd "$SCRIPT_DIR/server"
-    
+
     if [ ! -f bin/server ]; then
         echo -e "${YELLOW}服务端未编译，正在编译...${NC}"
         go build -o bin/server ./cmd/server
     fi
-    
+
     echo -e "${GREEN}启动服务端 (端口 1780)...${NC}"
     ./bin/server
+}
+
+start_mock_api() {
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}  启动Mock API服务 (无需Redis)                              ${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+
+    cd "$SCRIPT_DIR/server"
+
+    if command -v node &> /dev/null; then
+        echo -e "${GREEN}启动Mock API服务器 (端口 1781)...${NC}"
+        node mock_api.js
+    else
+        echo -e "${RED}Node.js 未安装，无法启动Mock API服务器${NC}"
+        exit 1
+    fi
 }
 
 start_server_daemon() {
@@ -135,6 +152,9 @@ main() {
     case "${1:-}" in
         server)
             start_server
+            ;;
+        mock-api|mock)
+            start_mock_api
             ;;
         --daemon|-d)
             start_server_daemon

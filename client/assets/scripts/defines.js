@@ -6,8 +6,8 @@ var defines = {};
 // Go 后端 WebSocket 地址
 defines.serverUrl = "ws://localhost:1780/ws";
 
-// Go 后端 HTTP API 地址
-defines.apiUrl = "http://localhost:1781";
+// Go 后端 HTTP API 地址 (如果Go服务不可用，可使用Next.js API: "")
+defines.apiUrl = "";
 
 // API 数据加密密钥（与服务端配置一致）
 defines.cryptoKey = "qqddz2026gameaes256secretkey!";

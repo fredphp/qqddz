@@ -70,7 +70,7 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify({ code: 404, message: 'Not Found' }));
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 模拟API服务器启动，监听端口: ${PORT}`);
     console.log(`📝 用户协议API: http://localhost:${PORT}/api/v1/user-agreement/latest`);
 });
