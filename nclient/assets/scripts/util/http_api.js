@@ -1,7 +1,5 @@
-/**
- * HTTP API 请求工具类
- * 用于与服务器HTTP API通信，支持AES-GCM加密解密
- */
+// HTTP API 工具模块
+// 用于与服务器HTTP API通信，支持AES-GCM加密解密
 
 var HttpAPI = {};
 
@@ -64,7 +62,6 @@ HttpAPI.get = function(url, cryptoKey, callback) {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.timeout = 10000; // 10秒超时
     
     xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
@@ -78,7 +75,7 @@ HttpAPI.get = function(url, cryptoKey, callback) {
                         HttpAPI.decryptAESGCM(response.data, cryptoKey).then(function(decrypted) {
                             callback(null, decrypted);
                         }).catch(function(err) {
-                            cc.error('[HttpAPI] 解密失败:', err);
+                            console.error('解密失败:', err);
                             callback('解密失败: ' + err.message, null);
                         });
                     } else {
@@ -96,10 +93,6 @@ HttpAPI.get = function(url, cryptoKey, callback) {
     
     xhr.onerror = function() {
         callback('网络错误', null);
-    };
-    
-    xhr.ontimeout = function() {
-        callback('请求超时', null);
     };
     
     xhr.send();
@@ -110,7 +103,6 @@ HttpAPI.post = function(url, data, cryptoKey, callback) {
     var xhr = new XMLHttpRequest();
     xhr.open('POST', url, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.timeout = 10000; // 10秒超时
     
     xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
@@ -124,7 +116,7 @@ HttpAPI.post = function(url, data, cryptoKey, callback) {
                         HttpAPI.decryptAESGCM(response.data, cryptoKey).then(function(decrypted) {
                             callback(null, decrypted);
                         }).catch(function(err) {
-                            cc.error('[HttpAPI] 解密失败:', err);
+                            console.error('解密失败:', err);
                             callback('解密失败: ' + err.message, null);
                         });
                     } else {
@@ -142,10 +134,6 @@ HttpAPI.post = function(url, data, cryptoKey, callback) {
     
     xhr.onerror = function() {
         callback('网络错误', null);
-    };
-    
-    xhr.ontimeout = function() {
-        callback('请求超时', null);
     };
     
     xhr.send(JSON.stringify(data || {}));
@@ -218,182 +206,7 @@ HttpAPI.clearUserAgreementCache = function() {
     }
 };
 
-// 用户登录
-HttpAPI.login = function(apiUrl, account, password, callback) {
-    var url = apiUrl + '/api/user/login';
-    var data = {
-        account: account,
-        password: password
-    };
-    
-    HttpAPI.post(url, data, null, function(err, result) {
-        if (err) {
-            callback(err, null);
-            return;
-        }
-        
-        if (result && result.code === 0) {
-            callback(null, result.data);
-        } else {
-            callback(result ? result.message : '登录失败', null);
-        }
-    });
-};
-
-// 游客登录
-HttpAPI.guestLogin = function(apiUrl, callback) {
-    var url = apiUrl + '/api/user/guest-login';
-    
-    HttpAPI.post(url, {}, null, function(err, result) {
-        if (err) {
-            callback(err, null);
-            return;
-        }
-        
-        if (result && result.code === 0) {
-            callback(null, result.data);
-        } else {
-            callback(result ? result.message : '游客登录失败', null);
-        }
-    });
-};
-
-// 用户注册
-HttpAPI.register = function(apiUrl, account, password, nickname, callback) {
-    var url = apiUrl + '/api/user/register';
-    var data = {
-        account: account,
-        password: password,
-        nickname: nickname || account
-    };
-    
-    HttpAPI.post(url, data, null, function(err, result) {
-        if (err) {
-            callback(err, null);
-            return;
-        }
-        
-        if (result && result.code === 0) {
-            callback(null, result.data);
-        } else {
-            callback(result ? result.message : '注册失败', null);
-        }
-    });
-};
-
-// 获取用户信息
-HttpAPI.getUserInfo = function(apiUrl, token, callback) {
-    var url = apiUrl + '/api/user/info';
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-    xhr.timeout = 10000;
-    
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4) {
-            if (xhr.status === 200) {
-                try {
-                    var response = JSON.parse(xhr.responseText);
-                    if (response.code === 0) {
-                        callback(null, response.data);
-                    } else {
-                        callback(response.message, null);
-                    }
-                } catch (e) {
-                    callback('解析响应失败', null);
-                }
-            } else {
-                callback('请求失败: ' + xhr.status, null);
-            }
-        }
-    };
-    
-    xhr.onerror = function() {
-        callback('网络错误', null);
-    };
-    
-    xhr.send();
-};
-
-// 创建房间
-HttpAPI.createRoom = function(apiUrl, token, roomConfig, callback) {
-    var url = apiUrl + '/api/room/create';
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-    xhr.timeout = 10000;
-    
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4) {
-            if (xhr.status === 200) {
-                try {
-                    var response = JSON.parse(xhr.responseText);
-                    if (response.code === 0) {
-                        callback(null, response.data);
-                    } else {
-                        callback(response.message, null);
-                    }
-                } catch (e) {
-                    callback('解析响应失败', null);
-                }
-            } else {
-                callback('请求失败: ' + xhr.status, null);
-            }
-        }
-    };
-    
-    xhr.onerror = function() {
-        callback('网络错误', null);
-    };
-    
-    xhr.send(JSON.stringify(roomConfig || {}));
-};
-
-// 加入房间
-HttpAPI.joinRoom = function(apiUrl, token, roomId, callback) {
-    var url = apiUrl + '/api/room/join';
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-    xhr.timeout = 10000;
-    
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4) {
-            if (xhr.status === 200) {
-                try {
-                    var response = JSON.parse(xhr.responseText);
-                    if (response.code === 0) {
-                        callback(null, response.data);
-                    } else {
-                        callback(response.message, null);
-                    }
-                } catch (e) {
-                    callback('解析响应失败', null);
-                }
-            } else {
-                callback('请求失败: ' + xhr.status, null);
-            }
-        }
-    };
-    
-    xhr.onerror = function() {
-        callback('网络错误', null);
-    };
-    
-    xhr.send(JSON.stringify({ roomId: roomId }));
-};
-
 // 设置全局变量
-if (typeof window !== 'undefined') {
-    window.HttpAPI = HttpAPI;
-}
+window.HttpAPI = HttpAPI;
 
-// 模块导出
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = HttpAPI;
-}
-
-cc.log('[HttpAPI] HTTP API 工具类加载完成');
+console.log("http_api.js loaded with AES-GCM decryption support");
