@@ -48,8 +48,11 @@ cc.Class({
         // 当前登录方式: 'wx' 或 'phone'
         this._loginType = 'wx';
         
-        // 修复复选框结构
-        this._fixCheckboxStructure();
+        // 勾选状态
+        this._isChecked = false;
+        
+        // 初始化复选框
+        this._initCheckbox();
         
         // 确保 myglobal 存在
         if (typeof window.myglobal === 'undefined') {
@@ -61,75 +64,105 @@ cc.Class({
         this._initAndStart();
     },
     
-    // 修复复选框结构
-    _fixCheckboxStructure: function() {
-        if (!this.agreement_toggle) {
-            console.log("agreement_toggle 未设置，尝试查找...");
-            // 尝试通过节点名查找
-            var checkMarkNode = this.node.getChildByName("check_mark");
-            if (checkMarkNode) {
-                this.agreement_toggle = checkMarkNode.getComponent(cc.Toggle);
-                console.log("找到 check_mark 节点，Toggle组件:", !!this.agreement_toggle);
-            }
+    // 初始化复选框
+    _initCheckbox: function() {
+        var checkMarkNode = this.node.getChildByName("check_mark");
+        if (!checkMarkNode) {
+            console.error("check_mark 节点未找到");
+            return;
         }
         
-        if (this.agreement_toggle && this.agreement_toggle.node) {
-            var toggleNode = this.agreement_toggle.node;
-            var sprite = toggleNode.getComponent(cc.Sprite);
-            
-            // 检查是否已经有子节点结构
-            if (toggleNode.children.length === 0 && sprite) {
-                console.log("修复复选框结构...");
-                
-                // 保存原始图片
-                var originalSpriteFrame = sprite.spriteFrame;
-                var originalSize = originalSpriteFrame ? originalSpriteFrame.getOriginalSize() : {width: 40, height: 40};
-                
-                // 创建一个新的子节点来显示勾
-                var checkIcon = new cc.Node("check_icon");
-                checkIcon.parent = toggleNode;
-                checkIcon.setPosition(0, 0);
-                
-                // 将勾的图片移到子节点
-                var checkSprite = checkIcon.addComponent(cc.Sprite);
-                checkSprite.spriteFrame = originalSpriteFrame;
-                checkSprite.sizeMode = cc.Sprite.SizeMode.RAW;
-                
-                // 设置子节点尺寸
-                checkIcon.width = originalSize.width;
-                checkIcon.height = originalSize.height;
-                
-                // 清除父节点的图片（作为透明背景）
+        console.log("找到 check_mark 节点");
+        this._checkMarkNode = checkMarkNode;
+        
+        // 移除 Toggle 组件（它导致了问题）
+        var toggle = checkMarkNode.getComponent(cc.Toggle);
+        if (toggle) {
+            toggle.destroy();
+            console.log("移除了 Toggle 组件");
+        }
+        
+        // 添加 Button 组件用于点击
+        var button = checkMarkNode.getComponent(cc.Button);
+        if (!button) {
+            button = checkMarkNode.addComponent(cc.Button);
+        }
+        button.transition = cc.Button.Transition.SCALE;
+        button.duration = 0.1;
+        button.zoomScale = 1.1;
+        
+        // 添加点击事件
+        checkMarkNode.off(cc.Node.EventType.TOUCH_END);
+        checkMarkNode.on(cc.Node.EventType.TOUCH_END, this._onCheckboxClick, this);
+        
+        // 获取 Sprite 组件
+        var sprite = checkMarkNode.getComponent(cc.Sprite);
+        if (sprite && sprite.spriteFrame) {
+            // 保存原始图片（勾的图片）
+            this._checkSpriteFrame = sprite.spriteFrame;
+            console.log("保存了勾的图片");
+        }
+        
+        // 创建边框
+        this._createCheckboxBorder(checkMarkNode);
+        
+        // 设置初始状态：未勾选，不显示勾
+        this._updateCheckboxVisual();
+        
+        console.log("复选框初始化完成");
+    },
+    
+    // 创建复选框边框
+    _createCheckboxBorder: function(node) {
+        // 设置节点大小
+        var boxSize = 55;
+        node.width = boxSize;
+        node.height = boxSize;
+        
+        // 添加 Graphics 组件绘制边框
+        var graphics = node.getComponent(cc.Graphics);
+        if (!graphics) {
+            graphics = node.addComponent(cc.Graphics);
+        }
+        
+        // 绘制白色边框
+        graphics.clear();
+        graphics.strokeColor = cc.Color.WHITE;
+        graphics.lineWidth = 2;
+        graphics.rect(-boxSize/2 + 2, -boxSize/2 + 2, boxSize - 4, boxSize - 4);
+        graphics.stroke();
+        
+        console.log("边框绘制完成");
+    },
+    
+    // 复选框点击事件
+    _onCheckboxClick: function(event) {
+        console.log("复选框被点击");
+        this._isChecked = !this._isChecked;
+        this._updateCheckboxVisual();
+        console.log("勾选状态:", this._isChecked);
+    },
+    
+    // 更新复选框视觉状态
+    _updateCheckboxVisual: function() {
+        if (!this._checkMarkNode) return;
+        
+        var sprite = this._checkMarkNode.getComponent(cc.Sprite);
+        if (sprite) {
+            if (this._isChecked) {
+                // 显示勾
+                sprite.spriteFrame = this._checkSpriteFrame;
+                sprite.sizeMode = cc.Sprite.SizeMode.RAW;
+            } else {
+                // 隐藏勾
                 sprite.spriteFrame = null;
-                sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-                
-                // 设置父节点作为边框背景（稍大一些）
-                var boxSize = 55;
-                toggleNode.width = boxSize;
-                toggleNode.height = boxSize;
-                
-                // 添加Graphics组件绘制边框
-                var graphics = toggleNode.getComponent(cc.Graphics);
-                if (!graphics) {
-                    graphics = toggleNode.addComponent(cc.Graphics);
-                }
-                
-                // 绘制边框
-                graphics.clear();
-                graphics.strokeColor = cc.Color.WHITE; // 白色边框
-                graphics.lineWidth = 2;
-                graphics.rect(-boxSize/2, -boxSize/2, boxSize, boxSize);
-                graphics.stroke();
-                
-                // 更新Toggle的checkMark指向新的子节点Sprite
-                this.agreement_toggle.checkMark = checkSprite;
-                
-                // 初始状态：未勾选，隐藏勾图标
-                checkIcon.active = this.agreement_toggle.isChecked;
-                
-                console.log("复选框结构修复完成，边框已添加");
             }
         }
+    },
+    
+    // 检查是否同意用户协议
+    _checkAgreement: function() {
+        return this._isChecked;
     },
     
     _waitForMyglobal: function() {
@@ -223,15 +256,6 @@ cc.Class({
         }
     },
     
-    // 检查是否同意用户协议
-    _checkAgreement: function() {
-        if (this.agreement_toggle) {
-            return this.agreement_toggle.isChecked;
-        }
-        // 如果没有 toggle 组件，默认返回 true（兼容旧版本）
-        return true;
-    },
-    
     // 更新登录 UI
     _updateLoginUI: function() {
         if (this.phone_login_panel) {
@@ -261,21 +285,6 @@ cc.Class({
             // 微信登录
             case "wx_login":
                 this._doWxLogin();
-                break;
-                
-            // 游客登录
-            case "guest_login":
-                this._doGuestLogin();
-                break;
-                
-            // 手机号登录
-            case "phone_login":
-                this._doPhoneLogin();
-                break;
-                
-            // 获取验证码
-            case "get_code":
-                this._getVerifyCode();
                 break;
                 
             // 游客登录
@@ -543,8 +552,8 @@ cc.Class({
         }
     },
     
-    // 复选框状态变化回调
+    // 复选框状态变化回调（保留兼容性）
     onToggleChanged: function(toggle) {
-        console.log("用户协议勾选状态:", toggle.isChecked);
+        console.log("onToggleChanged 被调用（已弃用）");
     }
 });
