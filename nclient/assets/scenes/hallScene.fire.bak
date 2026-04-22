@@ -20,10 +20,33 @@
         "__id__": 53
       }
     ],
+<<<<<<< Updated upstream
     "_active": true,
     "_level": 0,
     "_components": [],
     "_prefab": null,
+=======
+    "_activeObjects": [],
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_ContentSize": {
+      "__type__": "cc.Size",
+      "width": 0,
+      "height": 0
+    },
+    "_anchorX": 0.5,
+    "_anchorY": 0.5,
+    "_skewX": 0,
+    "_skewY": 0,
+    "_rotationX": 0,
+    "_rotationY": 0,
+    "_localZOrder": 0,
+    "_globalZOrder": 0,
+    "_opacityModifyRGB": false,
+>>>>>>> Stashed changes
     "_opacity": 255,
     "_color": {
       "__type__": "cc.Color",
@@ -32,6 +55,7 @@
       "b": 255,
       "a": 255
     },
+<<<<<<< Updated upstream
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 0,
@@ -52,6 +76,14 @@
     "groupIndex": 0,
     "autoReleaseAssets": false,
     "_id": "1931c8f8-1c0b-4cbf-a901-ead7f03073eb",
+=======
+    "_cascadeOpacityEnabled": true,
+    "_cascadeColorEnabled": true,
+    "_active": true,
+    "_components": [],
+    "_prefab": null,
+    "autoReleaseAssets": false,
+>>>>>>> Stashed changes
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
@@ -63,8 +95,13 @@
         0,
         0,
         1,
+<<<<<<< Updated upstream
         0.43210936652289494,
         0.43210936652289494,
+=======
+        1,
+        1,
+>>>>>>> Stashed changes
         1
       ]
     }
@@ -124,13 +161,13 @@
     "_level": 0,
     "_components": [
       {
+        "__id__": 51
+      },
+      {
         "__id__": 52
       },
       {
-        "__id__": 57
-      },
-      {
-        "__id__": 56
+        "__id__": 55
       }
     ],
     "_prefab": null,
@@ -152,6 +189,7 @@
       "x": 0.5,
       "y": 0.5
     },
+<<<<<<< Updated upstream
     "_quat": {
       "__type__": "cc.Quat",
       "x": 0,
@@ -163,6 +201,10 @@
     "_skewY": 0,
     "groupIndex": 0,
     "_id": "7bwW8RQ01LBqxG0rctwTPZ",
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+>>>>>>> Stashed changes
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
@@ -176,7 +218,11 @@
         1,
         1,
         1,
+<<<<<<< Updated upstream
         1
+=======
+        null
+>>>>>>> Stashed changes
       ]
     }
   },
@@ -214,6 +260,7 @@
       "x": 0.5,
       "y": 0.5
     },
+<<<<<<< Updated upstream
     "_quat": {
       "__type__": "cc.Quat",
       "x": 0,
@@ -225,11 +272,19 @@
     "_skewY": 0,
     "groupIndex": 0,
     "_id": "58r3y5N69FtYNloE7ymBhu",
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+>>>>>>> Stashed changes
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
+<<<<<<< Updated upstream
         -1,
+=======
+        0,
+>>>>>>> Stashed changes
         0,
         0,
         0,
@@ -238,6 +293,7 @@
         1,
         1,
         1,
+<<<<<<< Updated upstream
         1
       ]
     }
@@ -269,6 +325,11 @@
     "_state": 0,
     "_atlas": null,
     "_id": "9bx35rKQdLnpSH0ld+/mZI"
+=======
+        null
+      ]
+    }
+>>>>>>> Stashed changes
   },
   {
     "__type__": "cc.Node",
@@ -282,6 +343,8 @@
     "_level": 1,
     "_components": [
       {
+<<<<<<< Updated upstream
+=======
         "__type__": "cc.Sprite",
         "_name": "",
         "_objFlags": 0,
@@ -389,6 +452,7 @@
         }
       },
       {
+>>>>>>> Stashed changes
         "__id__": 6
       }
     ],
@@ -411,6 +475,7 @@
       "x": 0.5,
       "y": 0.5
     },
+<<<<<<< Updated upstream
     "_quat": {
       "__type__": "cc.Quat",
       "x": 0,
@@ -422,12 +487,21 @@
     "_skewY": 0,
     "groupIndex": 0,
     "_id": "c0XB6e/k9GPL6Z71EDAR/0",
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+>>>>>>> Stashed changes
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
+<<<<<<< Updated upstream
         -495,
         12,
+=======
+        -600,
+        300,
+>>>>>>> Stashed changes
         0,
         0,
         0,
@@ -435,7 +509,11 @@
         1,
         1,
         1,
+<<<<<<< Updated upstream
         1
+=======
+        null
+>>>>>>> Stashed changes
       ]
     }
   },
@@ -503,6 +581,7 @@
       "x": 0.5,
       "y": 0.5
     },
+<<<<<<< Updated upstream
     "_quat": {
       "__type__": "cc.Quat",
       "x": 0,
@@ -514,12 +593,21 @@
     "_skewY": 0,
     "groupIndex": 0,
     "_id": "26HM/esSFKpagkHMXtiXzI",
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+>>>>>>> Stashed changes
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
+<<<<<<< Updated upstream
         0,
         0,
+=======
+        -600,
+        270,
+>>>>>>> Stashed changes
         0,
         0,
         0,
@@ -527,7 +615,11 @@
         1,
         1,
         1,
+<<<<<<< Updated upstream
         1
+=======
+        null
+>>>>>>> Stashed changes
       ]
     }
   },
@@ -587,6 +679,7 @@
       "x": 0.5,
       "y": 0.5
     },
+<<<<<<< Updated upstream
     "_quat": {
       "__type__": "cc.Quat",
       "x": 0,
@@ -598,12 +691,21 @@
     "_skewY": 0,
     "groupIndex": 0,
     "_id": "7alBYiKwFLZ7/4N54Do4fe",
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+>>>>>>> Stashed changes
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
+<<<<<<< Updated upstream
         387,
         88,
+=======
+        -150,
+        0,
+>>>>>>> Stashed changes
         0,
         0,
         0,
@@ -611,7 +713,11 @@
         1,
         1,
         1,
+<<<<<<< Updated upstream
         1
+=======
+        null
+>>>>>>> Stashed changes
       ]
     }
   },
@@ -679,6 +785,7 @@
       "x": 0.5,
       "y": 0.5
     },
+<<<<<<< Updated upstream
     "_quat": {
       "__type__": "cc.Quat",
       "x": 0,
@@ -690,12 +797,21 @@
     "_skewY": 0,
     "groupIndex": 0,
     "_id": "92CcgDyd1HG7/AOnQbxvHq",
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+>>>>>>> Stashed changes
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
+<<<<<<< Updated upstream
         -131,
         91,
+=======
+        150,
+        0,
+>>>>>>> Stashed changes
         0,
         0,
         0,
@@ -703,7 +819,11 @@
         1,
         1,
         1,
+<<<<<<< Updated upstream
         1
+=======
+        null
+>>>>>>> Stashed changes
       ]
     }
   },
@@ -774,6 +894,7 @@
       "x": 0.5,
       "y": 0.5
     },
+<<<<<<< Updated upstream
     "_quat": {
       "__type__": "cc.Quat",
       "x": 0,
@@ -785,12 +906,21 @@
     "_skewY": 0,
     "groupIndex": 0,
     "_id": "e96By1DG9NwrYMwJk+YdgE",
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+>>>>>>> Stashed changes
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
+<<<<<<< Updated upstream
         -349,
         -289,
+=======
+        580,
+        300,
+>>>>>>> Stashed changes
         0,
         0,
         0,
@@ -798,6 +928,7 @@
         1,
         1,
         1,
+<<<<<<< Updated upstream
         1
       ]
     }
@@ -831,6 +962,11 @@
       "__uuid__": "b168ab65-7b5b-49a7-a82d-0fd5c0d1da93"
     },
     "_id": "12TFDQ6x9OrKKd1nycvjj+"
+=======
+        null
+      ]
+    }
+>>>>>>> Stashed changes
   },
   {
     "__type__": "cc.Button",
@@ -935,6 +1071,7 @@
       "x": 0.5,
       "y": 0.5
     },
+<<<<<<< Updated upstream
     "_quat": {
       "__type__": "cc.Quat",
       "x": 0,
@@ -946,12 +1083,21 @@
     "_skewY": 0,
     "groupIndex": 0,
     "_id": "d9yHNToTxFpryAiF/odwS+",
+=======
+    "_rotation": 0,
+    "_localZOrder": 0,
+>>>>>>> Stashed changes
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
+<<<<<<< Updated upstream
         -1,
         -286,
+=======
+        580,
+        260,
+>>>>>>> Stashed changes
         0,
         0,
         0,
@@ -959,6 +1105,7 @@
         1,
         1,
         1,
+<<<<<<< Updated upstream
         1
       ]
     }
@@ -992,6 +1139,11 @@
       "__uuid__": "b168ab65-7b5b-49a7-a82d-0fd5c0d1da93"
     },
     "_id": "e0trtOm4hIYbObAVKkHN87"
+=======
+        null
+      ]
+    }
+>>>>>>> Stashed changes
   },
   {
     "__type__": "cc.Button",
@@ -1872,7 +2024,7 @@
       "__id__": 2
     },
     "component": "",
-    "_componentId": "d2b3c4d5-e6f7-8901-abcd-ef1234567921",
+    "_componentId": "9eee76dd-0aa5-41fc-b5ef-dd7a8a0336bd",
     "handler": "onButtonClick",
     "customEventData": "create_room"
   },
@@ -2045,7 +2197,7 @@
       "__id__": 2
     },
     "component": "",
-    "_componentId": "d2b3c4d5-e6f7-8901-abcd-ef1234567921",
+    "_componentId": "9eee76dd-0aa5-41fc-b5ef-dd7a8a0336bd",
     "handler": "onButtonClick",
     "customEventData": "join_room"
   },
@@ -2760,33 +2912,5 @@
     "_isAbsVerticalCenter": true,
     "_originalWidth": 0,
     "_originalHeight": 0
-  },
-  {
-    "__type__": "d2b3c4d5-e6f7-8901-abcd-ef1234567921",
-    "_name": "",
-    "_objFlags": 0,
-    "node": {
-      "__id__": 2
-    },
-    "_enabled": true,
-    "nickname_label": {
-      "__id__": 5
-    },
-    "headimage": {
-      "__id__": 5
-    },
-    "gobal_count": {
-      "__id__": null
-    },
-    "creatroom_prefabs": {
-      "__uuid__": "a7b00965-17b9-415c-b18a-0d4c7673a6f6"
-    },
-    "joinroom_prefabs": {
-      "__uuid__": "ff539d38-2932-40f6-84a0-8618722eceb9"
-    },
-    "user_agreement_prefabs": {
-      "__uuid__": "c3d4e5f6-7890-abcd-ef12-3456789abcde"
-    },
-    "_id": ""
   }
 ]
