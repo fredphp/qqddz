@@ -44,6 +44,12 @@ func GenerateNickname() string {
         return adj + noun
 }
 
+// outgoingMessage 发送消息包装
+type outgoingMessage struct {
+        data     []byte
+        isJSON   bool
+}
+
 // Client 代表一个连接的玩家
 type Client struct {
         ID     string // 玩家唯一 ID
@@ -53,7 +59,7 @@ type Client struct {
 
         server *Server
         conn   *websocket.Conn
-        send   chan []byte
+        send   chan outgoingMessage
 
         mu        sync.RWMutex
         closed    bool
@@ -68,7 +74,7 @@ func NewClient(s *Server, conn *websocket.Conn) *Client {
                 Name:   GenerateNickname(),
                 server: s,
                 conn:   conn,
-                send:   make(chan []byte, 256),
+                send:   make(chan outgoingMessage, 256),
         }
         c.jsonMode = NewJSONMode(c)
         return c
@@ -144,7 +150,7 @@ func (c *Client) WritePump() {
 
         for {
                 select {
-                case message, ok := <-c.send:
+                case msg, ok := <-c.send:
                         _ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
                         if !ok {
                                 // 通道已关闭
@@ -152,11 +158,17 @@ func (c *Client) WritePump() {
                                 return
                         }
 
-                        w, err := c.conn.NextWriter(websocket.BinaryMessage)
+                        // 根据消息类型选择发送方式
+                        msgType := websocket.BinaryMessage
+                        if msg.isJSON {
+                                msgType = websocket.TextMessage
+                        }
+
+                        w, err := c.conn.NextWriter(msgType)
                         if err != nil {
                                 return
                         }
-                        _, _ = w.Write(message)
+                        _, _ = w.Write(msg.data)
 
                         if err := w.Close(); err != nil {
                                 return
@@ -180,14 +192,28 @@ func (c *Client) SendMessage(msg *protocol.Message) {
         }
         c.mu.RUnlock()
 
-        data, err := codec.Encode(msg)
-        if err != nil {
-                log.Printf("消息编码错误: %v", err)
-                return
+        var data []byte
+        var err error
+        isJSON := c.useJSON
+
+        if isJSON {
+                // JSON 模式：使用 JSON 编码
+                data, err = EncodeToJSON(msg)
+                if err != nil {
+                        log.Printf("JSON 编码错误: %v", err)
+                        return
+                }
+        } else {
+                // Protobuf 模式：使用 Protobuf 编码
+                data, err = codec.Encode(msg)
+                if err != nil {
+                        log.Printf("消息编码错误: %v", err)
+                        return
+                }
         }
 
         select {
-        case c.send <- data:
+        case c.send <- outgoingMessage{data: data, isJSON: isJSON}:
         default:
                 // 发送缓冲区已满，关闭连接
                 log.Printf("客户端 %s 发送缓冲区已满", c.ID)

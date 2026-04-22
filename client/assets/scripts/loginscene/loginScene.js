@@ -66,11 +66,18 @@ cc.Class({
         
         // 播放背景音乐
         if (isopen_sound) {
-            try {
-                cc.audioEngine.play(cc.url.raw("resources/sound/login_bg.ogg"), true);
-            } catch(e) {
-                console.log("播放背景音乐失败:", e);
-            }
+            // 使用 cc.resources.load 加载音频资源（替代已弃用的 cc.url.raw）
+            cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
+                if (err) {
+                    console.log("加载背景音乐失败:", err);
+                    return;
+                }
+                try {
+                    cc.audioEngine.playMusic(clip, true);
+                } catch(e) {
+                    console.log("播放背景音乐失败:", e);
+                }
+            });
         }
         
         // 初始化 WebSocket 连接

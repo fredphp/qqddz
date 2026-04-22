@@ -278,10 +278,29 @@ window.socketCtr = function(){
             
             _socket.onmessage = function(evt){
                 try {
-                    var msgData = JSON.parse(evt.data)
-                    _handleMessage(msgData)
+                    // 检查是否是 Blob 类型
+                    if (evt.data instanceof Blob) {
+                        // 使用 FileReader 读取 Blob 内容
+                        var reader = new FileReader();
+                        reader.onload = function(e) {
+                            try {
+                                var msgData = JSON.parse(e.target.result);
+                                _handleMessage(msgData);
+                            } catch(e) {
+                                console.error("解析 Blob 消息失败:", e);
+                            }
+                        };
+                        reader.onerror = function(e) {
+                            console.error("读取 Blob 失败:", e);
+                        };
+                        reader.readAsText(evt.data);
+                    } else {
+                        // 直接解析 JSON
+                        var msgData = JSON.parse(evt.data);
+                        _handleMessage(msgData);
+                    }
                 } catch(e) {
-                    console.error("解析消息失败:", e)
+                    console.error("解析消息失败:", e);
                 }
             }
             
