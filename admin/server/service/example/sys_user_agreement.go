@@ -5,15 +5,30 @@ import (
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/example"
 	exampleReq "github.com/flipped-aurora/gin-vue-admin/server/model/example/request"
+	"github.com/flipped-aurora/gin-vue-admin/server/utils"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 type SysUserAgreementService struct{}
 
+// refreshGameServerCache 刷新游戏服务器缓存
+func refreshGameServerCache() {
+	go func() {
+		if err := utils.GetGameServerClient().RefreshUserAgreementCache(); err != nil {
+			global.GVA_LOG.Error("刷新游戏服务器缓存失败", zap.Error(err))
+		}
+	}()
+}
+
 // CreateSysUserAgreement 创建用户协议记录
 // Author [piexlmax](https://github.com/piexlmax)
 func (sysUserAgreementService *SysUserAgreementService) CreateSysUserAgreement(sysUserAgreement *example.SysUserAgreement) (err error) {
 	err = global.GVA_DB.Create(sysUserAgreement).Error
+	if err == nil {
+		// 刷新游戏服务器缓存
+		refreshGameServerCache()
+	}
 	return err
 }
 
@@ -21,6 +36,10 @@ func (sysUserAgreementService *SysUserAgreementService) CreateSysUserAgreement(s
 // Author [piexlmax](https://github.com/piexlmax)
 func (sysUserAgreementService *SysUserAgreementService) DeleteSysUserAgreement(ID string) (err error) {
 	err = global.GVA_DB.Delete(&example.SysUserAgreement{}, "id = ?", ID).Error
+	if err == nil {
+		// 刷新游戏服务器缓存
+		refreshGameServerCache()
+	}
 	return err
 }
 
@@ -28,6 +47,10 @@ func (sysUserAgreementService *SysUserAgreementService) DeleteSysUserAgreement(I
 // Author [piexlmax](https://github.com/piexlmax)
 func (sysUserAgreementService *SysUserAgreementService) DeleteSysUserAgreementByIds(IDs []string) (err error) {
 	err = global.GVA_DB.Delete(&[]example.SysUserAgreement{}, "id in ?", IDs).Error
+	if err == nil {
+		// 刷新游戏服务器缓存
+		refreshGameServerCache()
+	}
 	return err
 }
 
@@ -35,6 +58,10 @@ func (sysUserAgreementService *SysUserAgreementService) DeleteSysUserAgreementBy
 // Author [piexlmax](https://github.com/piexlmax)
 func (sysUserAgreementService *SysUserAgreementService) UpdateSysUserAgreement(sysUserAgreement example.SysUserAgreement) (err error) {
 	err = global.GVA_DB.Model(&example.SysUserAgreement{}).Where("id = ?", sysUserAgreement.ID).Updates(&sysUserAgreement).Error
+	if err == nil {
+		// 刷新游戏服务器缓存
+		refreshGameServerCache()
+	}
 	return err
 }
 

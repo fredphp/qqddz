@@ -237,6 +237,7 @@ system:
     use-mongo: false
     use-strict-auth: false
     disable-auto-migrate: false
+    game-server-api-url: "http://127.0.0.1:1781"
 tencent-cos:
     bucket: xxxxx-10005608
     region: ap-shanghai

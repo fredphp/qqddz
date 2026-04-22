@@ -80,6 +80,9 @@ func RegisterRoutes(mux *http.ServeMux, h *Handler) {
         mux.HandleFunc("/api/v1/user-agreement/get", h.agreement.GetByID)
         mux.HandleFunc("/api/v1/user-agreement/list", h.agreement.List)
 
+        // 内部接口（用于后台管理调用，刷新缓存）
+        mux.HandleFunc("/api/internal/cache/refresh/user-agreement", h.agreement.RefreshCache)
+
         // 健康检查
         mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
                 w.WriteHeader(http.StatusOK)

@@ -7,7 +7,19 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/palemoky/fight-the-landlord/internal/cache"
+
 	_ "github.com/go-sql-driver/mysql"
+)
+
+// 缓存键前缀
+const (
+	CacheKeyUserAgreementLatest = "user_agreement:latest"
+	CacheKeyUserAgreementPrefix = "user_agreement:id:"
+	CacheKeyUserAgreementList   = "user_agreement:list"
+
+	// 缓存过期时间（用户协议不常变，设置较长的缓存时间）
+	CacheExpirationUserAgreement = 30 * time.Minute
 )
 
 // UserAgreement 用户协议模型
@@ -24,13 +36,17 @@ type UserAgreement struct {
 
 // UserAgreementHandler 用户协议处理器
 type UserAgreementHandler struct {
-	db *sql.DB
+	db    *sql.DB
+	cache *cache.Cache
 }
 
 // NewUserAgreementHandler 创建用户协议处理器
 func NewUserAgreementHandler(config *DBConfig) (*UserAgreementHandler, error) {
 	if config == nil {
-		return &UserAgreementHandler{db: nil}, nil
+		return &UserAgreementHandler{
+			db:    nil,
+			cache: cache.GetCache(),
+		}, nil
 	}
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
@@ -56,7 +72,10 @@ func NewUserAgreementHandler(config *DBConfig) (*UserAgreementHandler, error) {
 	db.SetMaxIdleConns(5)
 	db.SetConnMaxLifetime(time.Hour)
 
-	return &UserAgreementHandler{db: db}, nil
+	return &UserAgreementHandler{
+		db:    db,
+		cache: cache.GetCache(),
+	}, nil
 }
 
 // Close 关闭数据库连接
@@ -67,13 +86,29 @@ func (h *UserAgreementHandler) Close() error {
 	return nil
 }
 
-// GetLatest 获取最新的启用的用户协议
+// ClearCache 清除用户协议相关缓存
+func (h *UserAgreementHandler) ClearCache() {
+	h.cache.Delete(CacheKeyUserAgreementLatest)
+	h.cache.Delete(CacheKeyUserAgreementList)
+	h.cache.DeleteByPrefix(CacheKeyUserAgreementPrefix)
+}
+
+// GetLatest 获取最新的启用的用户协议（带缓存）
 func (h *UserAgreementHandler) GetLatest(w http.ResponseWriter, r *http.Request) {
 	if h.db == nil {
 		writeJSONError(w, http.StatusServiceUnavailable, "数据库未配置")
 		return
 	}
 
+	// 尝试从缓存获取
+	if value, exists := h.cache.Get(CacheKeyUserAgreementLatest); exists {
+		if agreement, ok := value.(*UserAgreement); ok {
+			writeJSONSuccess(w, agreement)
+			return
+		}
+	}
+
+	// 从数据库查询
 	var agreement UserAgreement
 	query := `SELECT id, created_at, updated_at, title, content, version, status, sort
 			  FROM sys_user_agreement
@@ -101,10 +136,13 @@ func (h *UserAgreementHandler) GetLatest(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// 缓存结果
+	h.cache.Set(CacheKeyUserAgreementLatest, &agreement, CacheExpirationUserAgreement)
+
 	writeJSONSuccess(w, agreement)
 }
 
-// GetByID 根据ID获取用户协议
+// GetByID 根据ID获取用户协议（带缓存）
 func (h *UserAgreementHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	if h.db == nil {
 		writeJSONError(w, http.StatusServiceUnavailable, "数据库未配置")
@@ -115,6 +153,16 @@ func (h *UserAgreementHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	if id == "" {
 		writeJSONError(w, http.StatusBadRequest, "缺少id参数")
 		return
+	}
+
+	cacheKey := CacheKeyUserAgreementPrefix + id
+
+	// 尝试从缓存获取
+	if value, exists := h.cache.Get(cacheKey); exists {
+		if agreement, ok := value.(*UserAgreement); ok {
+			writeJSONSuccess(w, agreement)
+			return
+		}
 	}
 
 	var agreement UserAgreement
@@ -142,14 +190,25 @@ func (h *UserAgreementHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 缓存结果
+	h.cache.Set(cacheKey, &agreement, CacheExpirationUserAgreement)
+
 	writeJSONSuccess(w, agreement)
 }
 
-// List 获取用户协议列表
+// List 获取用户协议列表（带缓存）
 func (h *UserAgreementHandler) List(w http.ResponseWriter, r *http.Request) {
 	if h.db == nil {
 		writeJSONError(w, http.StatusServiceUnavailable, "数据库未配置")
 		return
+	}
+
+	// 尝试从缓存获取
+	if value, exists := h.cache.Get(CacheKeyUserAgreementList); exists {
+		if agreements, ok := value.([]UserAgreement); ok {
+			writeJSONSuccess(w, agreements)
+			return
+		}
 	}
 
 	query := `SELECT id, created_at, updated_at, title, content, version, status, sort
@@ -188,7 +247,26 @@ func (h *UserAgreementHandler) List(w http.ResponseWriter, r *http.Request) {
 		agreements = []UserAgreement{}
 	}
 
+	// 缓存结果
+	h.cache.Set(CacheKeyUserAgreementList, agreements, CacheExpirationUserAgreement)
+
 	writeJSONSuccess(w, agreements)
+}
+
+// RefreshCache 刷新缓存接口（内部调用）
+func (h *UserAgreementHandler) RefreshCache(w http.ResponseWriter, r *http.Request) {
+	// 只允许 POST 方法
+	if r.Method != http.MethodPost {
+		writeJSONError(w, http.StatusMethodNotAllowed, "方法不允许")
+		return
+	}
+
+	// 清除缓存
+	h.ClearCache()
+
+	writeJSONSuccess(w, map[string]string{
+		"message": "缓存已刷新",
+	})
 }
 
 // writeJSONSuccess 写入成功响应
