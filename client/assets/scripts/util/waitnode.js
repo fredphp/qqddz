@@ -17,26 +17,36 @@ cc.Class({
 
     onLoad () {
         this._isShow = false;
+        this._isValid = true;
+    },
+    
+    onDestroy () {
+        this._isValid = false;
     },
 
     start () {
-        this.node.active = this._isShow;
+        if (this._isValid && this.node) {
+            this.node.active = this._isShow;
+        }
     },
 
     update (dt) {
-        if (this.loadimage_target) {
+        if (!this._isValid || !this.node) return;
+        
+        if (this.loadimage_target && this.loadimage_target.isValid) {
             this.loadimage_target.rotation = this.loadimage_target.rotation - dt * 45;
         }
     },
 
     //content为label显示的内容
     show(content){
+        if (!this._isValid || !this.node) return;
+        
         this._isShow = true;
-        if(this.node){
-            this.node.active = this._isShow;   
-        }
-        if(this.lblContent){
-            if(content == null){
+        this.node.active = this._isShow;   
+        
+        if (this.lblContent && this.lblContent.isValid) {
+            if (content == null) {
                 content = "";
             }
             this.lblContent.string = content;
@@ -44,10 +54,10 @@ cc.Class({
     },
 
     hide(){
+        if (!this._isValid || !this.node) return;
+        
         this._isShow = false;
-        if(this.node){
-            this.node.active = this._isShow;   
-        }
+        this.node.active = this._isShow;   
     }
 
 });

@@ -23,11 +23,8 @@ cc.Class({
         // 当前登录方式: 'wx' 或 'phone'
         this._loginType = 'wx';
         
-        // 勾选状态
+        // 勾选状态 - 默认不勾选
         this._isChecked = false;
-        
-        // 保存 check_mark 的原始图片
-        this._checkSpriteFrame = null;
         
         // 初始化所有事件
         this._initAllEvents();
@@ -69,39 +66,40 @@ cc.Class({
         console.log("找到 check_mark 节点");
         this._checkMarkNode = checkMarkNode;
         
-        // 保存原始图片
+        // 获取 Sprite 组件
         var sprite = checkMarkNode.getComponent(cc.Sprite);
         if (sprite && sprite.spriteFrame) {
+            // 保存原始图片用于显示勾选状态
             this._checkSpriteFrame = sprite.spriteFrame;
             // 初始状态不显示勾
             sprite.spriteFrame = null;
         }
         
-        // 添加 Button 组件（如果没有）
+        // 确保有 Button 组件
         var button = checkMarkNode.getComponent(cc.Button);
         if (!button) {
             button = checkMarkNode.addComponent(cc.Button);
         }
+        
+        // 配置按钮
         button.transition = cc.Button.Transition.SCALE;
         button.duration = 0.1;
         button.zoomScale = 1.1;
         
-        // 移除旧的事件监听
-        checkMarkNode.off(cc.Node.EventType.TOUCH_END);
-        
-        // 添加新的点击事件
+        // 注册点击事件
         checkMarkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
             event.stopPropagation();
-            this._isChecked = !this._isChecked;
-            this._updateCheckboxVisual();
-            console.log("复选框状态:", this._isChecked);
+            this._toggleCheckbox();
         }, this);
         
         console.log("复选框初始化完成");
     },
     
-    // 更新复选框视觉状态
-    _updateCheckboxVisual: function() {
+    // 切换复选框状态
+    _toggleCheckbox: function() {
+        this._isChecked = !this._isChecked;
+        console.log("复选框状态:", this._isChecked);
+        
         if (!this._checkMarkNode) return;
         
         var sprite = this._checkMarkNode.getComponent(cc.Sprite);
@@ -126,19 +124,18 @@ cc.Class({
         
         console.log("找到 user_agreement_link 节点");
         
-        // 添加 Button 组件（如果没有）
+        // 确保有 Button 组件
         var button = linkNode.getComponent(cc.Button);
         if (!button) {
             button = linkNode.addComponent(cc.Button);
         }
+        
+        // 配置按钮
         button.transition = cc.Button.Transition.SCALE;
         button.duration = 0.1;
         button.zoomScale = 1.1;
         
-        // 移除旧的事件监听
-        linkNode.off(cc.Node.EventType.TOUCH_END);
-        
-        // 添加新的点击事件
+        // 注册点击事件
         linkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
             event.stopPropagation();
             console.log("用户协议链接被点击");
@@ -155,35 +152,20 @@ cc.Class({
         // 微信登录按钮
         var wxLoginNode = this.node.getChildByName("login_wx");
         if (wxLoginNode) {
-            var button = wxLoginNode.getComponent(cc.Button);
-            if (button) {
-                // 清空场景中的事件（如果有）
-                button.clickEvents = [];
-                
-                // 移除旧的事件监听
-                wxLoginNode.off(cc.Node.EventType.TOUCH_END);
-                
-                // 添加新的点击事件
-                wxLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-                    event.stopPropagation();
-                    self._doWxLogin();
-                }, self);
-            }
+            wxLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                event.stopPropagation();
+                self._doWxLogin();
+            }, self);
             console.log("微信登录按钮初始化完成");
         }
         
         // 手机号登录按钮
         var phoneLoginNode = this.node.getChildByName("login_phone");
         if (phoneLoginNode) {
-            var button = phoneLoginNode.getComponent(cc.Button);
-            if (button) {
-                button.clickEvents = [];
-                phoneLoginNode.off(cc.Node.EventType.TOUCH_END);
-                phoneLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-                    event.stopPropagation();
-                    self._doPhoneLogin();
-                }, self);
-            }
+            phoneLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                event.stopPropagation();
+                self._doPhoneLogin();
+            }, self);
             console.log("手机号登录按钮初始化完成");
         }
     },
@@ -355,8 +337,6 @@ cc.Class({
             try {
                 var userAgreement_popup = cc.instantiate(this.user_agreement_prefabs);
                 userAgreement_popup.parent = this.node;
-                userAgreement_popup.zIndex = 100;
-                userAgreement_popup.setPosition(0, 0);
                 console.log("用户协议弹窗创建成功");
             } catch (e) {
                 console.error("创建用户协议弹窗失败:", e);
@@ -376,8 +356,6 @@ cc.Class({
                 try {
                     var userAgreement_popup = cc.instantiate(prefab);
                     userAgreement_popup.parent = self.node;
-                    userAgreement_popup.zIndex = 100;
-                    userAgreement_popup.setPosition(0, 0);
                     console.log("用户协议弹窗动态加载成功");
                 } catch (e) {
                     console.error("创建用户协议弹窗失败:", e);
