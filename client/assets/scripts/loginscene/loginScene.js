@@ -83,6 +83,7 @@ cc.Class({
                 
                 // 保存原始图片
                 var originalSpriteFrame = sprite.spriteFrame;
+                var originalSize = originalSpriteFrame ? originalSpriteFrame.getOriginalSize() : {width: 40, height: 40};
                 
                 // 创建一个新的子节点来显示勾
                 var checkIcon = new cc.Node("check_icon");
@@ -95,19 +96,30 @@ cc.Class({
                 checkSprite.sizeMode = cc.Sprite.SizeMode.RAW;
                 
                 // 设置子节点尺寸
-                checkIcon.width = originalSpriteFrame ? originalSpriteFrame.getOriginalSize().width : 40;
-                checkIcon.height = originalSpriteFrame ? originalSpriteFrame.getOriginalSize().height : 40;
+                checkIcon.width = originalSize.width;
+                checkIcon.height = originalSize.height;
                 
                 // 清除父节点的图片（作为透明背景）
                 sprite.spriteFrame = null;
                 sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
                 
-                // 设置父节点作为边框背景
-                toggleNode.width = 50;
-                toggleNode.height = 50;
+                // 设置父节点作为边框背景（稍大一些）
+                var boxSize = 55;
+                toggleNode.width = boxSize;
+                toggleNode.height = boxSize;
                 
-                // 添加一个简单的边框效果（使用颜色）
-                toggleNode.color = cc.Color.WHITE;
+                // 添加Graphics组件绘制边框
+                var graphics = toggleNode.getComponent(cc.Graphics);
+                if (!graphics) {
+                    graphics = toggleNode.addComponent(cc.Graphics);
+                }
+                
+                // 绘制边框
+                graphics.clear();
+                graphics.strokeColor = cc.Color.WHITE; // 白色边框
+                graphics.lineWidth = 2;
+                graphics.rect(-boxSize/2, -boxSize/2, boxSize, boxSize);
+                graphics.stroke();
                 
                 // 更新Toggle的checkMark指向新的子节点Sprite
                 this.agreement_toggle.checkMark = checkSprite;
@@ -115,7 +127,7 @@ cc.Class({
                 // 初始状态：未勾选，隐藏勾图标
                 checkIcon.active = this.agreement_toggle.isChecked;
                 
-                console.log("复选框结构修复完成");
+                console.log("复选框结构修复完成，边框已添加");
             }
         }
     },
