@@ -6,6 +6,7 @@ cc.Class({
 
     properties: {
        wait_node: cc.Node,
+       user_agreement_prefabs: cc.Prefab,
     },
 
     // LIFE-CYCLE CALLBACKS:
@@ -124,6 +125,16 @@ cc.Class({
                     myglobal.playerData.gobal_count = result.goldcount || 0;
                     cc.director.loadScene("hallScene");
                 }.bind(this));
+                break;
+            case "user_agreement":
+                console.log("user_agreement click");
+                if (this.user_agreement_prefabs) {
+                    var userAgreement_popup = cc.instantiate(this.user_agreement_prefabs);
+                    userAgreement_popup.parent = this.node;
+                    userAgreement_popup.zIndex = 100;
+                } else {
+                    console.error("用户协议prefab未设置");
+                }
                 break;
             default:
                 break;
