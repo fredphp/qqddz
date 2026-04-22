@@ -386,13 +386,13 @@
       "ctor": "Float64Array",
       "array": [
         -220,
-        36,
+        -220,
         0,
         0,
         0,
         0,
-        1,
-        0.7,
+        1.0,
+        1.0,
         0.7,
         1
       ]
@@ -556,13 +556,13 @@
       "ctor": "Float64Array",
       "array": [
         220,
-        36,
+        -220,
         0,
         0,
         0,
         0,
-        1,
-        0.7,
+        1.0,
+        1.0,
         0.7,
         1
       ]
@@ -701,7 +701,7 @@
     "zoomScale": 1.1,
     "clickEvents": [
       {
-        "__id__": 18
+        "__id__": 41
       }
     ],
     "_N$interactable": true,
@@ -785,6 +785,9 @@
       },
       {
         "__id__": 35
+      },
+      {
+        "__id__": 42
       }
     ],
     "_prefab": null,
@@ -798,8 +801,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 59,
-      "height": 48
+      "width": 80,
+      "height": 60
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -1422,9 +1425,16 @@
     "checkMark": {
       "__id__": 18
     },
-    "checkEvents": [],
-    "_N$target": null,
-    "_id": ""
+    "checkEvents": [
+      {
+        "__id__": 40
+      }
+    ],
+    "_N$target": {
+      "__id__": 17
+    },
+    "_id": "",
+    "_N$isChecked": false
   },
   {
     "__type__": "cc.Node",
@@ -1479,13 +1489,13 @@
       "ctor": "Float64Array",
       "array": [
         0,
-        36,
+        -220,
         0,
         0,
         0,
         0,
-        1,
-        0.7,
+        1.0,
+        1.0,
         0.7,
         1
       ]
@@ -1598,5 +1608,93 @@
     "_componentId": "b05a6f20-48ea-415a-bf1d-76f4f4dc9a63",
     "handler": "onButtonCilck",
     "customEventData": "phone_login"
+  },
+  {
+    "__type__": "cc.ClickEvent",
+    "target": {
+      "__id__": 2
+    },
+    "component": "",
+    "_componentId": "b05a6f20-48ea-415a-bf1d-76f4f4dc9a63",
+    "handler": "onToggleChanged",
+    "customEventData": ""
+  },
+  {
+    "__type__": "cc.ClickEvent",
+    "target": {
+      "__id__": 2
+    },
+    "component": "",
+    "_componentId": "b05a6f20-48ea-415a-bf1d-76f4f4dc9a63",
+    "handler": "onButtonCilck",
+    "customEventData": "user_agreement"
+  },
+  {
+    "__type__": "cc.Button",
+    "_name": "",
+    "_objFlags": 0,
+    "node": {
+      "__id__": 17
+    },
+    "_enabled": true,
+    "duration": 0.1,
+    "zoomScale": 1.1,
+    "clickEvents": [],
+    "_N$interactable": true,
+    "_N$enableAutoGrayEffect": false,
+    "_N$transition": 0,
+    "transition": 0,
+    "_N$normalColor": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "_N$pressedColor": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "pressedColor": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "_N$hoverColor": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "hoverColor": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "_N$disabledColor": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "_N$normalSprite": null,
+    "_N$pressedSprite": null,
+    "pressedSprite": null,
+    "_N$hoverSprite": null,
+    "hoverSprite": null,
+    "_N$disabledSprite": null,
+    "_N$target": {
+      "__id__": 17
+    },
+    "_id": ""
   }
 ]
