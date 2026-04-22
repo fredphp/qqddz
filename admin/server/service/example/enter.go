@@ -1,8 +1,9 @@
 package example
 
 type ServiceGroup struct {
-	CustomerService
+        CustomerService
 
-	AttachmentCategoryService
-	FileUploadAndDownloadService
+        AttachmentCategoryService
+        FileUploadAndDownloadService
+        SysUserAgreementService
 }

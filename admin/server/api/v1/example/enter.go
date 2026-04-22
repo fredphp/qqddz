@@ -3,15 +3,17 @@ package example
 import "github.com/flipped-aurora/gin-vue-admin/server/service"
 
 type ApiGroup struct {
-	CustomerApi
+        CustomerApi
 
-	AttachmentCategoryApi
-	FileUploadAndDownloadApi
+        AttachmentCategoryApi
+        FileUploadAndDownloadApi
+        UserAgreementApi
 }
 
 var (
-	customerService = service.ServiceGroupApp.ExampleServiceGroup.CustomerService
+        customerService = service.ServiceGroupApp.ExampleServiceGroup.CustomerService
 
-	attachmentCategoryService    = service.ServiceGroupApp.ExampleServiceGroup.AttachmentCategoryService
-	fileUploadAndDownloadService = service.ServiceGroupApp.ExampleServiceGroup.FileUploadAndDownloadService
+        attachmentCategoryService    = service.ServiceGroupApp.ExampleServiceGroup.AttachmentCategoryService
+        fileUploadAndDownloadService = service.ServiceGroupApp.ExampleServiceGroup.FileUploadAndDownloadService
+        sysUserAgreementService      = service.ServiceGroupApp.ExampleServiceGroup.UserAgreementService
 )
