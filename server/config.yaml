@@ -12,6 +12,26 @@ redis:
   password: ""
   db: 0
 
+# HTTP API 配置
+api:
+  # 是否启用HTTP API
+  enable: true
+  # HTTP API 端口
+  port: 1781
+  # 数据加密密钥（32字节用于AES-256，可通过 hex 编码或直接字符串）
+  # 建议使用: openssl rand -hex 16 生成16字节随机数作为密钥
+  crypto_key: "qqddz2026gameaes256secretkey!"
+  # 是否启用加密
+  enable_crypto: true
+
+# MySQL 数据库配置（用于游戏业务数据）
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  user: "root"
+  password: "root"
+  database: "hlddz"
+
 game:
   # 玩家回合超时时间（秒）
   turn_timeout: 30
