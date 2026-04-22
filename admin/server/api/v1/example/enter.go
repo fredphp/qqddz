@@ -7,7 +7,7 @@ type ApiGroup struct {
 
         AttachmentCategoryApi
         FileUploadAndDownloadApi
-        UserAgreementApi
+        SysUserAgreementApi
 }
 
 var (
@@ -15,5 +15,5 @@ var (
 
         attachmentCategoryService    = service.ServiceGroupApp.ExampleServiceGroup.AttachmentCategoryService
         fileUploadAndDownloadService = service.ServiceGroupApp.ExampleServiceGroup.FileUploadAndDownloadService
-        sysUserAgreementService      = service.ServiceGroupApp.ExampleServiceGroup.UserAgreementService
+        sysUserAgreementService      = service.ServiceGroupApp.ExampleServiceGroup.SysUserAgreementService
 )

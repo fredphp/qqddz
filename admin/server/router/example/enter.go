@@ -9,7 +9,7 @@ type RouterGroup struct {
 
         AttachmentCategoryRouter
         FileUploadAndDownloadRouter
-        UserAgreementRouter
+        SysUserAgreementRouter
 }
 
 var (
@@ -17,5 +17,5 @@ var (
 
         attachmentCategoryApi       = api.ApiGroupApp.ExampleApiGroup.AttachmentCategoryApi
         exaFileUploadAndDownloadApi = api.ApiGroupApp.ExampleApiGroup.FileUploadAndDownloadApi
-        sysUserAgreementApi         = api.ApiGroupApp.ExampleApiGroup.UserAgreementApi
+        sysUserAgreementApi         = api.ApiGroupApp.ExampleApiGroup.SysUserAgreementApi
 )
