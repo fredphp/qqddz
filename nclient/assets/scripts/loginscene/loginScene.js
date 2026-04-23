@@ -26,6 +26,9 @@ cc.Class({
         // 勾选状态 - 默认不勾选
         this._isChecked = false;
         
+        // 初始化 wait_node 功能
+        this._initWaitNode();
+        
         // 确保 myglobal 存在
         if (typeof window.myglobal === 'undefined') {
             console.error("myglobal 未定义，尝试等待...");
@@ -34,6 +37,25 @@ cc.Class({
         }
         
         this._initAndStart();
+    },
+    
+    // 初始化 wait_node 功能
+    _initWaitNode: function() {
+        if (this.wait_node) {
+            // 查找 loading_image 子节点
+            this._loadingImage = this.wait_node.getChildByName("loading_image");
+            
+            // 查找 lblcontent_Label 子节点
+            var lblNode = this.wait_node.getChildByName("lblcontent_Label");
+            if (lblNode) {
+                this._waitLabel = lblNode.getComponent(cc.Label);
+            }
+            
+            // 初始隐藏
+            this.wait_node.active = false;
+            
+            console.log("wait_node 初始化完成");
+        }
     },
     
     start () {
@@ -143,9 +165,6 @@ cc.Class({
             self._showUserAgreement();
             event.stopPropagation();
         }, this);
-        
-        // 设置节点可接收触摸事件
-        labelNode._touchListener = true;
         
         console.log("用户协议初始化完成");
     },
@@ -278,29 +297,67 @@ cc.Class({
         this._updateLoginUI();
     },
     
+    // 显示错误信息
     _showError: function(message) {
         console.error("错误:", message);
+        this._showWaitNode(message);
+        
+        // 2秒后隐藏
+        this.scheduleOnce(function() {
+            this._hideWaitNode();
+        }, 2);
+    },
+    
+    // 显示加载中
+    _showLoading: function(show, message) {
+        if (show) {
+            this._showWaitNode(message || "正在处理...");
+        } else {
+            this._hideWaitNode();
+        }
+    },
+    
+    // 显示 wait_node
+    _showWaitNode: function(message) {
         if (this.wait_node) {
-            var waitNode = this.wait_node.getComponent('waitnode');
-            if (waitNode) {
-                waitNode.show(message);
-                setTimeout(function() {
-                    waitNode.hide();
-                }, 2000);
+            this.wait_node.active = true;
+            
+            // 更新文字
+            if (this._waitLabel) {
+                this._waitLabel.string = message || "正在处理...";
+            }
+            
+            // 开始旋转动画
+            if (this._loadingImage) {
+                this._startLoadingAnimation();
             }
         }
     },
     
-    _showLoading: function(show, message) {
+    // 隐藏 wait_node
+    _hideWaitNode: function() {
         if (this.wait_node) {
-            var waitNode = this.wait_node.getComponent('waitnode');
-            if (waitNode) {
-                if (show) {
-                    waitNode.show(message || "正在处理...");
-                } else {
-                    waitNode.hide();
-                }
-            }
+            this.wait_node.active = false;
+            this._stopLoadingAnimation();
+        }
+    },
+    
+    // 开始加载动画
+    _startLoadingAnimation: function() {
+        if (this._loadingImage && !this._isAnimating) {
+            this._isAnimating = true;
+        }
+    },
+    
+    // 停止加载动画
+    _stopLoadingAnimation: function() {
+        this._isAnimating = false;
+    },
+    
+    // 更新函数 - 用于旋转动画
+    update: function(dt) {
+        if (this._isAnimating && this._loadingImage) {
+            this._loadingImage.rotation = this._loadingImage.rotation - dt * 45;
         }
     },
     
@@ -371,7 +428,7 @@ cc.Class({
             console.log("通过场景属性加载用户协议预制体");
             this._createUserAgreementPopup(this.user_agreement_prefabs);
         } else {
-            console.log("尝试从 resources 目录动态加载用户协议预制体");
+            console.log("尝试动态加载用户协议预制体");
             cc.resources.load("prefabs/user_agreement", cc.Prefab, function(err, prefab) {
                 if (err) {
                     console.error("动态加载用户协议预制体失败:", err);
@@ -387,12 +444,43 @@ cc.Class({
     // 创建用户协议弹窗
     _createUserAgreementPopup: function(prefab) {
         try {
-            var userAgreement_popup = cc.instantiate(prefab);
-            userAgreement_popup.parent = this.node;
+            var popup = cc.instantiate(prefab);
+            popup.parent = this.node;
+            
+            // 获取关闭按钮并添加事件
+            var closeBtn = popup.getChildByName("close_btn");
+            if (closeBtn) {
+                var button = closeBtn.getComponent(cc.Button);
+                if (button) {
+                    // 清除现有事件
+                    button.clickEvents = [];
+                    
+                    // 添加关闭事件
+                    var clickEventHandler = new cc.Component.EventHandler();
+                    clickEventHandler.target = this.node;
+                    clickEventHandler.component = "loginScene";
+                    clickEventHandler.handler = "_onCloseUserAgreement";
+                    clickEventHandler.customEventData = "";
+                    button.clickEvents.push(clickEventHandler);
+                }
+            }
+            
+            // 保存引用以便关闭
+            this._userAgreementPopup = popup;
+            
             console.log("用户协议弹窗创建成功");
         } catch (e) {
             console.error("创建用户协议弹窗失败:", e);
             this._showError("无法显示用户协议");
+        }
+    },
+    
+    // 关闭用户协议弹窗
+    _onCloseUserAgreement: function() {
+        console.log("关闭用户协议弹窗");
+        if (this._userAgreementPopup) {
+            this._userAgreementPopup.destroy();
+            this._userAgreementPopup = null;
         }
     }
 });
