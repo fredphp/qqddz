@@ -27,6 +27,10 @@ cc.Class({
         
         // 初始化复选框
         this._initCheckbox();
+        
+        // 立即初始化登录按钮
+        this._initLoginButtons();
+        this._initUserAgreementLink();
 
         if (typeof window.myglobal === 'undefined') {
             console.error("myglobal 未定义，尝试等待...");
@@ -129,9 +133,13 @@ cc.Class({
     },
 
     _initLoginButtons: function() {
+        console.log("=== _initLoginButtons 开始 ===");
+
         var wxLoginNode = this.node.getChildByName("login_wx");
+        console.log("login_wx 节点:", wxLoginNode ? "找到" : "未找到");
         if (wxLoginNode) {
             var button = wxLoginNode.getComponent(cc.Button);
+            console.log("login_wx Button 组件:", button ? "找到" : "未找到");
             if (button) {
                 button.interactable = true;
                 button.clickEvents = [];
@@ -142,12 +150,15 @@ cc.Class({
                 handler.handler = "_onWxLoginClick";
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
+                console.log("微信登录按钮事件已绑定");
             }
         }
 
         var phoneLoginNode = this.node.getChildByName("login_phone");
+        console.log("login_phone 节点:", phoneLoginNode ? "找到" : "未找到");
         if (phoneLoginNode) {
             var button = phoneLoginNode.getComponent(cc.Button);
+            console.log("login_phone Button 组件:", button ? "找到" : "未找到");
             if (button) {
                 button.interactable = true;
                 button.clickEvents = [];
@@ -158,8 +169,11 @@ cc.Class({
                 handler.handler = "_onPhoneLoginClick";
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
+                console.log("手机登录按钮事件已绑定");
             }
         }
+
+        console.log("=== _initLoginButtons 结束 ===");
     },
 
     _initUserAgreementLink: function() {

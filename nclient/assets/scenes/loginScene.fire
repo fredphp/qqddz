@@ -1597,6 +1597,9 @@
     "user_agreement_prefabs": {
       "__uuid__": "c3d4e5f6-7890-abcd-ef12-3456789abcde"
     },
+    "phone_login_prefab": {
+      "__uuid__": "d4e5f6a7-b8c9-01de-f234-567890abcdef"
+    },
     "_id": "4eHBTtC69KtIKDTJf4XvDD"
   },
   {
