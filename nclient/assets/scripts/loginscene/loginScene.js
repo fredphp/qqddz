@@ -63,6 +63,35 @@ cc.Class({
         }
     },
 
+    // 创建边框纹理
+    _createBorderTexture: function(size, borderWidth, r, g, b) {
+        var texture = new cc.Texture2D();
+        var data = new Uint8Array(size * size * 4);
+
+        for (var y = 0; y < size; y++) {
+            for (var x = 0; x < size; x++) {
+                var idx = (y * size + x) * 4;
+                if (x < borderWidth || x >= size - borderWidth ||
+                    y < borderWidth || y >= size - borderWidth) {
+                    data[idx] = r;
+                    data[idx + 1] = g;
+                    data[idx + 2] = b;
+                    data[idx + 3] = 255;
+                } else {
+                    data[idx] = 0;
+                    data[idx + 1] = 0;
+                    data[idx + 2] = 0;
+                    data[idx + 3] = 0;
+                }
+            }
+        }
+
+        texture.initWithData(data, cc.Texture2D.PixelFormat.RGBA8888, size, size);
+        texture.handleLoadedTexture();
+
+        return texture;
+    },
+
     // 初始化复选框（使用原生 cc.Toggle）
     _initCheckbox: function() {
         console.log("=== 初始化复选框（原生 Toggle）===");
@@ -76,14 +105,12 @@ cc.Class({
 
         if (oldCheckMark) {
             oldCheckMark.active = false;
-            console.log("隐藏原有 check_mark 节点");
         }
         if (oldBorder) {
             oldBorder.active = false;
-            console.log("隐藏原有 checkbox_border 节点");
         }
 
-        // 创建 Toggle 节点
+        // === 创建 Toggle 节点 ===
         var toggleNode = new cc.Node("checkbox_toggle");
         toggleNode.parent = this.node;
         toggleNode.x = -150;
@@ -91,120 +118,72 @@ cc.Class({
         toggleNode.width = 28;
         toggleNode.height = 28;
 
-        // 添加 Sprite 组件作为背景
+        // 添加背景 Sprite
         var bgSprite = toggleNode.addComponent(cc.Sprite);
         bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        bgSprite.type = cc.Sprite.Type.SLICED;
+        bgSprite.type = cc.Sprite.Type.SIMPLE;
 
-        // 创建背景纹理（带边框）
-        var bgTexture = this._createBorderTexture(28, 2, 150, 150, 150);
-        var bgSpriteFrame = new cc.SpriteFrame(bgTexture);
-        bgSprite.spriteFrame = bgSpriteFrame;
+        // 设置背景边框
+        var grayTexture = this._createBorderTexture(28, 2, 150, 150, 150);
+        bgSprite.spriteFrame = new cc.SpriteFrame(grayTexture);
+        this._bgSprite = bgSprite;
 
         // 添加 Button 组件
         var button = toggleNode.addComponent(cc.Button);
-        button.transition = cc.Button.Transition.COLOR;
-        button.normalColor = new cc.Color(255, 255, 255);
-        button.pressedColor = new cc.Color(200, 200, 200);
-        button.hoverColor = new cc.Color(255, 255, 255);
-        button.disabledColor = new cc.Color(120, 120, 120);
+        button.transition = cc.Button.Transition.SCALE;
+        button.duration = 0.1;
+        button.zoomScale = 0.9;
 
-        // 创建对勾节点
+        // === 创建对勾节点 ===
         var checkMarkNode = new cc.Node("checkmark");
         checkMarkNode.parent = toggleNode;
-        checkMarkNode.x = 0;
-        checkMarkNode.y = 0;
 
-        // 添加对勾 Sprite
         var checkSprite = checkMarkNode.addComponent(cc.Sprite);
         checkSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        checkSprite.type = cc.Sprite.Type.SIMPLE;
+        checkSprite.node.width = 24;
+        checkSprite.node.height = 24;
 
         // 加载对勾图片
         cc.resources.load("UI/check_mark", cc.SpriteFrame, function(err, spriteFrame) {
-            if (err) {
-                console.log("加载 check_mark 图片失败:", err);
-                // 使用备选方案：用文字 ✓
-                return;
+            if (!err && spriteFrame) {
+                checkSprite.spriteFrame = spriteFrame;
+                console.log("check_mark 图片加载成功");
             }
-            checkSprite.spriteFrame = spriteFrame;
-            checkSprite.node.width = 22;
-            checkSprite.node.height = 22;
-            console.log("check_mark 图片加载成功");
         });
 
-        // 初始隐藏对勾
-        checkMarkNode.active = false;
-
-        // 添加 Toggle 组件
+        // === 添加 Toggle 组件 ===
         var toggle = toggleNode.addComponent(cc.Toggle);
         toggle.isChecked = false;  // 默认不选中
-        toggle.checkMark = checkSprite;  // 设置对勾 Sprite
+        toggle.checkMark = checkSprite;  // Toggle 会自动管理这个 Sprite 的显示/隐藏
 
-        // 添加 Toggle 点击事件
-        var toggleHandler = new cc.Component.EventHandler();
-        toggleHandler.target = this.node;
-        toggleHandler.component = "loginScene";
-        toggleHandler.handler = "_onToggleClick";
-        toggleHandler.customEventData = "";
-        toggle.checkEvents.push(toggleHandler);
+        // 添加点击事件
+        var handler = new cc.Component.EventHandler();
+        handler.target = this.node;
+        handler.component = "loginScene";
+        handler.handler = "_onToggleChange";
+        handler.customEventData = "";
+        toggle.checkEvents.push(handler);
 
-        this._toggleNode = toggleNode;
         this._toggle = toggle;
-        this._checkMarkNode = checkMarkNode;
-        this._bgSprite = bgSprite;
+        this._toggleNode = toggleNode;
+
+        // 禁用 agreement_label 的 Button
+        if (oldAgreementLabel) {
+            var btn = oldAgreementLabel.getComponent(cc.Button);
+            if (btn) btn.interactable = false;
+        }
         this._oldAgreementLabel = oldAgreementLabel;
 
-        // 禁用 agreement_label 上的 Button 组件
-        if (oldAgreementLabel) {
-            var agreementButton = oldAgreementLabel.getComponent(cc.Button);
-            if (agreementButton) {
-                agreementButton.interactable = false;
-            }
-        }
-
-        // 创建点击区域覆盖整个"我已阅读并同意《用户协议》"文字
+        // 创建点击区域
         this._createClickArea();
 
-        console.log("=== 复选框初始化完成，默认状态: 未选中 ===");
-    },
-
-    // 创建边框纹理
-    _createBorderTexture: function(size, borderWidth, r, g, b) {
-        var texture = new cc.Texture2D();
-        var data = new Uint8Array(size * size * 4);
-
-        for (var y = 0; y < size; y++) {
-            for (var x = 0; x < size; x++) {
-                var idx = (y * size + x) * 4;
-                // 检查是否在边框区域
-                if (x < borderWidth || x >= size - borderWidth ||
-                    y < borderWidth || y >= size - borderWidth) {
-                    data[idx] = r;
-                    data[idx + 1] = g;
-                    data[idx + 2] = b;
-                    data[idx + 3] = 255;
-                } else {
-                    // 内部透明
-                    data[idx] = 255;
-                    data[idx + 1] = 255;
-                    data[idx + 2] = 255;
-                    data[idx + 3] = 0;
-                }
-            }
-        }
-
-        texture.initWithData(data, cc.Texture2D.PixelFormat.RGBA8888, size, size);
-        texture.handleLoadedTexture();
-
-        return texture;
+        console.log("=== 复选框初始化完成，默认: 未选中 ===");
     },
 
     // 创建点击区域
     _createClickArea: function() {
         var self = this;
 
-        // 创建点击区域覆盖整个复选框和文字区域
         var clickArea = new cc.Node("checkbox_click_area");
         clickArea.parent = this.node;
         clickArea.x = -90;
@@ -212,64 +191,42 @@ cc.Class({
         clickArea.width = 220;
         clickArea.height = 50;
 
-        // 添加透明 Sprite
         var sprite = clickArea.addComponent(cc.Sprite);
         sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        sprite.type = cc.Sprite.Type.SLICED;
 
         var texture = new cc.Texture2D();
-        texture.initWithData(
-            new Uint8Array([255, 255, 255, 1]),
-            cc.Texture2D.PixelFormat.RGBA8888,
-            1, 1
-        );
+        texture.initWithData(new Uint8Array([255, 255, 255, 1]), cc.Texture2D.PixelFormat.RGBA8888, 1, 1);
         texture.handleLoadedTexture();
         sprite.spriteFrame = new cc.SpriteFrame(texture);
 
-        // 添加 Button 组件
         var button = clickArea.addComponent(cc.Button);
         button.transition = cc.Button.Transition.NONE;
 
-        // 添加点击事件
         var handler = new cc.Component.EventHandler();
         handler.target = this.node;
         handler.component = "loginScene";
-        handler.handler = "_onCheckboxAreaClick";
+        handler.handler = "_onAreaClick";
         handler.customEventData = "";
         button.clickEvents.push(handler);
 
         this._clickArea = clickArea;
-
-        console.log("点击区域创建完成");
     },
 
-    // Toggle 点击回调
-    _onToggleClick: function(toggle) {
+    // Toggle 状态变化回调
+    _onToggleChange: function(toggle) {
         this._isChecked = toggle.isChecked;
-        console.log("Toggle 状态变化:", this._isChecked ? "选中" : "未选中");
-
-        // 更新边框颜色
+        console.log("Toggle 状态:", this._isChecked ? "选中" : "未选中");
         this._updateBorderColor(this._isChecked);
     },
 
     // 点击区域回调
-    _onCheckboxAreaClick: function() {
-        console.log("点击区域被点击");
-
-        // 切换 Toggle 状态
+    _onAreaClick: function() {
         if (this._toggle) {
+            // 切换 Toggle 状态
             this._toggle.isChecked = !this._toggle.isChecked;
             this._isChecked = this._toggle.isChecked;
-
-            // 显示/隐藏对勾
-            if (this._checkMarkNode) {
-                this._checkMarkNode.active = this._isChecked;
-            }
-
-            // 更新边框颜色
             this._updateBorderColor(this._isChecked);
-
-            console.log("复选框状态切换:", this._isChecked ? "选中" : "未选中");
+            console.log("点击区域触发，状态:", this._isChecked ? "选中" : "未选中");
         }
     },
 
@@ -283,19 +240,11 @@ cc.Class({
         if (this._bgSprite) {
             this._bgSprite.spriteFrame = new cc.SpriteFrame(texture);
         }
-
-        // 显示/隐藏对勾
-        if (this._checkMarkNode) {
-            this._checkMarkNode.active = isChecked;
-        }
-
-        console.log("边框颜色更新:", isChecked ? "绿色" : "灰色");
     },
 
     start () {
         console.log("loginScene start");
 
-        // 在 start 中初始化登录按钮
         this.scheduleOnce(function() {
             this._initLoginButtons();
             this._initUserAgreementLink();
@@ -305,8 +254,6 @@ cc.Class({
     // 初始化登录按钮
     _initLoginButtons: function() {
         console.log("初始化登录按钮...");
-
-        var self = this;
 
         // 微信登录按钮
         var wxLoginNode = this.node.getChildByName("login_wx");
@@ -323,7 +270,6 @@ cc.Class({
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
             }
-            console.log("微信登录按钮初始化完成");
         }
 
         // 手机号登录按钮
@@ -341,7 +287,6 @@ cc.Class({
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
             }
-            console.log("手机号登录按钮初始化完成");
         }
     },
 
@@ -349,14 +294,10 @@ cc.Class({
     _initUserAgreementLink: function() {
         console.log("初始化用户协议链接...");
 
-        var self = this;
-
-        // 获取 user_agreement_link 节点
         var linkNode = this.node.getChildByName("user_agreement_link");
         if (linkNode) {
             linkNode.active = true;
 
-            // 配置 Button
             var button = linkNode.getComponent(cc.Button);
             if (button) {
                 button.interactable = true;
@@ -369,26 +310,21 @@ cc.Class({
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
             }
-
-            console.log("用户协议链接初始化完成");
         }
     },
 
     // 微信登录点击回调
     _onWxLoginClick: function() {
-        console.log("_onWxLoginClick 被调用");
         this._doWxLogin();
     },
 
     // 手机号登录点击回调
     _onPhoneLoginClick: function() {
-        console.log("_onPhoneLoginClick 被调用");
         this._doPhoneLogin();
     },
 
     // 用户协议点击回调
     _onUserAgreementClick: function() {
-        console.log("_onUserAgreementClick 被调用");
         this._showUserAgreement();
     },
 
@@ -400,79 +336,51 @@ cc.Class({
     _waitForMyglobal: function() {
         var self = this;
         var attempts = 0;
-        var maxAttempts = 20;
 
-        var checkMyglobal = function() {
+        var check = function() {
             attempts++;
-            console.log("等待 myglobal... (第 " + attempts + " 次)");
-
             if (typeof window.myglobal !== 'undefined') {
-                console.log("myglobal 已就绪");
                 self._initAndStart();
-            } else if (attempts < maxAttempts) {
-                setTimeout(checkMyglobal, 100);
+            } else if (attempts < 20) {
+                setTimeout(check, 100);
             } else {
-                console.error("myglobal 加载超时，请刷新页面重试");
                 self._showError("加载失败，请刷新页面重试");
             }
         };
 
-        setTimeout(checkMyglobal, 100);
+        setTimeout(check, 100);
     },
 
     _initAndStart: function() {
         var myglobal = window.myglobal;
-        var isopen_sound = window.isopen_sound || 1;
 
-        // 如果 socket 未初始化，尝试初始化
-        if (!myglobal.socket) {
-            if (!myglobal.init()) {
-                console.error("myglobal 初始化失败");
-                this._showError("初始化失败，请刷新页面重试");
-                return;
-            }
+        if (!myglobal.socket && !myglobal.init()) {
+            this._showError("初始化失败，请刷新页面重试");
+            return;
         }
 
-        console.log("loginScene 初始化完成");
-        console.log("  - myglobal.socket:", !!myglobal.socket);
-        console.log("  - myglobal.playerData:", !!myglobal.playerData);
-
         // 播放背景音乐
-        if (isopen_sound) {
+        if (window.isopen_sound) {
             cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
-                if (err) {
-                    console.log("加载背景音乐失败:", err);
-                    return;
-                }
-                try {
-                    cc.audioEngine.playMusic(clip, true);
-                } catch(e) {
-                    console.log("播放背景音乐失败:", e);
+                if (!err) {
+                    try { cc.audioEngine.playMusic(clip, true); } catch(e) {}
                 }
             });
         }
 
-        // 初始化 WebSocket 连接
         if (myglobal.socket && myglobal.socket.initSocket) {
             myglobal.socket.initSocket();
         }
-
-        // 初始化登录方式
-        this._updateLoginUI();
     },
 
-    // 显示错误信息
     _showError: function(message) {
         console.error("错误:", message);
         this._showWaitNode(message);
-
-        // 2秒后隐藏
         this.scheduleOnce(function() {
             this._hideWaitNode();
         }, 2);
     },
 
-    // 显示加载中
     _showLoading: function(show, message) {
         if (show) {
             this._showWaitNode(message || "正在处理...");
@@ -481,60 +389,36 @@ cc.Class({
         }
     },
 
-    // 显示 wait_node
     _showWaitNode: function(message) {
         if (this.wait_node) {
             this.wait_node.active = true;
-
-            // 更新文字
             if (this._waitLabel) {
                 this._waitLabel.string = message || "正在处理...";
             }
-
-            // 开始旋转动画
             if (this._loadingImage) {
-                this._startLoadingAnimation();
+                this._isAnimating = true;
             }
         }
     },
 
-    // 隐藏 wait_node
     _hideWaitNode: function() {
         if (this.wait_node) {
             this.wait_node.active = false;
-            this._stopLoadingAnimation();
+            this._isAnimating = false;
         }
     },
 
-    // 开始加载动画
-    _startLoadingAnimation: function() {
-        if (this._loadingImage && !this._isAnimating) {
-            this._isAnimating = true;
-        }
-    },
-
-    // 停止加载动画
-    _stopLoadingAnimation: function() {
-        this._isAnimating = false;
-    },
-
-    // 更新函数 - 用于旋转动画
     update: function(dt) {
         if (this._isAnimating && this._loadingImage) {
-            this._loadingImage.rotation = this._loadingImage.rotation - dt * 45;
+            this._loadingImage.rotation -= dt * 45;
         }
     },
 
-    // 更新登录 UI
-    _updateLoginUI: function() {
-        // 暂时没有需要更新的 UI
-    },
+    _updateLoginUI: function() {},
 
-    // 微信登录
     _doWxLogin: function() {
         var self = this;
 
-        // 检查是否同意协议
         if (!this._checkAgreement()) {
             this._showError("请先同意用户协议");
             return;
@@ -542,7 +426,6 @@ cc.Class({
 
         var myglobal = window.myglobal;
         if (!myglobal || !myglobal.socket) {
-            console.error("myglobal 或 socket 未初始化");
             this._showError("网络未连接，请稍后重试");
             return;
         }
@@ -558,68 +441,50 @@ cc.Class({
             self._showLoading(false);
 
             if (err != 0) {
-                console.log("登录错误:" + err);
                 self._showError("登录失败，请重试");
                 return;
             }
 
-            console.log("登录成功" + JSON.stringify(result));
             myglobal.playerData.gobal_count = result.goldcount || 0;
             cc.director.loadScene("hallScene");
         });
     },
 
-    // 手机号登录
     _doPhoneLogin: function() {
-        var self = this;
-
-        // 检查是否同意协议
         if (!this._checkAgreement()) {
             this._showError("请先同意用户协议");
             return;
         }
-
-        self._showError("手机号登录功能暂未开放");
+        this._showError("手机号登录功能暂未开放");
     },
 
-    // 显示用户协议弹窗
     _showUserAgreement: function() {
-        console.log("_showUserAgreement called");
-
         var self = this;
 
         if (this.user_agreement_prefabs) {
-            console.log("通过场景属性加载用户协议预制体");
             this._createUserAgreementPopup(this.user_agreement_prefabs);
         } else {
-            console.log("尝试动态加载用户协议预制体");
             cc.resources.load("prefabs/user_agreement", cc.Prefab, function(err, prefab) {
                 if (err) {
-                    console.error("动态加载用户协议预制体失败:", err);
                     self._showError("无法显示用户协议");
                     return;
                 }
-
                 self._createUserAgreementPopup(prefab);
             });
         }
     },
 
-    // 创建用户协议弹窗
     _createUserAgreementPopup: function(prefab) {
         try {
             var popup = cc.instantiate(prefab);
             popup.parent = this.node;
 
-            // 获取关闭按钮并添加事件
             var closeBtn = popup.getChildByName("close_btn");
             if (closeBtn) {
                 var button = closeBtn.getComponent(cc.Button);
                 if (button) {
-                    // 清除现有事件
                     button.clickEvents = [];
 
-                    // 添加关闭事件
                     var handler = new cc.Component.EventHandler();
                     handler.target = this.node;
                     handler.component = "loginScene";
@@ -629,19 +494,13 @@ cc.Class({
                 }
             }
 
-            // 保存引用以便关闭
             this._userAgreementPopup = popup;
-
-            console.log("用户协议弹窗创建成功");
         } catch (e) {
-            console.error("创建用户协议弹窗失败:", e);
             this._showError("无法显示用户协议");
         }
     },
 
-    // 关闭用户协议弹窗
     _onCloseUserAgreement: function() {
-        console.log("关闭用户协议弹窗");
         if (this._userAgreementPopup) {
             this._userAgreementPopup.destroy();
             this._userAgreementPopup = null;
