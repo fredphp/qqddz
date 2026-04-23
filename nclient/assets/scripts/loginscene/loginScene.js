@@ -79,19 +79,23 @@ cc.Class({
         // 创建一个更大的点击区域节点
         var clickArea = new cc.Node("checkbox_click_area");
         clickArea.parent = this.node;
-        clickArea.zIndex = 100;
+        clickArea.zIndex = 1000;  // 使用更高的 zIndex
         clickArea.x = checkMarkNode.x;
         clickArea.y = checkMarkNode.y;
         clickArea.width = 60;  // 更大的点击区域
         clickArea.height = 60;
         clickArea.anchorX = 0.5;
         clickArea.anchorY = 0.5;
+        clickArea.setContentSize(60, 60);
         
-        // 添加一个透明的背景以便接收触摸事件
-        var graphics = clickArea.addComponent(cc.Graphics);
-        graphics.fillColor = new cc.Color(0, 0, 0, 0);  // 完全透明
-        graphics.rect(-30, -30, 60, 60);
-        graphics.fill();
+        // 添加一个透明的 Sprite 来接收触摸事件
+        // 创建一个透明的 SpriteFrame
+        var sprite = clickArea.addComponent(cc.Sprite);
+        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        sprite.spriteFrame = new cc.SpriteFrame();
+        
+        // 添加 BlockInputEvents 组件确保事件被拦截
+        clickArea.addComponent(cc.BlockInputEvents);
         
         // 保存引用
         this._checkboxClickArea = clickArea;
@@ -146,25 +150,25 @@ cc.Class({
         
         console.log("找到用户协议节点:", labelNode.name, "大小:", labelNode.width, "x", labelNode.height);
         
-        // 确保节点可以接收触摸事件
-        labelNode._touchListener = null;
-        
         // 创建一个更大的点击区域覆盖整个用户协议文字
         var clickArea = new cc.Node("agreement_click_area");
         clickArea.parent = this.node;
-        clickArea.zIndex = 101;
+        clickArea.zIndex = 1001;  // 使用更高的 zIndex
         clickArea.x = labelNode.x;
         clickArea.y = labelNode.y;
-        clickArea.width = labelNode.width + 20;  // 稍微大一点
-        clickArea.height = labelNode.height + 10;
+        clickArea.width = labelNode.width + 40;  // 稍微大一点
+        clickArea.height = labelNode.height + 20;
         clickArea.anchorX = 0.5;
         clickArea.anchorY = 0.5;
+        clickArea.setContentSize(clickArea.width, clickArea.height);
         
-        // 添加一个透明的背景以便接收触摸事件
-        var graphics = clickArea.addComponent(cc.Graphics);
-        graphics.fillColor = new cc.Color(0, 0, 0, 0);  // 完全透明
-        graphics.rect(-clickArea.width/2, -clickArea.height/2, clickArea.width, clickArea.height);
-        graphics.fill();
+        // 添加一个透明的 Sprite 来接收触摸事件
+        var sprite = clickArea.addComponent(cc.Sprite);
+        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        sprite.spriteFrame = new cc.SpriteFrame();
+        
+        // 添加 BlockInputEvents 组件确保事件被拦截
+        clickArea.addComponent(cc.BlockInputEvents);
         
         // 保存引用
         this._agreementClickArea = clickArea;
