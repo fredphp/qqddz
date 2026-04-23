@@ -49,10 +49,10 @@ cc.Class({
     _initAllEvents: function() {
         console.log("初始化所有事件...");
         
-        // 1. 初始化复选框
+        // 1. 初始化复选框 - 使用场景中已有的 Button 组件
         this._initCheckbox();
         
-        // 2. 初始化用户协议链接
+        // 2. 初始化用户协议链接 - 添加触摸事件
         this._initUserAgreementLink();
         
         // 3. 初始化登录按钮
@@ -61,38 +61,7 @@ cc.Class({
         console.log("所有事件初始化完成");
     },
     
-    // 创建透明按钮节点
-    _createTransparentButton: function(name, x, y, width, height, callback) {
-        var buttonNode = new cc.Node(name);
-        buttonNode.parent = this.node;
-        buttonNode.x = x;
-        buttonNode.y = y;
-        buttonNode.setContentSize(width, height);
-        buttonNode.anchorX = 0.5;
-        buttonNode.anchorY = 0.5;
-        
-        // 添加 Sprite 组件（必须，用于接收触摸）
-        var sprite = buttonNode.addComponent(cc.Sprite);
-        sprite.spriteFrame = null;  // 透明
-        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        
-        // 添加 Button 组件
-        var button = buttonNode.addComponent(cc.Button);
-        button.transition = cc.Button.Transition.NONE;
-        button.interactable = true;
-        
-        // 添加点击事件
-        var clickEventHandler = new cc.Component.EventHandler();
-        clickEventHandler.target = this.node;
-        clickEventHandler.component = "loginScene";
-        clickEventHandler.handler = callback;
-        clickEventHandler.customEventData = "";
-        button.clickEvents.push(clickEventHandler);
-        
-        return buttonNode;
-    },
-    
-    // 初始化复选框
+    // 初始化复选框 - 使用场景中已有的 Button 组件
     _initCheckbox: function() {
         var self = this;
         
@@ -103,23 +72,32 @@ cc.Class({
             return;
         }
         
-        console.log("找到 check_mark 节点:", checkMarkNode.name, "位置:", checkMarkNode.x, checkMarkNode.y);
+        console.log("找到 check_mark 节点:", checkMarkNode.name);
         this._checkMarkNode = checkMarkNode;
         
-        // 初始状态不显示勾
+        // 初始状态不显示勾（透明度为0）
         checkMarkNode.opacity = 0;
-        checkMarkNode.setContentSize(30, 30);
         
-        // 创建透明的点击按钮覆盖在 check_mark 上
-        this._checkboxButton = this._createTransparentButton(
-            "checkbox_btn",
-            checkMarkNode.x,
-            checkMarkNode.y,
-            60,
-            60,
-            "_onCheckboxClick"
-        );
-        this._checkboxButton.zIndex = 100;
+        // 获取场景中已有的 Button 组件
+        var button = checkMarkNode.getComponent(cc.Button);
+        if (button) {
+            // 使用已有的 Button 组件，添加点击事件
+            var clickEventHandler = new cc.Component.EventHandler();
+            clickEventHandler.target = this.node;
+            clickEventHandler.component = "loginScene";
+            clickEventHandler.handler = "_onCheckboxClick";
+            clickEventHandler.customEventData = "";
+            button.clickEvents.push(clickEventHandler);
+            
+            console.log("复选框 Button 事件已添加");
+        } else {
+            // 如果没有 Button 组件，添加触摸事件
+            console.log("check_mark 没有 Button 组件，使用触摸事件");
+            checkMarkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                self._onCheckboxClick();
+                event.stopPropagation();
+            }, this);
+        }
         
         console.log("复选框初始化完成");
     },
@@ -145,7 +123,7 @@ cc.Class({
         }
     },
     
-    // 初始化用户协议链接
+    // 初始化用户协议链接 - 添加触摸事件
     _initUserAgreementLink: function() {
         var self = this;
         
@@ -157,26 +135,19 @@ cc.Class({
             return;
         }
         
-        console.log("找到用户协议节点:", labelNode.name, "位置:", labelNode.x, labelNode.y);
+        console.log("找到用户协议节点:", labelNode.name);
         
-        // 创建透明的点击按钮覆盖在 agreement_label 上
-        this._agreementButton = this._createTransparentButton(
-            "agreement_btn",
-            labelNode.x,
-            labelNode.y,
-            360,
-            50,
-            "_onAgreementClick"
-        );
-        this._agreementButton.zIndex = 101;
+        // 添加触摸事件
+        labelNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+            console.log("用户协议被点击");
+            self._showUserAgreement();
+            event.stopPropagation();
+        }, this);
+        
+        // 设置节点可接收触摸事件
+        labelNode._touchListener = true;
         
         console.log("用户协议初始化完成");
-    },
-    
-    // 用户协议点击回调
-    _onAgreementClick: function() {
-        console.log("_onAgreementClick 被调用");
-        this._showUserAgreement();
     },
     
     // 初始化登录按钮
