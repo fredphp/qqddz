@@ -50,7 +50,7 @@ cc.Class({
         }
     },
 
-    // 初始化复选框 - 使用 cc.Toggle 和 Sprite
+    // 初始化复选框 - 使用 Sprite + Toggle
     _initCheckbox: function() {
         console.log("=== 初始化复选框 ===");
 
@@ -81,44 +81,50 @@ cc.Class({
         checkMarkNode.width = checkboxSize;
         checkMarkNode.height = checkboxSize;
 
-        // 获取背景 Sprite 组件
+        // 隐藏 Label 组件（保留但不显示）
+        var labelComp = checkMarkNode.getComponent(cc.Label);
+        if (labelComp) {
+            labelComp.enabled = false; // 禁用而不是删除
+        }
+
+        // 获取或添加背景 Sprite
         var bgSprite = checkMarkNode.getComponent(cc.Sprite);
         if (!bgSprite) {
-            console.error("背景 Sprite 组件未找到");
-            return;
+            bgSprite = checkMarkNode.addComponent(cc.Sprite);
         }
 
         // 获取 checkmark 子节点
         var checkmarkChild = checkMarkNode.getChildByName("checkmark");
         if (!checkmarkChild) {
-            console.error("checkmark 子节点未找到");
-            return;
+            checkmarkChild = new cc.Node("checkmark");
+            checkmarkChild.parent = checkMarkNode;
         }
 
-        // 设置 checkmark 子节点尺寸（比背景稍小）
+        // 设置子节点尺寸
         checkmarkChild.width = checkboxSize - 2;
         checkmarkChild.height = checkboxSize - 2;
+        checkmarkChild.x = 0;
+        checkmarkChild.y = 0;
 
-        // 获取 checkmark 的 Sprite 组件
+        // 隐藏子节点的 Label（如果存在）
+        var childLabel = checkmarkChild.getComponent(cc.Label);
+        if (childLabel) {
+            childLabel.enabled = false;
+        }
+
+        // 获取或添加 checkmark 的 Sprite
         var checkSprite = checkmarkChild.getComponent(cc.Sprite);
         if (!checkSprite) {
-            console.error("checkmark Sprite 组件未找到");
-            return;
+            checkSprite = checkmarkChild.addComponent(cc.Sprite);
         }
 
-        // 获取 Toggle 组件
+        // 默认隐藏 checkmark
+        checkmarkChild.active = false;
+
+        // 获取现有的 Toggle 组件
         var toggle = checkMarkNode.getComponent(cc.Toggle);
-        if (!toggle) {
-            console.error("Toggle 组件未找到");
-            return;
-        }
-
-        // 确保 Toggle 的 checkMark 指向正确的 Sprite
-        toggle.checkMark = checkSprite;
-        toggle.isChecked = false;
-
+        
         // 保存引用
-        this._toggle = toggle;
         this._checkMarkNode = checkMarkNode;
         this._checkmarkChild = checkmarkChild;
         this._bgSprite = bgSprite;
@@ -135,44 +141,46 @@ cc.Class({
             
             console.log("check_mark 图片加载成功");
             
-            // 设置背景 Sprite - 使用图片显示边框效果
+            // 设置背景 Sprite
             bgSprite.spriteFrame = spriteFrame;
             bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            checkMarkNode.color = new cc.Color(200, 200, 200, 255); // 浅灰色背景
+            checkMarkNode.color = new cc.Color(200, 200, 200, 255);
             
-            // 设置 checkmark Sprite - 使用同一图片，绿色表示选中
+            // 设置 checkmark Sprite
             checkSprite.spriteFrame = spriteFrame;
             checkSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            checkmarkChild.color = new cc.Color(0, 200, 0, 255); // 绿色勾选
+            checkmarkChild.color = new cc.Color(0, 200, 0, 255);
             
-            // 初始状态：未选中，checkmark 隐藏（Toggle 会自动控制）
-            checkmarkChild.active = false;
-            toggle.isChecked = false;
+            // 如果有 Toggle 组件，配置它
+            if (toggle) {
+                toggle.checkMark = checkSprite;
+                toggle.isChecked = false;
+                self._toggle = toggle;
+                
+                // 添加 Toggle 事件
+                toggle.checkEvents = [];
+                var handler = new cc.Component.EventHandler();
+                handler.target = self.node;
+                handler.component = "loginScene";
+                handler.handler = "_onToggleChange";
+                handler.customEventData = "";
+                toggle.checkEvents.push(handler);
+            }
             
-            // 添加 Toggle 事件
-            toggle.checkEvents = [];
-            var handler = new cc.Component.EventHandler();
-            handler.target = self.node;
-            handler.component = "loginScene";
-            handler.handler = "_onToggleChange";
-            handler.customEventData = "";
-            toggle.checkEvents.push(handler);
-
             console.log("=== 复选框初始化完成 ===");
         });
 
-        // 让整个协议文字区域也可点击切换复选框
-        this._setupAgreementClickArea(checkMarkNode, checkboxSize);
+        // 让整个协议文字区域也可点击
+        this._setupAgreementClick(checkMarkNode);
     },
 
-    // 设置协议区域的点击响应
-    _setupAgreementClickArea: function(checkMarkNode, checkboxSize) {
+    // 设置协议区域点击
+    _setupAgreementClick: function(checkMarkNode) {
         var self = this;
         
         // 为 agreement_label 添加点击响应
         var agreementLabel = this.node.getChildByName("agreement_label");
         if (agreementLabel) {
-            // 检查是否已有 Button 组件
             var btn = agreementLabel.getComponent(cc.Button);
             if (!btn) {
                 btn = agreementLabel.addComponent(cc.Button);
@@ -185,17 +193,20 @@ cc.Class({
             var handler = new cc.Component.EventHandler();
             handler.target = this.node;
             handler.component = "loginScene";
-            handler.handler = "_onAgreementLabelClick";
+            handler.handler = "_onAgreementClick";
             handler.customEventData = "";
             btn.clickEvents.push(handler);
         }
     },
 
-    // 点击协议文字区域时切换复选框
-    _onAgreementLabelClick: function() {
+    // 点击协议文字时切换复选框
+    _onAgreementClick: function() {
         if (this._toggle) {
             this._toggle.isChecked = !this._toggle.isChecked;
             this._isChecked = this._toggle.isChecked;
+            if (this._checkmarkChild) {
+                this._checkmarkChild.active = this._isChecked;
+            }
             console.log("协议区域点击，复选框状态:", this._isChecked ? "选中" : "未选中");
         }
     },
