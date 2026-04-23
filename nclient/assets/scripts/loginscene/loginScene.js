@@ -52,29 +52,22 @@ cc.Class({
         
         var self = this;
         
-        // 获取容器节点
-        var container = this.node.getChildByName("agreement_container");
-        if (!container) {
-            console.error("agreement_container 节点未找到");
-            return;
-        }
-        
-        // 获取 checkbox 节点
-        var checkboxNode = container.getChildByName("checkbox");
-        if (!checkboxNode) {
-            console.error("checkbox 节点未找到");
+        // 获取 check_mark 节点（复选框节点）
+        var checkMarkNode = this.node.getChildByName("check_mark");
+        if (!checkMarkNode) {
+            console.error("check_mark 节点未找到");
             return;
         }
         
         // 获取 Toggle 组件
-        var toggle = checkboxNode.getComponent(cc.Toggle);
+        var toggle = checkMarkNode.getComponent(cc.Toggle);
         if (!toggle) {
             console.error("Toggle 组件未找到");
             return;
         }
         
         this._toggle = toggle;
-        this._checkboxNode = checkboxNode;
+        this._checkMarkNode = checkMarkNode;
         this._isChecked = toggle.isChecked;
         
         // 添加 Toggle 事件
@@ -87,7 +80,7 @@ cc.Class({
         toggle.checkEvents.push(handler);
         
         // 为协议文字添加点击响应（点击整行可切换）
-        var agreementLabel = container.getChildByName("agreement_label");
+        var agreementLabel = this.node.getChildByName("agreement_label");
         if (agreementLabel) {
             var btn = agreementLabel.getComponent(cc.Button);
             if (!btn) {
