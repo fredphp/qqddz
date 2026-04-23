@@ -83,14 +83,14 @@ cc.Class({
         this._agreementLabel = agreementLabel;
         this._checkboxBorder = checkboxBorder;
 
+        // 获取边框的 Label 组件
+        if (checkboxBorder) {
+            this._borderLabel = checkboxBorder.getComponent(cc.Label);
+            console.log("checkbox_border Label:", this._borderLabel ? "找到" : "未找到");
+        }
+
         console.log("check_mark 位置:", checkMarkNode.x, checkMarkNode.y);
         console.log("checkbox_border 节点:", checkboxBorder ? "存在" : "不存在");
-
-        // 如果场景中没有边框节点，动态创建
-        if (!checkboxBorder) {
-            checkboxBorder = this._createBorderNode(checkMarkNode);
-            this._checkboxBorder = checkboxBorder;
-        }
 
         // 初始状态：隐藏对勾
         checkMarkNode.opacity = 0;
@@ -100,52 +100,6 @@ cc.Class({
         this._setupClickEvents(checkMarkNode, agreementLabel, checkboxBorder);
 
         console.log("=== 复选框初始化完成 ===");
-    },
-
-    // 创建边框节点
-    _createBorderNode: function(checkMarkNode) {
-        console.log("动态创建边框节点...");
-
-        var borderNode = new cc.Node("checkbox_border");
-        borderNode.parent = checkMarkNode.parent;
-
-        // 设置位置和大小
-        borderNode.x = checkMarkNode.x;
-        borderNode.y = checkMarkNode.y;
-        borderNode.zIndex = checkMarkNode.zIndex - 1;
-
-        var size = 26;
-        borderNode.width = size;
-        borderNode.height = size;
-        borderNode.anchorX = 0.5;
-        borderNode.anchorY = 0.5;
-
-        // 加载一个白色方块图片作为边框
-        // 使用 public_ui 或创建纯色
-        var sprite = borderNode.addComponent(cc.Sprite);
-        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-
-        // 尝试加载现有资源
-        cc.resources.load("UI/joininputBg", cc.SpriteFrame, function(err, spriteFrame) {
-            if (err) {
-                console.log("加载边框图片失败，使用纯色:", err);
-                // 使用纯色
-                borderNode.color = new cc.Color(100, 100, 100);
-                return;
-            }
-
-            sprite.spriteFrame = spriteFrame;
-            sprite.type = cc.Sprite.Type.SLICED;
-
-            // 设置边框颜色
-            borderNode.color = new cc.Color(100, 100, 100);
-            console.log("边框图片加载成功");
-        });
-
-        borderNode.color = new cc.Color(100, 100, 100);
-
-        console.log("边框节点创建完成");
-        return borderNode;
     },
 
     // 设置点击事件
@@ -226,6 +180,11 @@ cc.Class({
             if (this._checkboxBorder) {
                 this._checkboxBorder.color = new cc.Color(0, 180, 0);
             }
+            if (this._borderLabel) {
+                // 更新 Label 颜色
+                this._borderLabel.string = "☑";
+                this._borderLabel.node.color = new cc.Color(0, 180, 0);
+            }
         } else {
             // 未选中状态：隐藏对勾
             this._checkMarkNode.opacity = 0;
@@ -233,7 +192,12 @@ cc.Class({
 
             // 边框恢复灰色
             if (this._checkboxBorder) {
-                this._checkboxBorder.color = new cc.Color(100, 100, 100);
+                this._checkboxBorder.color = new cc.Color(150, 150, 150);
+            }
+            if (this._borderLabel) {
+                // 更新 Label 颜色
+                this._borderLabel.string = "□";
+                this._borderLabel.node.color = new cc.Color(150, 150, 150);
             }
         }
     },
