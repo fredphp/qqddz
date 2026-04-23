@@ -20,21 +20,15 @@ cc.Class({
     onLoad () {
         console.log("loginScene onLoad 开始");
 
-        // 当前登录方式: 'wx' 或 'phone'
         this._loginType = 'wx';
-
-        // 勾选状态 - 默认不勾选
         this._isChecked = false;
 
-        // 初始化 wait_node 功能
         this._initWaitNode();
 
-        // 延迟初始化复选框，确保场景完全加载
         this.scheduleOnce(function() {
             this._initCheckbox();
         }.bind(this), 0.3);
 
-        // 确保 myglobal 存在
         if (typeof window.myglobal === 'undefined') {
             console.error("myglobal 未定义，尝试等待...");
             this._waitForMyglobal();
@@ -44,22 +38,14 @@ cc.Class({
         this._initAndStart();
     },
 
-    // 初始化 wait_node 功能
     _initWaitNode: function() {
         if (this.wait_node) {
-            // 查找 loading_image 子节点
             this._loadingImage = this.wait_node.getChildByName("loading_image");
-
-            // 查找 lblcontent_Label 子节点
             var lblNode = this.wait_node.getChildByName("lblcontent_Label");
             if (lblNode) {
                 this._waitLabel = lblNode.getComponent(cc.Label);
             }
-
-            // 初始隐藏
             this.wait_node.active = false;
-
-            console.log("wait_node 初始化完成");
         }
     },
 
@@ -78,85 +64,76 @@ cc.Class({
                     data[idx + 2] = b;
                     data[idx + 3] = 255;
                 } else {
-                    data[idx] = 0;
-                    data[idx + 1] = 0;
-                    data[idx + 2] = 0;
-                    data[idx + 3] = 0;
+                    data[idx] = 255;
+                    data[idx + 1] = 255;
+                    data[idx + 2] = 255;
+                    data[idx + 3] = 0;  // 内部透明
                 }
             }
         }
 
         texture.initWithData(data, cc.Texture2D.PixelFormat.RGBA8888, size, size);
         texture.handleLoadedTexture();
-
         return texture;
     },
 
-    // 初始化复选框（使用原生 cc.Toggle）
+    // 初始化复选框
     _initCheckbox: function() {
-        console.log("=== 初始化复选框（原生 Toggle）===");
+        console.log("=== 初始化复选框 ===");
 
         var self = this;
 
-        // 隐藏原有的节点
-        var oldCheckMark = this.node.getChildByName("check_mark");
-        var oldBorder = this.node.getChildByName("checkbox_border");
-        var oldAgreementLabel = this.node.getChildByName("agreement_label");
-
-        if (oldCheckMark) {
-            oldCheckMark.active = false;
-        }
-        if (oldBorder) {
-            oldBorder.active = false;
+        // 获取 check_mark 节点
+        var checkMarkNode = this.node.getChildByName("check_mark");
+        if (!checkMarkNode) {
+            console.error("check_mark 节点未找到");
+            return;
         }
 
-        // === 创建 Toggle 节点 ===
-        var toggleNode = new cc.Node("checkbox_toggle");
-        toggleNode.parent = this.node;
-        toggleNode.x = -150;
-        toggleNode.y = -280;
-        toggleNode.width = 28;
-        toggleNode.height = 28;
+        this._checkMarkNode = checkMarkNode;
 
-        // 添加背景 Sprite
-        var bgSprite = toggleNode.addComponent(cc.Sprite);
-        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        bgSprite.type = cc.Sprite.Type.SIMPLE;
+        // 获取 Toggle 组件
+        var toggle = checkMarkNode.getComponent(cc.Toggle);
+        if (!toggle) {
+            console.log("Toggle 组件未找到，动态添加");
+            toggle = checkMarkNode.addComponent(cc.Toggle);
+            toggle.isChecked = false;
 
-        // 设置背景边框
-        var grayTexture = this._createBorderTexture(28, 2, 150, 150, 150);
-        bgSprite.spriteFrame = new cc.SpriteFrame(grayTexture);
-        this._bgSprite = bgSprite;
-
-        // 添加 Button 组件
-        var button = toggleNode.addComponent(cc.Button);
-        button.transition = cc.Button.Transition.SCALE;
-        button.duration = 0.1;
-        button.zoomScale = 0.9;
-
-        // === 创建对勾节点 ===
-        var checkMarkNode = new cc.Node("checkmark");
-        checkMarkNode.parent = toggleNode;
-
-        var checkSprite = checkMarkNode.addComponent(cc.Sprite);
-        checkSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        checkSprite.node.width = 24;
-        checkSprite.node.height = 24;
-
-        // 加载对勾图片
-        cc.resources.load("UI/check_mark", cc.SpriteFrame, function(err, spriteFrame) {
-            if (!err && spriteFrame) {
-                checkSprite.spriteFrame = spriteFrame;
-                console.log("check_mark 图片加载成功");
+            // 查找 checkmark 子节点
+            var checkmarkChild = checkMarkNode.getChildByName("checkmark");
+            if (checkmarkChild) {
+                toggle.checkMark = checkmarkChild.getComponent(cc.Label) || checkmarkChild.getComponent(cc.Sprite);
             }
-        });
+        }
 
-        // === 添加 Toggle 组件 ===
-        var toggle = toggleNode.addComponent(cc.Toggle);
-        toggle.isChecked = false;  // 默认不选中
-        toggle.checkMark = checkSprite;  // Toggle 会自动管理这个 Sprite 的显示/隐藏
+        this._toggle = toggle;
 
-        // 添加点击事件
+        // 获取背景 Sprite，设置边框
+        var bgSprite = checkMarkNode.getComponent(cc.Sprite);
+        if (bgSprite) {
+            this._bgSprite = bgSprite;
+            // 创建边框纹理
+            var grayTexture = this._createBorderTexture(30, 2, 150, 150, 150);
+            bgSprite.spriteFrame = new cc.SpriteFrame(grayTexture);
+            bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+            console.log("边框纹理已设置");
+        }
+
+        // 设置初始状态
+        this._isChecked = toggle.isChecked || false;
+
+        // 确保 checkmark 子节点状态正确
+        var checkmarkChild = checkMarkNode.getChildByName("checkmark");
+        if (checkmarkChild) {
+            checkmarkChild.active = this._isChecked;
+            this._checkmarkLabel = checkmarkChild.getComponent(cc.Label);
+        }
+
+        // 更新边框颜色
+        this._updateBorderColor(this._isChecked);
+
+        // 添加 Toggle 事件
+        toggle.checkEvents = [];
         var handler = new cc.Component.EventHandler();
         handler.target = this.node;
         handler.component = "loginScene";
@@ -164,20 +141,17 @@ cc.Class({
         handler.customEventData = "";
         toggle.checkEvents.push(handler);
 
-        this._toggle = toggle;
-        this._toggleNode = toggleNode;
-
         // 禁用 agreement_label 的 Button
-        if (oldAgreementLabel) {
-            var btn = oldAgreementLabel.getComponent(cc.Button);
+        var agreementLabel = this.node.getChildByName("agreement_label");
+        if (agreementLabel) {
+            var btn = agreementLabel.getComponent(cc.Button);
             if (btn) btn.interactable = false;
         }
-        this._oldAgreementLabel = oldAgreementLabel;
 
         // 创建点击区域
         this._createClickArea();
 
-        console.log("=== 复选框初始化完成，默认: 未选中 ===");
+        console.log("=== 复选框初始化完成，状态:", this._isChecked ? "选中" : "未选中", "===");
     },
 
     // 创建点击区域
@@ -217,15 +191,31 @@ cc.Class({
         this._isChecked = toggle.isChecked;
         console.log("Toggle 状态:", this._isChecked ? "选中" : "未选中");
         this._updateBorderColor(this._isChecked);
+
+        // 更新 checkmark 子节点
+        if (this._checkMarkNode) {
+            var checkmarkChild = this._checkMarkNode.getChildByName("checkmark");
+            if (checkmarkChild) {
+                checkmarkChild.active = this._isChecked;
+            }
+        }
     },
 
     // 点击区域回调
     _onAreaClick: function() {
         if (this._toggle) {
-            // 切换 Toggle 状态
             this._toggle.isChecked = !this._toggle.isChecked;
             this._isChecked = this._toggle.isChecked;
             this._updateBorderColor(this._isChecked);
+
+            // 更新 checkmark 子节点
+            if (this._checkMarkNode) {
+                var checkmarkChild = this._checkMarkNode.getChildByName("checkmark");
+                if (checkmarkChild) {
+                    checkmarkChild.active = this._isChecked;
+                }
+            }
+
             console.log("点击区域触发，状态:", this._isChecked ? "选中" : "未选中");
         }
     },
@@ -236,9 +226,14 @@ cc.Class({
         var g = isChecked ? 180 : 150;
         var b = isChecked ? 0 : 150;
 
-        var texture = this._createBorderTexture(28, 2, r, g, b);
+        var texture = this._createBorderTexture(30, 2, r, g, b);
         if (this._bgSprite) {
             this._bgSprite.spriteFrame = new cc.SpriteFrame(texture);
+        }
+
+        // 更新对勾颜色
+        if (this._checkmarkLabel) {
+            this._checkmarkLabel.node.color = isChecked ? new cc.Color(0, 150, 0) : new cc.Color(150, 150, 150);
         }
     },
 
@@ -251,11 +246,7 @@ cc.Class({
         }.bind(this), 0.1);
     },
 
-    // 初始化登录按钮
     _initLoginButtons: function() {
-        console.log("初始化登录按钮...");
-
-        // 微信登录按钮
         var wxLoginNode = this.node.getChildByName("login_wx");
         if (wxLoginNode) {
             var button = wxLoginNode.getComponent(cc.Button);
@@ -272,7 +263,6 @@ cc.Class({
             }
         }
 
-        // 手机号登录按钮
         var phoneLoginNode = this.node.getChildByName("login_phone");
         if (phoneLoginNode) {
             var button = phoneLoginNode.getComponent(cc.Button);
@@ -290,10 +280,7 @@ cc.Class({
         }
     },
 
-    // 初始化用户协议链接
     _initUserAgreementLink: function() {
-        console.log("初始化用户协议链接...");
-
         var linkNode = this.node.getChildByName("user_agreement_link");
         if (linkNode) {
             linkNode.active = true;
@@ -313,22 +300,18 @@ cc.Class({
         }
     },
 
-    // 微信登录点击回调
     _onWxLoginClick: function() {
         this._doWxLogin();
     },
 
-    // 手机号登录点击回调
     _onPhoneLoginClick: function() {
         this._doPhoneLogin();
     },
 
-    // 用户协议点击回调
     _onUserAgreementClick: function() {
         this._showUserAgreement();
     },
 
-    // 检查是否同意用户协议
     _checkAgreement: function() {
         return this._isChecked;
     },
@@ -347,7 +330,6 @@ cc.Class({
                 self._showError("加载失败，请刷新页面重试");
             }
         };
-
         setTimeout(check, 100);
     },
 
@@ -359,7 +341,6 @@ cc.Class({
             return;
         }
 
-        // 播放背景音乐
         if (window.isopen_sound) {
             cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
                 if (!err) {
@@ -413,8 +394,6 @@ cc.Class({
             this._loadingImage.rotation -= dt * 45;
         }
     },
-
-    _updateLoginUI: function() {},
 
     _doWxLogin: function() {
         var self = this;
