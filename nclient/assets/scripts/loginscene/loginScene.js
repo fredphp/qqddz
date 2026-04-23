@@ -180,11 +180,6 @@ cc.Class({
             if (this._checkboxBorder) {
                 this._checkboxBorder.color = new cc.Color(0, 180, 0);
             }
-            if (this._borderLabel) {
-                // 更新 Label 颜色
-                this._borderLabel.string = "☑";
-                this._borderLabel.node.color = new cc.Color(0, 180, 0);
-            }
         } else {
             // 未选中状态：隐藏对勾
             this._checkMarkNode.opacity = 0;
@@ -193,11 +188,6 @@ cc.Class({
             // 边框恢复灰色
             if (this._checkboxBorder) {
                 this._checkboxBorder.color = new cc.Color(150, 150, 150);
-            }
-            if (this._borderLabel) {
-                // 更新 Label 颜色
-                this._borderLabel.string = "□";
-                this._borderLabel.node.color = new cc.Color(150, 150, 150);
             }
         }
     },
