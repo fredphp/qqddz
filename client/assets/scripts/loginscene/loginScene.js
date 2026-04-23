@@ -26,8 +26,10 @@ cc.Class({
         // 勾选状态 - 默认不勾选
         this._isChecked = false;
         
-        // 初始化复选框
-        this._initCheckbox();
+        // 延迟初始化复选框，确保场景完全加载
+        this.scheduleOnce(function() {
+            this._initCheckbox();
+        }.bind(this), 0.2);
         
         // 确保 myglobal 存在
         if (typeof window.myglobal === 'undefined') {
@@ -41,6 +43,8 @@ cc.Class({
     
     // 初始化复选框
     _initCheckbox: function() {
+        console.log("=== 初始化复选框 ===");
+        
         var self = this;
         
         // 获取 check_mark 节点
@@ -50,93 +54,153 @@ cc.Class({
             return;
         }
         
-        console.log("找到 check_mark 节点");
+        console.log("找到 check_mark 节点，位置:", checkMarkNode.x, checkMarkNode.y, "大小:", checkMarkNode.width, "x", checkMarkNode.height);
         this._checkMarkNode = checkMarkNode;
         
-        // 创建复选框边框
-        this._createCheckboxBorder(checkMarkNode);
-        
-        // 初始隐藏勾选图标
+        // 获取 Sprite 组件用于显示/隐藏对勾
         var sprite = checkMarkNode.getComponent(cc.Sprite);
         if (sprite) {
             this._checkSprite = sprite;
-            sprite.enabled = false;  // 初始不显示勾
+            // 初始状态：隐藏对勾（通过设置 opacity）
+            checkMarkNode.opacity = 0;
+            console.log("初始状态：对勾隐藏 (opacity = 0)");
         }
         
-        // 获取 agreement_label 节点用于点击
+        // 创建边框节点
+        this._createBorderNode(checkMarkNode);
+        
+        // 获取 agreement_label 节点
         var agreementLabel = this.node.getChildByName("agreement_label");
         if (agreementLabel) {
             this._agreementLabel = agreementLabel;
             console.log("找到 agreement_label 节点");
         }
         
-        // 使用 cc.Button 的 EventHandler 来处理点击
-        // check_mark 节点上的 Button
+        // 使用 touch 事件代替 Button
+        this._setupTouchEvents(checkMarkNode, agreementLabel);
+        
+        console.log("=== 复选框初始化完成 ===");
+    },
+    
+    // 创建边框节点
+    _createBorderNode: function(checkMarkNode) {
+        console.log("创建边框节点...");
+        
+        // 创建边框容器节点
+        var borderNode = new cc.Node("checkbox_border");
+        borderNode.parent = checkMarkNode.parent;
+        
+        // 设置位置（与 check_mark 相同）
+        borderNode.x = checkMarkNode.x;
+        borderNode.y = checkMarkNode.y;
+        borderNode.zIndex = checkMarkNode.zIndex - 1;  // 放在 check_mark 下面
+        
+        // 设置大小
+        var borderSize = 26;
+        borderNode.width = borderSize;
+        borderNode.height = borderSize;
+        borderNode.anchorX = 0.5;
+        borderNode.anchorY = 0.5;
+        
+        // 方法1: 使用 Sprite + 白色纹理
+        var sprite = borderNode.addComponent(cc.Sprite);
+        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        sprite.type = cc.Sprite.Type.SLICED;
+        
+        // 创建纯色纹理
+        var texture = new cc.Texture2D();
+        texture.initWithData(
+            new Uint8Array([255, 255, 255, 255]),
+            cc.Texture2D.PixelFormat.RGBA8888,
+            1, 1
+        );
+        
+        var spriteFrame = new cc.SpriteFrame();
+        spriteFrame.setTexture(texture);
+        sprite.spriteFrame = spriteFrame;
+        
+        // 设置颜色（深灰色边框效果）
+        borderNode.color = new cc.Color(80, 80, 80);
+        borderNode.opacity = 255;
+        
+        this._borderNode = borderNode;
+        
+        // 方法2: 同时添加 Graphics 绘制边框线
+        var graphicsNode = new cc.Node("border_graphics");
+        graphicsNode.parent = borderNode;
+        graphicsNode.x = 0;
+        graphicsNode.y = 0;
+        graphicsNode.width = borderSize;
+        graphicsNode.height = borderSize;
+        
+        var graphics = graphicsNode.addComponent(cc.Graphics);
+        graphics.strokeColor = new cc.Color(60, 60, 60);
+        graphics.lineWidth = 2;
+        
+        // 绘制矩形边框
+        var half = borderSize / 2;
+        graphics.rect(-half, -half, borderSize, borderSize);
+        graphics.stroke();
+        
+        this._borderGraphics = graphics;
+        
+        console.log("边框节点创建完成，位置:", borderNode.x, borderNode.y);
+    },
+    
+    // 设置触摸事件
+    _setupTouchEvents: function(checkMarkNode, agreementLabel) {
+        var self = this;
+        
+        // 给 check_mark 添加触摸事件
+        checkMarkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+            console.log("check_mark TOUCH_END 事件触发");
+            self._toggleCheckbox();
+            event.stopPropagation();
+        }, this);
+        
+        // 同时保留 Button 组件的点击事件
         var checkButton = checkMarkNode.getComponent(cc.Button);
         if (checkButton) {
+            checkButton.interactable = true;
+            checkButton.clickEvents = [];
+            
             var handler = new cc.Component.EventHandler();
             handler.target = this.node;
             handler.component = "loginScene";
             handler.handler = "_onCheckboxClick";
             handler.customEventData = "";
             checkButton.clickEvents.push(handler);
+            
             console.log("check_mark Button 事件已添加");
         }
         
-        // agreement_label 节点上的 Button
+        // 给 agreement_label 添加触摸事件
         if (agreementLabel) {
+            agreementLabel.on(cc.Node.EventType.TOUCH_END, function(event) {
+                console.log("agreement_label TOUCH_END 事件触发");
+                self._toggleCheckbox();
+                event.stopPropagation();
+            }, this);
+            
+            // 同时保留 Button 组件的点击事件
             var labelButton = agreementLabel.getComponent(cc.Button);
             if (labelButton) {
-                var handler1 = new cc.Component.EventHandler();
-                handler1.target = this.node;
-                handler1.component = "loginScene";
-                handler1.handler = "_onCheckboxClick";
-                handler1.customEventData = "";
-                labelButton.clickEvents.push(handler1);
+                labelButton.interactable = true;
+                labelButton.clickEvents = [];
+                
+                var handler = new cc.Component.EventHandler();
+                handler.target = this.node;
+                handler.component = "loginScene";
+                handler.handler = "_onCheckboxClick";
+                handler.customEventData = "";
+                labelButton.clickEvents.push(handler);
+                
                 console.log("agreement_label Button 事件已添加");
             }
         }
-        
-        console.log("复选框初始化完成");
     },
     
-    // 创建复选框边框
-    _createCheckboxBorder: function(checkMarkNode) {
-        // 创建边框节点
-        var borderNode = new cc.Node("checkbox_border");
-        borderNode.parent = checkMarkNode.parent;
-        
-        // 设置位置在 check_mark 同位置
-        borderNode.x = checkMarkNode.x;
-        borderNode.y = checkMarkNode.y;
-        borderNode.zIndex = checkMarkNode.zIndex - 1;
-        
-        // 设置大小
-        borderNode.width = 26;
-        borderNode.height = 26;
-        borderNode.anchorX = 0.5;
-        borderNode.anchorY = 0.5;
-        
-        // 添加 Sprite 组件
-        var sprite = borderNode.addComponent(cc.Sprite);
-        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        sprite.type = cc.Sprite.Type.SLICED;
-        
-        // 创建白色纹理作为背景
-        var texture = new cc.Texture2D();
-        texture.initWithData(new Uint8Array([255, 255, 255, 255]), cc.Texture2D.PixelFormat.RGBA8888, 1, 1);
-        var spriteFrame = new cc.SpriteFrame(texture);
-        sprite.spriteFrame = spriteFrame;
-        
-        // 设置边框颜色 (深灰色边框)
-        borderNode.color = new cc.Color(120, 120, 120);
-        borderNode.opacity = 255;
-        
-        this._checkboxBorder = borderNode;
-        console.log("复选框边框已创建");
-    },
-    
-    // 复选框点击事件
+    // Button 点击回调
     _onCheckboxClick: function(event) {
         console.log("_onCheckboxClick 被调用");
         this._toggleCheckbox();
@@ -145,20 +209,46 @@ cc.Class({
     // 切换复选框状态
     _toggleCheckbox: function() {
         this._isChecked = !this._isChecked;
-        console.log("复选框状态:", this._isChecked);
+        console.log("=== 复选框状态切换为:", this._isChecked, "===");
         
-        // 更新勾选图标显示
-        if (this._checkSprite) {
-            this._checkSprite.enabled = this._isChecked;
-        }
-        
-        // 更新边框颜色
-        if (this._checkboxBorder) {
-            if (this._isChecked) {
-                this._checkboxBorder.color = new cc.Color(0, 180, 0);  // 绿色表示选中
-            } else {
-                this._checkboxBorder.color = new cc.Color(120, 120, 120);  // 灰色表示未选中
+        if (this._isChecked) {
+            // 选中状态：显示对勾
+            if (this._checkMarkNode) {
+                this._checkMarkNode.opacity = 255;
+                console.log("对勾显示 (opacity = 255)");
             }
+            // 边框变绿色
+            if (this._borderNode) {
+                this._borderNode.color = new cc.Color(0, 180, 0);
+            }
+            if (this._borderGraphics) {
+                this._borderGraphics.clear();
+                this._borderGraphics.strokeColor = new cc.Color(0, 150, 0);
+                this._borderGraphics.lineWidth = 2;
+                var half = 13;
+                this._borderGraphics.rect(-half, -half, 26, 26);
+                this._borderGraphics.stroke();
+            }
+            console.log("边框变绿");
+        } else {
+            // 未选中状态：隐藏对勾
+            if (this._checkMarkNode) {
+                this._checkMarkNode.opacity = 0;
+                console.log("对勾隐藏 (opacity = 0)");
+            }
+            // 边框恢复灰色
+            if (this._borderNode) {
+                this._borderNode.color = new cc.Color(80, 80, 80);
+            }
+            if (this._borderGraphics) {
+                this._borderGraphics.clear();
+                this._borderGraphics.strokeColor = new cc.Color(60, 60, 60);
+                this._borderGraphics.lineWidth = 2;
+                var half = 13;
+                this._borderGraphics.rect(-half, -half, 26, 26);
+                this._borderGraphics.stroke();
+            }
+            console.log("边框变灰");
         }
     },
     
@@ -278,10 +368,20 @@ cc.Class({
     _initUserAgreementLink: function() {
         var self = this;
         
-        // 尝试获取 user_agreement_link 节点
+        // 获取 user_agreement_link 节点
         var linkNode = this.node.getChildByName("user_agreement_link");
         if (linkNode) {
-            linkNode.active = true;  // 激活节点
+            // 激活节点
+            linkNode.active = true;
+            
+            // 使用触摸事件
+            linkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                console.log("user_agreement_link TOUCH_END 事件触发");
+                self._showUserAgreement();
+                event.stopPropagation();
+            }, this);
+            
+            // 同时保留 Button
             var button = linkNode.getComponent(cc.Button);
             if (button) {
                 button.clickEvents = [];
@@ -292,19 +392,7 @@ cc.Class({
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
             }
-            console.log("用户协议链接初始化完成 (user_agreement_link)");
-        }
-        
-        // 同时给 agreement_label 添加用户协议点击事件（点击文字也触发弹窗）
-        if (this._agreementLabel) {
-            // 已经在 _initCheckbox 中添加了点击事件用于切换复选框
-            // 这里我们需要区分：点击"用户协议"文字时弹出弹窗
-            // 可以通过检测点击位置来判断
-            // 但更简单的方法是：整个 agreement_label 点击切换复选框
-            // 而"用户协议"四个字单独一个节点处理
-            
-            // 检查是否有 user_agreement_link 节点覆盖在"用户协议"文字上
-            // 如果有，它应该已经处理了点击
+            console.log("用户协议链接初始化完成");
         }
     },
     
