@@ -25,6 +25,7 @@ cc.Class({
 
         this._initWaitNode();
 
+        // 延迟初始化复选框，确保场景加载完成
         this.scheduleOnce(function() {
             this._initCheckbox();
         }.bind(this), 0.3);
@@ -49,7 +50,7 @@ cc.Class({
         }
     },
 
-    // 初始化复选框 - 使用 Sprite + Toggle 实现
+    // 初始化复选框 - 使用项目现有的 check_mark.png 图片
     _initCheckbox: function() {
         console.log("=== 初始化复选框 ===");
 
@@ -80,46 +81,64 @@ cc.Class({
         checkMarkNode.width = checkboxSize;
         checkMarkNode.height = checkboxSize;
 
-        // 移除旧的 Label 组件
+        // 移除旧的 Label 组件（如果存在）
         var oldLabel = checkMarkNode.getComponent(cc.Label);
         if (oldLabel) {
             checkMarkNode.removeComponent(oldLabel);
         }
 
-        // 移除旧的 Button 组件
+        // 保存节点引用
+        this._checkMarkNode = checkMarkNode;
+        this._checkboxSize = checkboxSize;
+
+        // 加载 check_mark 图片资源
+        cc.resources.load("UI/check_mark", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.error("加载 check_mark 图片失败:", err);
+                // 使用备用方案
+                self._createFallbackCheckbox(checkMarkNode, checkboxSize);
+                return;
+            }
+            
+            console.log("check_mark 图片加载成功");
+            self._setupCheckboxWithSprite(checkMarkNode, checkboxSize, spriteFrame);
+        });
+    },
+
+    // 使用加载的 SpriteFrame 设置复选框
+    _setupCheckboxWithSprite: function(checkMarkNode, checkboxSize, checkSpriteFrame) {
+        var self = this;
+
+        // 移除旧的组件
         var oldButton = checkMarkNode.getComponent(cc.Button);
         if (oldButton) {
             checkMarkNode.removeComponent(oldButton);
         }
-
-        // 移除旧的 Toggle 组件（如果存在）
         var oldToggle = checkMarkNode.getComponent(cc.Toggle);
         if (oldToggle) {
             checkMarkNode.removeComponent(oldToggle);
         }
 
-        // 添加背景 Sprite（未选中状态显示的方框）
+        // 添加背景 Sprite（未选中状态显示方框）
         var bgSprite = checkMarkNode.getComponent(cc.Sprite);
         if (!bgSprite) {
             bgSprite = checkMarkNode.addComponent(cc.Sprite);
         }
         
-        // 创建白色方块纹理作为背景
-        var bgTexture = this._createWhiteTexture();
-        bgSprite.spriteFrame = new cc.SpriteFrame(bgTexture);
+        // 创建简单的白色方块作为背景
         bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         bgSprite.type = cc.Sprite.Type.SLICED;
         
-        // 设置背景为白色
-        checkMarkNode.color = new cc.Color(255, 255, 255, 255);
+        // 用 check_mark 图片作为背景（缩小显示）
+        bgSprite.spriteFrame = checkSpriteFrame;
+        
+        // 设置为半透明白色
+        checkMarkNode.color = new cc.Color(255, 255, 255, 200);
 
-        // 检查是否有子节点 checkmark（用于显示勾选状态）
-        var checkmarkChild = checkMarkNode.getChildByName("checkbox_border");
-        if (!checkmarkChild) {
-            // 检查 __id__ 43 引用的节点
-            if (checkMarkNode._children && checkMarkNode._children.length > 0) {
-                checkmarkChild = checkMarkNode._children[0];
-            }
+        // 检查子节点
+        var checkmarkChild = null;
+        if (checkMarkNode._children && checkMarkNode._children.length > 0) {
+            checkmarkChild = checkMarkNode._children[0];
         }
         
         // 如果没有子节点，创建一个用于显示勾选状态
@@ -128,10 +147,9 @@ cc.Class({
             checkmarkChild.parent = checkMarkNode;
         }
         
-        // 设置勾选图标的尺寸（略小于背景）
-        var checkSize = checkboxSize - 4;
-        checkmarkChild.width = checkSize;
-        checkmarkChild.height = checkSize;
+        // 设置勾选图标的尺寸
+        checkmarkChild.width = checkboxSize - 2;
+        checkmarkChild.height = checkboxSize - 2;
         checkmarkChild.x = 0;
         checkmarkChild.y = 0;
         
@@ -141,24 +159,24 @@ cc.Class({
             checkSprite = checkmarkChild.addComponent(cc.Sprite);
         }
         
-        // 创建勾选标记纹理（绿色方块表示选中）
-        var checkTexture = this._createWhiteTexture();
-        checkSprite.spriteFrame = new cc.SpriteFrame(checkTexture);
+        // 使用同一个图片，但设置为绿色表示选中
+        checkSprite.spriteFrame = checkSpriteFrame;
         checkSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         checkSprite.type = cc.Sprite.Type.SLICED;
         
-        // 设置勾选标记颜色（绿色）
-        checkmarkChild.color = new cc.Color(0, 200, 0, 255);
+        // 设置绿色
+        checkmarkChild.color = new cc.Color(0, 255, 0, 255);
         
-        // 默认隐藏勾选标记
+        // 默认隐藏
         checkmarkChild.active = false;
 
         // 添加 Toggle 组件
         var toggle = checkMarkNode.addComponent(cc.Toggle);
         toggle.isChecked = false;
-        toggle.checkMark = checkSprite;  // 指定勾选状态的 Sprite
+        toggle.checkMark = checkSprite;
         this._toggle = toggle;
         this._isChecked = false;
+        this._checkmarkChild = checkmarkChild;
 
         // 添加 Toggle 事件
         toggle.checkEvents = [];
@@ -169,31 +187,105 @@ cc.Class({
         handler.customEventData = "";
         toggle.checkEvents.push(handler);
 
-        this._checkMarkNode = checkMarkNode;
-        this._checkmarkChild = checkmarkChild;
-
-        // 创建点击区域（让整个协议区域可点击）
+        // 创建点击区域
         this._createClickArea(checkboxSize);
 
         console.log("=== 复选框初始化完成 ===");
     },
 
-    // 创建白色纹理
-    _createWhiteTexture: function() {
-        var texture = new cc.Texture2D();
-        texture.initWithData(new Uint8Array([255, 255, 255, 255]), cc.Texture2D.PixelFormat.RGBA8888, 1, 1);
-        texture.handleLoadedTexture();
-        return texture;
-    },
-
-    // 创建点击区域
-    _createClickArea: function(checkboxSize) {
+    // 备用方案 - 如果加载图片失败
+    _createFallbackCheckbox: function(checkMarkNode, checkboxSize) {
+        console.log("使用备用方案创建复选框");
+        
         var self = this;
 
+        // 移除旧的组件
+        var oldButton = checkMarkNode.getComponent(cc.Button);
+        if (oldButton) {
+            checkMarkNode.removeComponent(oldButton);
+        }
+        var oldToggle = checkMarkNode.getComponent(cc.Toggle);
+        if (oldToggle) {
+            checkMarkNode.removeComponent(oldToggle);
+        }
+
+        // 使用 Label 显示复选框
+        var label = checkMarkNode.getComponent(cc.Label);
+        if (!label) {
+            label = checkMarkNode.addComponent(cc.Label);
+        }
+        
+        label.string = "☐";
+        label.fontSize = checkboxSize;
+        label.lineHeight = checkboxSize;
+        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        label.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        
+        // 创建一个子节点显示选中状态
+        var checkChild = new cc.Node("check_label");
+        checkChild.parent = checkMarkNode;
+        checkChild.x = 0;
+        checkChild.y = 0;
+        
+        var checkLabel = checkChild.addComponent(cc.Label);
+        checkLabel.string = "✓";
+        checkLabel.fontSize = checkboxSize - 2;
+        checkLabel.lineHeight = checkboxSize;
+        checkLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        checkLabel.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        checkLabel.color = new cc.Color(0, 255, 0, 255);
+        checkChild.active = false;
+        
+        this._checkboxLabel = label;
+        this._checkLabel = checkChild;
+
+        // 添加 Button 组件处理点击
+        var button = checkMarkNode.addComponent(cc.Button);
+        button.transition = cc.Button.Transition.SCALE;
+        button.duration = 0.1;
+        button.zoomScale = 1.1;
+        
+        button.clickEvents = [];
+        var handler = new cc.Component.EventHandler();
+        handler.target = this.node;
+        handler.component = "loginScene";
+        handler.handler = "_onCheckboxClick";
+        handler.customEventData = "";
+        button.clickEvents.push(handler);
+
+        this._checkMarkNode = checkMarkNode;
+        this._checkboxSize = checkboxSize;
+
+        // 创建点击区域
+        this._createClickArea(checkboxSize);
+
+        console.log("=== 备用复选框初始化完成 ===");
+    },
+
+    // 备用方案的点击处理
+    _onCheckboxClick: function() {
+        this._isChecked = !this._isChecked;
+        
+        if (this._checkboxLabel) {
+            this._checkboxLabel.string = this._isChecked ? "☑" : "☐";
+        }
+        
+        if (this._checkLabel) {
+            this._checkLabel.active = false; // 使用 ☐/☑ 代替
+        }
+        
+        console.log("复选框状态:", this._isChecked ? "选中" : "未选中");
+    },
+
+    // 创建点击区域（让整个协议区域可点击）
+    _createClickArea: function(checkboxSize) {
         // 删除旧的点击区域
         if (this._clickArea) {
             this._clickArea.destroy();
+            this._clickArea = null;
         }
+
+        var self = this;
 
         var clickArea = new cc.Node("checkbox_click_area");
         clickArea.parent = this.node;
@@ -233,17 +325,6 @@ cc.Class({
             this._checkmarkChild.active = toggle.isChecked;
         }
         
-        // 更新背景颜色
-        if (this._checkMarkNode) {
-            if (toggle.isChecked) {
-                // 选中状态：背景变浅绿色
-                this._checkMarkNode.color = new cc.Color(200, 255, 200, 255);
-            } else {
-                // 未选中状态：白色背景
-                this._checkMarkNode.color = new cc.Color(255, 255, 255, 255);
-            }
-        }
-        
         console.log("Toggle 状态:", this._isChecked ? "选中" : "未选中");
     },
 
@@ -252,6 +333,9 @@ cc.Class({
         if (this._toggle) {
             this._toggle.isChecked = !this._toggle.isChecked;
             this._onToggleChange(this._toggle);
+        } else if (this._checkboxLabel) {
+            // 备用方案
+            this._onCheckboxClick();
         }
     },
 
