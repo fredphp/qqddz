@@ -1,5 +1,5 @@
 // 登录场景控制器
-// 使用 Toggle 组件实现标准复选框
+// 使用 Toggle 组件 + Sprite 实现标准复选框
 
 cc.Class({
     extends: cc.Component,
@@ -14,8 +14,6 @@ cc.Class({
             default: null
         }
     },
-
-    // LIFE-CYCLE CALLBACKS:
 
     onLoad () {
         console.log("loginScene onLoad 开始");
@@ -46,13 +44,13 @@ cc.Class({
         }
     },
 
-    // 初始化复选框 - 使用 Toggle 组件
+    // 初始化复选框 - 使用 Toggle + Sprite
     _initCheckbox: function() {
         console.log("=== 初始化复选框 ===");
         
         var self = this;
         
-        // 获取 check_mark 节点（复选框节点）
+        // 获取 check_mark 节点（复选框主节点）
         var checkMarkNode = this.node.getChildByName("check_mark");
         if (!checkMarkNode) {
             console.error("check_mark 节点未找到");
