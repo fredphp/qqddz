@@ -57,6 +57,7 @@ cc.Class({
     
     // 初始化复选框
     _initCheckbox: function() {
+        var self = this;
         var checkMarkNode = this.node.getChildByName("check_mark");
         if (!checkMarkNode) {
             console.error("check_mark 节点未找到");
@@ -72,26 +73,20 @@ cc.Class({
             // 保存原始图片用于显示勾选状态
             this._checkSpriteFrame = sprite.spriteFrame;
             // 初始状态不显示勾 - 使用 enabled 控制而不是设置 null
-            // sprite.spriteFrame = null 会导致 _assembler 错误
             sprite.enabled = false;
         }
         
-        // 确保有 Button 组件
-        var button = checkMarkNode.getComponent(cc.Button);
-        if (!button) {
-            button = checkMarkNode.addComponent(cc.Button);
-        }
+        // 使用 click 事件（Button 组件触发）
+        checkMarkNode.on('click', function(event) {
+            console.log("复选框 click 触发");
+            self._toggleCheckbox();
+        }, self);
         
-        // 配置按钮
-        button.transition = cc.Button.Transition.SCALE;
-        button.duration = 0.1;
-        button.zoomScale = 1.1;
-        
-        // 注册点击事件
+        // 也监听 TOUCH_END 作为备选
         checkMarkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-            event.stopPropagation();
-            this._toggleCheckbox();
-        }, this);
+            console.log("复选框 TOUCH_END 触发");
+            self._toggleCheckbox();
+        }, self);
         
         console.log("复选框初始化完成");
     },
@@ -119,14 +114,8 @@ cc.Class({
     _initUserAgreementLink: function() {
         var self = this;
         
-        // 尝试查找 user_agreement_link 节点（旧版本）
-        var linkNode = this.node.getChildByName("user_agreement_link");
-        
-        // 如果 user_agreement_link 不存在或不可见，使用 agreement_label
-        if (!linkNode || !linkNode.active) {
-            linkNode = this.node.getChildByName("agreement_label");
-            console.log("使用 agreement_label 作为用户协议点击区域");
-        }
+        // 使用 agreement_label 作为用户协议点击区域
+        var linkNode = this.node.getChildByName("agreement_label");
         
         if (!linkNode) {
             console.error("用户协议节点未找到");
@@ -135,23 +124,17 @@ cc.Class({
         
         console.log("找到用户协议节点:", linkNode.name);
         
-        // 确保有 Button 组件
-        var button = linkNode.getComponent(cc.Button);
-        if (!button) {
-            button = linkNode.addComponent(cc.Button);
-        }
-        
-        // 配置按钮
-        button.transition = cc.Button.Transition.SCALE;
-        button.duration = 0.1;
-        button.zoomScale = 1.05;
-        
-        // 注册点击事件 - 点击用户协议文本弹出用户协议弹窗
-        linkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-            event.stopPropagation();
-            console.log("用户协议被点击");
+        // 使用 click 事件（Button 组件触发）
+        linkNode.on('click', function(event) {
+            console.log("用户协议 click 触发");
             self._showUserAgreement();
-        }, this);
+        }, self);
+        
+        // 也监听 TOUCH_END 作为备选
+        linkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+            console.log("用户协议 TOUCH_END 触发");
+            self._showUserAgreement();
+        }, self);
         
         console.log("用户协议初始化完成");
     },
