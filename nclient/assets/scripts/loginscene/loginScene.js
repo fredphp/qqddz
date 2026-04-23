@@ -49,54 +49,7 @@ cc.Class({
         }
     },
 
-    // 创建简单的纯色纹理
-    _createSolidTexture: function(width, height, r, g, b, a) {
-        var texture = new cc.Texture2D();
-        var data = new Uint8Array(width * height * 4);
-
-        for (var i = 0; i < width * height; i++) {
-            data[i * 4] = r;
-            data[i * 4 + 1] = g;
-            data[i * 4 + 2] = b;
-            data[i * 4 + 3] = a;
-        }
-
-        texture.initWithData(data, cc.Texture2D.PixelFormat.RGBA8888, width, height);
-        texture.handleLoadedTexture();
-        return texture;
-    },
-
-    // 创建边框纹理
-    _createBorderTexture: function(size, borderWidth, r, g, b) {
-        var texture = new cc.Texture2D();
-        var data = new Uint8Array(size * size * 4);
-
-        for (var y = 0; y < size; y++) {
-            for (var x = 0; x < size; x++) {
-                var idx = (y * size + x) * 4;
-                // 边框区域
-                if (x < borderWidth || x >= size - borderWidth ||
-                    y < borderWidth || y >= size - borderWidth) {
-                    data[idx] = r;
-                    data[idx + 1] = g;
-                    data[idx + 2] = b;
-                    data[idx + 3] = 255;
-                } else {
-                    // 内部透明
-                    data[idx] = 0;
-                    data[idx + 1] = 0;
-                    data[idx + 2] = 0;
-                    data[idx + 3] = 0;
-                }
-            }
-        }
-
-        texture.initWithData(data, cc.Texture2D.PixelFormat.RGBA8888, size, size);
-        texture.handleLoadedTexture();
-        return texture;
-    },
-
-    // 初始化复选框（原生 Toggle/CheckBox）
+    // 初始化复选框（使用原生 Toggle，不做任何颜色调整）
     _initCheckbox: function() {
         console.log("=== 初始化复选框 ===");
 
@@ -110,27 +63,6 @@ cc.Class({
         }
 
         this._checkMarkNode = checkMarkNode;
-
-        // 获取背景 Sprite，设置边框纹理
-        var bgSprite = checkMarkNode.getComponent(cc.Sprite);
-        if (bgSprite) {
-            // 创建边框纹理（灰色边框）
-            var borderTexture = this._createBorderTexture(18, 2, 150, 150, 150);
-            bgSprite.spriteFrame = new cc.SpriteFrame(borderTexture);
-            bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            this._bgSprite = bgSprite;
-            console.log("背景边框设置完成");
-        }
-
-        // 获取 checkmark 子节点（对勾）
-        var checkmarkChild = checkMarkNode.getChildByName("checkmark");
-        if (checkmarkChild) {
-            this._checkmarkChild = checkmarkChild;
-            // 设置对勾大小和颜色
-            checkmarkChild.width = 14;
-            checkmarkChild.height = 14;
-            checkmarkChild.active = false;  // 默认隐藏
-        }
 
         // 获取 Toggle 组件
         var toggle = checkMarkNode.getComponent(cc.Toggle);
@@ -165,10 +97,10 @@ cc.Class({
             if (btn) btn.interactable = false;
         }
 
-        // 创建点击区域（覆盖整个"我已阅读并同意《用户协议》"文字区域）
+        // 创建点击区域
         this._createClickArea();
 
-        console.log("=== 复选框初始化完成，状态: 未选中 ===");
+        console.log("=== 复选框初始化完成 ===");
     },
 
     // 创建点击区域
@@ -177,7 +109,7 @@ cc.Class({
 
         var clickArea = new cc.Node("checkbox_click_area");
         clickArea.parent = this.node;
-        clickArea.x = -85;  // 复选框中心位置
+        clickArea.x = -85;
         clickArea.y = -280;
         clickArea.width = 200;
         clickArea.height = 40;
@@ -185,7 +117,9 @@ cc.Class({
         var sprite = clickArea.addComponent(cc.Sprite);
         sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
 
-        var texture = this._createSolidTexture(1, 1, 255, 255, 255, 1);
+        var texture = new cc.Texture2D();
+        texture.initWithData(new Uint8Array([255, 255, 255, 1]), cc.Texture2D.PixelFormat.RGBA8888, 1, 1);
+        texture.handleLoadedTexture();
         sprite.spriteFrame = new cc.SpriteFrame(texture);
 
         var button = clickArea.addComponent(cc.Button);
@@ -205,7 +139,6 @@ cc.Class({
     _onToggleChange: function(toggle) {
         this._isChecked = toggle.isChecked;
         console.log("Toggle 状态:", this._isChecked ? "选中" : "未选中");
-        this._updateCheckboxState(this._isChecked);
     },
 
     // 点击区域回调
@@ -213,30 +146,7 @@ cc.Class({
         if (this._toggle) {
             this._toggle.isChecked = !this._toggle.isChecked;
             this._isChecked = this._toggle.isChecked;
-            this._updateCheckboxState(this._isChecked);
             console.log("点击区域触发，状态:", this._isChecked ? "选中" : "未选中");
-        }
-    },
-
-    // 更新复选框状态
-    _updateCheckboxState: function(isChecked) {
-        // 更新边框颜色
-        if (this._bgSprite) {
-            var r = isChecked ? 0 : 150;
-            var g = isChecked ? 180 : 150;
-            var b = isChecked ? 0 : 150;
-            var texture = this._createBorderTexture(18, 2, r, g, b);
-            this._bgSprite.spriteFrame = new cc.SpriteFrame(texture);
-        }
-
-        // Toggle 组件会自动管理 checkmark 的显示/隐藏
-        // 但我们也需要确保 checkmarkChild 状态同步
-        if (this._checkmarkChild) {
-            this._checkmarkChild.active = isChecked;
-            // 更新对勾颜色
-            if (isChecked) {
-                this._checkmarkChild.color = new cc.Color(0, 150, 0);
-            }
         }
     },
 
