@@ -249,7 +249,7 @@
         "node": {
           "__id__": 4
         },
-        "_enabled": true,
+        "_enabled": false,
         "_type": 1,
         "_sizeMode": 0,
         "_fillType": 0,
