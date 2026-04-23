@@ -76,29 +76,27 @@ cc.Class({
         // 初始状态不显示勾
         checkMarkNode.opacity = 0;
         
-        // 直接在 check_mark 节点上添加触摸事件
-        // 扩大点击区域：设置更大的 contentSize
-        var originalSize = checkMarkNode.getContentSize();
+        // 扩大点击区域
         checkMarkNode.setContentSize(60, 60);
         
-        // 添加触摸事件
-        checkMarkNode.on(cc.Node.EventType.TOUCH_START, function(event) {
-            console.log("复选框 TOUCH_START");
-            event.stopPropagation();
-        }, self);
+        // 添加 Button 组件使其可点击
+        var button = checkMarkNode.getComponent(cc.Button);
+        if (!button) {
+            button = checkMarkNode.addComponent(cc.Button);
+        }
+        button.interactable = true;
+        button.transition = cc.Button.Transition.NONE;
         
-        checkMarkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-            console.log("复选框 TOUCH_END 触发");
-            event.stopPropagation();
-            self._toggleCheckbox();
-        }, self);
+        // 添加点击事件
+        var clickEventHandler = new cc.Component.EventHandler();
+        clickEventHandler.target = this.node;
+        clickEventHandler.component = "loginScene";
+        clickEventHandler.handler = "_toggleCheckbox";
+        clickEventHandler.customEventData = "";
         
-        checkMarkNode.on(cc.Node.EventType.TOUCH_CANCEL, function(event) {
-            console.log("复选框 TOUCH_CANCEL");
-            event.stopPropagation();
-        }, self);
+        button.clickEvents.push(clickEventHandler);
         
-        console.log("复选框初始化完成，点击区域:", 60, "x", 60);
+        console.log("复选框初始化完成");
     },
     
     // 切换复选框状态
@@ -139,24 +137,24 @@ cc.Class({
         // 扩大点击区域
         labelNode.setContentSize(360, 50);
         
-        // 直接在 label 节点上添加触摸事件
-        labelNode.on(cc.Node.EventType.TOUCH_START, function(event) {
-            console.log("用户协议 TOUCH_START");
-            event.stopPropagation();
-        }, self);
+        // 添加 Button 组件使其可点击
+        var button = labelNode.getComponent(cc.Button);
+        if (!button) {
+            button = labelNode.addComponent(cc.Button);
+        }
+        button.interactable = true;
+        button.transition = cc.Button.Transition.NONE;
         
-        labelNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-            console.log("用户协议 TOUCH_END 触发");
-            event.stopPropagation();
-            self._showUserAgreement();
-        }, self);
+        // 添加点击事件
+        var clickEventHandler = new cc.Component.EventHandler();
+        clickEventHandler.target = this.node;
+        clickEventHandler.component = "loginScene";
+        clickEventHandler.handler = "_showUserAgreement";
+        clickEventHandler.customEventData = "";
         
-        labelNode.on(cc.Node.EventType.TOUCH_CANCEL, function(event) {
-            console.log("用户协议 TOUCH_CANCEL");
-            event.stopPropagation();
-        }, self);
+        button.clickEvents.push(clickEventHandler);
         
-        console.log("用户协议初始化完成，点击区域:", labelNode.width, "x", labelNode.height);
+        console.log("用户协议初始化完成");
     },
     
     // 初始化登录按钮
@@ -166,34 +164,38 @@ cc.Class({
         // 微信登录按钮
         var wxLoginNode = this.node.getChildByName("login_wx");
         if (wxLoginNode) {
-            // 禁用 Button 组件的自动处理，使用我们的触摸事件
             var button = wxLoginNode.getComponent(cc.Button);
             if (button) {
-                button.interactable = false;  // 禁用 Button 组件
+                button.interactable = true;
+                
+                // 添加点击事件
+                var clickEventHandler = new cc.Component.EventHandler();
+                clickEventHandler.target = this.node;
+                clickEventHandler.component = "loginScene";
+                clickEventHandler.handler = "_doWxLogin";
+                clickEventHandler.customEventData = "";
+                
+                button.clickEvents = [clickEventHandler];
             }
-            
-            wxLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-                console.log("微信登录按钮点击");
-                event.stopPropagation();
-                self._doWxLogin();
-            }, self);
             console.log("微信登录按钮初始化完成");
         }
         
         // 手机号登录按钮
         var phoneLoginNode = this.node.getChildByName("login_phone");
         if (phoneLoginNode) {
-            // 禁用 Button 组件的自动处理
             var button = phoneLoginNode.getComponent(cc.Button);
             if (button) {
-                button.interactable = false;
+                button.interactable = true;
+                
+                // 添加点击事件
+                var clickEventHandler = new cc.Component.EventHandler();
+                clickEventHandler.target = this.node;
+                clickEventHandler.component = "loginScene";
+                clickEventHandler.handler = "_doPhoneLogin";
+                clickEventHandler.customEventData = "";
+                
+                button.clickEvents = [clickEventHandler];
             }
-            
-            phoneLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-                console.log("手机号登录按钮点击");
-                event.stopPropagation();
-                self._doPhoneLogin();
-            }, self);
             console.log("手机号登录按钮初始化完成");
         }
     },
@@ -357,19 +359,10 @@ cc.Class({
         var self = this;
         
         if (this.user_agreement_prefabs) {
-            console.log("Instantiating user agreement prefab");
-            try {
-                var userAgreement_popup = cc.instantiate(this.user_agreement_prefabs);
-                userAgreement_popup.parent = this.node;
-                console.log("用户协议弹窗创建成功");
-            } catch (e) {
-                console.error("创建用户协议弹窗失败:", e);
-                self._showError("无法显示用户协议");
-            }
+            console.log("通过场景属性加载用户协议预制体");
+            this._createUserAgreementPopup(this.user_agreement_prefabs);
         } else {
-            console.error("用户协议prefab未设置，尝试动态加载");
-            
-            // 尝试动态加载预制体
+            console.log("尝试从 resources 目录动态加载用户协议预制体");
             cc.resources.load("prefabs/user_agreement", cc.Prefab, function(err, prefab) {
                 if (err) {
                     console.error("动态加载用户协议预制体失败:", err);
@@ -377,15 +370,20 @@ cc.Class({
                     return;
                 }
                 
-                try {
-                    var userAgreement_popup = cc.instantiate(prefab);
-                    userAgreement_popup.parent = self.node;
-                    console.log("用户协议弹窗动态加载成功");
-                } catch (e) {
-                    console.error("创建用户协议弹窗失败:", e);
-                    self._showError("无法显示用户协议");
-                }
+                self._createUserAgreementPopup(prefab);
             });
+        }
+    },
+    
+    // 创建用户协议弹窗
+    _createUserAgreementPopup: function(prefab) {
+        try {
+            var userAgreement_popup = cc.instantiate(prefab);
+            userAgreement_popup.parent = this.node;
+            console.log("用户协议弹窗创建成功");
+        } catch (e) {
+            console.error("创建用户协议弹窗失败:", e);
+            this._showError("无法显示用户协议");
         }
     }
 });
