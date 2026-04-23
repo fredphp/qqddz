@@ -26,9 +26,6 @@ cc.Class({
         // 勾选状态 - 默认不勾选
         this._isChecked = false;
         
-        // 初始化所有事件
-        this._initAllEvents();
-        
         // 确保 myglobal 存在
         if (typeof window.myglobal === 'undefined') {
             console.error("myglobal 未定义，尝试等待...");
@@ -37,6 +34,13 @@ cc.Class({
         }
         
         this._initAndStart();
+    },
+    
+    start () {
+        console.log("loginScene start");
+        
+        // 在 start 中初始化事件，确保节点都已加载
+        this._initAllEvents();
     },
     
     // 初始化所有事件
@@ -58,54 +62,73 @@ cc.Class({
     // 初始化复选框
     _initCheckbox: function() {
         var self = this;
+        
+        // 获取复选框节点
         var checkMarkNode = this.node.getChildByName("check_mark");
         if (!checkMarkNode) {
             console.error("check_mark 节点未找到");
             return;
         }
         
-        console.log("找到 check_mark 节点");
+        console.log("找到 check_mark 节点:", checkMarkNode.name);
         this._checkMarkNode = checkMarkNode;
         
-        // 获取 Sprite 组件并保存 spriteFrame
-        var sprite = checkMarkNode.getComponent(cc.Sprite);
-        if (sprite) {
-            this._checkSprite = sprite;
-            this._checkSpriteFrame = sprite.spriteFrame;
-            // 初始状态不显示勾 - 通过透明度控制，不使用 enabled
-            checkMarkNode.opacity = 0;
-        }
+        // 初始状态不显示勾
+        checkMarkNode.opacity = 0;
         
-        // 移除 Button 组件，使用纯触摸事件
-        var button = checkMarkNode.getComponent(cc.Button);
-        if (button) {
-            button.enabled = false;
-        }
+        // 创建一个更大的点击区域节点
+        var clickArea = new cc.Node("checkbox_click_area");
+        clickArea.parent = this.node;
+        clickArea.zIndex = 100;
+        clickArea.x = checkMarkNode.x;
+        clickArea.y = checkMarkNode.y;
+        clickArea.width = 60;  // 更大的点击区域
+        clickArea.height = 60;
+        clickArea.anchorX = 0.5;
+        clickArea.anchorY = 0.5;
         
-        // 只使用 TOUCH_END 事件
-        checkMarkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+        // 添加一个透明的背景以便接收触摸事件
+        var graphics = clickArea.addComponent(cc.Graphics);
+        graphics.fillColor = new cc.Color(0, 0, 0, 0);  // 完全透明
+        graphics.rect(-30, -30, 60, 60);
+        graphics.fill();
+        
+        // 保存引用
+        this._checkboxClickArea = clickArea;
+        
+        // 添加触摸事件
+        clickArea.on(cc.Node.EventType.TOUCH_START, function(event) {
+            console.log("复选框 TOUCH_START");
+            event.stopPropagation();
+        }, self);
+        
+        clickArea.on(cc.Node.EventType.TOUCH_END, function(event) {
             console.log("复选框 TOUCH_END 触发");
             event.stopPropagation();
             self._toggleCheckbox();
         }, self);
         
-        console.log("复选框初始化完成");
+        console.log("复选框初始化完成，点击区域:", clickArea.width, "x", clickArea.height);
     },
     
     // 切换复选框状态
     _toggleCheckbox: function() {
         this._isChecked = !this._isChecked;
-        console.log("复选框状态:", this._isChecked);
+        console.log("复选框状态切换为:", this._isChecked);
         
-        if (!this._checkMarkNode) return;
+        if (!this._checkMarkNode) {
+            console.error("check_mark 节点引用丢失");
+            return;
+        }
         
         // 通过透明度控制显示/隐藏
         if (this._isChecked) {
-            // 显示勾
-            this._checkMarkNode.opacity = 255;
-        } else {
-            // 隐藏勾
+            // 显示勾 - 淡入效果
             this._checkMarkNode.opacity = 0;
+            this._checkMarkNode.runAction(cc.fadeIn(0.1));
+        } else {
+            // 隐藏勾 - 淡出效果
+            this._checkMarkNode.runAction(cc.fadeOut(0.1));
         }
     },
     
@@ -113,30 +136,52 @@ cc.Class({
     _initUserAgreementLink: function() {
         var self = this;
         
-        // 使用 agreement_label 作为用户协议点击区域
-        var linkNode = this.node.getChildByName("agreement_label");
+        // 获取用户协议文字节点
+        var labelNode = this.node.getChildByName("agreement_label");
         
-        if (!linkNode) {
-            console.error("用户协议节点未找到");
+        if (!labelNode) {
+            console.error("agreement_label 节点未找到");
             return;
         }
         
-        console.log("找到用户协议节点:", linkNode.name);
+        console.log("找到用户协议节点:", labelNode.name, "大小:", labelNode.width, "x", labelNode.height);
         
-        // 禁用 Button 组件，使用纯触摸事件
-        var button = linkNode.getComponent(cc.Button);
-        if (button) {
-            button.enabled = false;
-        }
+        // 确保节点可以接收触摸事件
+        labelNode._touchListener = null;
         
-        // 只使用 TOUCH_END 事件
-        linkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+        // 创建一个更大的点击区域覆盖整个用户协议文字
+        var clickArea = new cc.Node("agreement_click_area");
+        clickArea.parent = this.node;
+        clickArea.zIndex = 101;
+        clickArea.x = labelNode.x;
+        clickArea.y = labelNode.y;
+        clickArea.width = labelNode.width + 20;  // 稍微大一点
+        clickArea.height = labelNode.height + 10;
+        clickArea.anchorX = 0.5;
+        clickArea.anchorY = 0.5;
+        
+        // 添加一个透明的背景以便接收触摸事件
+        var graphics = clickArea.addComponent(cc.Graphics);
+        graphics.fillColor = new cc.Color(0, 0, 0, 0);  // 完全透明
+        graphics.rect(-clickArea.width/2, -clickArea.height/2, clickArea.width, clickArea.height);
+        graphics.fill();
+        
+        // 保存引用
+        this._agreementClickArea = clickArea;
+        
+        // 添加触摸事件
+        clickArea.on(cc.Node.EventType.TOUCH_START, function(event) {
+            console.log("用户协议 TOUCH_START");
+            event.stopPropagation();
+        }, self);
+        
+        clickArea.on(cc.Node.EventType.TOUCH_END, function(event) {
             console.log("用户协议 TOUCH_END 触发");
             event.stopPropagation();
             self._showUserAgreement();
         }, self);
         
-        console.log("用户协议初始化完成");
+        console.log("用户协议初始化完成，点击区域:", clickArea.width, "x", clickArea.height);
     },
     
     // 初始化登录按钮
@@ -146,7 +191,14 @@ cc.Class({
         // 微信登录按钮
         var wxLoginNode = this.node.getChildByName("login_wx");
         if (wxLoginNode) {
+            // 禁用 Button 组件的自动处理，使用我们的触摸事件
+            var button = wxLoginNode.getComponent(cc.Button);
+            if (button) {
+                button.interactable = false;  // 禁用 Button 组件
+            }
+            
             wxLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                console.log("微信登录按钮点击");
                 event.stopPropagation();
                 self._doWxLogin();
             }, self);
@@ -156,7 +208,14 @@ cc.Class({
         // 手机号登录按钮
         var phoneLoginNode = this.node.getChildByName("login_phone");
         if (phoneLoginNode) {
+            // 禁用 Button 组件的自动处理
+            var button = phoneLoginNode.getComponent(cc.Button);
+            if (button) {
+                button.interactable = false;
+            }
+            
             phoneLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                console.log("手机号登录按钮点击");
                 event.stopPropagation();
                 self._doPhoneLogin();
             }, self);
@@ -262,10 +321,6 @@ cc.Class({
     // 更新登录 UI
     _updateLoginUI: function() {
         // 暂时没有需要更新的 UI
-    },
-    
-    start () {
-        console.log("loginScene start");
     },
     
     // 微信登录
