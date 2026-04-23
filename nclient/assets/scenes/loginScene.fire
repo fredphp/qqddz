@@ -1552,7 +1552,7 @@
     },
     "_enabled": true,
     "wait_node": {
-      "__id__": 24
+      "__id__": 21
     },
     "user_agreement_prefabs": {
       "__uuid__": "c3d4e5f6-7890-abcd-ef12-3456789abcde"
