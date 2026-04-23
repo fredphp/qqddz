@@ -70,49 +70,35 @@ cc.Class({
             return;
         }
         
-        console.log("找到 check_mark 节点:", checkMarkNode.name);
+        console.log("找到 check_mark 节点:", checkMarkNode.name, "位置:", checkMarkNode.x, checkMarkNode.y);
         this._checkMarkNode = checkMarkNode;
         
         // 初始状态不显示勾
         checkMarkNode.opacity = 0;
         
-        // 创建一个更大的点击区域节点
-        var clickArea = new cc.Node("checkbox_click_area");
-        clickArea.parent = this.node;
-        clickArea.zIndex = 1000;  // 使用更高的 zIndex
-        clickArea.x = checkMarkNode.x;
-        clickArea.y = checkMarkNode.y;
-        clickArea.width = 60;  // 更大的点击区域
-        clickArea.height = 60;
-        clickArea.anchorX = 0.5;
-        clickArea.anchorY = 0.5;
-        clickArea.setContentSize(60, 60);
-        
-        // 添加一个透明的 Sprite 来接收触摸事件
-        // 创建一个透明的 SpriteFrame
-        var sprite = clickArea.addComponent(cc.Sprite);
-        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        sprite.spriteFrame = new cc.SpriteFrame();
-        
-        // 添加 BlockInputEvents 组件确保事件被拦截
-        clickArea.addComponent(cc.BlockInputEvents);
-        
-        // 保存引用
-        this._checkboxClickArea = clickArea;
+        // 直接在 check_mark 节点上添加触摸事件
+        // 扩大点击区域：设置更大的 contentSize
+        var originalSize = checkMarkNode.getContentSize();
+        checkMarkNode.setContentSize(60, 60);
         
         // 添加触摸事件
-        clickArea.on(cc.Node.EventType.TOUCH_START, function(event) {
+        checkMarkNode.on(cc.Node.EventType.TOUCH_START, function(event) {
             console.log("复选框 TOUCH_START");
             event.stopPropagation();
         }, self);
         
-        clickArea.on(cc.Node.EventType.TOUCH_END, function(event) {
+        checkMarkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
             console.log("复选框 TOUCH_END 触发");
             event.stopPropagation();
             self._toggleCheckbox();
         }, self);
         
-        console.log("复选框初始化完成，点击区域:", clickArea.width, "x", clickArea.height);
+        checkMarkNode.on(cc.Node.EventType.TOUCH_CANCEL, function(event) {
+            console.log("复选框 TOUCH_CANCEL");
+            event.stopPropagation();
+        }, self);
+        
+        console.log("复选框初始化完成，点击区域:", 60, "x", 60);
     },
     
     // 切换复选框状态
@@ -129,10 +115,10 @@ cc.Class({
         if (this._isChecked) {
             // 显示勾 - 淡入效果
             this._checkMarkNode.opacity = 0;
-            this._checkMarkNode.runAction(cc.fadeIn(0.1));
+            this._checkMarkNode.runAction(cc.fadeIn(0.15));
         } else {
             // 隐藏勾 - 淡出效果
-            this._checkMarkNode.runAction(cc.fadeOut(0.1));
+            this._checkMarkNode.runAction(cc.fadeOut(0.15));
         }
     },
     
@@ -148,44 +134,29 @@ cc.Class({
             return;
         }
         
-        console.log("找到用户协议节点:", labelNode.name, "大小:", labelNode.width, "x", labelNode.height);
+        console.log("找到用户协议节点:", labelNode.name, "位置:", labelNode.x, labelNode.y, "大小:", labelNode.width, "x", labelNode.height);
         
-        // 创建一个更大的点击区域覆盖整个用户协议文字
-        var clickArea = new cc.Node("agreement_click_area");
-        clickArea.parent = this.node;
-        clickArea.zIndex = 1001;  // 使用更高的 zIndex
-        clickArea.x = labelNode.x;
-        clickArea.y = labelNode.y;
-        clickArea.width = labelNode.width + 40;  // 稍微大一点
-        clickArea.height = labelNode.height + 20;
-        clickArea.anchorX = 0.5;
-        clickArea.anchorY = 0.5;
-        clickArea.setContentSize(clickArea.width, clickArea.height);
+        // 扩大点击区域
+        labelNode.setContentSize(360, 50);
         
-        // 添加一个透明的 Sprite 来接收触摸事件
-        var sprite = clickArea.addComponent(cc.Sprite);
-        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        sprite.spriteFrame = new cc.SpriteFrame();
-        
-        // 添加 BlockInputEvents 组件确保事件被拦截
-        clickArea.addComponent(cc.BlockInputEvents);
-        
-        // 保存引用
-        this._agreementClickArea = clickArea;
-        
-        // 添加触摸事件
-        clickArea.on(cc.Node.EventType.TOUCH_START, function(event) {
+        // 直接在 label 节点上添加触摸事件
+        labelNode.on(cc.Node.EventType.TOUCH_START, function(event) {
             console.log("用户协议 TOUCH_START");
             event.stopPropagation();
         }, self);
         
-        clickArea.on(cc.Node.EventType.TOUCH_END, function(event) {
+        labelNode.on(cc.Node.EventType.TOUCH_END, function(event) {
             console.log("用户协议 TOUCH_END 触发");
             event.stopPropagation();
             self._showUserAgreement();
         }, self);
         
-        console.log("用户协议初始化完成，点击区域:", clickArea.width, "x", clickArea.height);
+        labelNode.on(cc.Node.EventType.TOUCH_CANCEL, function(event) {
+            console.log("用户协议 TOUCH_CANCEL");
+            event.stopPropagation();
+        }, self);
+        
+        console.log("用户协议初始化完成，点击区域:", labelNode.width, "x", labelNode.height);
     },
     
     // 初始化登录按钮
