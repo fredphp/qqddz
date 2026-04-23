@@ -353,7 +353,7 @@
       "__id__": 2
     },
     "_children": [],
-    "_active": false,
+    "_active": true,
     "_components": [
       {
         "__id__": 8
@@ -385,7 +385,7 @@
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
-        -205,
+        -110,
         -180,
         0,
         0,
@@ -518,7 +518,7 @@
       "__id__": 2
     },
     "_children": [],
-    "_active": true,
+    "_active": false,
     "_components": [
       {
         "__id__": 11
@@ -629,19 +629,19 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 180,
+      "width": 280,
       "height": 30
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
-      "x": 0,
+      "x": 0.5,
       "y": 0.5
     },
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
-        -200,
+        0,
         -280,
         0,
         0,
@@ -682,15 +682,15 @@
     "_srcBlendFactor": 770,
     "_dstBlendFactor": 771,
     "_id": "f5m0KqGOROya8WlrfHxeOD",
-    "_string": "我已阅读并同意《",
-    "_N$string": "我已阅读并同意《",
-    "_fontSize": 18,
+    "_string": "我已阅读并同意《用户协议》",
+    "_N$string": "我已阅读并同意《用户协议》",
+    "_fontSize": 16,
     "_lineHeight": 30,
     "_enableWrapText": false,
     "_N$file": null,
     "_isSystemFontUsed": true,
     "_spacingX": 0,
-    "_N$horizontalAlign": 0,
+    "_N$horizontalAlign": 1,
     "_N$verticalAlign": 1,
     "_N$fontFamily": "Arial",
     "_N$overflow": 0,
@@ -743,7 +743,7 @@
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
-        0,
+        110,
         -180,
         0,
         0,
@@ -908,7 +908,7 @@
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
-        -220,
+        -150,
         -280,
         0,
         0,
@@ -973,7 +973,7 @@
       "__id__": 2
     },
     "_children": [],
-    "_active": true,
+    "_active": false,
     "_components": [
       {
         "__id__": 20

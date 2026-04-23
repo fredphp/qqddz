@@ -117,13 +117,23 @@ cc.Class({
     
     // 初始化用户协议链接
     _initUserAgreementLink: function() {
+        var self = this;
+        
+        // 尝试查找 user_agreement_link 节点（旧版本）
         var linkNode = this.node.getChildByName("user_agreement_link");
+        
+        // 如果 user_agreement_link 不存在或不可见，使用 agreement_label
+        if (!linkNode || !linkNode.active) {
+            linkNode = this.node.getChildByName("agreement_label");
+            console.log("使用 agreement_label 作为用户协议点击区域");
+        }
+        
         if (!linkNode) {
-            console.error("user_agreement_link 节点未找到");
+            console.error("用户协议节点未找到");
             return;
         }
         
-        console.log("找到 user_agreement_link 节点");
+        console.log("找到用户协议节点:", linkNode.name);
         
         // 确保有 Button 组件
         var button = linkNode.getComponent(cc.Button);
@@ -134,16 +144,16 @@ cc.Class({
         // 配置按钮
         button.transition = cc.Button.Transition.SCALE;
         button.duration = 0.1;
-        button.zoomScale = 1.1;
+        button.zoomScale = 1.05;
         
-        // 注册点击事件
+        // 注册点击事件 - 点击用户协议文本弹出用户协议弹窗
         linkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
             event.stopPropagation();
-            console.log("用户协议链接被点击");
-            this._showUserAgreement();
+            console.log("用户协议被点击");
+            self._showUserAgreement();
         }, this);
         
-        console.log("用户协议链接初始化完成");
+        console.log("用户协议初始化完成");
     },
     
     // 初始化登录按钮
