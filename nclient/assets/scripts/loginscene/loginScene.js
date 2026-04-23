@@ -84,7 +84,7 @@ cc.Class({
         console.log("check_mark 节点找到:", checkMarkNode.name);
         console.log("agreement_label 节点:", agreementLabel ? agreementLabel.name : "不存在");
 
-        // 创建边框节点（使用 Graphics 绘制）
+        // 创建边框节点（使用 Sprite 方式，在 web 端更可靠）
         this._createCheckboxBorder();
 
         // 初始状态：隐藏对勾
@@ -111,7 +111,7 @@ cc.Class({
             }
         }
 
-        // 隐藏 checkbox_border 节点（使用我们自己绘制的边框）
+        // 隐藏 checkbox_border 节点（使用我们自己创建的边框）
         var checkboxBorder = this.node.getChildByName("checkbox_border");
         if (checkboxBorder) {
             checkboxBorder.active = false;
@@ -124,33 +124,113 @@ cc.Class({
         console.log("=== 复选框初始化完成，默认状态: 未选中 ===");
     },
 
-    // 创建复选框边框（使用 Graphics）
+    // 创建复选框边框（使用 Sprite，在 web 端更可靠）
     _createCheckboxBorder: function() {
-        // 创建边框节点
-        var borderNode = new cc.Node("checkbox_border_graphic");
-        borderNode.parent = this.node;
+        var self = this;
 
-        // 设置位置与 check_mark 相同
+        // 创建边框容器节点
+        var borderNode = new cc.Node("checkbox_border_sprite");
+        borderNode.parent = this.node;
         borderNode.x = -150;
         borderNode.y = -280;
-        borderNode.width = 28;
-        borderNode.height = 28;
+        borderNode.width = 32;
+        borderNode.height = 32;
 
-        // 添加 Graphics 组件
-        var graphics = borderNode.addComponent(cc.Graphics);
-
-        // 设置线条样式 - 灰色边框，线宽2
-        graphics.strokeColor = cc.Color.GRAY;
-        graphics.lineWidth = 2;
-
-        // 绘制矩形边框
-        graphics.rect(-14, -14, 28, 28);
-        graphics.stroke();
-
-        this._borderGraphics = graphics;
         this._borderNode = borderNode;
 
-        console.log("边框绘制完成，使用 cc.Graphics");
+        // 方法：创建一个带边框的 Sprite
+        // 使用纯色纹理创建边框效果
+        var createBorderTexture = function(lineWidth, width, height) {
+            var canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            var ctx = canvas.getContext('2d');
+
+            // 清空画布
+            ctx.clearRect(0, 0, width, height);
+
+            // 绘制边框
+            ctx.strokeStyle = '#969696';  // 灰色
+            ctx.lineWidth = lineWidth;
+            ctx.strokeRect(lineWidth/2, lineWidth/2, width - lineWidth, height - lineWidth);
+
+            // 创建纹理
+            var texture = new cc.Texture2D();
+            texture.initWithElement(canvas);
+            texture.handleLoadedTexture();
+
+            return texture;
+        };
+
+        // 创建边框 Sprite
+        var borderSprite = borderNode.addComponent(cc.Sprite);
+        borderSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        borderSprite.type = cc.Sprite.Type.SIMPLE;
+
+        // 使用 Canvas 创建边框纹理
+        if (typeof document !== 'undefined') {
+            var texture = createBorderTexture(2, 32, 32);
+            var spriteFrame = new cc.SpriteFrame(texture);
+            borderSprite.spriteFrame = spriteFrame;
+            this._borderSprite = borderSprite;
+            console.log("边框 Sprite 创建完成（Canvas 方式）");
+        } else {
+            // 非浏览器环境，使用 Graphics 作为备选
+            var graphics = borderNode.addComponent(cc.Graphics);
+            graphics.strokeColor = cc.Color.GRAY;
+            graphics.lineWidth = 2;
+            graphics.rect(-14, -14, 28, 28);
+            graphics.stroke();
+            this._borderGraphics = graphics;
+            console.log("边框 Graphics 创建完成（备选方式）");
+        }
+
+        // 保存原始纹理用于颜色切换
+        this._originalTexture = null;
+    },
+
+    // 更新边框颜色
+    _updateBorderColor: function(isChecked) {
+        var self = this;
+
+        if (typeof document === 'undefined') {
+            // 非浏览器环境，使用 Graphics
+            if (this._borderGraphics) {
+                this._borderGraphics.clear();
+                this._borderGraphics.strokeColor = isChecked ? new cc.Color(0, 180, 0) : cc.Color.GRAY;
+                this._borderGraphics.lineWidth = 2;
+                this._borderGraphics.rect(-14, -14, 28, 28);
+                this._borderGraphics.stroke();
+            }
+            return;
+        }
+
+        // 浏览器环境，重新创建带颜色的边框纹理
+        var createColoredBorderTexture = function(lineWidth, width, height, color) {
+            var canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            var ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, width, height);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.strokeRect(lineWidth/2, lineWidth/2, width - lineWidth, height - lineWidth);
+
+            var texture = new cc.Texture2D();
+            texture.initWithElement(canvas);
+            texture.handleLoadedTexture();
+
+            return texture;
+        };
+
+        var color = isChecked ? '#00b400' : '#969696';  // 绿色或灰色
+        var texture = createColoredBorderTexture(2, 32, 32, color);
+
+        if (this._borderSprite) {
+            var spriteFrame = new cc.SpriteFrame(texture);
+            this._borderSprite.spriteFrame = spriteFrame;
+        }
     },
 
     // 设置复选框点击事件
@@ -159,13 +239,27 @@ cc.Class({
 
         var self = this;
 
-        // 方法1: 在边框节点上添加点击事件
-        // 添加透明背景使其可点击
-        var bgSprite = this._borderNode.addComponent(cc.Sprite);
-        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        bgSprite.type = cc.Sprite.Type.SLICED;
+        // 在边框节点上添加触摸事件
+        this._borderNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+            console.log("边框节点 TOUCH_END 触发");
+            self._toggleCheckbox();
+            event.stopPropagation();
+        }, this);
 
-        // 创建透明纹理
+        // 创建一个大的点击区域覆盖整个复选框和文字
+        var clickArea = new cc.Node("checkbox_click_area");
+        clickArea.parent = this.node;
+
+        clickArea.x = -90;
+        clickArea.y = -280;
+        clickArea.width = 220;
+        clickArea.height = 50;
+
+        // 添加透明 Sprite 使其可点击
+        var sprite = clickArea.addComponent(cc.Sprite);
+        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        sprite.type = cc.Sprite.Type.SLICED;
+
         var texture = new cc.Texture2D();
         texture.initWithData(
             new Uint8Array([255, 255, 255, 1]),
@@ -174,42 +268,11 @@ cc.Class({
         );
         texture.handleLoadedTexture();
         var sf = new cc.SpriteFrame(texture);
-        bgSprite.spriteFrame = sf;
+        sprite.spriteFrame = sf;
 
-        // 添加触摸事件到边框节点
-        this._borderNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-            console.log("边框节点 TOUCH_END 触发");
-            self._toggleCheckbox();
-            event.stopPropagation();
-        }, this);
-
-        // 方法2: 创建一个大的点击区域覆盖整个复选框和文字
-        var clickArea = new cc.Node("checkbox_click_area");
-        clickArea.parent = this.node;
-
-        clickArea.x = -90;
-        clickArea.y = -280;
-        clickArea.width = 220;
-        clickArea.height = 50;
+        // 设置 zIndex 确保在最上层
         clickArea.zIndex = 999;
-
-        // 添加透明 Sprite
-        var sprite = clickArea.addComponent(cc.Sprite);
-        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        sprite.type = cc.Sprite.Type.SLICED;
-
-        var texture2 = new cc.Texture2D();
-        texture2.initWithData(
-            new Uint8Array([255, 255, 255, 1]),
-            cc.Texture2D.PixelFormat.RGBA8888,
-            1, 1
-        );
-        texture2.handleLoadedTexture();
-        var sf2 = new cc.SpriteFrame(texture2);
-        sprite.spriteFrame = sf2;
-
-        // 添加 BlockInputEvents 阻止事件穿透
-        clickArea.addComponent(cc.BlockInputEvents);
+        clickArea.setSiblingIndex(this.node.children.length - 1);
 
         // 添加触摸事件
         clickArea.on(cc.Node.EventType.TOUCH_END, function(event) {
@@ -236,14 +299,8 @@ cc.Class({
             }
 
             // 边框变绿色
-            if (this._borderGraphics) {
-                this._borderGraphics.clear();
-                this._borderGraphics.strokeColor = new cc.Color(0, 180, 0);
-                this._borderGraphics.lineWidth = 2;
-                this._borderGraphics.rect(-14, -14, 28, 28);
-                this._borderGraphics.stroke();
-                console.log("边框变绿色");
-            }
+            this._updateBorderColor(true);
+            console.log("边框变绿色");
         } else {
             // 未选中状态：隐藏对勾
             if (this._checkMarkSprite) {
@@ -252,14 +309,8 @@ cc.Class({
             }
 
             // 边框变灰色
-            if (this._borderGraphics) {
-                this._borderGraphics.clear();
-                this._borderGraphics.strokeColor = cc.Color.GRAY;
-                this._borderGraphics.lineWidth = 2;
-                this._borderGraphics.rect(-14, -14, 28, 28);
-                this._borderGraphics.stroke();
-                console.log("边框变灰色");
-            }
+            this._updateBorderColor(false);
+            console.log("边框变灰色");
         }
     },
 
@@ -351,7 +402,7 @@ cc.Class({
         this._doWxLogin();
     },
 
-    // 手机号登录回调
+    // 手机号登录点击回调
     _onPhoneLoginClick: function() {
         console.log("_onPhoneLoginClick 被调用");
         this._doPhoneLogin();
