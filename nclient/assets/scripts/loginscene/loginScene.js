@@ -69,17 +69,10 @@ cc.Class({
 
         var self = this;
 
-        // 获取 ROOT_UI 节点 (父节点)
-        var rootNode = this.node.getChildByName("ROOT_UI");
-        if (!rootNode) {
-            // 如果找不到 ROOT_UI，尝试直接在 this.node 下查找
-            rootNode = this.node;
-        }
-
-        // 获取现有的节点
-        var checkMarkNode = rootNode.getChildByName("check_mark");
-        var checkboxBorder = rootNode.getChildByName("checkbox_border");
-        var agreementLabel = rootNode.getChildByName("agreement_label");
+        // this.node 就是 ROOT_UI，直接获取子节点
+        var checkMarkNode = this.node.getChildByName("check_mark");
+        var checkboxBorder = this.node.getChildByName("checkbox_border");
+        var agreementLabel = this.node.getChildByName("agreement_label");
 
         if (!checkMarkNode) {
             console.error("check_mark 节点未找到");
@@ -100,8 +93,9 @@ cc.Class({
             if (this._borderLabel) {
                 // 设置初始边框为灰色方框
                 this._borderLabel.string = "□";
-                this._borderLabel.fontSize = 24;
-                console.log("边框 Label 设置完成");
+                this._borderLabel.fontSize = 28;
+                this._borderLabel.node.color = new cc.Color(150, 150, 150);
+                console.log("边框 Label 设置完成: □");
             }
         }
 
@@ -113,82 +107,97 @@ cc.Class({
             console.log("check_mark Sprite 初始隐藏");
         }
 
+        // 禁用 check_mark 上现有的 Button 组件
+        var checkMarkButton = checkMarkNode.getComponent(cc.Button);
+        if (checkMarkButton) {
+            checkMarkButton.interactable = false;
+            console.log("禁用 check_mark 的 Button 组件");
+        }
+
+        // 禁用 agreement_label 上现有的 Button 组件（防止拦截点击）
+        if (agreementLabel) {
+            var agreementButton = agreementLabel.getComponent(cc.Button);
+            if (agreementButton) {
+                agreementButton.interactable = false;
+                console.log("禁用 agreement_label 的 Button 组件");
+            }
+        }
+
         // 设置点击事件
-        this._setupCheckboxEvents(checkMarkNode, checkboxBorder, agreementLabel, rootNode);
+        this._setupCheckboxEvents();
 
         console.log("=== 复选框初始化完成 ===");
     },
 
     // 设置复选框点击事件
-    _setupCheckboxEvents: function(checkMarkNode, borderNode, agreementLabel, rootNode) {
+    _setupCheckboxEvents: function() {
         console.log("设置复选框点击事件...");
 
         var self = this;
 
-        // 方法1: 直接在 check_mark 节点上添加触摸事件
-        // 先移除可能存在的 Button 组件的事件
-        var existingButton = checkMarkNode.getComponent(cc.Button);
-        if (existingButton) {
-            existingButton.clickEvents = [];
-            existingButton.interactable = false;
-            console.log("移除现有 Button 事件");
-        }
-
-        // 在 check_mark 上添加触摸事件
-        checkMarkNode.on(cc.Node.EventType.TOUCH_START, function(event) {
-            console.log("check_mark TOUCH_START");
-            event.stopPropagation();
-        }, this);
-
-        checkMarkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-            console.log("check_mark TOUCH_END 触发");
-            self._toggleCheckbox();
-            event.stopPropagation();
-        }, this);
-
-        // 方法2: 如果有 border 节点，也在上面添加事件
-        if (borderNode) {
-            borderNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-                console.log("checkbox_border TOUCH_END 触发");
-                self._toggleCheckbox();
-                event.stopPropagation();
-            }, this);
-        }
-
-        // 方法3: 创建一个透明的点击区域覆盖整个复选框区域
+        // 创建一个透明的点击区域覆盖整个复选框区域
         // 位置计算: check_mark 在 x=-150, agreement_label 在 x=0
         // 点击区域应该在它们中间
 
         var clickArea = new cc.Node("checkbox_click_area");
-        clickArea.parent = rootNode;
+        clickArea.parent = this.node;
 
-        // 设置位置 (check_mark 和 agreement_label 的中间)
-        clickArea.x = -75;  // (-150 + 0) / 2
+        // 设置位置 (覆盖 check_mark 到 agreement_label 区域)
+        // check_mark.x = -150, agreement_label.x = 0
+        // 点击区域中心大约在 -75
+        clickArea.x = -90;
         clickArea.y = -280;
-        clickArea.width = 200;
-        clickArea.height = 40;
+        clickArea.width = 220;  // 从 -150 到 70 左右
+        clickArea.height = 50;
         clickArea.anchorX = 0.5;
         clickArea.anchorY = 0.5;
-        clickArea.zIndex = 1000;  // 确保在最上层
 
-        // 添加 BlockInputEvents 防止事件穿透
+        // 设置层级为最高
+        clickArea.setSiblingIndex(this.node.children.length - 1);
+        clickArea.zIndex = 9999;
+
+        // 添加一个透明的 Sprite 组件使节点可点击
+        var sprite = clickArea.addComponent(cc.Sprite);
+        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        sprite.type = cc.Sprite.Type.SLICED;
+
+        // 创建一个透明的精灵帧
+        var texture = new cc.Texture2D();
+        texture.initWithData(
+            new Uint8Array([255, 255, 255, 1]),  // 几乎透明，但不是完全透明
+            cc.Texture2D.PixelFormat.RGBA8888,
+            1, 1
+        );
+        texture.handleLoadedTexture();
+        var sf = new cc.SpriteFrame(texture);
+        sprite.spriteFrame = sf;
+
+        // 添加 BlockInputEvents 组件防止事件穿透
         var blockInput = clickArea.addComponent(cc.BlockInputEvents);
+        console.log("BlockInputEvents 组件添加完成");
 
         // 添加触摸事件
         clickArea.on(cc.Node.EventType.TOUCH_START, function(event) {
-            console.log("click_area TOUCH_START");
+            console.log("checkbox_click_area TOUCH_START");
             event.stopPropagation();
         }, this);
 
         clickArea.on(cc.Node.EventType.TOUCH_END, function(event) {
-            console.log("click_area TOUCH_END 触发 - 切换复选框");
+            console.log("checkbox_click_area TOUCH_END 触发 - 切换复选框");
             self._toggleCheckbox();
+            event.stopPropagation();
+        }, this);
+
+        // 同时添加 TOGGLE 事件
+        clickArea.on(cc.Node.EventType.TOUCH_CANCEL, function(event) {
+            console.log("checkbox_click_area TOUCH_CANCEL");
             event.stopPropagation();
         }, this);
 
         this._clickArea = clickArea;
 
-        console.log("点击区域创建完成，位置: (" + clickArea.x + ", " + clickArea.y + ")");
+        console.log("点击区域创建完成，位置: (" + clickArea.x + ", " + clickArea.y + "), 大小: " + clickArea.width + "x" + clickArea.height);
+        console.log("点击区域 zIndex:", clickArea.zIndex);
     },
 
     // 切换复选框状态
@@ -203,7 +212,7 @@ cc.Class({
                 console.log("对勾 Sprite 显示");
             }
 
-            // 边框变成绿色选中状态
+            // 边框变成绿色选中状态（显示勾选符号）
             if (this._borderLabel) {
                 this._borderLabel.string = "☑";
                 this._borderLabel.node.color = new cc.Color(0, 180, 0);
@@ -241,14 +250,8 @@ cc.Class({
 
         var self = this;
 
-        // 获取 ROOT_UI 节点
-        var rootNode = this.node.getChildByName("ROOT_UI");
-        if (!rootNode) {
-            rootNode = this.node;
-        }
-
         // 微信登录按钮
-        var wxLoginNode = rootNode.getChildByName("login_wx");
+        var wxLoginNode = this.node.getChildByName("login_wx");
         if (wxLoginNode) {
             var button = wxLoginNode.getComponent(cc.Button);
             if (button) {
@@ -266,7 +269,7 @@ cc.Class({
         }
 
         // 手机号登录按钮
-        var phoneLoginNode = rootNode.getChildByName("login_phone");
+        var phoneLoginNode = this.node.getChildByName("login_phone");
         if (phoneLoginNode) {
             var button = phoneLoginNode.getComponent(cc.Button);
             if (button) {
@@ -290,23 +293,10 @@ cc.Class({
 
         var self = this;
 
-        // 获取 ROOT_UI 节点
-        var rootNode = this.node.getChildByName("ROOT_UI");
-        if (!rootNode) {
-            rootNode = this.node;
-        }
-
         // 获取 user_agreement_link 节点
-        var linkNode = rootNode.getChildByName("user_agreement_link");
+        var linkNode = this.node.getChildByName("user_agreement_link");
         if (linkNode) {
             linkNode.active = true;
-
-            // 添加触摸事件
-            linkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-                console.log("user_agreement_link TOUCH_END 触发");
-                self._showUserAgreement();
-                event.stopPropagation();
-            }, this);
 
             // 配置 Button
             var button = linkNode.getComponent(cc.Button);
@@ -321,18 +311,54 @@ cc.Class({
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
             }
-            console.log("用户协议链接初始化完成");
-        }
 
-        // 同时在 agreement_label 上添加点击事件（点击"用户协议"文字）
-        var agreementLabel = rootNode.getChildByName("agreement_label");
-        if (agreementLabel) {
-            agreementLabel.on(cc.Node.EventType.TOUCH_END, function(event) {
-                console.log("agreement_label TOUCH_END 触发");
-                // 检查点击位置是否在"《用户协议》"文字上
+            // 添加触摸事件
+            linkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                console.log("user_agreement_link TOUCH_END 触发");
                 self._showUserAgreement();
                 event.stopPropagation();
             }, this);
+
+            console.log("用户协议链接初始化完成");
+        }
+
+        // 在 "用户协议" 文字上添加点击事件
+        // 由于 agreement_label 已禁用 Button，我们需要直接处理触摸
+        if (this._agreementLabel) {
+            // 创建一个专门用于点击"用户协议"文字的区域
+            // "《用户协议》" 大约从 x=-40 开始
+            var agreementLinkArea = new cc.Node("agreement_link_area");
+            agreementLinkArea.parent = this.node;
+
+            agreementLinkArea.x = 40;  // 大约在"《用户协议》"的位置
+            agreementLinkArea.y = -280;
+            agreementLinkArea.width = 90;   // 覆盖"《用户协议》"文字
+            agreementLinkArea.height = 40;
+            agreementLinkArea.anchorX = 0.5;
+            agreementLinkArea.anchorY = 0.5;
+            agreementLinkArea.zIndex = 10000;  // 比 checkbox_click_area 更高
+
+            // 添加透明 Sprite
+            var sprite = agreementLinkArea.addComponent(cc.Sprite);
+            sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+            var texture = new cc.Texture2D();
+            texture.initWithData(
+                new Uint8Array([255, 255, 255, 1]),
+                cc.Texture2D.PixelFormat.RGBA8888,
+                1, 1
+            );
+            texture.handleLoadedTexture();
+            var sf = new cc.SpriteFrame(texture);
+            sprite.spriteFrame = sf;
+
+            // 添加触摸事件
+            agreementLinkArea.on(cc.Node.EventType.TOUCH_END, function(event) {
+                console.log("agreement_link_area TOUCH_END 触发");
+                self._showUserAgreement();
+                event.stopPropagation();
+            }, this);
+
+            console.log("用户协议链接点击区域创建完成");
         }
     },
 
