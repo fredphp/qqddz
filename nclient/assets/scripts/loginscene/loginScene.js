@@ -49,35 +49,7 @@ cc.Class({
         }
     },
 
-    // 创建边框纹理
-    _createBorderTexture: function(size, borderWidth, r, g, b) {
-        var texture = new cc.Texture2D();
-        var data = new Uint8Array(size * size * 4);
-
-        for (var y = 0; y < size; y++) {
-            for (var x = 0; x < size; x++) {
-                var idx = (y * size + x) * 4;
-                if (x < borderWidth || x >= size - borderWidth ||
-                    y < borderWidth || y >= size - borderWidth) {
-                    data[idx] = r;
-                    data[idx + 1] = g;
-                    data[idx + 2] = b;
-                    data[idx + 3] = 255;
-                } else {
-                    data[idx] = 255;
-                    data[idx + 1] = 255;
-                    data[idx + 2] = 255;
-                    data[idx + 3] = 0;  // 内部透明
-                }
-            }
-        }
-
-        texture.initWithData(data, cc.Texture2D.PixelFormat.RGBA8888, size, size);
-        texture.handleLoadedTexture();
-        return texture;
-    },
-
-    // 初始化复选框
+    // 初始化复选框（使用 Label 显示 □ 和 ✓）
     _initCheckbox: function() {
         console.log("=== 初始化复选框 ===");
 
@@ -92,45 +64,46 @@ cc.Class({
 
         this._checkMarkNode = checkMarkNode;
 
+        // 获取边框 Label（显示 □）
+        var borderLabel = checkMarkNode.getComponent(cc.Label);
+        if (borderLabel) {
+            this._borderLabel = borderLabel;
+            this._borderLabel.string = "□";
+            this._borderLabel.node.color = new cc.Color(150, 150, 150);
+            console.log("边框 Label 找到");
+        } else {
+            console.error("边框 Label 未找到");
+        }
+
+        // 获取 checkmark 子节点（显示 ✓）
+        var checkmarkChild = checkMarkNode.getChildByName("checkmark");
+        if (checkmarkChild) {
+            this._checkmarkChild = checkmarkChild;
+            this._checkmarkLabel = checkmarkChild.getComponent(cc.Label);
+            checkmarkChild.active = false;  // 默认隐藏
+            console.log("checkmark 子节点找到");
+        }
+
         // 获取 Toggle 组件
         var toggle = checkMarkNode.getComponent(cc.Toggle);
         if (!toggle) {
             console.log("Toggle 组件未找到，动态添加");
             toggle = checkMarkNode.addComponent(cc.Toggle);
             toggle.isChecked = false;
-
-            // 查找 checkmark 子节点
-            var checkmarkChild = checkMarkNode.getChildByName("checkmark");
-            if (checkmarkChild) {
-                toggle.checkMark = checkmarkChild.getComponent(cc.Label) || checkmarkChild.getComponent(cc.Sprite);
+            if (this._checkmarkLabel) {
+                toggle.checkMark = this._checkmarkLabel;
             }
         }
 
         this._toggle = toggle;
 
-        // 获取背景 Sprite，设置边框
-        var bgSprite = checkMarkNode.getComponent(cc.Sprite);
-        if (bgSprite) {
-            this._bgSprite = bgSprite;
-            // 创建边框纹理
-            var grayTexture = this._createBorderTexture(30, 2, 150, 150, 150);
-            bgSprite.spriteFrame = new cc.SpriteFrame(grayTexture);
-            bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            console.log("边框纹理已设置");
-        }
-
         // 设置初始状态
         this._isChecked = toggle.isChecked || false;
 
         // 确保 checkmark 子节点状态正确
-        var checkmarkChild = checkMarkNode.getChildByName("checkmark");
-        if (checkmarkChild) {
-            checkmarkChild.active = this._isChecked;
-            this._checkmarkLabel = checkmarkChild.getComponent(cc.Label);
+        if (this._checkmarkChild) {
+            this._checkmarkChild.active = this._isChecked;
         }
-
-        // 更新边框颜色
-        this._updateBorderColor(this._isChecked);
 
         // 添加 Toggle 事件
         toggle.checkEvents = [];
@@ -140,6 +113,12 @@ cc.Class({
         handler.handler = "_onToggleChange";
         handler.customEventData = "";
         toggle.checkEvents.push(handler);
+
+        // 禁用 Button 组件（如果存在）
+        var button = checkMarkNode.getComponent(cc.Button);
+        if (button) {
+            button.interactable = false;
+        }
 
         // 禁用 agreement_label 的 Button
         var agreementLabel = this.node.getChildByName("agreement_label");
@@ -190,15 +169,7 @@ cc.Class({
     _onToggleChange: function(toggle) {
         this._isChecked = toggle.isChecked;
         console.log("Toggle 状态:", this._isChecked ? "选中" : "未选中");
-        this._updateBorderColor(this._isChecked);
-
-        // 更新 checkmark 子节点
-        if (this._checkMarkNode) {
-            var checkmarkChild = this._checkMarkNode.getChildByName("checkmark");
-            if (checkmarkChild) {
-                checkmarkChild.active = this._isChecked;
-            }
-        }
+        this._updateCheckboxState(this._isChecked);
     },
 
     // 点击区域回调
@@ -206,34 +177,27 @@ cc.Class({
         if (this._toggle) {
             this._toggle.isChecked = !this._toggle.isChecked;
             this._isChecked = this._toggle.isChecked;
-            this._updateBorderColor(this._isChecked);
-
-            // 更新 checkmark 子节点
-            if (this._checkMarkNode) {
-                var checkmarkChild = this._checkMarkNode.getChildByName("checkmark");
-                if (checkmarkChild) {
-                    checkmarkChild.active = this._isChecked;
-                }
-            }
-
+            this._updateCheckboxState(this._isChecked);
             console.log("点击区域触发，状态:", this._isChecked ? "选中" : "未选中");
         }
     },
 
-    // 更新边框颜色
-    _updateBorderColor: function(isChecked) {
-        var r = isChecked ? 0 : 150;
-        var g = isChecked ? 180 : 150;
-        var b = isChecked ? 0 : 150;
-
-        var texture = this._createBorderTexture(30, 2, r, g, b);
-        if (this._bgSprite) {
-            this._bgSprite.spriteFrame = new cc.SpriteFrame(texture);
+    // 更新复选框状态
+    _updateCheckboxState: function(isChecked) {
+        // 更新边框颜色
+        if (this._borderLabel) {
+            if (isChecked) {
+                this._borderLabel.string = "☑";
+                this._borderLabel.node.color = new cc.Color(0, 150, 0);
+            } else {
+                this._borderLabel.string = "□";
+                this._borderLabel.node.color = new cc.Color(150, 150, 150);
+            }
         }
 
-        // 更新对勾颜色
-        if (this._checkmarkLabel) {
-            this._checkmarkLabel.node.color = isChecked ? new cc.Color(0, 150, 0) : new cc.Color(150, 150, 150);
+        // 显示/隐藏对勾
+        if (this._checkmarkChild) {
+            this._checkmarkChild.active = isChecked;
         }
     },
 
