@@ -75,3 +75,9 @@ server.log
 /.env
 /deploy.sh
 /start.sh
+/nclient/library/
+/nclient/local/
+/nclient/temp/
+/client/library/
+/client/local/
+/client/temp/
