@@ -67,24 +67,25 @@ cc.Class({
         console.log("找到 check_mark 节点");
         this._checkMarkNode = checkMarkNode;
         
-        // 获取 Sprite 组件
+        // 获取 Sprite 组件并保存 spriteFrame
         var sprite = checkMarkNode.getComponent(cc.Sprite);
-        if (sprite && sprite.spriteFrame) {
-            // 保存原始图片用于显示勾选状态
+        if (sprite) {
+            this._checkSprite = sprite;
             this._checkSpriteFrame = sprite.spriteFrame;
-            // 初始状态不显示勾 - 使用 enabled 控制而不是设置 null
-            sprite.enabled = false;
+            // 初始状态不显示勾 - 通过透明度控制，不使用 enabled
+            checkMarkNode.opacity = 0;
         }
         
-        // 使用 click 事件（Button 组件触发）
-        checkMarkNode.on('click', function(event) {
-            console.log("复选框 click 触发");
-            self._toggleCheckbox();
-        }, self);
+        // 移除 Button 组件，使用纯触摸事件
+        var button = checkMarkNode.getComponent(cc.Button);
+        if (button) {
+            button.enabled = false;
+        }
         
-        // 也监听 TOUCH_END 作为备选
+        // 只使用 TOUCH_END 事件
         checkMarkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
             console.log("复选框 TOUCH_END 触发");
+            event.stopPropagation();
             self._toggleCheckbox();
         }, self);
         
@@ -98,15 +99,13 @@ cc.Class({
         
         if (!this._checkMarkNode) return;
         
-        var sprite = this._checkMarkNode.getComponent(cc.Sprite);
-        if (sprite) {
-            if (this._isChecked) {
-                // 显示勾 - 启用 Sprite 组件
-                sprite.enabled = true;
-            } else {
-                // 隐藏勾 - 禁用 Sprite 组件而不是设置 null
-                sprite.enabled = false;
-            }
+        // 通过透明度控制显示/隐藏
+        if (this._isChecked) {
+            // 显示勾
+            this._checkMarkNode.opacity = 255;
+        } else {
+            // 隐藏勾
+            this._checkMarkNode.opacity = 0;
         }
     },
     
@@ -124,15 +123,16 @@ cc.Class({
         
         console.log("找到用户协议节点:", linkNode.name);
         
-        // 使用 click 事件（Button 组件触发）
-        linkNode.on('click', function(event) {
-            console.log("用户协议 click 触发");
-            self._showUserAgreement();
-        }, self);
+        // 禁用 Button 组件，使用纯触摸事件
+        var button = linkNode.getComponent(cc.Button);
+        if (button) {
+            button.enabled = false;
+        }
         
-        // 也监听 TOUCH_END 作为备选
+        // 只使用 TOUCH_END 事件
         linkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
             console.log("用户协议 TOUCH_END 触发");
+            event.stopPropagation();
             self._showUserAgreement();
         }, self);
         
