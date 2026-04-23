@@ -71,8 +71,9 @@ cc.Class({
         if (sprite && sprite.spriteFrame) {
             // 保存原始图片用于显示勾选状态
             this._checkSpriteFrame = sprite.spriteFrame;
-            // 初始状态不显示勾
-            sprite.spriteFrame = null;
+            // 初始状态不显示勾 - 使用 enabled 控制而不是设置 null
+            // sprite.spriteFrame = null 会导致 _assembler 错误
+            sprite.enabled = false;
         }
         
         // 确保有 Button 组件
@@ -105,11 +106,11 @@ cc.Class({
         var sprite = this._checkMarkNode.getComponent(cc.Sprite);
         if (sprite) {
             if (this._isChecked) {
-                // 显示勾
-                sprite.spriteFrame = this._checkSpriteFrame;
+                // 显示勾 - 启用 Sprite 组件
+                sprite.enabled = true;
             } else {
-                // 隐藏勾
-                sprite.spriteFrame = null;
+                // 隐藏勾 - 禁用 Sprite 组件而不是设置 null
+                sprite.enabled = false;
             }
         }
     },
