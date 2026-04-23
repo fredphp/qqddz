@@ -40,7 +40,9 @@ cc.Class({
         console.log("loginScene start");
         
         // 在 start 中初始化事件，确保节点都已加载
-        this._initAllEvents();
+        this.scheduleOnce(function() {
+            this._initAllEvents();
+        }.bind(this), 0.1);
     },
     
     // 初始化所有事件
@@ -59,6 +61,37 @@ cc.Class({
         console.log("所有事件初始化完成");
     },
     
+    // 创建透明按钮节点
+    _createTransparentButton: function(name, x, y, width, height, callback) {
+        var buttonNode = new cc.Node(name);
+        buttonNode.parent = this.node;
+        buttonNode.x = x;
+        buttonNode.y = y;
+        buttonNode.setContentSize(width, height);
+        buttonNode.anchorX = 0.5;
+        buttonNode.anchorY = 0.5;
+        
+        // 添加 Sprite 组件（必须，用于接收触摸）
+        var sprite = buttonNode.addComponent(cc.Sprite);
+        sprite.spriteFrame = null;  // 透明
+        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        
+        // 添加 Button 组件
+        var button = buttonNode.addComponent(cc.Button);
+        button.transition = cc.Button.Transition.NONE;
+        button.interactable = true;
+        
+        // 添加点击事件
+        var clickEventHandler = new cc.Component.EventHandler();
+        clickEventHandler.target = this.node;
+        clickEventHandler.component = "loginScene";
+        clickEventHandler.handler = callback;
+        clickEventHandler.customEventData = "";
+        button.clickEvents.push(clickEventHandler);
+        
+        return buttonNode;
+    },
+    
     // 初始化复选框
     _initCheckbox: function() {
         var self = this;
@@ -75,32 +108,25 @@ cc.Class({
         
         // 初始状态不显示勾
         checkMarkNode.opacity = 0;
+        checkMarkNode.setContentSize(30, 30);
         
-        // 扩大点击区域
-        checkMarkNode.setContentSize(60, 60);
-        
-        // 添加 Button 组件使其可点击
-        var button = checkMarkNode.getComponent(cc.Button);
-        if (!button) {
-            button = checkMarkNode.addComponent(cc.Button);
-        }
-        button.interactable = true;
-        button.transition = cc.Button.Transition.NONE;
-        
-        // 添加点击事件
-        var clickEventHandler = new cc.Component.EventHandler();
-        clickEventHandler.target = this.node;
-        clickEventHandler.component = "loginScene";
-        clickEventHandler.handler = "_toggleCheckbox";
-        clickEventHandler.customEventData = "";
-        
-        button.clickEvents.push(clickEventHandler);
+        // 创建透明的点击按钮覆盖在 check_mark 上
+        this._checkboxButton = this._createTransparentButton(
+            "checkbox_btn",
+            checkMarkNode.x,
+            checkMarkNode.y,
+            60,
+            60,
+            "_onCheckboxClick"
+        );
+        this._checkboxButton.zIndex = 100;
         
         console.log("复选框初始化完成");
     },
     
-    // 切换复选框状态
-    _toggleCheckbox: function() {
+    // 复选框点击回调
+    _onCheckboxClick: function() {
+        console.log("_onCheckboxClick 被调用");
         this._isChecked = !this._isChecked;
         console.log("复选框状态切换为:", this._isChecked);
         
@@ -111,12 +137,11 @@ cc.Class({
         
         // 通过透明度控制显示/隐藏
         if (this._isChecked) {
-            // 显示勾 - 淡入效果
-            this._checkMarkNode.opacity = 0;
-            this._checkMarkNode.runAction(cc.fadeIn(0.15));
+            // 显示勾
+            this._checkMarkNode.opacity = 255;
         } else {
-            // 隐藏勾 - 淡出效果
-            this._checkMarkNode.runAction(cc.fadeOut(0.15));
+            // 隐藏勾
+            this._checkMarkNode.opacity = 0;
         }
     },
     
@@ -132,29 +157,26 @@ cc.Class({
             return;
         }
         
-        console.log("找到用户协议节点:", labelNode.name, "位置:", labelNode.x, labelNode.y, "大小:", labelNode.width, "x", labelNode.height);
+        console.log("找到用户协议节点:", labelNode.name, "位置:", labelNode.x, labelNode.y);
         
-        // 扩大点击区域
-        labelNode.setContentSize(360, 50);
-        
-        // 添加 Button 组件使其可点击
-        var button = labelNode.getComponent(cc.Button);
-        if (!button) {
-            button = labelNode.addComponent(cc.Button);
-        }
-        button.interactable = true;
-        button.transition = cc.Button.Transition.NONE;
-        
-        // 添加点击事件
-        var clickEventHandler = new cc.Component.EventHandler();
-        clickEventHandler.target = this.node;
-        clickEventHandler.component = "loginScene";
-        clickEventHandler.handler = "_showUserAgreement";
-        clickEventHandler.customEventData = "";
-        
-        button.clickEvents.push(clickEventHandler);
+        // 创建透明的点击按钮覆盖在 agreement_label 上
+        this._agreementButton = this._createTransparentButton(
+            "agreement_btn",
+            labelNode.x,
+            labelNode.y,
+            360,
+            50,
+            "_onAgreementClick"
+        );
+        this._agreementButton.zIndex = 101;
         
         console.log("用户协议初始化完成");
+    },
+    
+    // 用户协议点击回调
+    _onAgreementClick: function() {
+        console.log("_onAgreementClick 被调用");
+        this._showUserAgreement();
     },
     
     // 初始化登录按钮
@@ -168,14 +190,16 @@ cc.Class({
             if (button) {
                 button.interactable = true;
                 
+                // 清除现有事件
+                button.clickEvents = [];
+                
                 // 添加点击事件
                 var clickEventHandler = new cc.Component.EventHandler();
                 clickEventHandler.target = this.node;
                 clickEventHandler.component = "loginScene";
-                clickEventHandler.handler = "_doWxLogin";
+                clickEventHandler.handler = "_onWxLoginClick";
                 clickEventHandler.customEventData = "";
-                
-                button.clickEvents = [clickEventHandler];
+                button.clickEvents.push(clickEventHandler);
             }
             console.log("微信登录按钮初始化完成");
         }
@@ -187,17 +211,31 @@ cc.Class({
             if (button) {
                 button.interactable = true;
                 
+                // 清除现有事件
+                button.clickEvents = [];
+                
                 // 添加点击事件
                 var clickEventHandler = new cc.Component.EventHandler();
                 clickEventHandler.target = this.node;
                 clickEventHandler.component = "loginScene";
-                clickEventHandler.handler = "_doPhoneLogin";
+                clickEventHandler.handler = "_onPhoneLoginClick";
                 clickEventHandler.customEventData = "";
-                
-                button.clickEvents = [clickEventHandler];
+                button.clickEvents.push(clickEventHandler);
             }
             console.log("手机号登录按钮初始化完成");
         }
+    },
+    
+    // 微信登录点击回调
+    _onWxLoginClick: function() {
+        console.log("_onWxLoginClick 被调用");
+        this._doWxLogin();
+    },
+    
+    // 手机号登录点击回调
+    _onPhoneLoginClick: function() {
+        console.log("_onPhoneLoginClick 被调用");
+        this._doPhoneLogin();
     },
     
     // 检查是否同意用户协议
