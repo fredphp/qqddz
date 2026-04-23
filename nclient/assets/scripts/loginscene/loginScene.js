@@ -12,6 +12,10 @@ cc.Class({
         user_agreement_prefabs: {
             type: cc.Prefab,
             default: null
+        },
+        phone_login_prefab: {
+            type: cc.Prefab,
+            default: null
         }
     },
 
@@ -312,7 +316,42 @@ cc.Class({
             this._showError("请先同意用户协议");
             return;
         }
-        this._showError("手机号登录功能暂未开放");
+        this._showPhoneLoginPopup();
+    },
+
+    _showPhoneLoginPopup: function() {
+        var self = this;
+        
+        if (this.phone_login_prefab) {
+            this._createPhoneLoginPopup(this.phone_login_prefab);
+        } else {
+            cc.resources.load("prefabs/phone_login", cc.Prefab, function(err, prefab) {
+                if (err) {
+                    self._showError("无法显示登录弹窗");
+                    console.error("加载手机号登录弹窗失败:", err);
+                    return;
+                }
+                self._createPhoneLoginPopup(prefab);
+            });
+        }
+    },
+
+    _createPhoneLoginPopup: function(prefab) {
+        try {
+            var popup = cc.instantiate(prefab);
+            popup.parent = this.node;
+            
+            // 监听微信登录请求事件
+            popup.on("wx-login-request", function() {
+                this._doWxLogin();
+            }, this);
+            
+            this._phoneLoginPopup = popup;
+            console.log("手机号登录弹窗已创建");
+        } catch (e) {
+            console.error("创建手机号登录弹窗失败:", e);
+            this._showError("无法显示登录弹窗");
+        }
     },
 
     _showUserAgreement: function() {
