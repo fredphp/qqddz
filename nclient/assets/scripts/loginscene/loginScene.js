@@ -125,15 +125,12 @@ cc.Class({
 
     start () {
         console.log("loginScene start");
-
-        this.scheduleOnce(function() {
-            this._initLoginButtons();
-            this._initUserAgreementLink();
-        }.bind(this), 0.1);
+        // 按钮初始化已移至 onLoad 中直接调用
     },
 
     _initLoginButtons: function() {
         console.log("=== _initLoginButtons 开始 ===");
+        console.log("this.node =", this.node ? this.node.name : "null");
 
         var wxLoginNode = this.node.getChildByName("login_wx");
         console.log("login_wx 节点:", wxLoginNode ? "找到" : "未找到");
@@ -150,7 +147,7 @@ cc.Class({
                 handler.handler = "_onWxLoginClick";
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
-                console.log("微信登录按钮事件已绑定");
+                console.log("微信登录按钮事件已绑定，clickEvents.length =", button.clickEvents.length);
             }
         }
 
@@ -169,8 +166,26 @@ cc.Class({
                 handler.handler = "_onPhoneLoginClick";
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
-                console.log("手机登录按钮事件已绑定");
+                console.log("手机登录按钮事件已绑定，clickEvents.length =", button.clickEvents.length);
+                
+                // 备选方案：直接在节点上添加触摸事件
+                var self = this;
+                phoneLoginNode.off(cc.Node.EventType.TOUCH_END);
+                phoneLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                    console.log(">>> 手机登录按钮被触摸 (TOUCH_END)");
+                    self._onPhoneLoginClick();
+                }, this);
+                console.log("手机登录按钮触摸事件已添加");
+            } else {
+                console.error("login_phone 节点没有 Button 组件！");
             }
+        } else {
+            console.error("找不到 login_phone 节点！检查场景文件中的节点名称");
+            // 列出所有子节点名称
+            console.log("当前节点的子节点列表:");
+            this.node.children.forEach(function(child) {
+                console.log("  -", child.name);
+            });
         }
 
         console.log("=== _initLoginButtons 结束 ===");
@@ -197,10 +212,12 @@ cc.Class({
     },
 
     _onWxLoginClick: function() {
+        console.log(">>> _onWxLoginClick 被调用");
         this._doWxLogin();
     },
 
     _onPhoneLoginClick: function() {
+        console.log(">>> _onPhoneLoginClick 被调用");
         this._doPhoneLogin();
     },
 
@@ -326,25 +343,34 @@ cc.Class({
     },
 
     _doPhoneLogin: function() {
+        console.log(">>> _doPhoneLogin 开始执行");
+        console.log("协议状态:", this._isChecked ? "已同意" : "未同意");
+        
         if (!this._checkAgreement()) {
             this._showError("请先同意用户协议");
             return;
         }
+        console.log("协议已同意，准备显示弹窗");
         this._showPhoneLoginPopup();
     },
 
     _showPhoneLoginPopup: function() {
         var self = this;
+        console.log(">>> _showPhoneLoginPopup 开始");
+        console.log("phone_login_prefab:", this.phone_login_prefab ? "已设置" : "未设置");
         
         if (this.phone_login_prefab) {
+            console.log("使用预设置的 prefab");
             this._createPhoneLoginPopup(this.phone_login_prefab);
         } else {
+            console.log("尝试从 resources 加载 prefab");
             cc.resources.load("prefabs/phone_login", cc.Prefab, function(err, prefab) {
                 if (err) {
                     self._showError("无法显示登录弹窗");
                     console.error("加载手机号登录弹窗失败:", err);
                     return;
                 }
+                console.log("prefab 加载成功");
                 self._createPhoneLoginPopup(prefab);
             });
         }
