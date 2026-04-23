@@ -29,6 +29,9 @@ cc.Class({
         // 初始化 wait_node 功能
         this._initWaitNode();
         
+        // 创建复选框UI
+        this._createCheckboxUI();
+        
         // 确保 myglobal 存在
         if (typeof window.myglobal === 'undefined') {
             console.error("myglobal 未定义，尝试等待...");
@@ -58,119 +61,195 @@ cc.Class({
         }
     },
     
-    start () {
-        console.log("loginScene start");
+    // 创建复选框UI
+    _createCheckboxUI: function() {
+        console.log("创建复选框UI...");
         
-        // 在 start 中初始化事件，确保节点都已加载
-        this.scheduleOnce(function() {
-            this._initAllEvents();
-        }.bind(this), 0.1);
-    },
-    
-    // 初始化所有事件
-    _initAllEvents: function() {
-        console.log("初始化所有事件...");
-        
-        // 1. 初始化复选框 - 使用场景中已有的 Button 组件
-        this._initCheckbox();
-        
-        // 2. 初始化用户协议链接 - 添加触摸事件
-        this._initUserAgreementLink();
-        
-        // 3. 初始化登录按钮
-        this._initLoginButtons();
-        
-        console.log("所有事件初始化完成");
-    },
-    
-    // 初始化复选框 - 使用场景中已有的 Button 组件
-    _initCheckbox: function() {
         var self = this;
         
-        // 获取复选框节点
+        // 获取现有的节点
         var checkMarkNode = this.node.getChildByName("check_mark");
+        var agreementLabel = this.node.getChildByName("agreement_label");
+        
         if (!checkMarkNode) {
             console.error("check_mark 节点未找到");
             return;
         }
         
-        console.log("找到 check_mark 节点:", checkMarkNode.name);
-        this._checkMarkNode = checkMarkNode;
-        
-        // 初始状态不显示勾（透明度为0）
-        checkMarkNode.opacity = 0;
-        
-        // 获取场景中已有的 Button 组件
-        var button = checkMarkNode.getComponent(cc.Button);
-        if (button) {
-            // 使用已有的 Button 组件，添加点击事件
-            var clickEventHandler = new cc.Component.EventHandler();
-            clickEventHandler.target = this.node;
-            clickEventHandler.component = "loginScene";
-            clickEventHandler.handler = "_onCheckboxClick";
-            clickEventHandler.customEventData = "";
-            button.clickEvents.push(clickEventHandler);
-            
-            console.log("复选框 Button 事件已添加");
-        } else {
-            // 如果没有 Button 组件，添加触摸事件
-            console.log("check_mark 没有 Button 组件，使用触摸事件");
-            checkMarkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-                self._onCheckboxClick();
-                event.stopPropagation();
-            }, this);
-        }
-        
-        console.log("复选框初始化完成");
-    },
-    
-    // 复选框点击回调
-    _onCheckboxClick: function() {
-        console.log("_onCheckboxClick 被调用");
-        this._isChecked = !this._isChecked;
-        console.log("复选框状态切换为:", this._isChecked);
-        
-        if (!this._checkMarkNode) {
-            console.error("check_mark 节点引用丢失");
-            return;
-        }
-        
-        // 通过透明度控制显示/隐藏
-        if (this._isChecked) {
-            // 显示勾
-            this._checkMarkNode.opacity = 255;
-        } else {
-            // 隐藏勾
-            this._checkMarkNode.opacity = 0;
-        }
-    },
-    
-    // 初始化用户协议链接 - 添加触摸事件
-    _initUserAgreementLink: function() {
-        var self = this;
-        
-        // 获取用户协议文字节点
-        var labelNode = this.node.getChildByName("agreement_label");
-        
-        if (!labelNode) {
+        if (!agreementLabel) {
             console.error("agreement_label 节点未找到");
             return;
         }
         
-        console.log("找到用户协议节点:", labelNode.name);
+        this._checkMarkNode = checkMarkNode;
+        this._agreementLabel = agreementLabel;
         
-        // 添加触摸事件
-        labelNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-            console.log("用户协议被点击");
-            self._showUserAgreement();
-            event.stopPropagation();
-        }, this);
+        // 1. 给 check_mark 添加边框（选中框）
+        this._addCheckboxBorder(checkMarkNode);
         
-        console.log("用户协议初始化完成");
+        // 2. 初始状态不勾选（隐藏对勾，只显示边框）
+        checkMarkNode.opacity = 0;
+        
+        // 3. 创建一个透明的点击区域覆盖整个复选框区域
+        var clickArea = new cc.Node("checkbox_click_area");
+        clickArea.parent = this.node;
+        clickArea.zIndex = 100; // 确保在最上层
+        
+        // 设置点击区域的位置和大小（覆盖复选框和文字）
+        clickArea.x = -75; // 复选框和文字的中间位置
+        clickArea.y = -280;
+        clickArea.width = 320; // 覆盖整个区域
+        clickArea.height = 50;
+        clickArea.anchorX = 0.5;
+        clickArea.anchorY = 0.5;
+        
+        // 添加透明背景使其可点击
+        var bgSprite = clickArea.addComponent(cc.Sprite);
+        bgSprite.spriteFrame = null;
+        bgSprite.sizeMode = 0;
+        bgSprite.type = 0;
+        
+        // 添加 Button 组件
+        var button = clickArea.addComponent(cc.Button);
+        button.transition = 0; // 无过渡效果
+        button.interactable = true;
+        
+        // 添加点击事件
+        var clickEventHandler = new cc.Component.EventHandler();
+        clickEventHandler.target = this.node;
+        clickEventHandler.component = "loginScene";
+        clickEventHandler.handler = "_onCheckboxAreaClick";
+        clickEventHandler.customEventData = "";
+        button.clickEvents.push(clickEventHandler);
+        
+        this._clickArea = clickArea;
+        
+        // 4. 为用户协议文字添加单独的点击事件
+        this._createUserAgreementClickArea();
+        
+        console.log("复选框UI创建完成");
+    },
+    
+    // 添加复选框边框
+    _addCheckboxBorder: function(checkMarkNode) {
+        // 创建边框节点
+        var borderNode = new cc.Node("checkbox_border");
+        borderNode.parent = checkMarkNode.parent;
+        borderNode.x = checkMarkNode.x;
+        borderNode.y = checkMarkNode.y;
+        borderNode.zIndex = checkMarkNode.zIndex - 1; // 在对勾下面
+        
+        // 设置边框大小
+        borderNode.width = 28;
+        borderNode.height = 28;
+        
+        // 添加 Sprite 组件作为边框背景
+        var borderSprite = borderNode.addComponent(cc.Sprite);
+        borderSprite.sizeMode = 0; // 自定义大小
+        borderSprite.type = cc.Sprite.Type.SLICED;
+        
+        // 创建一个简单的白色方块作为边框背景
+        // 使用内置的白色纹理
+        var whiteTexture = cc.textureCache.addImage(cc.color(255, 255, 255, 255));
+        
+        // 设置边框颜色（深色边框）
+        borderNode.color = new cc.Color(100, 100, 100);
+        borderNode.opacity = 255;
+        
+        // 保存边框节点引用
+        this._checkboxBorder = borderNode;
+        
+        console.log("复选框边框已添加");
+    },
+    
+    // 创建用户协议点击区域
+    _createUserAgreementClickArea: function() {
+        var self = this;
+        
+        // 用户协议链接点击区域（只覆盖"用户协议"四个字）
+        var linkArea = new cc.Node("agreement_link_area");
+        linkArea.parent = this.node;
+        linkArea.zIndex = 101; // 在复选框点击区域上面
+        
+        // 位置在"用户协议》"文字的位置
+        linkArea.x = 40; // 大约在"用户协议"文字的位置
+        linkArea.y = -280;
+        linkArea.width = 100;
+        linkArea.height = 30;
+        linkArea.anchorX = 0.5;
+        linkArea.anchorY = 0.5;
+        
+        // 添加透明背景
+        var bgSprite = linkArea.addComponent(cc.Sprite);
+        bgSprite.spriteFrame = null;
+        bgSprite.sizeMode = 0;
+        
+        // 添加 Button 组件
+        var button = linkArea.addComponent(cc.Button);
+        button.transition = 0;
+        button.interactable = true;
+        
+        // 添加点击事件
+        var clickEventHandler = new cc.Component.EventHandler();
+        clickEventHandler.target = this.node;
+        clickEventHandler.component = "loginScene";
+        clickEventHandler.handler = "_onUserAgreementClick";
+        clickEventHandler.customEventData = "";
+        button.clickEvents.push(clickEventHandler);
+        
+        this._linkArea = linkArea;
+        
+        console.log("用户协议点击区域已创建");
+    },
+    
+    // 复选框区域点击回调
+    _onCheckboxAreaClick: function() {
+        console.log("_onCheckboxAreaClick 被调用");
+        this._toggleCheckbox();
+    },
+    
+    // 用户协议点击回调
+    _onUserAgreementClick: function() {
+        console.log("_onUserAgreementClick 被调用");
+        this._showUserAgreement();
+    },
+    
+    // 切换复选框状态
+    _toggleCheckbox: function() {
+        this._isChecked = !this._isChecked;
+        console.log("复选框状态切换为:", this._isChecked);
+        
+        // 更新UI
+        if (this._isChecked) {
+            // 显示对勾
+            this._checkMarkNode.opacity = 255;
+            // 边框变绿色表示选中
+            if (this._checkboxBorder) {
+                this._checkboxBorder.color = new cc.Color(0, 200, 0);
+            }
+        } else {
+            // 隐藏对勾
+            this._checkMarkNode.opacity = 0;
+            // 边框恢复灰色
+            if (this._checkboxBorder) {
+                this._checkboxBorder.color = new cc.Color(100, 100, 100);
+            }
+        }
+    },
+    
+    start () {
+        console.log("loginScene start");
+        
+        // 在 start 中初始化登录按钮
+        this.scheduleOnce(function() {
+            this._initLoginButtons();
+        }.bind(this), 0.1);
     },
     
     // 初始化登录按钮
     _initLoginButtons: function() {
+        console.log("初始化登录按钮...");
+        
         var self = this;
         
         // 微信登录按钮
