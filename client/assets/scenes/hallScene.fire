@@ -1833,7 +1833,7 @@
       "__id__": 2
     },
     "component": "",
-    "_componentId": "d2b3c4d5-e6f7-8901-abcd-ef1234567921",
+    "_componentId": "9eee76dd-0aa5-41fc-b5ef-dd7a8a0336bd",
     "handler": "onButtonClick",
     "customEventData": "create_room"
   },
@@ -2006,7 +2006,7 @@
       "__id__": 2
     },
     "component": "",
-    "_componentId": "d2b3c4d5-e6f7-8901-abcd-ef1234567921",
+    "_componentId": "9eee76dd-0aa5-41fc-b5ef-dd7a8a0336bd",
     "handler": "onButtonClick",
     "customEventData": "join_room"
   },
@@ -2738,7 +2738,7 @@
     "_originalHeight": 0
   },
   {
-    "__type__": "d2b3c4d5-e6f7-8901-abcd-ef1234567921",
+    "__type__": "9eee76dd-0aa5-41fc-b5ef-dd7a8a0336bd",
     "_name": "",
     "_objFlags": 0,
     "node": {

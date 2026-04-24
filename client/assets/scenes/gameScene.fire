@@ -1278,7 +1278,7 @@
     "_id": "8dszjhe9lPCqt0WfJNLgoT"
   },
   {
-    "__type__": "77743483-c5fc-49db-aada-70e9a15bdb6d",
+    "__type__": "34b696ca-dd22-4115-b134-cf3394d57f4c",
     "_name": "",
     "_objFlags": 0,
     "node": {
@@ -1542,7 +1542,7 @@
       "__id__": 22
     },
     "component": "",
-    "_componentId": "77743483-c5fc-49db-aada-70e9a15bdb6d",
+    "_componentId": "34b696ca-dd22-4115-b134-cf3394d57f4c",
     "handler": "onButtonClick",
     "customEventData": "btn_qiandz"
   },
@@ -1715,7 +1715,7 @@
       "__id__": 22
     },
     "component": "",
-    "_componentId": "77743483-c5fc-49db-aada-70e9a15bdb6d",
+    "_componentId": "34b696ca-dd22-4115-b134-cf3394d57f4c",
     "handler": "onButtonClick",
     "customEventData": "btn_buqiandz"
   },
@@ -2198,7 +2198,7 @@
       "__id__": 22
     },
     "component": "",
-    "_componentId": "77743483-c5fc-49db-aada-70e9a15bdb6d",
+    "_componentId": "34b696ca-dd22-4115-b134-cf3394d57f4c",
     "handler": "onButtonClick",
     "customEventData": "nopushcard"
   },
@@ -2552,7 +2552,7 @@
       "__id__": 22
     },
     "component": "",
-    "_componentId": "77743483-c5fc-49db-aada-70e9a15bdb6d",
+    "_componentId": "34b696ca-dd22-4115-b134-cf3394d57f4c",
     "handler": "onButtonClick",
     "customEventData": "tipcard"
   },
@@ -2725,7 +2725,7 @@
       "__id__": 22
     },
     "component": "",
-    "_componentId": "77743483-c5fc-49db-aada-70e9a15bdb6d",
+    "_componentId": "34b696ca-dd22-4115-b134-cf3394d57f4c",
     "handler": "onButtonClick",
     "customEventData": "pushcard"
   },
@@ -2967,7 +2967,7 @@
       "__id__": 57
     },
     "component": "",
-    "_componentId": "dda573e2-4091-42b2-972b-ad10f291758f",
+    "_componentId": "fc5fb2db-f8b1-46fa-b088-b75818912557",
     "handler": "onButtonClick",
     "customEventData": "btn_ready"
   },
@@ -3209,12 +3209,12 @@
       "__id__": 57
     },
     "component": "",
-    "_componentId": "dda573e2-4091-42b2-972b-ad10f291758f",
+    "_componentId": "fc5fb2db-f8b1-46fa-b088-b75818912557",
     "handler": "onButtonClick",
     "customEventData": "btn_start"
   },
   {
-    "__type__": "dda573e2-4091-42b2-972b-ad10f291758f",
+    "__type__": "fc5fb2db-f8b1-46fa-b088-b75818912557",
     "_name": "",
     "_objFlags": 0,
     "node": {
@@ -3247,7 +3247,7 @@
     "_id": "67Fm5ThL5InICqA0g/s+dr"
   },
   {
-    "__type__": "e2b3c4d5-e6f7-8901-abcd-ef1234567931",
+    "__type__": "cf22a7b3-d3fc-4369-a0b5-911ab19ffa70",
     "_name": "",
     "_objFlags": 0,
     "node": {
