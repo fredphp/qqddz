@@ -513,24 +513,20 @@ cc.Class({
             closeBtnBg.on(cc.Node.EventType.TOUCH_END, function() {
                 self._onCloseUserAgreement();
             }, this);
-            
-            // 创建"我知道了"按钮背景
+
+            // 创建"我知道了"按钮
             var confirmBtnBg = new cc.Node("confirm_btn_bg");
             confirmBtnBg.parent = panel;
             confirmBtnBg.setContentSize(cc.size(180, 50));
             confirmBtnBg.setPosition(0, -225);
             var confirmBtnBgSprite = confirmBtnBg.addComponent(cc.Sprite);
             confirmBtnBgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            confirmBtnBg.color = new cc.Color(76, 175, 80);  // 绿色背景
-            
+
             // 创建按钮组件
             var confirmBtnComp = confirmBtnBg.addComponent(cc.Button);
             confirmBtnComp.transition = cc.Button.Transition.SCALE;
             confirmBtnComp.zoomScale = 1.1;
-            confirmBtnComp.normalColor = new cc.Color(76, 175, 80);
-            confirmBtnComp.pressedColor = new cc.Color(56, 142, 60);
-            confirmBtnComp.hoverColor = new cc.Color(102, 187, 106);
-            
+
             // 创建按钮文字
             var confirmLabelNode = new cc.Node("label");
             confirmLabelNode.parent = confirmBtnBg;
@@ -541,10 +537,23 @@ cc.Class({
             confirmLabel.lineHeight = 50;
             confirmLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
             confirmLabelNode.color = new cc.Color(255, 255, 255);  // 白色文字
-            
+
+            // 加载按钮图片
+            cc.resources.load("UI/button/btn_confirm", cc.SpriteFrame, function(err, spriteFrame) {
+                if (!err && spriteFrame) {
+                    confirmBtnBgSprite.spriteFrame = spriteFrame;
+                    console.log("按钮图片加载成功");
+                } else {
+                    // 加载失败使用纯色背景
+                    confirmBtnBg.color = new cc.Color(76, 175, 80);
+                    console.log("按钮图片加载失败，使用默认背景");
+                }
+            });
+
             // 绑定关闭事件
             confirmBtnBg.off(cc.Node.EventType.TOUCH_END);
             confirmBtnBg.on(cc.Node.EventType.TOUCH_END, function() {
+                console.log(">>> 我知道了按钮点击");
                 self._onCloseUserAgreement();
             }, this);
             

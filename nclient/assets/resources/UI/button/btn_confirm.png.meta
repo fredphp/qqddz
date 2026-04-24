@@ -1,0 +1,42 @@
+{
+    "ver": "1.0.25",
+    "importer": "image",
+    "imported": true,
+    "uuid": "btn-confirm-uuid-001",
+    "files": [
+        ".json",
+        ".png"
+    ],
+    "subMetas": {
+        "6c48a": {
+            "importer": "texture",
+            "uuid": "btn-confirm-texture-uuid-001",
+            "displayName": "btn_confirm",
+            "id": "6c48a",
+            "name": "texture",
+            "userData": {
+                "wrapModeS": "clamp-to-edge",
+                "wrapModeT": "clamp-to-edge",
+                "minfilter": "linear",
+                "magfilter": "linear",
+                "mipfilter": "none",
+                "anisotropy": 0,
+                "isUuid": true,
+                "imageUuidOrDatabaseUri": "btn-confirm-uuid-001@6c48a",
+                "visible": false
+            },
+            "ver": "1.0.22",
+            "imported": true,
+            "files": [
+                ".json"
+            ],
+            "subMetas": {}
+        }
+    },
+    "userData": {
+        "hasAlpha": true,
+        "type": "sprite-frame",
+        "fixAlphaTransparencyArtifacts": false,
+        "redirect": "btn-confirm-uuid-001@6c48a"
+    }
+}
