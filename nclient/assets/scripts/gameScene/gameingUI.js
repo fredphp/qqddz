@@ -4,7 +4,6 @@ var qian_state = window.qian_state || { buqiang: 0, qian: 1 }
 var CardsValue = window.CardsValue || {}
 
 cc.Class({
-    name: 'gameingUI',
     extends: cc.Component,
 
     properties: {

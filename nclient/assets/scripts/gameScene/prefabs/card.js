@@ -2,7 +2,6 @@
 var RoomState = window.RoomState || {}
 
 cc.Class({
-    name: 'card',
     extends: cc.Component,
 
     properties: {

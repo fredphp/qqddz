@@ -1,7 +1,6 @@
 // 使用全局变量，不使用 require
 
 cc.Class({
-    name: 'hallScene',
     extends: cc.Component, 
 
     properties: {
