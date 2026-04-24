@@ -428,7 +428,7 @@ cc.Class({
         dividerLine.color = new cc.Color(220, 220, 220);
 
         // ==================== 内容滚动区域 ====================
-        // ★ 简化结构：直接创建 ScrollView，不需要额外的容器
+        // ★ 使用 RichText 代替 Label，避免纹理过大问题
 
         // 1. 创建 ScrollView 节点
         var scrollNode = new cc.Node("scroll_view");
@@ -441,8 +441,6 @@ cc.Class({
         viewNode.parent = scrollNode;
         viewNode.setContentSize(cc.size(850, 400));
         viewNode.setPosition(0, 0);
-        viewNode.anchorX = 0.5;
-        viewNode.anchorY = 0.5;
         
         // 3. 添加 Mask 组件到 view（裁剪超出视口的内容）
         var mask = viewNode.addComponent(cc.Mask);
@@ -451,41 +449,33 @@ cc.Class({
         // 4. 创建 content 节点（ScrollView 的内容容器）
         var contentNode = new cc.Node("content");
         contentNode.parent = viewNode;
-        // ★ content 的锚点必须在顶部中心 (0.5, 1)
-        contentNode.anchorX = 0.5;
+        // ★ content 锚点在左上角
+        contentNode.anchorX = 0;
         contentNode.anchorY = 1;
-        // ★ content 的位置：在 view 坐标系中，y = view高度/2 = 200（view 的顶部）
-        contentNode.setPosition(0, 200);
-        // ★ 初始高度，后续会根据内容调整
-        contentNode.setContentSize(cc.size(810, 500));
+        // ★ content 位置：view 的左上角
+        contentNode.setPosition(-425, 200);
+        // ★ 初始高度
+        contentNode.setContentSize(cc.size(850, 600));
         
-        // 5. 创建 Label 节点
-        var labelNode = new cc.Node("content_label");
-        labelNode.parent = contentNode;
-        // ★ Label 锚点在左上角
-        labelNode.anchorX = 0;
-        labelNode.anchorY = 1;
-        // ★ Label 位置：相对于 content 锚点（顶部中心）偏移
-        // x = -395 (content宽度810/2 - padding10 = 395，向左偏移)
-        // y = -20 (向下偏移一点，留出顶部间距)
-        labelNode.setPosition(-395, -20);
-        // ★ 设置节点宽度，高度会自动调整
-        labelNode.setContentSize(cc.size(790, 100));
+        // 5. 创建 RichText 节点（不会有纹理大小限制）
+        var richTextNode = new cc.Node("rich_text");
+        richTextNode.parent = contentNode;
+        richTextNode.anchorX = 0;
+        richTextNode.anchorY = 1;
+        richTextNode.setPosition(20, -20);
+        richTextNode.setContentSize(cc.size(810, 500));
         
-        // 6. 添加 Label 组件
-        var contentLabel = labelNode.addComponent(cc.Label);
-        contentLabel.string = "正在加载用户协议...";
-        contentLabel.fontSize = 22;
-        contentLabel.lineHeight = 34;
-        contentLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
-        // ★ 设置自动换行和溢出模式
-        contentLabel.enableWrapText = true;
-        contentLabel.wrapWidth = 790;
-        contentLabel.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
-        // ★ 设置深色文字，确保可见
-        labelNode.color = new cc.Color(60, 60, 60);
+        var richText = richTextNode.addComponent(cc.RichText);
+        richText.fontSize = 20;
+        richText.lineHeight = 32;
+        richText.maxWidth = 810;
+        richText.handleTouchEvent = false;
+        richTextNode.color = new cc.Color(50, 50, 50);
         
-        // 7. 添加 ScrollView 组件
+        // 初始显示加载提示
+        richText.string = "<color=#333333>正在加载用户协议...</color>";
+        
+        // 6. 添加 ScrollView 组件
         var scrollView = scrollNode.addComponent(cc.ScrollView);
         scrollView.content = contentNode;
         scrollView.horizontal = false;
@@ -494,7 +484,7 @@ cc.Class({
         scrollView.elastic = true;
         scrollView.brake = 0.5;
         
-        // 8. 添加鼠标滚轮支持
+        // 7. 添加鼠标滚轮支持
         scrollNode.on(cc.Node.EventType.MOUSE_WHEEL, function(event) {
             var scrollY = event.getScrollY();
             var currentOffset = scrollView.getScrollOffset();
@@ -504,10 +494,11 @@ cc.Class({
         }, self);
         
         // 保存引用
-        this._agreementContentLabel = contentLabel;
+        this._agreementRichText = richText;
+        this._agreementContentLabel = null;  // 不再使用 Label
         this._scrollView = scrollView;
         this._contentNode = contentNode;
-        this._scrollNode = scrollNode;   // ★ 保存 scrollNode 引用
+        this._scrollNode = scrollNode;
         this._userAgreementPopup = popup;
         
         // 获取协议内容
@@ -528,6 +519,7 @@ cc.Class({
             
             this._userAgreementPopup.destroy();
             this._userAgreementPopup = null;
+            this._agreementRichText = null;
             this._agreementContentLabel = null;
             this._scrollView = null;
             this._contentNode = null;
@@ -600,8 +592,24 @@ cc.Class({
 
     // 更新协议内容
     _updateAgreementContent: function(content) {
+        // 优先使用 RichText
+        if (this._agreementRichText) {
+            console.log("设置协议内容(RichText)，长度:", content ? content.length : 0);
+            // 将普通文本转换为 RichText 格式
+            var formattedContent = this._formatTextForRichText(content);
+            this._agreementRichText.string = formattedContent;
+            
+            // 延迟更新 content 高度
+            var self = this;
+            this.scheduleOnce(function() {
+                self._updateContentSize();
+            }, 0.1);
+            return;
+        }
+        
+        // 兼容旧的 Label 方式
         if (!this._agreementContentLabel) {
-            console.log("_updateAgreementContent: Label 不存在");
+            console.log("_updateAgreementContent: 组件不存在");
             return;
         }
 
@@ -609,72 +617,103 @@ cc.Class({
             console.log("设置协议内容，长度:", content.length);
             this._agreementContentLabel.string = content;
             
-            // 延迟更新尺寸（RESIZE_HEIGHT 需要一帧计算）
+            // 延迟更新尺寸
             var self = this;
             this.scheduleOnce(function() {
                 self._updateContentSize();
             }, 0.05);
         }
     },
+    
+    // 将普通文本转换为 RichText 格式
+    _formatTextForRichText: function(text) {
+        if (!text) return "<color=#333333>暂无内容</color>";
+        
+        // 转义特殊字符
+        text = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        
+        // 将换行符转换为 RichText 的换行
+        text = text.replace(/\n/g, '<br/>');
+        
+        // 高亮【】中的标题
+        text = text.replace(/【([^】]+)】/g, '<b><color=#2d7a4e>【$1】</color></b>');
+        
+        // 包装在颜色标签中
+        return "<color=#333333>" + text + "</color>";
+    },
 
     // 更新 ScrollView 的 content 尺寸
     _updateContentSize: function() {
-        if (!this._agreementContentLabel || !this._contentNode || !this._scrollView) {
+        if (!this._contentNode || !this._scrollView) {
             console.log("_updateContentSize: 组件不存在");
             return;
         }
         
-        var viewHeight = 400;  // ScrollView 视口高度（更新为400）
+        var viewHeight = 400;  // ScrollView 视口高度
+        var contentHeight = 600;  // 默认高度
         
-        var labelNode = this._agreementContentLabel.node;
-        var textHeight = labelNode.height;
-        
-        console.log("Label节点高度:", textHeight, "宽度:", labelNode.width);
-        
-        // 计算最终的 content 高度（包含上下 padding）
-        var actualHeight = textHeight + 60;
-        
-        // 确保高度大于视口高度，才能滚动
-        if (actualHeight < viewHeight) {
-            actualHeight = viewHeight + 50;
+        // 如果有 RichText，获取其高度
+        if (this._agreementRichText) {
+            var richTextNode = this._agreementRichText.node;
+            contentHeight = richTextNode.height + 80;  // 加上 padding
+            console.log("RichText节点高度:", richTextNode.height);
+        }
+        // 如果有 Label，获取其高度
+        else if (this._agreementContentLabel) {
+            var labelNode = this._agreementContentLabel.node;
+            contentHeight = labelNode.height + 80;
+            console.log("Label节点高度:", labelNode.height);
         }
         
-        console.log("设置 Content 高度:", actualHeight);
+        // 确保高度大于视口高度，才能滚动
+        if (contentHeight < viewHeight) {
+            contentHeight = viewHeight + 50;
+        }
+        
+        console.log("设置 Content 高度:", contentHeight);
         
         // 更新 content 尺寸
-        this._contentNode.setContentSize(cc.size(810, actualHeight));
+        this._contentNode.setContentSize(cc.size(850, contentHeight));
         
         // 强制更新 ScrollView
         this._scrollView.content = this._contentNode;
         
-        // 延迟滚动到顶部
-        var self = this;
-        this.scheduleOnce(function() {
-            if (self._scrollView) {
-                self._scrollView.scrollToTop(0);
-            }
-        }, 0.05);
+        // 滚动到顶部
+        this._scrollView.scrollToTop(0);
     },
 
     // 显示默认协议内容
     _showDefaultAgreementContent: function() {
-        if (this._agreementContentLabel) {
-            var defaultContent = 
-                "欢迎使用本游戏！\n\n" +
-                "在使用本游戏前，请您仔细阅读并理解本用户协议的全部内容。\n\n" +
-                "【服务条款】\n" +
-                "本游戏提供的服务仅供个人娱乐使用，不得用于商业目的。\n\n" +
-                "【用户行为规范】\n" +
-                "用户应遵守相关法律法规，不得利用本游戏进行任何违法活动。\n\n" +
-                "【知识产权】\n" +
-                "本游戏的所有内容（包括但不限于文字、图片、音频、视频等）均受知识产权法律保护。\n\n" +
-                "【免责声明】\n" +
-                "本游戏不对因网络原因导致的服务中断承担责任。";
+        var defaultContent = 
+            "欢迎使用本游戏！\n\n" +
+            "在使用本游戏前，请您仔细阅读并理解本用户协议的全部内容。\n\n" +
+            "【服务条款】\n" +
+            "本游戏提供的服务仅供个人娱乐使用，不得用于商业目的。\n\n" +
+            "【用户行为规范】\n" +
+            "用户应遵守相关法律法规，不得利用本游戏进行任何违法活动。\n\n" +
+            "【知识产权】\n" +
+            "本游戏的所有内容（包括但不限于文字、图片、音频、视频等）均受知识产权法律保护。\n\n" +
+            "【免责声明】\n" +
+            "本游戏不对因网络原因导致的服务中断承担责任。";
 
-            console.log("显示默认协议内容");
+        console.log("显示默认协议内容");
+        
+        // 优先使用 RichText
+        if (this._agreementRichText) {
+            var formattedContent = this._formatTextForRichText(defaultContent);
+            this._agreementRichText.string = formattedContent;
+            
+            var self = this;
+            this.scheduleOnce(function() {
+                self._updateContentSize();
+            }, 0.1);
+            return;
+        }
+        
+        // 兼容旧的 Label 方式
+        if (this._agreementContentLabel) {
             this._agreementContentLabel.string = defaultContent;
             
-            // 延迟更新尺寸
             var self = this;
             this.scheduleOnce(function() {
                 self._updateContentSize();
