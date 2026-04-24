@@ -60,10 +60,8 @@ cc.Class({
         
         var self = this;
         
-        // 获取 ROOT_UI 节点
-        var rootUI = this.node.getChildByName("ROOT_UI") || this.node;
-        
-        var checkMarkNode = rootUI.getChildByName("check_mark");
+        // loginScene 脚本挂载在 ROOT_UI 节点上，所以 this.node 就是 ROOT_UI
+        var checkMarkNode = this.node.getChildByName("check_mark");
         if (!checkMarkNode) {
             console.error("check_mark 节点未找到");
             return;
@@ -105,18 +103,10 @@ cc.Class({
         var self = this;
         
         console.log("=== 初始化登录按钮 ===");
-        
-        // 获取 ROOT_UI 节点（按钮都在 ROOT_UI 下）
-        var rootUI = this.node.getChildByName("ROOT_UI");
-        if (!rootUI) {
-            console.error("未找到 ROOT_UI 节点");
-            // 尝试直接在 this.node 下查找
-            rootUI = this.node;
-        } else {
-            console.log("找到 ROOT_UI 节点");
-        }
+        console.log("当前节点名称:", this.node.name);
 
-        var wxLoginNode = rootUI.getChildByName("login_wx");
+        // loginScene 脚本挂载在 ROOT_UI 节点上，所以 this.node 就是 ROOT_UI
+        var wxLoginNode = this.node.getChildByName("login_wx");
         if (wxLoginNode) {
             console.log("找到微信登录按钮节点");
             var button = wxLoginNode.getComponent(cc.Button);
@@ -136,7 +126,7 @@ cc.Class({
             console.log("未找到微信登录按钮节点 login_wx");
         }
 
-        var phoneLoginNode = rootUI.getChildByName("login_phone");
+        var phoneLoginNode = this.node.getChildByName("login_phone");
         if (phoneLoginNode) {
             console.log("找到手机登录按钮节点");
             var button = phoneLoginNode.getComponent(cc.Button);
@@ -162,10 +152,8 @@ cc.Class({
     _initUserAgreementLink: function() {
         var self = this;
         
-        // 获取 ROOT_UI 节点
-        var rootUI = this.node.getChildByName("ROOT_UI") || this.node;
-        
-        var linkNode = rootUI.getChildByName("user_agreement_link");
+        // loginScene 脚本挂载在 ROOT_UI 节点上，所以 this.node 就是 ROOT_UI
+        var linkNode = this.node.getChildByName("user_agreement_link");
         if (linkNode) {
             linkNode.active = true;
 
@@ -353,31 +341,400 @@ cc.Class({
     _createPhoneLoginPopup: function(prefab) {
         console.log("=== _createPhoneLoginPopup 开始 ===");
         
+        // 不使用 prefab，直接动态创建弹窗
         try {
-            var popup = cc.instantiate(prefab);
-            console.log("prefab 实例化成功, popup:", popup ? "valid" : "null");
-            
-            popup.parent = this.node;
-            console.log("popup 已添加到节点树");
-            
-            // 确保节点可见
-            popup.active = true;
-            popup.setPosition(0, 0);
-            popup.zIndex = 1000;
-            
-            console.log("popup 状态: active=" + popup.active + ", position=" + popup.x + "," + popup.y);
-            
-            popup.on("wx-login-request", function() {
-                this._doWxLogin();
-            }, this);
-            
+            var popup = this._createPhoneLoginDynamic();
             this._phoneLoginPopup = popup;
-            
             console.log("=== 手机登录弹窗创建完成 ===");
         } catch (e) {
             console.error("创建手机登录弹窗失败:", e);
             this._showError("无法显示登录弹窗: " + e.message);
         }
+    },
+
+    // 动态创建手机登录弹窗
+    _createPhoneLoginDynamic: function() {
+        var self = this;
+        
+        // 创建弹窗根节点
+        var popup = new cc.Node("phone_login_popup");
+        popup.parent = this.node;
+        popup.setContentSize(cc.size(1280, 720));
+        popup.setPosition(0, 0);
+        popup.zIndex = 1000;
+        
+        // 添加 BlockInputEvents 组件阻止底层点击
+        var blockInput = popup.addComponent(cc.BlockInputEvents);
+        
+        // 创建半透明背景
+        var bgMask = new cc.Node("bg_mask");
+        bgMask.parent = popup;
+        bgMask.setContentSize(cc.size(1280, 720));
+        bgMask.setPosition(0, 0);
+        var bgSprite = bgMask.addComponent(cc.Sprite);
+        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        bgMask.color = new cc.Color(0, 0, 0);
+        bgMask.opacity = 180;
+        
+        // 创建内容面板
+        var panel = new cc.Node("content_panel");
+        panel.parent = popup;
+        panel.setContentSize(cc.size(420, 380));
+        panel.setPosition(0, 0);
+        var panelSprite = panel.addComponent(cc.Sprite);
+        panelSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        panel.color = new cc.Color(255, 250, 240);
+        
+        // 加载背景图片
+        cc.resources.load("images/user_agreement_bg", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err && spriteFrame) {
+                panelSprite.spriteFrame = spriteFrame;
+            }
+        });
+        
+        // 创建标题
+        var titleNode = new cc.Node("title_label");
+        titleNode.parent = panel;
+        titleNode.setContentSize(cc.size(200, 40));
+        titleNode.setPosition(0, 160);
+        var titleLabel = titleNode.addComponent(cc.Label);
+        titleLabel.string = "手机号登录";
+        titleLabel.fontSize = 28;
+        titleLabel.lineHeight = 40;
+        titleNode.color = new cc.Color(255, 150, 50);
+        
+        // 创建关闭按钮
+        var closeBtn = new cc.Node("close_btn");
+        closeBtn.parent = panel;
+        closeBtn.setContentSize(cc.size(50, 50));
+        closeBtn.setPosition(180, 160);
+        var closeSprite = closeBtn.addComponent(cc.Sprite);
+        closeSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        closeBtn.color = new cc.Color(255, 255, 255);
+        
+        // 加载关闭按钮图片
+        cc.resources.load("UI/img_loginlist_login_close", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err && spriteFrame) {
+                closeSprite.spriteFrame = spriteFrame;
+            }
+        });
+        
+        var closeBtnComp = closeBtn.addComponent(cc.Button);
+        closeBtnComp.transition = cc.Button.Transition.SCALE;
+        closeBtnComp.zoomScale = 1.1;
+        closeBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            popup.destroy();
+        }, this);
+        
+        // 创建手机号输入框背景
+        var phoneBg = new cc.Node("phone_bg");
+        phoneBg.parent = panel;
+        phoneBg.setContentSize(cc.size(340, 45));
+        phoneBg.setPosition(0, 90);
+        var phoneBgSprite = phoneBg.addComponent(cc.Sprite);
+        phoneBgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        phoneBg.color = new cc.Color(240, 240, 240);
+        
+        // 创建手机号输入框
+        var phoneInputNode = new cc.Node("phone_input");
+        phoneInputNode.parent = phoneBg;
+        phoneInputNode.setContentSize(cc.size(320, 40));
+        phoneInputNode.setPosition(0, 0);
+        var phoneEditBox = phoneInputNode.addComponent(cc.EditBox);
+        phoneEditBox.placeholder = "请输入手机号";
+        phoneEditBox.fontSize = 20;
+        phoneEditBox.fontColor = new cc.Color(50, 50, 50);
+        phoneEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
+        phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
+        phoneEditBox.maxLength = 11;
+        
+        // 创建验证码行
+        var codeRow = new cc.Node("code_row");
+        codeRow.parent = panel;
+        codeRow.setContentSize(cc.size(340, 45));
+        codeRow.setPosition(0, 35);
+        
+        // 验证码输入框背景
+        var codeBg = new cc.Node("code_bg");
+        codeBg.parent = codeRow;
+        codeBg.setContentSize(cc.size(210, 45));
+        codeBg.setPosition(-65, 0);
+        var codeBgSprite = codeBg.addComponent(cc.Sprite);
+        codeBgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        codeBg.color = new cc.Color(240, 240, 240);
+        
+        // 验证码输入框
+        var codeInputNode = new cc.Node("code_input");
+        codeInputNode.parent = codeBg;
+        codeInputNode.setContentSize(cc.size(190, 40));
+        codeInputNode.setPosition(0, 0);
+        var codeEditBox = codeInputNode.addComponent(cc.EditBox);
+        codeEditBox.placeholder = "验证码";
+        codeEditBox.fontSize = 20;
+        codeEditBox.fontColor = new cc.Color(50, 50, 50);
+        codeEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
+        codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
+        codeEditBox.maxLength = 6;
+        
+        // 发送验证码按钮
+        var sendCodeBtn = new cc.Node("send_code_btn");
+        sendCodeBtn.parent = codeRow;
+        sendCodeBtn.setContentSize(cc.size(120, 40));
+        sendCodeBtn.setPosition(110, 0);
+        var sendCodeSprite = sendCodeBtn.addComponent(cc.Sprite);
+        sendCodeSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        sendCodeBtn.color = new cc.Color(255, 150, 50);
+        
+        var sendCodeLabel = new cc.Node("label");
+        sendCodeLabel.parent = sendCodeBtn;
+        var sendCodeLabelComp = sendCodeLabel.addComponent(cc.Label);
+        sendCodeLabelComp.string = "发送验证码";
+        sendCodeLabelComp.fontSize = 16;
+        sendCodeLabel.color = new cc.Color(255, 255, 255);
+        
+        var sendCodeBtnComp = sendCodeBtn.addComponent(cc.Button);
+        sendCodeBtnComp.transition = cc.Button.Transition.SCALE;
+        sendCodeBtnComp.zoomScale = 1.05;
+        
+        // 消息提示
+        var messageLabel = new cc.Node("message_label");
+        messageLabel.parent = panel;
+        messageLabel.setPosition(0, -10);
+        var messageLabelComp = messageLabel.addComponent(cc.Label);
+        messageLabelComp.string = "";
+        messageLabelComp.fontSize = 16;
+        messageLabel.active = false;
+        
+        // 登录按钮
+        var loginBtn = new cc.Node("login_btn");
+        loginBtn.parent = panel;
+        loginBtn.setContentSize(cc.size(340, 50));
+        loginBtn.setPosition(0, -60);
+        var loginSprite = loginBtn.addComponent(cc.Sprite);
+        loginSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        loginBtn.color = new cc.Color(255, 150, 50);
+        
+        var loginLabel = new cc.Node("label");
+        loginLabel.parent = loginBtn;
+        var loginLabelComp = loginLabel.addComponent(cc.Label);
+        loginLabelComp.string = "立即登录";
+        loginLabelComp.fontSize = 22;
+        loginLabel.color = new cc.Color(255, 255, 255);
+        
+        var loginBtnComp = loginBtn.addComponent(cc.Button);
+        loginBtnComp.transition = cc.Button.Transition.SCALE;
+        loginBtnComp.zoomScale = 1.05;
+        
+        // 分隔线区域
+        var divider = new cc.Node("divider");
+        divider.parent = panel;
+        divider.setPosition(0, -110);
+        var orLabel = new cc.Node("or_label");
+        orLabel.parent = panel;
+        orLabel.setPosition(0, -110);
+        var orLabelComp = orLabel.addComponent(cc.Label);
+        orLabelComp.string = "其他方式";
+        orLabelComp.fontSize = 14;
+        orLabel.color = new cc.Color(150, 150, 150);
+        
+        // 微信登录按钮
+        var wxLoginBtn = new cc.Node("wx_login_btn");
+        wxLoginBtn.parent = panel;
+        wxLoginBtn.setContentSize(cc.size(340, 50));
+        wxLoginBtn.setPosition(0, -155);
+        var wxLoginSprite = wxLoginBtn.addComponent(cc.Sprite);
+        wxLoginSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        wxLoginBtn.color = new cc.Color(100, 180, 100);
+        
+        var wxLoginLabel = new cc.Node("label");
+        wxLoginLabel.parent = wxLoginBtn;
+        var wxLoginLabelComp = wxLoginLabel.addComponent(cc.Label);
+        wxLoginLabelComp.string = "微信登录";
+        wxLoginLabelComp.fontSize = 20;
+        wxLoginLabel.color = new cc.Color(255, 255, 255);
+        
+        var wxLoginBtnComp = wxLoginBtn.addComponent(cc.Button);
+        wxLoginBtnComp.transition = cc.Button.Transition.SCALE;
+        wxLoginBtnComp.zoomScale = 1.05;
+        
+        // ====== 功能逻辑 ======
+        var countdown = 0;
+        var phone = "";
+        var code = "";
+        
+        // 验证手机号
+        var validatePhone = function(phone) {
+            if (!phone || phone.length !== 11) return false;
+            return /^1[3-9]\d{9}$/.test(phone);
+        };
+        
+        // 验证验证码
+        var validateCode = function(code) {
+            return code && code.length >= 4 && code.length <= 6;
+        };
+        
+        // 显示消息
+        var showMessage = function(msg, isError) {
+            messageLabel.active = true;
+            messageLabelComp.string = msg;
+            messageLabel.color = isError ? new cc.Color(255, 100, 100) : new cc.Color(100, 200, 100);
+        };
+        
+        // 隐藏消息
+        var hideMessage = function() {
+            messageLabel.active = false;
+        };
+        
+        // 开始倒计时
+        var startCountdown = function() {
+            countdown = 60;
+            sendCodeBtnComp.interactable = false;
+            
+            var tick = function() {
+                countdown--;
+                if (countdown <= 0) {
+                    sendCodeLabelComp.string = "发送验证码";
+                    sendCodeBtnComp.interactable = true;
+                } else {
+                    sendCodeLabelComp.string = countdown + "秒后重试";
+                    self.scheduleOnce(tick, 1);
+                }
+            };
+            self.scheduleOnce(tick, 1);
+            sendCodeLabelComp.string = countdown + "秒后重试";
+        };
+        
+        // 发送验证码
+        sendCodeBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            phone = phoneEditBox.string || "";
+            if (!validatePhone(phone)) {
+                showMessage("请输入正确的手机号", true);
+                return;
+            }
+            
+            showMessage("正在发送...", false);
+            
+            // 调用 API
+            var defines = window.defines;
+            if (!defines || !defines.apiUrl) {
+                showMessage("验证码已发送", false);
+                startCountdown();
+                return;
+            }
+            
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', defines.apiUrl + '/api/v1/auth/send-code', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.timeout = 10000;
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            var resp = JSON.parse(xhr.responseText);
+                            if (resp.code === 0) {
+                                showMessage("验证码已发送", false);
+                                startCountdown();
+                            } else {
+                                showMessage(resp.message || "发送失败", true);
+                            }
+                        } catch(e) {
+                            showMessage("解析响应失败", true);
+                        }
+                    } else {
+                        showMessage("网络请求失败", true);
+                    }
+                }
+            };
+            xhr.send(JSON.stringify({ phone: phone }));
+        });
+        
+        // 登录
+        loginBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            phone = phoneEditBox.string || "";
+            code = codeEditBox.string || "";
+            
+            if (!validatePhone(phone)) {
+                showMessage("请输入正确的手机号", true);
+                return;
+            }
+            if (!validateCode(code)) {
+                showMessage("请输入验证码", true);
+                return;
+            }
+            
+            showMessage("正在登录...", false);
+            
+            var defines = window.defines;
+            if (!defines || !defines.apiUrl) {
+                // 模拟登录成功
+                if (window.myglobal && window.myglobal.playerData) {
+                    window.myglobal.playerData.uniqueID = "phone_" + phone;
+                    window.myglobal.playerData.accountID = "phone_" + phone;
+                    window.myglobal.playerData.nickName = "玩家" + phone.substr(-4);
+                    window.myglobal.playerData.gobal_count = 1000;
+                }
+                showMessage("登录成功", false);
+                self.scheduleOnce(function() {
+                    popup.destroy();
+                    cc.director.loadScene("hallScene");
+                }, 0.5);
+                return;
+            }
+            
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', defines.apiUrl + '/api/v1/auth/phone-login', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.timeout = 10000;
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            var resp = JSON.parse(xhr.responseText);
+                            if (resp.code === 0 && resp.data) {
+                                showMessage("登录成功", false);
+                                if (window.myglobal && window.myglobal.playerData) {
+                                    window.myglobal.playerData.uniqueID = resp.data.uniqueID || "";
+                                    window.myglobal.playerData.accountID = resp.data.accountID || "";
+                                    window.myglobal.playerData.nickName = resp.data.nickName || "玩家";
+                                    window.myglobal.playerData.gobal_count = resp.data.goldcount || 0;
+                                }
+                                self.scheduleOnce(function() {
+                                    popup.destroy();
+                                    cc.director.loadScene("hallScene");
+                                }, 0.5);
+                            } else {
+                                showMessage(resp.message || "登录失败", true);
+                            }
+                        } catch(e) {
+                            showMessage("解析响应失败", true);
+                        }
+                    } else {
+                        showMessage("网络请求失败", true);
+                    }
+                }
+            };
+            xhr.send(JSON.stringify({ phone: phone, code: code }));
+        });
+        
+        // 微信登录
+        wxLoginBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            showMessage("正在登录...", false);
+            
+            // 模拟微信登录
+            if (window.myglobal && window.myglobal.playerData) {
+                window.myglobal.playerData.uniqueID = "wx_" + Date.now();
+                window.myglobal.playerData.accountID = "wx_" + Date.now();
+                window.myglobal.playerData.nickName = "微信用户";
+                window.myglobal.playerData.gobal_count = 1000;
+            }
+            showMessage("登录成功", false);
+            self.scheduleOnce(function() {
+                popup.destroy();
+                cc.director.loadScene("hallScene");
+            }, 0.5);
+        });
+        
+        return popup;
     },
 
     _showUserAgreementPopup: function() {
