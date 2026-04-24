@@ -75,6 +75,12 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 // RegisterRoutes 注册路由
 func RegisterRoutes(mux *http.ServeMux, h *Handler) {
+        // 认证接口（不加密，方便前端调用）
+        mux.HandleFunc("/api/v1/auth/send-code", corsMiddleware(h.auth.SendVerificationCode))
+        mux.HandleFunc("/api/v1/auth/phone-login", corsMiddleware(h.auth.PhoneLogin))
+        mux.HandleFunc("/api/v1/auth/wx-login", corsMiddleware(h.auth.WxLogin))
+        mux.HandleFunc("/api/v1/auth/wx-app-login", corsMiddleware(h.auth.WxAppLogin))
+
         // 公开接口（加密响应）
         mux.HandleFunc("/api/v1/user-agreement/latest", h.EncryptMiddleware(h.agreement.GetLatest))
         mux.HandleFunc("/api/v1/user-agreement/get", h.EncryptMiddleware(h.agreement.GetByID))
@@ -88,6 +94,20 @@ func RegisterRoutes(mux *http.ServeMux, h *Handler) {
                 w.WriteHeader(http.StatusOK)
                 w.Write([]byte("OK"))
         })
+}
+
+// corsMiddleware CORS中间件
+func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+        return func(w http.ResponseWriter, r *http.Request) {
+                w.Header().Set("Access-Control-Allow-Origin", "*")
+                w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+                if r.Method == "OPTIONS" {
+                        w.WriteHeader(http.StatusOK)
+                        return
+                }
+                next(w, r)
+        }
 }
 
 // intToStr 整数转字符串

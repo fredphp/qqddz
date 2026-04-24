@@ -13,6 +13,7 @@ import (
 type Handler struct {
         crypto       *crypto.AESCrypto
         agreement    *UserAgreementHandler
+        auth         *AuthHandler
         enableCrypto bool
 }
 
@@ -34,9 +35,16 @@ func NewHandler(cryptoKey string, enableCrypto bool, dbConfig *DBConfig) (*Handl
                 return nil, err
         }
 
+        // 创建认证处理器
+        authHandler := NewAuthHandler()
+
+        // 启动验证码清理器
+        StartCodeCleaner()
+
         return &Handler{
                 crypto:       aesCrypto,
                 agreement:    agreementHandler,
+                auth:         authHandler,
                 enableCrypto: enableCrypto,
         }, nil
 }
