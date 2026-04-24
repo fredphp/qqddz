@@ -74,9 +74,9 @@
   ]
 
   const recentVisits = [
-    { icon: Reading, title: '授权购买', path: 'https://plugin.gin-vue-admin.com/license' },
-    { icon: Document, title: '插件市场', path: 'https://plugin.gin-vue-admin.com/#/layout/home' },
-    { icon: Link, title: '项目仓库', path: 'https://github.com/flipped-aurora/gin-vue-admin' }
+    { icon: Reading, title: 'Vue3文档', path: 'https://v3.cn.vuejs.org/guide/introduction.html' },
+    { icon: Document, title: 'GIN文档', path: 'https://gin-gonic.com/' },
+    { icon: Link, title: 'Go语言官网', path: 'https://golang.google.cn/' }
   ]
 </script>
 

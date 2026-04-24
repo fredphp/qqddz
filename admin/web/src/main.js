@@ -6,7 +6,7 @@ import ElementPlus from 'element-plus'
 import { setupVueRootValidator } from 'vite-check-multiple-dom/client';
 
 import 'element-plus/dist/index.css'
-// 引入gin-vue-admin前端初始化相关内容
+// 引入后台管理系统前端初始化相关内容
 import './core/gin-vue-admin'
 // 引入封装的router
 import router from '@/router/index'

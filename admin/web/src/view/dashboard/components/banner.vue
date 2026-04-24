@@ -16,21 +16,19 @@
   import banner2 from '@/assets/banner2.jpg'
 
   const openLink = (link) => {
-    window.open(link, '_blank')
+    if (link) {
+      window.open(link, '_blank')
+    }
   }
 
   const banners = [
     {
       img: banner,
-      link: 'https://plugin.gin-vue-admin.com/license'
+      link: ''
     },
     {
       img: banner2,
-      link: 'https://plugin.gin-vue-admin.com'
-    },
-    {
-      img: 'https://qmplusimg.henrongyi.top/gvaDemo/k8s.jpg',
-      link: 'https://plugin.gin-vue-admin.com/#/layout/newPluginInfo?id=42'
+      link: ''
     }
   ]
 </script>

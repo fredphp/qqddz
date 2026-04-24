@@ -6,12 +6,7 @@
     />
     <div class="gva-search-box" v-if="!isAdd">
       <div class="text-lg mb-2 text-gray-600">
-        使用AI创建<a
-          class="text-blue-600 text-sm ml-4"
-          href="https://plugin.gin-vue-admin.com/#/layout/userInfo/center"
-          target="_blank"
-          >获取AiPath</a
-        >
+        使用AI创建
       </div>
       <div class="relative">
         <el-input
@@ -29,12 +24,7 @@
           <el-tooltip effect="light">
             <template #content>
               <div>
-                【完全免费】前往<a
-                  class="text-blue-600"
-                  href="https://plugin.gin-vue-admin.com/#/layout/userInfo/center"
-                  target="_blank"
-              >插件市场个人中心</a
-              >申请AIPath，填入config.yaml的ai-path属性即可使用。
+                此功能需要配置AI服务
               </div>
             </template>
             <el-button
@@ -54,12 +44,7 @@
           <el-tooltip effect="light">
             <template #content>
               <div>
-                【完全免费】前往<a
-                  class="text-blue-600"
-                  href="https://plugin.gin-vue-admin.com/#/layout/userInfo/center"
-                  target="_blank"
-                  >插件市场个人中心</a
-                >申请AIPath，填入config.yaml的ai-path属性即可使用。
+                此功能需要配置AI服务
               </div>
             </template>
             <el-button

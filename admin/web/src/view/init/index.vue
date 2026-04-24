@@ -16,25 +16,14 @@
           <div
             class="font-sans text-4xl font-bold text-center mb-4 dark:text-white"
           >
-            GIN-VUE-ADMIN
+            柴米油盐后台管理系统
           </div>
           <p class="text-gray-600 dark:text-gray-300 mb-2">初始化须知</p>
           <p class="text-gray-600 dark:text-gray-300 mb-2">
             1.您需有用一定的VUE和GOLANG基础
           </p>
           <p class="text-gray-600 dark:text-gray-300 mb-2">
-            2.请您确认是否已经阅读过<a
-              class="text-blue-600 font-bold"
-              href="https://www.gin-vue-admin.com"
-              target="_blank"
-              >官方文档</a
-            >
-            <a
-              class="text-blue-600 font-bold"
-              href="https://www.bilibili.com/video/BV1kv4y1g7nT?p=2"
-              target="_blank"
-              >初始化视频</a
-            >
+            2.请您确认是否已经阅读过相关文档
           </p>
           <p class="text-gray-600 dark:text-gray-300 mb-2">
             3.请您确认是否了解后续的配置流程
@@ -158,7 +147,8 @@
   }
 
   const goDoc = () => {
-    window.open('https://www.gin-vue-admin.com/guide/start-quickly/env.html')
+    // 跳转到文档页面
+    console.log('请查阅系统文档')
   }
 
   const out = ref(false)
@@ -275,22 +265,16 @@
           message: res.msg
         })
         
-        // 显示AI助手配置提示弹窗
-        ElMessageBox.confirm(
-          '已经完成基础数据库初始化！建议先进行编辑器AI助手配置，以获得更好的开发体验。',
-          '配置完成',
+        // 显示初始化完成提示
+        ElMessageBox.alert(
+          '已经完成基础数据库初始化！请使用管理员账号登录系统。',
+          '初始化完成',
           {
-            confirmButtonText: '查看AI配置文档',
-            cancelButtonText: '稍后配置',
+            confirmButtonText: '前往登录',
             type: 'success',
             center: true
           }
         ).then(() => {
-          // 点击确认按钮，打开AI配置文档
-          window.open('https://www.gin-vue-admin.com/guide/server/mcp.html', '_blank')
-          router.push({ name: 'Login' })
-        }).catch(() => {
-          // 点击取消按钮或关闭弹窗，直接跳转到登录页
           router.push({ name: 'Login' })
         })
       }

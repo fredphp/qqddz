@@ -1,4 +1,4 @@
-# gin-vue-admin web
+# 柴米油盐后台管理系统
 
 ## Project setup
 

@@ -77,6 +77,6 @@ function getSize() {
     :style="{
       ...getSize()
     }">
-    GVA
+    柴米油盐
   </div>
 </template>
