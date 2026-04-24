@@ -19,6 +19,9 @@ func bizModel() error {
                 ddz.DDZLeaderboard{},
                 ddz.DDZRoomConfig{},
                 ddz.DDZGameConfig{},
+                ddz.DDZUserAccount{},
+                ddz.DDZLoginLog{},
+                ddz.DDZSmsCode{},
         )
         if err != nil {
                 return err

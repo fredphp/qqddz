@@ -1,8 +1,9 @@
 package ddz
 
 type ApiGroup struct {
-	DDZPlayerApi
-	DDZGameApi
-	DDZStatsApi
-	DDZConfigApi
+        DDZPlayerApi
+        DDZGameApi
+        DDZStatsApi
+        DDZConfigApi
+        DDZUserAccountApi
 }

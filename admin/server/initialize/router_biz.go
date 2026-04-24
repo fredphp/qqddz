@@ -20,9 +20,10 @@ func initBizRouter(routers ...*gin.RouterGroup) {
         // 注册斗地主路由
         ddzRouter := router.RouterGroupApp.DDZ
         {
-                ddzRouter.InitDDZPlayerRouter(privateGroup) // 斗地主玩家路由
-                ddzRouter.InitDDZGameRouter(privateGroup)   // 斗地主游戏记录路由
-                ddzRouter.InitDDZStatsRouter(privateGroup)  // 斗地主统计路由
-                ddzRouter.InitDDZConfigRouter(privateGroup) // 斗地主配置路由
+                ddzRouter.InitDDZPlayerRouter(privateGroup)      // 斗地主玩家路由
+                ddzRouter.InitDDZGameRouter(privateGroup)        // 斗地主游戏记录路由
+                ddzRouter.InitDDZStatsRouter(privateGroup)       // 斗地主统计路由
+                ddzRouter.InitDDZConfigRouter(privateGroup)      // 斗地主配置路由
+                ddzRouter.InitDDZUserAccountRouter(privateGroup) // 斗地主用户账户路由
         }
 }
