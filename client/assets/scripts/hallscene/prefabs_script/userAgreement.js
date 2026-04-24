@@ -37,6 +37,9 @@ cc.Class({
         // 标记节点是否有效
         this._isValid = true;
         
+        // 添加鼠标滚轮支持
+        this._setupMouseWheel();
+        
         // 获取配置
         var defines = window.defines;
         if (!defines || !defines.apiUrl) {
@@ -59,6 +62,22 @@ cc.Class({
 
     start() {
         // 空实现
+    },
+    
+    // 设置鼠标滚轮支持
+    _setupMouseWheel: function() {
+        var self = this;
+        if (this.scroll_view && this.scroll_view.node) {
+            this.scroll_view.node.on(cc.Node.EventType.MOUSE_WHEEL, function(event) {
+                var scrollY = event.getScrollY();
+                var scrollView = self.scroll_view;
+                if (scrollView) {
+                    var currentOffset = scrollView.getScrollOffset();
+                    var newOffsetY = currentOffset.y + scrollY * 0.5;
+                    scrollView.scrollToOffset(cc.v2(currentOffset.x, newOffsetY), 0.1);
+                }
+            }, this);
+        }
     },
 
     // 获取用户协议数据
@@ -110,15 +129,53 @@ cc.Class({
         }
         
         if (this.content_label && data.content) {
+            // 设置内容文本
             this.content_label.string = data.content;
-            // 重置滚动位置
-            if (this.scroll_view) {
-                this.scroll_view.scrollToTop(0);
+            
+            // 设置左对齐
+            this.content_label.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+            
+            // 确保自动换行
+            this.content_label.enableWrapText = true;
+            this.content_label.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
+            this.content_label.wrapWidth = 810;
+            
+            // 获取 content 节点
+            var contentNode = this.content_label.node;
+            if (contentNode) {
+                // 设置锚点为左上角
+                contentNode.anchorX = 0.5;
+                contentNode.anchorY = 1;
+                
+                // 延迟更新 content 高度
+                var self = this;
+                this.scheduleOnce(function() {
+                    self._updateContentSize();
+                }, 0.1);
             }
         }
         
         if (this.version_label && data.version) {
             this.version_label.string = "版本: " + data.version;
+        }
+    },
+    
+    // 更新 content 容器高度
+    _updateContentSize: function() {
+        if (!this._isValid || !this.node) return;
+        
+        if (this.content_label && this.scroll_view) {
+            var contentNode = this.content_label.node;
+            var labelHeight = contentNode.height;
+            
+            // 确保 content 高度至少大于视口高度
+            var minHeight = 400;
+            var newHeight = Math.max(labelHeight + 40, minHeight);
+            
+            contentNode.height = newHeight;
+            
+            // 重置滚动位置到顶部
+            this.scroll_view.scrollToTop(0);
         }
     },
 
