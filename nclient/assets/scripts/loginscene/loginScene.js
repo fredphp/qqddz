@@ -461,19 +461,21 @@ cc.Class({
         contentNode.setPosition(0, 190);
         contentNode.anchorY = 1;
         
-        // 5. 创建 Label
+        // 5. 创建 Label（左对齐，自动换行）
         var labelNode = new cc.Node("content_label");
         labelNode.parent = contentNode;
-        labelNode.setPosition(0, -15);
+        // ★ 左对齐：anchorX=0，x偏移到左边界+padding
+        labelNode.anchorX = 0;
         labelNode.anchorY = 1;
+        labelNode.setPosition(-380, -15);  // 左边距约25px
         
         var contentLabel = labelNode.addComponent(cc.Label);
         contentLabel.string = "正在加载用户协议...";
-        contentLabel.fontSize = 22;
-        contentLabel.lineHeight = 36;
-        contentLabel.overflow = cc.Label.Overflow.NONE;
-        contentLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        contentLabel.wrapWidth = 790;
+        contentLabel.fontSize = 20;
+        contentLabel.lineHeight = 32;
+        contentLabel.overflow = cc.Label.Overflow.RESIZE_HEIGHT;  // ★ 自动调整高度
+        contentLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;  // ★ 左对齐
+        contentLabel.wrapWidth = 760;  // ★ 自动换行宽度（留出左右padding）
         labelNode.color = new cc.Color(50, 50, 50);
         
         // 6. ★ 最后添加 ScrollView 组件
@@ -601,31 +603,24 @@ cc.Class({
     _updateContentSize: function() {
         if (!this._agreementContentLabel || !this._contentNode || !this._scrollView) return;
         
-        var label = this._agreementContentLabel;
         var viewHeight = 380;  // ScrollView 视口高度
         
-        // ★ 方法1：使用 Label 的实际渲染高度（更准确）
-        var labelNode = label.node;
+        // ★ Label 使用 RESIZE_HEIGHT，直接获取 node.height 即可
+        var labelNode = this._agreementContentLabel.node;
         var textHeight = labelNode.height;
         
-        // ★ 方法2：估算行数（作为备用验证）
-        var lineHeight = label.lineHeight || 36;
-        var fontSize = label.fontSize || 22;
-        var wrapWidth = label.wrapWidth || 790;
-        var text = label.string || "";
+        // 计算最终的 content 高度
+        // textHeight 已经包含了文字的实际高度，加上上下 padding
+        var actualHeight = textHeight + 40;  // 上下各留20px边距
         
-        // 更准确的字符宽度计算（中文字符更宽）
-        var avgCharWidth = fontSize * 0.65;  // 中文字符约等于字体大小
-        var charsPerLine = Math.floor(wrapWidth / avgCharWidth);
-        var lines = Math.ceil(text.length / charsPerLine);
-        var estimatedHeight = lines * lineHeight + 50;
+        // 确保高度大于视口高度
+        if (actualHeight < viewHeight) {
+            actualHeight = viewHeight;
+        }
         
-        // 取两者中较大的值，并确保大于视口高度
-        var actualHeight = Math.max(textHeight, estimatedHeight, viewHeight + 100);
+        console.log("Label高度:", textHeight, "Content高度:", actualHeight);
         
-        console.log("文本实际高度:", textHeight, "估算高度:", estimatedHeight, "最终高度:", actualHeight);
-        
-        // ★ 关键：content 高度必须大于视口高度才能滚动
+        // 更新 content 尺寸
         this._contentNode.setContentSize(cc.size(810, actualHeight));
         
         // 强制更新 ScrollView
