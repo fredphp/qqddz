@@ -2,6 +2,7 @@
 // 用于处理手机号验证码登录功能
 
 cc.Class({
+    name: 'phone_login',
     extends: cc.Component,
 
     properties: {

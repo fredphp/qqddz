@@ -1,6 +1,7 @@
 // 用户协议弹窗脚本
 
 cc.Class({
+    name: 'userAgreement',
     extends: cc.Component,
 
     properties: {

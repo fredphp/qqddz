@@ -2,6 +2,7 @@
 var qian_state = window.qian_state || { buqiang: 0, qian: 1 }
 
 cc.Class({
+    name: 'player_node',
     extends: cc.Component,
 
     properties: {
