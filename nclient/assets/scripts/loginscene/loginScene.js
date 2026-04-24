@@ -72,9 +72,6 @@ cc.Class({
         if (checkmark) {
             this._checkmarkIcon = checkmark;
             checkmark.active = false;
-            console.log("checkmark 子节点找到，默认隐藏");
-        } else {
-            console.warn("checkmark 子节点未找到");
         }
         
         this._isAgreementChecked = false;
@@ -82,22 +79,16 @@ cc.Class({
         var button = checkMarkNode.getComponent(cc.Button);
         if (button) {
             button.enabled = false;
-            console.log("禁用 Button 组件");
         }
         
         checkMarkNode.off(cc.Node.EventType.TOUCH_END);
         checkMarkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-            console.log(">>> 复选框被点击");
             self._toggleCheckbox();
         }, self);
-        
-        console.log("=== 复选框初始化完成 ===");
     },
 
     _toggleCheckbox: function() {
         this._isAgreementChecked = !this._isAgreementChecked;
-        console.log("复选框状态:", this._isAgreementChecked ? "已选中" : "未选中");
-        
         if (this._checkmarkIcon) {
             this._checkmarkIcon.active = this._isAgreementChecked;
         }
@@ -108,8 +99,6 @@ cc.Class({
     },
 
     _initLoginButtons: function() {
-        console.log("=== _initLoginButtons 开始 ===");
-
         var self = this;
 
         var wxLoginNode = this.node.getChildByName("login_wx");
@@ -142,14 +131,7 @@ cc.Class({
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
             }
-            
-            phoneLoginNode.off(cc.Node.EventType.TOUCH_END);
-            phoneLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-                self._onPhoneLoginClick();
-            }, self);
         }
-
-        console.log("=== _initLoginButtons 结束 ===");
     },
 
     _initUserAgreementLink: function() {
@@ -170,30 +152,19 @@ cc.Class({
                 handler.handler = "_onUserAgreementLinkClick";
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
-                
-                console.log("用户协议链接事件已绑定");
             }
-            
-            linkNode.off(cc.Node.EventType.TOUCH_END);
-            linkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-                console.log(">>> 用户协议链接被点击");
-                self._onUserAgreementLinkClick();
-            }, self);
         }
     },
 
     _onWxLoginClick: function() {
-        console.log(">>> 微信登录按钮点击");
         this._doWxLogin();
     },
 
     _onPhoneLoginClick: function() {
-        console.log(">>> 手机登录按钮点击");
         this._doPhoneLogin();
     },
 
     _onUserAgreementLinkClick: function() {
-        console.log(">>> 用户协议链接点击");
         this._showUserAgreementPopup();
     },
 
@@ -240,7 +211,6 @@ cc.Class({
     },
 
     _showError: function(message) {
-        console.error("错误:", message);
         this._showWaitNode(message);
         this.scheduleOnce(function() {
             this._hideWaitNode();
@@ -315,8 +285,6 @@ cc.Class({
     },
 
     _doPhoneLogin: function() {
-        console.log(">>> _doPhoneLogin 开始");
-        
         if (!this._checkAgreement()) {
             this._showError("请先同意用户协议");
             return;
@@ -333,7 +301,6 @@ cc.Class({
             cc.resources.load("prefabs/phone_login", cc.Prefab, function(err, prefab) {
                 if (err) {
                     self._showError("无法显示登录弹窗");
-                    console.error("加载手机号登录弹窗失败:", err);
                     return;
                 }
                 self._createPhoneLoginPopup(prefab);
@@ -352,7 +319,6 @@ cc.Class({
             
             this._phoneLoginPopup = popup;
         } catch (e) {
-            console.error("创建手机号登录弹窗失败:", e);
             this._showError("无法显示登录弹窗");
         }
     },
@@ -374,6 +340,7 @@ cc.Class({
         popup.zIndex = 1000;
         
         // ==================== 半透明黑色背景遮罩 ====================
+        // ★ 不添加任何触摸事件，让它穿透
         var bgMask = new cc.Node("bg_mask");
         bgMask.parent = popup;
         bgMask.setContentSize(cc.size(1280, 720));
@@ -382,12 +349,6 @@ cc.Class({
         bgMaskSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         bgMask.color = new cc.Color(0, 0, 0);
         bgMask.opacity = 180;
-        
-        // ★ 背景遮罩点击关闭弹窗
-        bgMask.on(cc.Node.EventType.TOUCH_END, function(event) {
-            console.log(">>> 背景遮罩点击");
-            self._closeUserAgreementPopup();
-        }, self);
         
         // ==================== 主面板（带背景图）====================
         var panel = new cc.Node("content_panel");
@@ -402,9 +363,6 @@ cc.Class({
         cc.resources.load("images/user_agreement_bg", cc.SpriteFrame, function(err, spriteFrame) {
             if (!err && spriteFrame) {
                 panelSprite.spriteFrame = spriteFrame;
-                console.log("背景图片加载成功");
-            } else {
-                console.log("背景图片加载失败，使用默认颜色");
             }
         });
 
@@ -418,56 +376,47 @@ cc.Class({
         titleLabel.fontSize = 36;
         titleLabel.lineHeight = 60;
         titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        titleNode.color = new cc.Color(30, 30, 30);  // ★ 黑色标题
+        titleNode.color = new cc.Color(30, 30, 30);
 
-        // ==================== 右上角关闭按钮（美化样式）====================
+        // ==================== 右上角关闭按钮 ====================
         var closeBtn = new cc.Node("close_btn");
         closeBtn.parent = panel;
         closeBtn.setContentSize(cc.size(60, 60));
         closeBtn.setPosition(400, 230);
         
-        // 关闭按钮外圈（白色圆环）
-        var closeOuter = new cc.Node("outer");
-        closeOuter.parent = closeBtn;
-        closeOuter.setContentSize(cc.size(50, 50));
-        closeOuter.setPosition(0, 0);
-        var outerSprite = closeOuter.addComponent(cc.Sprite);
-        outerSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        closeOuter.color = new cc.Color(255, 255, 255);
-        closeOuter.opacity = 230;
+        // 关闭按钮背景
+        var closeBtnBg = new cc.Node("bg");
+        closeBtnBg.parent = closeBtn;
+        closeBtnBg.setContentSize(cc.size(50, 50));
+        closeBtnBg.setPosition(0, 0);
+        var closeBgSprite = closeBtnBg.addComponent(cc.Sprite);
+        closeBgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        closeBtnBg.color = new cc.Color(255, 255, 255);
         
-        // 关闭按钮内圈（浅灰色背景）
-        var closeInner = new cc.Node("inner");
-        closeInner.parent = closeBtn;
-        closeInner.setContentSize(cc.size(42, 42));
-        closeInner.setPosition(0, 0);
-        var innerSprite = closeInner.addComponent(cc.Sprite);
-        innerSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        closeInner.color = new cc.Color(240, 240, 240);
-        
-        // 关闭按钮 X（深灰色）
+        // 关闭按钮 X
         var closeLabelNode = new cc.Node("x");
         closeLabelNode.parent = closeBtn;
         closeLabelNode.setPosition(0, 0);
         var closeLabel = closeLabelNode.addComponent(cc.Label);
         closeLabel.string = "×";
-        closeLabel.fontSize = 38;
+        closeLabel.fontSize = 40;
         closeLabel.lineHeight = 50;
         closeLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        closeLabelNode.color = new cc.Color(80, 80, 80);  // 深灰色X
+        closeLabelNode.color = new cc.Color(80, 80, 80);
         
-        // 添加 Button 组件
+        // ★ 使用 Button 组件 + EventHandler 方式绑定点击事件
         var closeBtnComp = closeBtn.addComponent(cc.Button);
         closeBtnComp.transition = cc.Button.Transition.SCALE;
         closeBtnComp.zoomScale = 1.2;
         closeBtnComp.interactable = true;
         
-        // ★ 关闭按钮事件
-        closeBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
-            event.stopPropagation();
-            console.log(">>> 关闭按钮点击");
-            self._closeUserAgreementPopup();
-        }, self);
+        // ★ 使用 cc.Component.EventHandler 绑定事件
+        var closeHandler = new cc.Component.EventHandler();
+        closeHandler.target = this.node;
+        closeHandler.component = "loginScene";
+        closeHandler.handler = "_closeUserAgreementPopup";
+        closeHandler.customEventData = "";
+        closeBtnComp.clickEvents.push(closeHandler);
 
         // ==================== 分隔线 ====================
         var dividerLine = new cc.Node("divider");
@@ -487,28 +436,32 @@ cc.Class({
         containerSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         contentContainer.color = new cc.Color(255, 255, 255);
         
-        // ★ 创建 ScrollView
+        // ★ 先创建节点层级，最后添加 ScrollView 组件
+        
+        // 1. 创建 ScrollView 节点
         var scrollNode = new cc.Node("scroll_view");
         scrollNode.parent = contentContainer;
         scrollNode.setContentSize(cc.size(830, 380));
         scrollNode.setPosition(0, 0);
         
-        // 创建 view（带 Mask）
+        // 2. 创建 view 节点
         var viewNode = new cc.Node("view");
         viewNode.parent = scrollNode;
         viewNode.setContentSize(cc.size(830, 380));
         viewNode.setPosition(0, 0);
+        
+        // 3. 添加 Mask 组件到 view
         var mask = viewNode.addComponent(cc.Mask);
         mask.type = cc.Mask.Type.RECT;
         
-        // 创建 content
+        // 4. 创建 content 节点
         var contentNode = new cc.Node("content");
         contentNode.parent = viewNode;
         contentNode.setContentSize(cc.size(810, 380));
         contentNode.setPosition(0, 190);
         contentNode.anchorY = 1;
         
-        // ★ 创建 Label（居中显示）
+        // 5. 创建 Label
         var labelNode = new cc.Node("content_label");
         labelNode.parent = contentNode;
         labelNode.setPosition(0, -15);
@@ -519,26 +472,24 @@ cc.Class({
         contentLabel.fontSize = 22;
         contentLabel.lineHeight = 36;
         contentLabel.overflow = cc.Label.Overflow.NONE;
-        contentLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;  // ★ 居中对齐
+        contentLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         contentLabel.wrapWidth = 790;
         labelNode.color = new cc.Color(50, 50, 50);
         
-        // 添加 ScrollView 组件
+        // 6. ★ 最后添加 ScrollView 组件
         var scrollView = scrollNode.addComponent(cc.ScrollView);
         scrollView.content = contentNode;
         scrollView.horizontal = false;
         scrollView.vertical = true;
-        scrollView.inertia = true;
+        scrollView.inertia = true;       // ★ 惯性滚动
         scrollView.elastic = true;
-        scrollView.brake = 0.3;
+        scrollView.brake = 0.1;          // ★ 刹车系数越小，惯性越大
         scrollView.scrollToTop(0);
         
         // 保存引用
         this._agreementContentLabel = contentLabel;
         this._scrollView = scrollView;
         this._contentNode = contentNode;
-
-        // 保存弹窗引用
         this._userAgreementPopup = popup;
         
         // 获取协议内容
@@ -547,7 +498,7 @@ cc.Class({
         console.log("=== 弹窗创建完成 ===");
     },
 
-    // 关闭用户协议弹窗
+    // ★ 关闭用户协议弹窗（公开方法，供 Button EventHandler 调用）
     _closeUserAgreementPopup: function() {
         console.log("=== _closeUserAgreementPopup 被调用 ===");
         
@@ -563,19 +514,15 @@ cc.Class({
 
     // 从 API 获取协议内容
     _fetchAgreementContent: function() {
-        console.log("=== 开始获取用户协议 ===");
-        
         var self = this;
         var defines = window.defines;
         
         if (!defines || !defines.apiUrl) {
-            console.warn("defines 或 apiUrl 未定义");
             self._showDefaultAgreementContent();
             return;
         }
         
         var apiUrl = defines.apiUrl + '/api/v1/user-agreement/latest';
-        console.log("请求API:", apiUrl);
         
         var xhr = new XMLHttpRequest();
         xhr.open('GET', apiUrl, true);
@@ -585,31 +532,24 @@ cc.Class({
             if (xhr.status >= 200 && xhr.status < 300) {
                 try {
                     var response = JSON.parse(xhr.responseText);
-                    console.log("API响应:", response);
-                    
                     if (response && response.code === 0 && response.data && response.data.content) {
                         self._updateAgreementContent(response.data.content);
                     } else {
-                        console.warn("API返回数据格式异常:", response);
                         self._showDefaultAgreementContent();
                     }
                 } catch (e) {
-                    console.error("解析响应失败:", e);
                     self._showDefaultAgreementContent();
                 }
             } else {
-                console.warn("HTTP请求失败:", xhr.status);
                 self._showDefaultAgreementContent();
             }
         };
         
         xhr.onerror = function() {
-            console.warn("网络请求失败");
             self._showDefaultAgreementContent();
         };
         
         xhr.ontimeout = function() {
-            console.warn("请求超时");
             self._showDefaultAgreementContent();
         };
         
@@ -618,18 +558,11 @@ cc.Class({
 
     // 更新协议内容
     _updateAgreementContent: function(content) {
-        console.log("=== 更新协议内容 ===");
-        console.log("内容长度:", content ? content.length : 0);
-
-        if (!this._agreementContentLabel) {
-            console.error("Label 引用丢失");
-            return;
-        }
+        if (!this._agreementContentLabel) return;
 
         if (content) {
             this._agreementContentLabel.string = content;
             this._updateContentSize();
-            console.log("协议内容已更新");
         }
     },
 
@@ -656,14 +589,10 @@ cc.Class({
         if (this._scrollView) {
             this._scrollView.scrollToTop(0.1);
         }
-        
-        console.log("Content高度更新为:", newHeight);
     },
 
     // 显示默认协议内容
     _showDefaultAgreementContent: function() {
-        console.log("=== 显示默认协议内容 ===");
-
         if (this._agreementContentLabel) {
             var defaultContent = 
                 "欢迎使用本游戏！\n\n" +
@@ -679,7 +608,6 @@ cc.Class({
 
             this._agreementContentLabel.string = defaultContent;
             this._updateContentSize();
-            console.log("默认协议内容已设置");
         }
     }
 });
