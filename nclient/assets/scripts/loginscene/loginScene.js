@@ -455,9 +455,18 @@ cc.Class({
             scrollView.elastic = true;
             scrollView.bounceDuration = 0.5;
 
+            // 创建遮罩节点（用于裁剪超出边框的内容）
+            var maskNode = new cc.Node("view_mask");
+            maskNode.parent = scrollViewNode;
+            maskNode.setContentSize(cc.size(760, 300));
+            maskNode.setPosition(0, 0);
+            var mask = maskNode.addComponent(cc.Mask);
+            mask.type = cc.Mask.TYPE_RECT;  // 矩形遮罩
+            mask.inverted = false;  // 正常模式：遮罩外的内容隐藏
+
             // 创建内容容器
             var contentNode = new cc.Node("content");
-            contentNode.parent = scrollViewNode;
+            contentNode.parent = maskNode;  // 将内容放在遮罩节点下
             contentNode.setContentSize(cc.size(760, 500));
             contentNode.anchorY = 1;
             contentNode.y = 150;
