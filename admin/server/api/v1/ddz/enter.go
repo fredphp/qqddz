@@ -6,4 +6,5 @@ type ApiGroup struct {
         DDZStatsApi
         DDZConfigApi
         DDZUserAccountApi
+        DDZGameLogApi
 }

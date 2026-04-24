@@ -6,4 +6,5 @@ type ServiceGroup struct {
         DDZStatsService
         DDZConfigService
         DDZUserAccountService
+        DDZGameLogService
 }

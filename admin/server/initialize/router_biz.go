@@ -25,5 +25,6 @@ func initBizRouter(routers ...*gin.RouterGroup) {
                 ddzRouter.InitDDZStatsRouter(privateGroup)       // 斗地主统计路由
                 ddzRouter.InitDDZConfigRouter(privateGroup)      // 斗地主配置路由
                 ddzRouter.InitDDZUserAccountRouter(privateGroup) // 斗地主用户账户路由
+                ddzRouter.InitDDZGameLogRouter(privateGroup)     // 斗地主游戏日志路由
         }
 }

@@ -6,4 +6,5 @@ type RouterGroup struct {
         DDZStatsRouter
         DDZConfigRouter
         DDZUserAccountRouter
+        DDZGameLogRouter
 }
