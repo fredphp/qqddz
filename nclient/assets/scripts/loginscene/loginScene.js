@@ -72,10 +72,10 @@ cc.Class({
         var checkmark = checkMarkNode.getChildByName("checkmark");
         if (checkmark) {
             this._checkmarkIcon = checkmark;
-            checkmark.active = false;
+            checkmark.active = true;  // 默认选中
         }
         
-        this._isAgreementChecked = false;
+        this._isAgreementChecked = true;  // 默认已同意协议
         
         var button = checkMarkNode.getComponent(cc.Button);
         if (button) {
