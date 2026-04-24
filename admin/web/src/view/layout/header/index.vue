@@ -52,10 +52,10 @@
           <span
             class="cursor-pointer flex justify-center items-center text-black dark:text-gray-100"
           >
-            <CustomPic />
-            <span v-show="!isMobile" class="w-16">{{
-              userStore.userInfo.nickName
-            }}</span>
+            <el-icon class="mr-1">
+              <User />
+            </el-icon>
+            <span v-show="!isMobile">管理员</span>
             <el-icon>
               <arrow-down />
             </el-icon>
@@ -63,25 +63,6 @@
         </div>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item>
-              <span class="font-bold">
-                当前角色：{{ userStore.userInfo.authority.authorityName }}
-              </span>
-            </el-dropdown-item>
-            <template v-if="userStore.userInfo.authorities">
-              <el-dropdown-item
-                v-for="item in userStore.userInfo.authorities.filter(
-                  (i) => i.authorityId !== userStore.userInfo.authorityId
-                )"
-                :key="item.authorityId"
-                @click="changeUserAuth(item.authorityId)"
-              >
-                <span> 切换为：{{ item.authorityName }} </span>
-              </el-dropdown-item>
-            </template>
-            <el-dropdown-item icon="avatar" @click="toPerson">
-              个人信息
-            </el-dropdown-item>
             <el-dropdown-item icon="reading-lamp" @click="userStore.LoginOut">
               登 出
             </el-dropdown-item>
@@ -94,16 +75,15 @@
 
 <script setup>
   import tools from './tools.vue'
-  import CustomPic from '@/components/customPic/index.vue'
   import { useUserStore } from '@/pinia/modules/user'
   import { useRoute, useRouter } from 'vue-router'
   import { useAppStore } from '@/pinia'
   import { storeToRefs } from 'pinia'
   import { computed } from 'vue'
-  import { setUserAuthority } from '@/api/user'
   import { fmtTitle } from '@/utils/fmtRouterTitle'
   import gvaAside from '@/view/layout/aside/index.vue'
   import Logo from '@/components/logo/index.vue'
+  import { User } from '@element-plus/icons-vue'
 
   const userStore = useUserStore()
   const router = useRouter()
@@ -113,21 +93,7 @@
   const isMobile = computed(() => {
     return device.value === 'mobile'
   })
-  const toPerson = () => {
-    router.push({ name: 'person' })
-  }
   const matched = computed(() => route.meta.matched)
-
-  const changeUserAuth = async (id) => {
-    const res = await setUserAuthority({
-      authorityId: id
-    })
-    if (res.code === 0) {
-      window.sessionStorage.setItem('needCloseAll', 'true')
-      window.sessionStorage.setItem('needToHome', 'true')
-      window.location.reload()
-    }
-  }
 </script>
 
 <style scoped lang="scss"></style>

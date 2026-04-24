@@ -9,12 +9,7 @@
         <el-form-item label="昵称">
           <el-input v-model="searchInfo.nickname" placeholder="昵称" />
         </el-form-item>
-        <el-form-item label="手机号">
-          <el-input v-model="searchInfo.phone" placeholder="手机号" />
-        </el-form-item>
-        <el-form-item label="邮箱">
-          <el-input v-model="searchInfo.email" placeholder="邮箱" />
-        </el-form-item>
+
         <el-form-item>
           <el-button type="primary" icon="search" @click="onSubmit">
             查询
@@ -30,11 +25,7 @@
         >
       </div>
       <el-table :data="tableData" row-key="ID" :default-sort="{ prop: 'ID', order: 'descending' }" @sort-change="sortChange">
-        <el-table-column align="left" label="头像" min-width="75">
-          <template #default="scope">
-            <CustomPic style="margin-top: 8px" :pic-src="scope.row.headerImg" />
-          </template>
-        </el-table-column>
+
         <el-table-column align="left" label="ID" min-width="50" prop="ID" sortable="custom" />
         <el-table-column
           align="left"
@@ -48,18 +39,7 @@
           min-width="150"
           prop="nickName"
         />
-        <el-table-column
-          align="left"
-          label="手机号"
-          min-width="180"
-          prop="phone"
-        />
-        <el-table-column
-          align="left"
-          label="邮箱"
-          min-width="180"
-          prop="email"
-        />
+
         <el-table-column align="left" label="用户角色" min-width="200">
           <template #default="scope">
             <el-cascader
@@ -211,12 +191,7 @@
         <el-form-item label="昵称" prop="nickName">
           <el-input v-model="userInfo.nickName" />
         </el-form-item>
-        <el-form-item label="手机号" prop="phone">
-          <el-input v-model="userInfo.phone" />
-        </el-form-item>
-        <el-form-item label="邮箱" prop="email">
-          <el-input v-model="userInfo.email" />
-        </el-form-item>
+
         <el-form-item label="用户角色" prop="authorityId">
           <el-cascader
             v-model="userInfo.authorityIds"
@@ -242,9 +217,7 @@
             :inactive-value="2"
           />
         </el-form-item>
-        <el-form-item label="头像" label-width="80px">
-          <SelectImage v-model="userInfo.headerImg" />
-        </el-form-item>
+
       </el-form>
     </el-drawer>
   </div>
@@ -259,13 +232,13 @@
   } from '@/api/user'
 
   import { getAuthorityList } from '@/api/authority'
-  import CustomPic from '@/components/customPic/index.vue'
+
   import WarningBar from '@/components/warningBar/warningBar.vue'
   import { setUserInfo, resetPassword } from '@/api/user.js'
 
   import { nextTick, ref, watch } from 'vue'
   import { ElMessage, ElMessageBox } from 'element-plus'
-  import SelectImage from '@/components/selectImage/selectImage.vue'
+
   import { useAppStore } from "@/pinia";
   import { toSQLLine } from '@/utils/stringFun'
 
@@ -277,9 +250,7 @@
 
   const searchInfo = ref({
     username: '',
-    nickname: '',
-    phone: '',
-    email: ''
+    nickname: ''
   })
 
   const onSubmit = () => {
@@ -290,9 +261,7 @@
   const onReset = () => {
     searchInfo.value = {
       username: '',
-      nickname: '',
-      phone: '',
-      email: ''
+      nickname: ''
     }
     orderKey.value = 'id'
     desc.value = true
@@ -504,20 +473,6 @@
       { min: 6, message: '最低6位字符', trigger: 'blur' }
     ],
     nickName: [{ required: true, message: '请输入用户昵称', trigger: 'blur' }],
-    phone: [
-      {
-        pattern: /^1([38][0-9]|4[014-9]|[59][0-35-9]|6[2567]|7[0-8])\d{8}$/,
-        message: '请输入合法手机号',
-        trigger: 'blur'
-      }
-    ],
-    email: [
-      {
-        pattern: /^([0-9A-Za-z\-_.]+)@([0-9a-z]+\.[a-z]{2,3}(\.[a-z]{2})?)$/g,
-        message: '请输入正确的邮箱',
-        trigger: 'blur'
-      }
-    ],
     authorityId: [
       { required: true, message: '请选择用户角色', trigger: 'blur' }
     ]
