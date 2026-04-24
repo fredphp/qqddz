@@ -382,23 +382,25 @@ cc.Class({
         panel.setContentSize(cc.size(400, 340));
         panel.setPosition(0, 20);
         
-        // 灰色边框
+        // 灰色边框 - 使用 Graphics 绘制
         var border = new cc.Node("border");
         border.parent = panel;
         border.setContentSize(cc.size(400, 340));
         border.setPosition(0, 0);
-        var borderSprite = border.addComponent(cc.Sprite);
-        borderSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        border.color = new cc.Color(200, 200, 200);  // 浅灰色边框
+        var borderGfx = border.addComponent(cc.Graphics);
+        borderGfx.fillColor = new cc.Color(200, 200, 200);  // 浅灰色边框
+        borderGfx.rect(-200, -170, 400, 340);
+        borderGfx.fill();
         
-        // 白色内容背景
+        // 白色内容背景 - 使用 Graphics 绘制
         var content = new cc.Node("content");
         content.parent = panel;
         content.setContentSize(cc.size(396, 336));
         content.setPosition(0, 0);
-        var contentSprite = content.addComponent(cc.Sprite);
-        contentSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        content.color = new cc.Color(255, 255, 255);  // 纯白色背景
+        var contentGfx = content.addComponent(cc.Graphics);
+        contentGfx.fillColor = new cc.Color(255, 255, 255);  // 纯白色背景
+        contentGfx.rect(-198, -168, 396, 336);
+        contentGfx.fill();
         
         // ==================== 标题 ====================
         var titleNode = new cc.Node("title");
@@ -435,23 +437,25 @@ cc.Class({
         phoneLabelComp.fontSize = 16;
         phoneLabel.color = new cc.Color(102, 102, 102);  // 灰色标签
         
-        // 手机号输入框边框
+        // 手机号输入框边框 - 使用 Graphics 绘制
         var phoneBorder = new cc.Node("phone_border");
         phoneBorder.parent = panel;
         phoneBorder.setContentSize(cc.size(300, 45));
         phoneBorder.setPosition(0, 55);
-        var phoneBorderSprite = phoneBorder.addComponent(cc.Sprite);
-        phoneBorderSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        phoneBorder.color = new cc.Color(204, 204, 204);  // 浅灰色边框
+        var phoneBorderGfx = phoneBorder.addComponent(cc.Graphics);
+        phoneBorderGfx.fillColor = new cc.Color(204, 204, 204);  // 浅灰色边框
+        phoneBorderGfx.rect(-150, -22.5, 300, 45);
+        phoneBorderGfx.fill();
         
-        // 手机号输入框背景
+        // 手机号输入框背景 - 使用 Graphics 绘制
         var phoneBg = new cc.Node("phone_bg");
         phoneBg.parent = panel;
         phoneBg.setContentSize(cc.size(296, 41));
         phoneBg.setPosition(0, 55);
-        var phoneBgSprite = phoneBg.addComponent(cc.Sprite);
-        phoneBgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        phoneBg.color = new cc.Color(255, 255, 255);
+        var phoneBgGfx = phoneBg.addComponent(cc.Graphics);
+        phoneBgGfx.fillColor = new cc.Color(255, 255, 255);  // 白色背景
+        phoneBgGfx.rect(-148, -20.5, 296, 41);
+        phoneBgGfx.fill();
         
         // 手机号输入框
         var phoneInputNode = new cc.Node("phone_input");
@@ -477,23 +481,25 @@ cc.Class({
         codeLabelComp.fontSize = 16;
         codeLabel.color = new cc.Color(102, 102, 102);  // 灰色标签
         
-        // 验证码输入框边框
+        // 验证码输入框边框 - 使用 Graphics 绘制
         var codeBorder = new cc.Node("code_border");
         codeBorder.parent = panel;
         codeBorder.setContentSize(cc.size(180, 45));
         codeBorder.setPosition(-60, -15);
-        var codeBorderSprite = codeBorder.addComponent(cc.Sprite);
-        codeBorderSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        codeBorder.color = new cc.Color(204, 204, 204);
+        var codeBorderGfx = codeBorder.addComponent(cc.Graphics);
+        codeBorderGfx.fillColor = new cc.Color(204, 204, 204);  // 浅灰色边框
+        codeBorderGfx.rect(-90, -22.5, 180, 45);
+        codeBorderGfx.fill();
         
-        // 验证码输入框背景
+        // 验证码输入框背景 - 使用 Graphics 绘制
         var codeBg = new cc.Node("code_bg");
         codeBg.parent = panel;
         codeBg.setContentSize(cc.size(176, 41));
         codeBg.setPosition(-60, -15);
-        var codeBgSprite = codeBg.addComponent(cc.Sprite);
-        codeBgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        codeBg.color = new cc.Color(255, 255, 255);
+        var codeBgGfx = codeBg.addComponent(cc.Graphics);
+        codeBgGfx.fillColor = new cc.Color(255, 255, 255);  // 白色背景
+        codeBgGfx.rect(-88, -20.5, 176, 41);
+        codeBgGfx.fill();
         
         // 验证码输入框
         var codeInputNode = new cc.Node("code_input");
@@ -510,14 +516,15 @@ cc.Class({
         codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         codeEditBox.maxLength = 6;
         
-        // 获取验证码按钮
+        // 获取验证码按钮 - 使用 Graphics 绘制
         var sendCodeBtn = new cc.Node("send_code_btn");
         sendCodeBtn.parent = panel;
         sendCodeBtn.setContentSize(cc.size(110, 45));
         sendCodeBtn.setPosition(90, -15);
-        var sendCodeSprite = sendCodeBtn.addComponent(cc.Sprite);
-        sendCodeSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        sendCodeBtn.color = new cc.Color(255, 149, 0);  // 橙色
+        var sendCodeGfx = sendCodeBtn.addComponent(cc.Graphics);
+        sendCodeGfx.fillColor = new cc.Color(255, 149, 0);  // 橙色
+        sendCodeGfx.rect(-55, -22.5, 110, 45);
+        sendCodeGfx.fill();
         
         var sendCodeLabel = new cc.Node("label");
         sendCodeLabel.parent = sendCodeBtn;
@@ -540,14 +547,15 @@ cc.Class({
         messageLabel.active = false;
         
         // ==================== 登录按钮 ====================
-        // 手机登录按钮
+        // 手机登录按钮 - 使用 Graphics 绘制
         var phoneLoginBtn = new cc.Node("phone_login_btn");
         phoneLoginBtn.parent = panel;
         phoneLoginBtn.setContentSize(cc.size(145, 45));
         phoneLoginBtn.setPosition(-77, -110);
-        var phoneLoginSprite = phoneLoginBtn.addComponent(cc.Sprite);
-        phoneLoginSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        phoneLoginBtn.color = new cc.Color(255, 149, 0);  // 橙色
+        var phoneLoginGfx = phoneLoginBtn.addComponent(cc.Graphics);
+        phoneLoginGfx.fillColor = new cc.Color(255, 149, 0);  // 橙色
+        phoneLoginGfx.rect(-72.5, -22.5, 145, 45);
+        phoneLoginGfx.fill();
         
         var phoneLoginLabel = new cc.Node("label");
         phoneLoginLabel.parent = phoneLoginBtn;
@@ -560,14 +568,15 @@ cc.Class({
         phoneLoginBtnComp.transition = cc.Button.Transition.SCALE;
         phoneLoginBtnComp.zoomScale = 1.05;
         
-        // 微信登录按钮
+        // 微信登录按钮 - 使用 Graphics 绘制
         var wxLoginBtn = new cc.Node("wx_login_btn");
         wxLoginBtn.parent = panel;
         wxLoginBtn.setContentSize(cc.size(145, 45));
         wxLoginBtn.setPosition(77, -110);
-        var wxLoginSprite = wxLoginBtn.addComponent(cc.Sprite);
-        wxLoginSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        wxLoginBtn.color = new cc.Color(76, 175, 80);  // 绿色
+        var wxLoginGfx = wxLoginBtn.addComponent(cc.Graphics);
+        wxLoginGfx.fillColor = new cc.Color(76, 175, 80);  // 绿色
+        wxLoginGfx.rect(-72.5, -22.5, 145, 45);
+        wxLoginGfx.fill();
         
         var wxLoginLabel = new cc.Node("label");
         wxLoginLabel.parent = wxLoginBtn;
@@ -612,18 +621,26 @@ cc.Class({
             messageLabel.color = isError ? new cc.Color(255, 80, 80) : new cc.Color(80, 180, 80);
         };
         
+        // 更新按钮颜色（Graphics方式）
+        var updateBtnColor = function(gfx, color, width, height) {
+            gfx.clear();
+            gfx.fillColor = color;
+            gfx.rect(-width/2, -height/2, width, height);
+            gfx.fill();
+        };
+        
         // 开始倒计时
         var startCountdown = function() {
             countdown = 60;
             sendCodeBtnComp.interactable = false;
-            sendCodeBtn.color = new cc.Color(180, 180, 180);
+            updateBtnColor(sendCodeGfx, new cc.Color(180, 180, 180), 110, 45);
             
             var tick = function() {
                 countdown--;
                 if (countdown <= 0) {
                     sendCodeLabelComp.string = "获取验证码";
                     sendCodeBtnComp.interactable = true;
-                    sendCodeBtn.color = new cc.Color(255, 149, 0);
+                    updateBtnColor(sendCodeGfx, new cc.Color(255, 149, 0), 110, 45);
                 } else {
                     sendCodeLabelComp.string = countdown + "s";
                     self.scheduleOnce(tick, 1);
