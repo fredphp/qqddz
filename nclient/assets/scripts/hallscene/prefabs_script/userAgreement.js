@@ -60,11 +60,30 @@ cc.Class({
         this._defaultTitle = "用户协议";
         this._defaultVersion = "";
         
+        // 添加鼠标滚轮支持
+        this._setupMouseWheel();
+        
         // 初始化弹窗（先显示默认内容）
         this._initPopup();
         
         // 调用 API 获取用户协议
         this._fetchUserAgreement();
+    },
+    
+    // 设置鼠标滚轮支持
+    _setupMouseWheel: function() {
+        var self = this;
+        if (this.scroll_view && this.scroll_view.node) {
+            this.scroll_view.node.on(cc.Node.EventType.MOUSE_WHEEL, function(event) {
+                var scrollY = event.getScrollY();
+                var scrollView = self.scroll_view;
+                if (scrollView) {
+                    var currentOffset = scrollView.getScrollOffset();
+                    var newOffsetY = currentOffset.y + scrollY * 0.5;
+                    scrollView.scrollToOffset(cc.v2(currentOffset.x, newOffsetY), 0.1);
+                }
+            }, this);
+        }
     },
 
     // 初始化弹窗 - 显示加载中状态
@@ -152,10 +171,7 @@ cc.Class({
         
         if (this.content_label) {
             this.content_label.string = this._defaultContent;
-            // 重置滚动位置
-            if (this.scroll_view) {
-                this.scroll_view.scrollToTop(0);
-            }
+            this._updateContentHeight();
         }
         
         if (this.version_label) {
@@ -178,14 +194,41 @@ cc.Class({
         
         if (this.content_label && data.content) {
             this.content_label.string = data.content;
-            // 重置滚动位置
-            if (this.scroll_view) {
-                this.scroll_view.scrollToTop(0);
-            }
+            this._updateContentHeight();
         }
         
         if (this.version_label && data.version) {
             this.version_label.string = "版本: " + data.version;
+        }
+    },
+    
+    // 更新 content 容器高度
+    _updateContentHeight: function() {
+        if (!this._isValid || !this.node) return;
+        
+        if (this.content_label) {
+            // 设置左对齐
+            this.content_label.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+            this.content_label.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
+            this.content_label.wrapWidth = 710;
+            
+            var contentNode = this.content_label.node;
+            
+            // 延迟更新高度
+            var self = this;
+            this.scheduleOnce(function() {
+                if (!self._isValid || !self.node) return;
+                
+                var labelHeight = contentNode.height;
+                var minHeight = 400;
+                var newHeight = Math.max(labelHeight + 40, minHeight);
+                contentNode.height = newHeight;
+                
+                // 重置滚动位置到顶部
+                if (self.scroll_view) {
+                    self.scroll_view.scrollToTop(0);
+                }
+            }, 0.1);
         }
     },
 
