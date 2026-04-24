@@ -1,42 +1,38 @@
 {
-    "ver": "1.0.25",
-    "importer": "image",
-    "imported": true,
-    "uuid": "btn-confirm-uuid-001",
-    "files": [
-        ".json",
-        ".png"
-    ],
-    "subMetas": {
-        "6c48a": {
-            "importer": "texture",
-            "uuid": "btn-confirm-texture-uuid-001",
-            "displayName": "btn_confirm",
-            "id": "6c48a",
-            "name": "texture",
-            "userData": {
-                "wrapModeS": "clamp-to-edge",
-                "wrapModeT": "clamp-to-edge",
-                "minfilter": "linear",
-                "magfilter": "linear",
-                "mipfilter": "none",
-                "anisotropy": 0,
-                "isUuid": true,
-                "imageUuidOrDatabaseUri": "btn-confirm-uuid-001@6c48a",
-                "visible": false
-            },
-            "ver": "1.0.22",
-            "imported": true,
-            "files": [
-                ".json"
-            ],
-            "subMetas": {}
-        }
-    },
-    "userData": {
-        "hasAlpha": true,
-        "type": "sprite-frame",
-        "fixAlphaTransparencyArtifacts": false,
-        "redirect": "btn-confirm-uuid-001@6c48a"
+  "ver": "2.3.7",
+  "uuid": "btn-confirm-uuid-001",
+  "importer": "image",
+  "type": "sprite",
+  "wrapMode": "clamp",
+  "filterMode": "bilinear",
+  "premultiplyAlpha": false,
+  "genMipmaps": false,
+  "packable": true,
+  "width": 200,
+  "height": 60,
+  "platformSettings": {},
+  "subMetas": {
+    "btn_confirm": {
+      "ver": "1.0.6",
+      "uuid": "btn-confirm-texture-uuid-001",
+      "importer": "texture",
+      "rawTextureUuid": "btn-confirm-uuid-001",
+      "trimType": "auto",
+      "trimThreshold": 1,
+      "rotated": false,
+      "offsetX": 0,
+      "offsetY": 0,
+      "trimX": 0,
+      "trimY": 0,
+      "width": 200,
+      "height": 60,
+      "rawWidth": 200,
+      "rawHeight": 60,
+      "borderTop": 0,
+      "borderBottom": 0,
+      "borderLeft": 0,
+      "borderRight": 0,
+      "subMetas": {}
     }
+  }
 }
