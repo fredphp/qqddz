@@ -6,6 +6,10 @@ import GvaNotice from './notice.vue'
 import GvaQuickLink from './quickLinks.vue'
 import GvaWiki from './wiki.vue'
 import GvaPluginTable from './pluginTable.vue'
+import StatsCard from './statsCard.vue'
+import ActiveChart from './activeChart.vue'
+import GamesChart from './gamesChart.vue'
+import LeaderboardTable from './leaderboardTable.vue'
 
 export {
   GvaBanner,
@@ -15,5 +19,9 @@ export {
   GvaNotice,
   GvaQuickLink,
   GvaWiki,
-  GvaPluginTable
+  GvaPluginTable,
+  StatsCard,
+  ActiveChart,
+  GamesChart,
+  LeaderboardTable
 }
