@@ -422,24 +422,37 @@ cc.Class({
             titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
             titleNode.color = new cc.Color(50, 50, 50);
             
-            // 创建滚动视图容器
-            var scrollContainer = new cc.Node("scroll_container");
-            scrollContainer.parent = panel;
-            scrollContainer.setContentSize(cc.size(850, 340));
-            scrollContainer.setPosition(0, -10);
+            // 创建滚动视图 - 用于显示长内容
+            var scrollViewNode = new cc.Node("scroll_view");
+            scrollViewNode.parent = panel;
+            scrollViewNode.setContentSize(cc.size(850, 340));
+            scrollViewNode.setPosition(0, -10);
             
-            // 创建内容标签
-            var contentNode = new cc.Node("content_label");
-            contentNode.parent = scrollContainer;
-            contentNode.setContentSize(cc.size(850, 1000));
-            contentNode.setPosition(0, 180);
+            var scrollView = scrollViewNode.addComponent(cc.ScrollView);
+            scrollView.horizontal = false;
+            scrollView.vertical = true;
+            scrollView.inertia = true;
+            scrollView.brake = 0.5;
+            scrollView.elastic = true;
+            scrollView.bounceDuration = 0.5;
+            
+            // 创建内容容器
+            var contentNode = new cc.Node("content");
+            contentNode.parent = scrollViewNode;
+            contentNode.setContentSize(cc.size(850, 500));
             contentNode.anchorY = 1;
+            contentNode.y = 170;
+            
+            scrollView.content = contentNode;
+            
+            // 创建内容标签 - 使用固定高度，避免纹理过大
             var contentLabel = contentNode.addComponent(cc.Label);
             contentLabel.string = "正在加载用户协议...";
             contentLabel.fontSize = 18;
             contentLabel.lineHeight = 28;
-            contentLabel.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
+            contentLabel.overflow = cc.Label.Overflow.CLAMP;  // 使用CLAMP避免纹理过大
             contentLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+            contentLabel.verticalAlign = cc.Label.VerticalAlign.TOP;
             contentNode.color = new cc.Color(60, 60, 60);
             
             // 创建关闭按钮
@@ -449,9 +462,10 @@ cc.Class({
             closeBtn.setPosition(490, 300);
             
             var closeLabel = closeBtn.addComponent(cc.Label);
-            closeLabel.string = "×";
+            closeLabel.string = "X";
             closeLabel.fontSize = 36;
             closeLabel.lineHeight = 50;
+            closeLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
             closeBtn.color = new cc.Color(100, 100, 100);
             
             var closeBtnComp = closeBtn.addComponent(cc.Button);
@@ -489,6 +503,7 @@ cc.Class({
             
             this._userAgreementPopup = popup;
             this._agreementContentLabel = contentLabel;
+            this._agreementContentNode = contentNode;
             
             // 尝试从 API 获取协议内容
             this._fetchAgreementContent();
@@ -522,37 +537,83 @@ cc.Class({
 
     // 从 API 获取协议内容
     _fetchAgreementContent: function() {
+        console.log("=== 开始获取用户协议 ===");
+        
         var self = this;
         var defines = window.defines;
-        var HttpAPI = window.HttpAPI;
         
-        if (!defines || !defines.apiUrl || !HttpAPI) {
-            console.warn("API 配置未定义，显示默认内容");
+        // 检查配置
+        if (!defines || !defines.apiUrl) {
+            console.warn("defines 或 apiUrl 未定义");
             self._showDefaultAgreementContent();
             return;
         }
-
-        HttpAPI.getUserAgreement(
-            defines.apiUrl,
-            defines.cryptoKey || '',
-            function(err, data) {
-                if (err || !data) {
-                    console.warn("获取用户协议失败，显示默认内容");
+        
+        var apiUrl = defines.apiUrl + '/api/v1/user-agreement/latest';
+        console.log("请求API:", apiUrl);
+        
+        // 使用 XMLHttpRequest 发送请求（Cocos Creator 2.x 兼容方式）
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', apiUrl, true);
+        xhr.timeout = 10000;
+        
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    console.log("API响应:", response);
+                    
+                    if (response && response.code === 0 && response.data && response.data.content) {
+                        self._updateAgreementContent(response.data.content, response.data.title);
+                    } else {
+                        console.warn("API返回数据格式异常:", response);
+                        self._showDefaultAgreementContent();
+                    }
+                } catch (e) {
+                    console.error("解析响应失败:", e);
                     self._showDefaultAgreementContent();
-                    return;
                 }
-                
-                if (self._agreementContentLabel && data.content) {
-                    self._agreementContentLabel.string = data.content;
-                }
+            } else {
+                console.warn("HTTP请求失败:", xhr.status);
+                self._showDefaultAgreementContent();
             }
-        );
+        };
+        
+        xhr.onerror = function() {
+            console.warn("网络请求失败");
+            self._showDefaultAgreementContent();
+        };
+        
+        xhr.ontimeout = function() {
+            console.warn("请求超时");
+            self._showDefaultAgreementContent();
+        };
+        
+        xhr.send();
+    },
+
+    // 更新协议内容
+    _updateAgreementContent: function(content, title) {
+        if (this._agreementContentLabel && content) {
+            this._agreementContentLabel.string = content;
+            
+            // 根据内容长度调整容器高度
+            if (this._agreementContentNode) {
+                var lines = content.split('\n').length;
+                var estimatedHeight = Math.max(500, lines * 28 + 100);
+                this._agreementContentNode.setContentSize(cc.size(850, estimatedHeight));
+            }
+            
+            console.log("协议内容已更新");
+        }
     },
 
     // 显示默认协议内容
     _showDefaultAgreementContent: function() {
+        console.log("显示默认协议内容");
+        
         if (this._agreementContentLabel) {
-            this._agreementContentLabel.string = "欢迎使用本游戏！\n\n" +
+            var defaultContent = "欢迎使用本游戏！\n\n" +
                 "在使用本游戏前，请您仔细阅读并理解本用户协议的全部内容。\n\n" +
                 "1. 服务条款\n" +
                 "本游戏提供的服务仅供个人娱乐使用，不得用于商业目的。\n\n" +
@@ -563,6 +624,13 @@ cc.Class({
                 "4. 免责声明\n" +
                 "本游戏不对因网络原因导致的服务中断承担责任。\n\n" +
                 "点击「我知道了」按钮即表示您已阅读并同意本协议的全部内容。";
+            
+            this._agreementContentLabel.string = defaultContent;
+            
+            // 调整容器高度
+            if (this._agreementContentNode) {
+                this._agreementContentNode.setContentSize(cc.size(850, 600));
+            }
         }
     },
 
@@ -571,6 +639,7 @@ cc.Class({
             this._userAgreementPopup.destroy();
             this._userAgreementPopup = null;
             this._agreementContentLabel = null;
+            this._agreementContentNode = null;
         }
     }
 });
