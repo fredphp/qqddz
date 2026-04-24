@@ -464,10 +464,13 @@ cc.Class({
         // 5. 创建 Label（左对齐，自动换行）
         var labelNode = new cc.Node("content_label");
         labelNode.parent = contentNode;
-        // ★ 左对齐：anchorX=0，x偏移到左边界+padding
+        // ★ 左对齐：锚点在左上角
         labelNode.anchorX = 0;
         labelNode.anchorY = 1;
-        labelNode.setPosition(-380, -15);  // 左边距约25px
+        // ★ 位置：x=-405 是左边界，加上padding约25px = -380
+        labelNode.setPosition(-380, -20);
+        // ★ 必须设置节点尺寸，否则 RESIZE_HEIGHT 不生效
+        labelNode.setContentSize(cc.size(760, 100));
         
         var contentLabel = labelNode.addComponent(cc.Label);
         contentLabel.string = "正在加载用户协议...";
@@ -475,7 +478,7 @@ cc.Class({
         contentLabel.lineHeight = 32;
         contentLabel.overflow = cc.Label.Overflow.RESIZE_HEIGHT;  // ★ 自动调整高度
         contentLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;  // ★ 左对齐
-        contentLabel.wrapWidth = 760;  // ★ 自动换行宽度（留出左右padding）
+        contentLabel.enableWrapText = true;  // ★ 启用自动换行
         labelNode.color = new cc.Color(50, 50, 50);
         
         // 6. ★ 最后添加 ScrollView 组件
