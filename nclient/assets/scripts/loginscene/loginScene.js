@@ -462,13 +462,16 @@ cc.Class({
         richTextNode.parent = contentNode;
         richTextNode.anchorX = 0;
         richTextNode.anchorY = 1;
-        richTextNode.setPosition(20, -20);
-        richTextNode.setContentSize(cc.size(810, 500));
+        // ★ 增加左右两边的缩进（从20增加到40）
+        richTextNode.setPosition(40, -30);
+        // ★ 减小宽度以适应更大的边距
+        richTextNode.setContentSize(cc.size(770, 500));
         
         var richText = richTextNode.addComponent(cc.RichText);
         richText.fontSize = 20;
         richText.lineHeight = 32;
-        richText.maxWidth = 810;
+        // ★ 相应减小maxWidth
+        richText.maxWidth = 770;
         richText.handleTouchEvent = false;
         richTextNode.color = new cc.Color(50, 50, 50);
         
@@ -629,9 +632,10 @@ cc.Class({
     _formatTextForRichText: function(text) {
         if (!text) return "<color=#333333>暂无内容</color>";
         
-        // 如果包含HTML标签，转换为RichText格式
-        if (text.indexOf('<h1>') !== -1 || text.indexOf('<h2>') !== -1 || 
-            text.indexOf('<p>') !== -1 || text.indexOf('<strong>') !== -1) {
+        // 检测是否包含HTML标签（更全面的检测）
+        var hasHtml = /<[a-zA-Z][^>]*>/.test(text);
+        
+        if (hasHtml) {
             console.log("检测到HTML格式内容，转换为RichText格式");
             return this._convertHtmlToRichText(text);
         }
@@ -645,37 +649,66 @@ cc.Class({
     
     // 将HTML转换为RichText支持的格式
     _convertHtmlToRichText: function(html) {
+        console.log("开始转换HTML内容, 原长度:", html.length);
         var result = html;
         
         // 移除 <!DOCTYPE...> 和 <html> 等外层标签
         result = result.replace(/<!DOCTYPE[^>]*>/gi, '');
-        result = result.replace(/<\/?html[^>]*>/gi, '');
-        result = result.replace(/<\/?body[^>]*>/gi, '');
+        result = result.replace(/<html[^>]*>/gi, '');
+        result = result.replace(/<\/html>/gi, '');
+        result = result.replace(/<body[^>]*>/gi, '');
+        result = result.replace(/<\/body>/gi, '');
         result = result.replace(/<head[\s\S]*?<\/head>/gi, '');
         
-        // 转换标题标签 (使用[\s\S]匹配包括换行符在内的所有字符)
-        result = result.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '<br/><b><size=28><color=#2d7a4e>$1</color></size></b><br/><br/>');
-        result = result.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '<br/><b><size=24><color=#2d7a4e>$1</color></size></b><br/><br/>');
-        result = result.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, '<br/><b><size=22><color=#2d7a4e>$1</color></size></b><br/>');
+        // 处理标题标签 - 转换为带颜色和加粗的格式
+        result = result.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '<br/><br/><b><size=26><color=#1a6b3c>$1</color></size></b><br/><br/>');
+        result = result.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '<br/><b><size=22><color=#2d7a4e>$1</color></size></b><br/><br/>');
+        result = result.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, '<br/><b><size=20><color=#2d7a4e>$1</color></size></b><br/>');
+        result = result.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, '<br/><b>$1</b><br/>');
         
-        // 转换段落和格式标签
+        // 处理段落标签
         result = result.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, '$1<br/><br/>');
+        
+        // 处理格式标签
         result = result.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '<b>$1</b>');
         result = result.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, '<b>$1</b>');
         result = result.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, '<i>$1</i>');
         result = result.replace(/<u[^>]*>([\s\S]*?)<\/u>/gi, '<u>$1</u>');
         
-        // 转换换行
+        // 处理div和span标签
+        result = result.replace(/<div[^>]*>([\s\S]*?)<\/div>/gi, '$1<br/>');
+        result = result.replace(/<span[^>]*>([\s\S]*?)<\/span>/gi, '$1');
+        
+        // 处理列表
+        result = result.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, '• $1<br/>');
+        result = result.replace(/<[ou]l[^>]*>/gi, '');
+        result = result.replace(/<\/[ou]l>/gi, '<br/>');
+        
+        // 处理换行标签
         result = result.replace(/<br\s*\/?>/gi, '<br/>');
+        result = result.replace(/<hr\s*\/?>/gi, '<br/>───────────<br/>');
+        
+        // 转换普通换行符
         result = result.replace(/\n/g, '<br/>');
         
-        // 移除其他不支持的HTML标签
-        result = result.replace(/<[^>]+>/g, '');
+        // ★ 关键：移除所有其他不支持的HTML标签（但保留内容）
+        // 这个必须在最后执行，清理掉所有没被转换的标签
+        result = result.replace(/<[a-zA-Z][^>]*>/g, '');
+        result = result.replace(/<\/[a-zA-Z][^>]*>/g, '');
         
         // 清理多余的换行
-        result = result.replace(/(<br\/>){3,}/g, '<br/><br/>');
+        result = result.replace(/(<br\/>){3,}/gi, '<br/><br/>');
         result = result.replace(/^<br\/>/, '');
         result = result.replace(/<br\/>$/, '');
+        
+        // 解码HTML实体
+        result = result.replace(/&nbsp;/g, ' ');
+        result = result.replace(/&amp;/g, '&');
+        result = result.replace(/&lt;/g, '<');
+        result = result.replace(/&gt;/g, '>');
+        result = result.replace(/&quot;/g, '"');
+        
+        console.log("HTML转换完成，结果长度:", result.length);
         
         // 包装默认颜色
         return "<color=#333333>" + result + "</color>";
