@@ -55,13 +55,11 @@ cc.Class({
         }
     },
 
-    // 初始化复选框 - 使用点击事件直接实现
     _initCheckbox: function() {
         console.log("=== 初始化复选框 ===");
         
         var self = this;
         
-        // 获取 check_mark 节点
         var checkMarkNode = this.node.getChildByName("check_mark");
         if (!checkMarkNode) {
             console.error("check_mark 节点未找到");
@@ -70,42 +68,36 @@ cc.Class({
         
         this._checkMarkNode = checkMarkNode;
         
-        // 获取 checkmark 子节点（勾选图标）
         var checkmark = checkMarkNode.getChildByName("checkmark");
         if (checkmark) {
             this._checkmarkIcon = checkmark;
-            checkmark.active = false; // 默认未选中
+            checkmark.active = false;
             console.log("checkmark 子节点找到，默认隐藏");
         } else {
             console.warn("checkmark 子节点未找到");
         }
         
-        // 默认未选中
         this._isAgreementChecked = false;
         
-        // 移除之前的按钮组件（如果存在），避免冲突
         var button = checkMarkNode.getComponent(cc.Button);
         if (button) {
             button.enabled = false;
             console.log("禁用 Button 组件");
         }
         
-        // 直接使用触摸事件实现复选框
         checkMarkNode.off(cc.Node.EventType.TOUCH_END);
         checkMarkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
             console.log(">>> 复选框被点击");
             self._toggleCheckbox();
-        }, this);
+        }, self);
         
         console.log("=== 复选框初始化完成 ===");
     },
 
-    // 切换复选框状态
     _toggleCheckbox: function() {
         this._isAgreementChecked = !this._isAgreementChecked;
         console.log("复选框状态:", this._isAgreementChecked ? "已选中" : "未选中");
         
-        // 更新 checkmark 图标的显示状态
         if (this._checkmarkIcon) {
             this._checkmarkIcon.active = this._isAgreementChecked;
         }
@@ -117,6 +109,8 @@ cc.Class({
 
     _initLoginButtons: function() {
         console.log("=== _initLoginButtons 开始 ===");
+
+        var self = this;
 
         var wxLoginNode = this.node.getChildByName("login_wx");
         if (wxLoginNode) {
@@ -149,19 +143,18 @@ cc.Class({
                 button.clickEvents.push(handler);
             }
             
-            // 备选方案：触摸事件
-            var self = this;
             phoneLoginNode.off(cc.Node.EventType.TOUCH_END);
             phoneLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
                 self._onPhoneLoginClick();
-            }, this);
+            }, self);
         }
 
         console.log("=== _initLoginButtons 结束 ===");
     },
 
-    // 初始化用户协议链接点击事件
     _initUserAgreementLink: function() {
+        var self = this;
+        
         var linkNode = this.node.getChildByName("user_agreement_link");
         if (linkNode) {
             linkNode.active = true;
@@ -181,13 +174,11 @@ cc.Class({
                 console.log("用户协议链接事件已绑定");
             }
             
-            // 备选方案：触摸事件
-            var self = this;
             linkNode.off(cc.Node.EventType.TOUCH_END);
             linkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
                 console.log(">>> 用户协议链接被点击");
                 self._onUserAgreementLinkClick();
-            }, this);
+            }, self);
         }
     },
 
@@ -201,13 +192,11 @@ cc.Class({
         this._doPhoneLogin();
     },
 
-    // 点击"用户协议"链接 - 弹出协议弹窗
     _onUserAgreementLinkClick: function() {
         console.log(">>> 用户协议链接点击");
         this._showUserAgreementPopup();
     },
 
-    // 检查是否同意协议
     _checkAgreement: function() {
         return this._isAgreementChecked;
     },
@@ -368,246 +357,246 @@ cc.Class({
         }
     },
 
-    // 显示用户协议弹窗 - 使用动态创建，不依赖 prefab
     _showUserAgreementPopup: function() {
         console.log("=== 显示用户协议弹窗 ===");
-        this._createBeautifulAgreementPopup();
+        this._createAgreementPopup();
     },
 
-    // 创建美观的用户协议弹窗
-    _createBeautifulAgreementPopup: function() {
-        try {
-            var self = this;
-            
-            // ==================== 弹窗根节点 ====================
-            var popup = new cc.Node("user_agreement_popup");
-            popup.parent = this.node;
-            popup.setContentSize(cc.size(1280, 720));
-            popup.setPosition(0, 0);
-            popup.zIndex = 1000;
-            
-            // ==================== 半透明黑色背景遮罩 ====================
-            var bgMask = new cc.Node("bg_mask");
-            bgMask.parent = popup;
-            bgMask.setContentSize(cc.size(1280, 720));
-            bgMask.setPosition(0, 0);
-            var bgMaskSprite = bgMask.addComponent(cc.Sprite);
-            bgMaskSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            bgMask.color = new cc.Color(0, 0, 0);
-            bgMask.opacity = 180;
-            
-            // 背景遮罩添加阻挡事件
-            var blockInput = bgMask.addComponent(cc.BlockInputEvents);
-            
-            // ==================== 主面板（圆角卡片效果）====================
-            var panel = new cc.Node("content_panel");
-            panel.parent = popup;
-            panel.setContentSize(cc.size(820, 520));
-            panel.setPosition(0, 0);
-            var panelSprite = panel.addComponent(cc.Sprite);
-            panelSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            panel.color = new cc.Color(255, 252, 245);  // 温暖的米白色背景
-            
-            // ==================== 头部区域（深色渐变）====================
-            var header = new cc.Node("header");
-            header.parent = panel;
-            header.setContentSize(cc.size(820, 70));
-            header.setPosition(0, 225);
-            var headerSprite = header.addComponent(cc.Sprite);
-            headerSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            header.color = new cc.Color(60, 120, 80);  // 深绿色头部
-            
-            // 头部装饰线
-            var headerLine = new cc.Node("header_line");
-            headerLine.parent = panel;
-            headerLine.setContentSize(cc.size(820, 3));
-            headerLine.setPosition(0, 190);
-            var headerLineSprite = headerLine.addComponent(cc.Sprite);
-            headerLineSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            headerLine.color = new cc.Color(255, 200, 80);  // 金色装饰线
-            
-            // ==================== 标题（在头部中）====================
-            var titleNode = new cc.Node("title_label");
-            titleNode.parent = header;
-            titleNode.setContentSize(cc.size(300, 50));
-            titleNode.setPosition(0, 0);
-            var titleLabel = titleNode.addComponent(cc.Label);
-            titleLabel.string = "用户协议";
-            titleLabel.fontSize = 32;
-            titleLabel.lineHeight = 50;
-            titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            titleNode.color = new cc.Color(255, 255, 255);  // 白色标题
-            
-            // ==================== 右上角关闭按钮（X按钮）====================
-            var closeBtn = new cc.Node("close_btn");
-            closeBtn.parent = header;
-            closeBtn.setContentSize(cc.size(44, 44));
-            closeBtn.setPosition(370, 0);
-            
-            // 关闭按钮背景（圆形）
-            var closeBtnBg = new cc.Node("bg");
-            closeBtnBg.parent = closeBtn;
-            closeBtnBg.setContentSize(cc.size(44, 44));
-            closeBtnBg.setPosition(0, 0);
-            var closeBgSprite = closeBtnBg.addComponent(cc.Sprite);
-            closeBgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            closeBtnBg.color = new cc.Color(255, 100, 100);  // 红色背景
-            closeBtnBg.opacity = 200;
-            
-            // 关闭按钮 X 文字
-            var closeLabelNode = new cc.Node("x");
-            closeLabelNode.parent = closeBtn;
-            closeLabelNode.setPosition(0, 0);
-            var closeLabel = closeLabelNode.addComponent(cc.Label);
-            closeLabel.string = "×";
-            closeLabel.fontSize = 32;
-            closeLabel.lineHeight = 44;
-            closeLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            closeLabelNode.color = new cc.Color(255, 255, 255);
-            
-            var closeBtnComp = closeBtn.addComponent(cc.Button);
-            closeBtnComp.transition = cc.Button.Transition.SCALE;
-            closeBtnComp.zoomScale = 1.15;
-            
-            // 关闭按钮点击事件
-            closeBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
-                event.stopPropagation();
-                console.log(">>> 关闭按钮点击");
-                self._closeUserAgreementPopup();
-            }, this);
-            
-            // ==================== 内容显示区域（带滚动）====================
-            // 内容区域背景
-            var contentAreaBg = new cc.Node("content_area_bg");
-            contentAreaBg.parent = panel;
-            contentAreaBg.setContentSize(cc.size(760, 320));
-            contentAreaBg.setPosition(0, -5);
-            var contentBgSprite = contentAreaBg.addComponent(cc.Sprite);
-            contentBgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            contentAreaBg.color = new cc.Color(255, 255, 255);  // 白色背景
-            
-            // 创建 ScrollView
-            var scrollNode = new cc.Node("scroll_view");
-            scrollNode.parent = contentAreaBg;
-            scrollNode.setContentSize(cc.size(740, 300));
-            scrollNode.setPosition(0, 0);
-            
-            // 创建 view（带Mask）
-            var viewNode = new cc.Node("view");
-            viewNode.parent = scrollNode;
-            viewNode.setContentSize(cc.size(740, 300));
-            viewNode.setPosition(0, 0);
-            var mask = viewNode.addComponent(cc.Mask);
-            mask.type = cc.Mask.Type.RECT;
-            
-            // 创建 content
-            var contentNode = new cc.Node("content");
-            contentNode.parent = viewNode;
-            contentNode.setContentSize(cc.size(720, 300));
-            contentNode.setPosition(0, 150);
-            contentNode.anchorY = 1;
-            
-            // 创建 Label
-            var labelNode = new cc.Node("content_label");
-            labelNode.parent = contentNode;
-            labelNode.setPosition(0, 0);
-            labelNode.anchorY = 1;
-            
-            var contentLabel = labelNode.addComponent(cc.Label);
-            contentLabel.string = "正在加载用户协议...";
-            contentLabel.fontSize = 20;
-            contentLabel.lineHeight = 32;
-            contentLabel.overflow = cc.Label.Overflow.NONE;
-            contentLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
-            contentLabel.wrapWidth = 700;
-            labelNode.color = new cc.Color(60, 60, 60);  // 深灰色文字
-            
-            // 添加 ScrollView 组件
-            var scrollView = scrollNode.addComponent(cc.ScrollView);
-            scrollView.content = contentNode;
-            scrollView.horizontal = false;
-            scrollView.vertical = true;
-            scrollView.inertia = true;
-            scrollView.elastic = true;
-            scrollView.scrollToTop(0);
-            
-            // 保存引用
-            this._agreementContentLabel = contentLabel;
-            this._scrollView = scrollView;
-            this._contentNode = contentNode;
+    // 创建用户协议弹窗
+    _createAgreementPopup: function() {
+        var self = this;
+        
+        // ==================== 弹窗根节点 ====================
+        var popup = new cc.Node("user_agreement_popup");
+        popup.parent = this.node;
+        popup.setContentSize(cc.size(1280, 720));
+        popup.setPosition(0, 0);
+        popup.zIndex = 1000;
+        
+        // ==================== 半透明黑色背景遮罩 ====================
+        var bgMask = new cc.Node("bg_mask");
+        bgMask.parent = popup;
+        bgMask.setContentSize(cc.size(1280, 720));
+        bgMask.setPosition(0, 0);
+        var bgMaskSprite = bgMask.addComponent(cc.Sprite);
+        bgMaskSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        bgMask.color = new cc.Color(0, 0, 0);
+        bgMask.opacity = 180;
+        
+        // 背景遮罩添加阻挡事件（只在遮罩上，不影响按钮）
+        bgMask.addComponent(cc.BlockInputEvents);
+        
+        // ==================== 主面板（带背景图）====================
+        var panel = new cc.Node("content_panel");
+        panel.parent = popup;
+        panel.setContentSize(cc.size(900, 520));
+        panel.setPosition(0, 0);
+        var panelSprite = panel.addComponent(cc.Sprite);
+        panelSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        panel.color = new cc.Color(255, 250, 240);  // 温暖米白色作为默认
+        
+        // ★ 加载背景图片（必须保留）
+        cc.resources.load("images/user_agreement_bg", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err && spriteFrame) {
+                panelSprite.spriteFrame = spriteFrame;
+                console.log("背景图片加载成功");
+            } else {
+                console.log("背景图片加载失败，使用默认颜色");
+            }
+        });
 
-            // ==================== "我知道了"按钮 ====================
-            var confirmBtn = new cc.Node("confirm_btn");
-            confirmBtn.parent = panel;
-            confirmBtn.setContentSize(cc.size(200, 50));
-            confirmBtn.setPosition(0, -220);
-            
-            // 按钮背景（渐变色模拟：上深下浅）
-            var btnBgTop = new cc.Node("btn_bg_top");
-            btnBgTop.parent = confirmBtn;
-            btnBgTop.setContentSize(cc.size(200, 25));
-            btnBgTop.setPosition(0, 12.5);
-            var btnTopSprite = btnBgTop.addComponent(cc.Sprite);
-            btnTopSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            btnBgTop.color = new cc.Color(76, 175, 80);  // 深绿色
-            
-            var btnBgBottom = new cc.Node("btn_bg_bottom");
-            btnBgBottom.parent = confirmBtn;
-            btnBgBottom.setContentSize(cc.size(200, 25));
-            btnBgBottom.setPosition(0, -12.5);
-            var btnBottomSprite = btnBgBottom.addComponent(cc.Sprite);
-            btnBottomSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            btnBgBottom.color = new cc.Color(100, 200, 100);  // 浅绿色
-            
-            // 按钮文字
-            var confirmLabelNode = new cc.Node("label");
-            confirmLabelNode.parent = confirmBtn;
-            confirmLabelNode.setPosition(0, 0);
-            var confirmLabel = confirmLabelNode.addComponent(cc.Label);
-            confirmLabel.string = "我知道了";
-            confirmLabel.fontSize = 24;
-            confirmLabel.lineHeight = 50;
-            confirmLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            confirmLabelNode.color = new cc.Color(255, 255, 255);
-            
-            var confirmBtnComp = confirmBtn.addComponent(cc.Button);
-            confirmBtnComp.transition = cc.Button.Transition.SCALE;
-            confirmBtnComp.zoomScale = 1.08;
-            confirmBtnComp.interactable = true;
-            
-            // 确认按钮点击事件
-            confirmBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
-                event.stopPropagation();
-                console.log(">>> 我知道了按钮点击");
-                self._closeUserAgreementPopup();
-            }, this);
+        // ==================== 头部区域 ====================
+        var header = new cc.Node("header");
+        header.parent = panel;
+        header.setContentSize(cc.size(900, 60));
+        header.setPosition(0, 230);
+        var headerSprite = header.addComponent(cc.Sprite);
+        headerSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        header.color = new cc.Color(50, 105, 70);  // 深绿色
+        
+        // 标题
+        var titleNode = new cc.Node("title_label");
+        titleNode.parent = header;
+        titleNode.setContentSize(cc.size(300, 50));
+        titleNode.setPosition(-10, 0);
+        var titleLabel = titleNode.addComponent(cc.Label);
+        titleLabel.string = "用户协议";
+        titleLabel.fontSize = 30;
+        titleLabel.lineHeight = 50;
+        titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        titleNode.color = new cc.Color(255, 255, 255);
+        
+        // ==================== 右上角关闭按钮 ====================
+        var closeBtn = new cc.Node("close_btn");
+        closeBtn.parent = header;
+        closeBtn.setContentSize(cc.size(50, 50));
+        closeBtn.setPosition(410, 0);
+        
+        // 关闭按钮背景
+        var closeBtnBg = new cc.Node("bg");
+        closeBtnBg.parent = closeBtn;
+        closeBtnBg.setContentSize(cc.size(40, 40));
+        closeBtnBg.setPosition(0, 0);
+        var closeBgSprite = closeBtnBg.addComponent(cc.Sprite);
+        closeBgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        closeBtnBg.color = new cc.Color(220, 80, 80);
+        
+        // 关闭按钮 X
+        var closeLabelNode = new cc.Node("x");
+        closeLabelNode.parent = closeBtn;
+        closeLabelNode.setPosition(0, 0);
+        var closeLabel = closeLabelNode.addComponent(cc.Label);
+        closeLabel.string = "×";
+        closeLabel.fontSize = 30;
+        closeLabel.lineHeight = 40;
+        closeLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        closeLabelNode.color = new cc.Color(255, 255, 255);
+        
+        // 关闭按钮组件
+        var closeBtnComp = closeBtn.addComponent(cc.Button);
+        closeBtnComp.transition = cc.Button.Transition.SCALE;
+        closeBtnComp.zoomScale = 1.15;
+        closeBtnComp.interactable = true;
+        
+        // ★ 关闭按钮事件（使用 self 确保上下文正确）
+        closeBtn.off(cc.Node.EventType.TOUCH_END);
+        closeBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            console.log(">>> 关闭按钮点击，准备关闭弹窗");
+            self._closeUserAgreementPopup();
+        }, self);
+        
+        // ==================== 金色装饰线 ====================
+        var headerLine = new cc.Node("header_line");
+        headerLine.parent = panel;
+        headerLine.setContentSize(cc.size(880, 2));
+        headerLine.setPosition(0, 198);
+        var headerLineSprite = headerLine.addComponent(cc.Sprite);
+        headerLineSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        headerLine.color = new cc.Color(255, 200, 60);
 
-            // ==================== 底部装饰线 ====================
-            var bottomLine = new cc.Node("bottom_line");
-            bottomLine.parent = panel;
-            bottomLine.setContentSize(cc.size(820, 3));
-            bottomLine.setPosition(0, -257);
-            var bottomLineSprite = bottomLine.addComponent(cc.Sprite);
-            bottomLineSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            bottomLine.color = new cc.Color(60, 120, 80);  // 深绿色
+        // ==================== 内容滚动区域 ====================
+        // 内容区域容器（带padding的背景）
+        var contentContainer = new cc.Node("content_container");
+        contentContainer.parent = panel;
+        contentContainer.setContentSize(cc.size(850, 320));
+        contentContainer.setPosition(0, 0);
+        var containerSprite = contentContainer.addComponent(cc.Sprite);
+        containerSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        contentContainer.color = new cc.Color(255, 255, 255);  // 白色背景
+        
+        // ★ 创建 ScrollView（正确的层级结构）
+        var scrollNode = new cc.Node("scroll_view");
+        scrollNode.parent = contentContainer;
+        scrollNode.setContentSize(cc.size(830, 300));  // 留出 padding
+        scrollNode.setPosition(0, 0);
+        
+        // 创建 view 节点（带 Mask）
+        var viewNode = new cc.Node("view");
+        viewNode.parent = scrollNode;
+        viewNode.setContentSize(cc.size(830, 300));
+        viewNode.setPosition(0, 0);
+        var mask = viewNode.addComponent(cc.Mask);
+        mask.type = cc.Mask.Type.RECT;
+        
+        // 创建 content 节点
+        var contentNode = new cc.Node("content");
+        contentNode.parent = viewNode;
+        contentNode.setContentSize(cc.size(810, 300));
+        contentNode.setPosition(0, 150);  // anchorY=1，所以y偏移
+        contentNode.anchorY = 1;  // 锚点在顶部
+        
+        // 创建 Label（带padding效果）
+        var labelNode = new cc.Node("content_label");
+        labelNode.parent = contentNode;
+        // ★ padding: y偏移让文字有上边距
+        labelNode.setPosition(0, -10);
+        labelNode.anchorY = 1;
+        
+        var contentLabel = labelNode.addComponent(cc.Label);
+        contentLabel.string = "正在加载用户协议...";
+        contentLabel.fontSize = 20;
+        contentLabel.lineHeight = 30;
+        contentLabel.overflow = cc.Label.Overflow.NONE;
+        contentLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+        contentLabel.wrapWidth = 790;  // 左右留padding
+        labelNode.color = new cc.Color(50, 50, 50);
+        
+        // ★ 添加 ScrollView 组件（最后添加）
+        var scrollView = scrollNode.addComponent(cc.ScrollView);
+        scrollView.content = contentNode;
+        scrollView.horizontal = false;
+        scrollView.vertical = true;
+        scrollView.inertia = true;      // ★ 惯性滚动
+        scrollView.elastic = true;       // 弹性效果
+        scrollView.brake = 0.5;          // 刹车系数（0=滑动顺畅，1=立即停止）
+        scrollView.scrollEvents = [];    // 清空滚动事件
+        scrollView.scrollToTop(0);
+        
+        // 保存引用
+        this._agreementContentLabel = contentLabel;
+        this._scrollView = scrollView;
+        this._contentNode = contentNode;
 
-            // 保存弹窗引用
-            this._userAgreementPopup = popup;
-            
-            // 获取协议内容
-            this._fetchAgreementContent();
-            
-            console.log("=== 弹窗创建完成 ===");
-            
-        } catch (e) {
-            console.error("创建弹窗失败:", e);
-            this._showError("无法显示用户协议");
-        }
+        // ==================== "我知道了"按钮 ====================
+        var confirmBtn = new cc.Node("confirm_btn");
+        confirmBtn.parent = panel;
+        confirmBtn.setContentSize(cc.size(200, 55));
+        confirmBtn.setPosition(0, -215);
+        
+        // 按钮背景
+        var confirmBtnBg = new cc.Node("bg");
+        confirmBtnBg.parent = confirmBtn;
+        confirmBtnBg.setContentSize(cc.size(200, 55));
+        confirmBtnBg.setPosition(0, 0);
+        var confirmBgSprite = confirmBtnBg.addComponent(cc.Sprite);
+        confirmBgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        confirmBtnBg.color = new cc.Color(70, 165, 75);  // 绿色
+        
+        // 按钮文字
+        var confirmLabelNode = new cc.Node("label");
+        confirmLabelNode.parent = confirmBtn;
+        confirmLabelNode.setPosition(0, 0);
+        var confirmLabel = confirmLabelNode.addComponent(cc.Label);
+        confirmLabel.string = "我知道了";
+        confirmLabel.fontSize = 24;
+        confirmLabel.lineHeight = 55;
+        confirmLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        confirmLabelNode.color = new cc.Color(255, 255, 255);
+        
+        // 按钮组件
+        var confirmBtnComp = confirmBtn.addComponent(cc.Button);
+        confirmBtnComp.transition = cc.Button.Transition.SCALE;
+        confirmBtnComp.zoomScale = 1.08;
+        confirmBtnComp.interactable = true;
+        
+        // ★ 确认按钮事件（使用 self 确保上下文正确）
+        confirmBtn.off(cc.Node.EventType.TOUCH_END);
+        confirmBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            console.log(">>> 我知道了按钮点击，准备关闭弹窗");
+            self._closeUserAgreementPopup();
+        }, self);
+
+        // ==================== 底部装饰线 ====================
+        var bottomLine = new cc.Node("bottom_line");
+        bottomLine.parent = panel;
+        bottomLine.setContentSize(cc.size(900, 2));
+        bottomLine.setPosition(0, -255);
+        var bottomLineSprite = bottomLine.addComponent(cc.Sprite);
+        bottomLineSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        bottomLine.color = new cc.Color(50, 105, 70);
+
+        // 保存弹窗引用
+        this._userAgreementPopup = popup;
+        
+        // 获取协议内容
+        this._fetchAgreementContent();
+        
+        console.log("=== 弹窗创建完成 ===");
     },
 
     // 关闭用户协议弹窗
     _closeUserAgreementPopup: function() {
-        console.log("=== 关闭用户协议弹窗 ===");
+        console.log("=== _closeUserAgreementPopup 被调用 ===");
         
         if (this._userAgreementPopup) {
             this._userAgreementPopup.destroy();
@@ -615,6 +604,9 @@ cc.Class({
             this._agreementContentLabel = null;
             this._scrollView = null;
             this._contentNode = null;
+            console.log("=== 弹窗已关闭 ===");
+        } else {
+            console.log("=== 弹窗引用为空 ===");
         }
     },
 
@@ -625,7 +617,6 @@ cc.Class({
         var self = this;
         var defines = window.defines;
         
-        // 检查配置
         if (!defines || !defines.apiUrl) {
             console.warn("defines 或 apiUrl 未定义");
             self._showDefaultAgreementContent();
@@ -635,7 +626,6 @@ cc.Class({
         var apiUrl = defines.apiUrl + '/api/v1/user-agreement/latest';
         console.log("请求API:", apiUrl);
         
-        // 使用 XMLHttpRequest 发送请求
         var xhr = new XMLHttpRequest();
         xhr.open('GET', apiUrl, true);
         xhr.timeout = 10000;
@@ -697,9 +687,9 @@ cc.Class({
         if (!this._agreementContentLabel || !this._contentNode) return;
         
         var label = this._agreementContentLabel;
-        var lineHeight = label.lineHeight || 32;
+        var lineHeight = label.lineHeight || 30;
         var fontSize = label.fontSize || 20;
-        var wrapWidth = label.wrapWidth || 700;
+        var wrapWidth = label.wrapWidth || 790;
         
         // 估算行数
         var text = label.string || "";
@@ -707,13 +697,14 @@ cc.Class({
         var charsPerLine = Math.floor(wrapWidth / charWidth);
         var lines = Math.ceil(text.length / charsPerLine);
         
-        // 计算实际高度
-        var actualHeight = lines * lineHeight + 60;
+        // 计算实际高度（加上padding）
+        var actualHeight = lines * lineHeight + 40;
         var minHeight = 300;
         var newHeight = Math.max(actualHeight, minHeight);
         
-        this._contentNode.setContentSize(cc.size(720, newHeight));
+        this._contentNode.setContentSize(cc.size(810, newHeight));
         
+        // 滚动到顶部
         if (this._scrollView) {
             this._scrollView.scrollToTop(0.1);
         }
