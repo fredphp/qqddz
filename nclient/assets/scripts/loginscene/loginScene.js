@@ -486,10 +486,30 @@ cc.Class({
         scrollView.brake = 0.1;          // ★ 刹车系数越小，惯性越大
         scrollView.scrollToTop(0);
         
+        // ★ 7. 添加鼠标滚轮滚动支持
+        scrollNode.on(cc.Node.EventType.MOUSE_WHEEL, function(event) {
+            var scrollY = event.getScrollY();  // 获取滚轮滚动量
+            var currentOffset = scrollView.getScrollOffset();
+            
+            // 计算新的滚动位置
+            var scrollSpeed = 0.5;  // 滚动速度系数，可调整
+            var newOffsetY = currentOffset.y + scrollY * scrollSpeed;
+            
+            // 获取最大滚动范围
+            var maxOffset = scrollView.getMaxScrollOffset();
+            
+            // 限制滚动范围
+            newOffsetY = Math.max(0, Math.min(newOffsetY, maxOffset.y));
+            
+            // 平滑滚动到新位置
+            scrollView.scrollToOffset(cc.v2(currentOffset.x, newOffsetY), 0.15);
+        }, self);
+        
         // 保存引用
         this._agreementContentLabel = contentLabel;
         this._scrollView = scrollView;
         this._contentNode = contentNode;
+        this._scrollNode = scrollNode;   // ★ 保存 scrollNode 引用
         this._userAgreementPopup = popup;
         
         // 获取协议内容
@@ -503,11 +523,17 @@ cc.Class({
         console.log("=== _closeUserAgreementPopup 被调用 ===");
         
         if (this._userAgreementPopup) {
+            // ★ 移除滚轮事件监听
+            if (this._scrollNode) {
+                this._scrollNode.off(cc.Node.EventType.MOUSE_WHEEL);
+            }
+            
             this._userAgreementPopup.destroy();
             this._userAgreementPopup = null;
             this._agreementContentLabel = null;
             this._scrollView = null;
             this._contentNode = null;
+            this._scrollNode = null;
             console.log("=== 弹窗已关闭 ===");
         }
     },
