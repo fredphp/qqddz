@@ -431,49 +431,69 @@ cc.Class({
             lineSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
             titleLine.color = new cc.Color(200, 160, 100);  // 金色装饰线
 
-            // 创建滚动视图背景（带内边距的容器）
-            var scrollBg = new cc.Node("scroll_bg");
-            scrollBg.parent = panel;
-            scrollBg.setContentSize(cc.size(800, 340));
-            scrollBg.setPosition(0, -20);
-            var scrollBgSprite = scrollBg.addComponent(cc.Sprite);
-            scrollBgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            scrollBg.color = new cc.Color(255, 252, 240);  // 浅米色背景
-            scrollBg.opacity = 200;
+            // ==================== 协议内容显示区域 ====================
+            // 节点结构：agreement_content_root -> mask -> scrollview -> view -> content -> label
 
-            // 创建滚动视图 - 用于显示长内容
-            var scrollViewNode = new cc.Node("scroll_view");
-            scrollViewNode.parent = panel;
-            scrollViewNode.setContentSize(cc.size(760, 300));
-            scrollViewNode.setPosition(0, -20);
+            // 1. 创建内容显示区域根节点
+            var contentRoot = new cc.Node("agreement_content_root");
+            contentRoot.parent = panel;
+            contentRoot.setContentSize(cc.size(800, 340));
+            contentRoot.setPosition(0, -20);
+
+            // 2. 创建 mask 节点（裁剪超出区域的内容）
+            var maskNode = new cc.Node("mask");
+            maskNode.parent = contentRoot;
+            maskNode.setContentSize(cc.size(780, 320));
+            maskNode.setPosition(0, 0);
+            var mask = maskNode.addComponent(cc.Mask);
+            mask.type = cc.Mask.TYPE_RECT;  // 矩形遮罩
+            mask.inverted = false;
+
+            // 3. 创建 ScrollView 节点
+            var scrollViewNode = new cc.Node("scrollview");
+            scrollViewNode.parent = maskNode;
+            scrollViewNode.setContentSize(cc.size(780, 320));
+            scrollViewNode.setPosition(0, 0);
 
             var scrollView = scrollViewNode.addComponent(cc.ScrollView);
             scrollView.horizontal = false;
             scrollView.vertical = true;
             scrollView.inertia = true;
-            scrollView.brake = 0.5;
             scrollView.elastic = true;
-            scrollView.bounceDuration = 0.5;
+            scrollView.brake = 0.5;
 
-            // 创建内容容器（直接放在 scrollViewNode 下）
+            // 4. 创建 content 节点（滚动内容容器）
             var contentNode = new cc.Node("content");
-            contentNode.parent = scrollViewNode;  // 直接放在 scrollViewNode 下
-            contentNode.setContentSize(cc.size(760, 500));
-            contentNode.anchorY = 1;
-            contentNode.y = 150;
+            contentNode.parent = scrollViewNode;
+            contentNode.setContentSize(cc.size(760, 320));  // 初始高度
+            contentNode.anchorX = 0.5;
+            contentNode.anchorY = 1;  // 锚点在顶部，从上往下排
+            contentNode.x = 0;
+            contentNode.y = 160;  // 顶部位置
 
             scrollView.content = contentNode;
 
-            // 创建内容标签 - 居中显示，自动换行
-            var contentLabel = contentNode.addComponent(cc.Label);
+            // 5. 创建 Label 节点（协议文本）
+            var labelNode = new cc.Node("label");
+            labelNode.parent = contentNode;
+            labelNode.setContentSize(cc.size(720, 0));  // 宽度固定，高度自适应
+            labelNode.anchorY = 1;
+            labelNode.setPosition(0, 0);
+
+            var contentLabel = labelNode.addComponent(cc.Label);
             contentLabel.string = "正在加载用户协议...";
             contentLabel.fontSize = 20;
             contentLabel.lineHeight = 32;
-            contentLabel.overflow = cc.Label.Overflow.RESIZE_HEIGHT;  // 自动换行，高度自适应
-            contentLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;  // 居中显示
+            contentLabel.overflow = cc.Label.Overflow.NONE;  // 不截断，让文本完整显示
+            contentLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
             contentLabel.verticalAlign = cc.Label.VerticalAlign.TOP;
-            contentLabel.wrapWidth = 720;  // 设置换行宽度
-            contentNode.color = new cc.Color(80, 60, 40);  // 深棕色文字，更易阅读
+            contentLabel.wrapWidth = 720;  // 自动换行宽度
+            labelNode.color = new cc.Color(80, 60, 40);  // 深棕色文字
+
+            // 保存引用，用于后续更新内容
+            this._agreementContentLabel = contentLabel;
+            this._agreementContentNode = contentNode;
+            this._agreementLabelNode = labelNode;
 
             // 创建关闭按钮背景（圆形）
             var closeBtnBg = new cc.Node("close_btn_bg");
@@ -536,14 +556,13 @@ cc.Class({
                 console.log(">>> 我知道了按钮点击");
                 self._onCloseUserAgreement();
             }, this);
-            
+
+            // 保存弹窗引用
             this._userAgreementPopup = popup;
-            this._agreementContentLabel = contentLabel;
-            this._agreementContentNode = contentNode;
-            
+
             // 尝试从 API 获取协议内容
             this._fetchAgreementContent();
-            
+
             console.log("=== 弹窗创建完成 ===");
             
         } catch (e) {
@@ -630,20 +649,34 @@ cc.Class({
 
     // 更新协议内容
     _updateAgreementContent: function(content, title) {
+        console.log("=== 更新协议内容 ===");
+        
         if (this._agreementContentLabel && content) {
             this._agreementContentLabel.string = content;
             
-            // 根据内容长度调整容器高度（使用 RESIZE_HEIGHT 会自动调整 Label 高度）
-            // 这里延迟一帧等待 Label 更新后获取实际高度
+            // 延迟等待 Label 更新后获取实际高度
             var self = this;
             this.scheduleOnce(function() {
-                if (self._agreementContentNode && self._agreementContentLabel) {
+                if (self._agreementContentLabel && self._agreementContentNode && self._agreementLabelNode) {
+                    // 获取 Label 实际渲染高度
                     var labelHeight = self._agreementContentLabel.node.height;
-                    var newHeight = Math.max(500, labelHeight + 100);
-                    self._agreementContentNode.setContentSize(cc.size(760, newHeight));
-                    console.log("协议内容高度:", newHeight);
+                    // 如果高度为0，尝试使用 _actualHeight
+                    if (labelHeight <= 0 && self._agreementContentLabel._actualHeight) {
+                        labelHeight = self._agreementContentLabel._actualHeight;
+                    }
+                    
+                    console.log("Label 实际高度:", labelHeight);
+                    
+                    // 更新 label 节点高度
+                    self._agreementLabelNode.setContentSize(cc.size(720, labelHeight));
+                    
+                    // 更新 content 节点高度（比 label 高度多一点边距）
+                    var contentHeight = Math.max(320, labelHeight + 40);
+                    self._agreementContentNode.setContentSize(cc.size(760, contentHeight));
+                    
+                    console.log("Content 高度:", contentHeight);
                 }
-            }, 0.05);
+            }, 0.1);
             
             console.log("协议内容已更新");
         }
@@ -651,7 +684,7 @@ cc.Class({
 
     // 显示默认协议内容
     _showDefaultAgreementContent: function() {
-        console.log("显示默认协议内容");
+        console.log("=== 显示默认协议内容 ===");
 
         if (this._agreementContentLabel) {
             var defaultContent = "欢迎使用本游戏！\n\n" +
@@ -671,12 +704,20 @@ cc.Class({
             // 延迟调整容器高度
             var self = this;
             this.scheduleOnce(function() {
-                if (self._agreementContentNode && self._agreementContentLabel) {
+                if (self._agreementContentLabel && self._agreementContentNode && self._agreementLabelNode) {
                     var labelHeight = self._agreementContentLabel.node.height;
-                    var newHeight = Math.max(500, labelHeight + 100);
-                    self._agreementContentNode.setContentSize(cc.size(760, newHeight));
+                    if (labelHeight <= 0 && self._agreementContentLabel._actualHeight) {
+                        labelHeight = self._agreementContentLabel._actualHeight;
+                    }
+                    
+                    console.log("默认内容 Label 高度:", labelHeight);
+                    
+                    // 更新节点高度
+                    self._agreementLabelNode.setContentSize(cc.size(720, labelHeight));
+                    var contentHeight = Math.max(320, labelHeight + 40);
+                    self._agreementContentNode.setContentSize(cc.size(760, contentHeight));
                 }
-            }, 0.05);
+            }, 0.1);
         }
     },
 
@@ -686,6 +727,7 @@ cc.Class({
             this._userAgreementPopup = null;
             this._agreementContentLabel = null;
             this._agreementContentNode = null;
+            this._agreementLabelNode = null;
         }
     }
 });
