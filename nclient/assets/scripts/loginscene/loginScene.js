@@ -455,18 +455,9 @@ cc.Class({
             scrollView.elastic = true;
             scrollView.bounceDuration = 0.5;
 
-            // 创建遮罩节点（用于裁剪超出边框的内容）
-            var maskNode = new cc.Node("view_mask");
-            maskNode.parent = scrollViewNode;
-            maskNode.setContentSize(cc.size(760, 300));
-            maskNode.setPosition(0, 0);
-            var mask = maskNode.addComponent(cc.Mask);
-            mask.type = cc.Mask.TYPE_RECT;  // 矩形遮罩
-            mask.inverted = false;  // 正常模式：遮罩外的内容隐藏
-
-            // 创建内容容器
+            // 创建内容容器（直接放在 scrollViewNode 下）
             var contentNode = new cc.Node("content");
-            contentNode.parent = maskNode;  // 将内容放在遮罩节点下
+            contentNode.parent = scrollViewNode;  // 直接放在 scrollViewNode 下
             contentNode.setContentSize(cc.size(760, 500));
             contentNode.anchorY = 1;
             contentNode.y = 150;
@@ -514,11 +505,11 @@ cc.Class({
                 self._onCloseUserAgreement();
             }, this);
 
-            // 创建"我知道了"按钮
+            // 创建"我知道了"按钮（使用图片，无文字）
             var confirmBtnBg = new cc.Node("confirm_btn_bg");
             confirmBtnBg.parent = panel;
-            confirmBtnBg.setContentSize(cc.size(180, 50));
-            confirmBtnBg.setPosition(0, -225);
+            confirmBtnBg.setContentSize(cc.size(180, 70));  // 调高按钮高度
+            confirmBtnBg.setPosition(0, -220);
             var confirmBtnBgSprite = confirmBtnBg.addComponent(cc.Sprite);
             confirmBtnBgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
 
@@ -526,17 +517,6 @@ cc.Class({
             var confirmBtnComp = confirmBtnBg.addComponent(cc.Button);
             confirmBtnComp.transition = cc.Button.Transition.SCALE;
             confirmBtnComp.zoomScale = 1.1;
-
-            // 创建按钮文字
-            var confirmLabelNode = new cc.Node("label");
-            confirmLabelNode.parent = confirmBtnBg;
-            confirmLabelNode.setPosition(0, 0);
-            var confirmLabel = confirmLabelNode.addComponent(cc.Label);
-            confirmLabel.string = "我知道了";
-            confirmLabel.fontSize = 24;
-            confirmLabel.lineHeight = 50;
-            confirmLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            confirmLabelNode.color = new cc.Color(255, 255, 255);  // 白色文字
 
             // 加载按钮图片
             cc.resources.load("UI/button/btn_confirm", cc.SpriteFrame, function(err, spriteFrame) {
