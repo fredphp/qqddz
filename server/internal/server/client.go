@@ -11,6 +11,7 @@ import (
 
         "github.com/palemoky/fight-the-landlord/internal/protocol"
         "github.com/palemoky/fight-the-landlord/internal/protocol/codec"
+        "github.com/palemoky/fight-the-landlord/internal/server/session"
 )
 
 const (
@@ -61,10 +62,12 @@ type Client struct {
         conn   *websocket.Conn
         send   chan outgoingMessage
 
-        mu        sync.RWMutex
-        closed    bool
-        jsonMode  *JSONMode // JSON模式处理器
-        useJSON   bool      // 是否使用JSON模式
+        mu               sync.RWMutex
+        closed           bool
+        jsonMode         *JSONMode                // JSON模式处理器
+        useJSON          bool                     // 是否使用JSON模式
+        pendingConnected bool                     // 是否需要发送 connected 消息
+        playerSession    *session.PlayerSession   // 会话信息（延迟发送 connected 时使用）
 }
 
 // NewClient 创建新客户端
@@ -103,6 +106,12 @@ func (c *Client) ReadPump() {
                         break
                 }
 
+                // 如果是第一条消息，先发送 connected 消息
+                if c.pendingConnected {
+                        c.sendConnectedMessage()
+                        c.pendingConnected = false
+                }
+
                 // 消息速率限制检查
                 allowed, warning := c.server.messageLimiter.AllowMessage(c.ID)
                 if !allowed {
@@ -138,6 +147,18 @@ func (c *Client) ReadPump() {
                 c.server.handler.Handle(c, msg)
                 codec.PutMessage(msg)
         }
+}
+
+// sendConnectedMessage 发送连接成功消息
+func (c *Client) sendConnectedMessage() {
+        if c.playerSession == nil {
+                return
+        }
+        c.SendMessage(codec.MustNewMessage(protocol.MsgConnected, protocol.ConnectedPayload{
+                PlayerID:       c.ID,
+                PlayerName:     c.Name,
+                ReconnectToken: c.playerSession.ReconnectToken,
+        }))
 }
 
 // WritePump 向 WebSocket 写入消息

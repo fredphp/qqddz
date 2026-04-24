@@ -274,6 +274,14 @@ window.socketCtr = function(){
             
             _socket.onopen = function(){
                 console.log("WebSocket 连接已打开")
+                // 立即发送一条 JSON 消息，让服务器切换到 JSON 模式
+                // 这样服务器后续的所有消息都会使用 JSON 格式
+                var initMsg = {
+                    type: "ping",
+                    data: { timestamp: Date.now() }
+                }
+                _socket.send(JSON.stringify(initMsg))
+                console.log("发送 JSON 初始化消息，切换服务器到 JSON 模式")
             }
             
             _socket.onmessage = function(evt){
@@ -284,10 +292,18 @@ window.socketCtr = function(){
                         var reader = new FileReader();
                         reader.onload = function(e) {
                             try {
-                                var msgData = JSON.parse(e.target.result);
-                                _handleMessage(msgData);
+                                var text = e.target.result;
+                                // 检查是否是 JSON 格式（以 { 开头）
+                                if (text.trim().charAt(0) === '{') {
+                                    var msgData = JSON.parse(text);
+                                    _handleMessage(msgData);
+                                } else {
+                                    // 二进制 Protobuf 消息，忽略
+                                    // 这通常是服务器在切换到 JSON 模式之前发送的 connected 消息
+                                    console.log("收到 Protobuf 二进制消息，已忽略（服务器将切换到 JSON 模式）");
+                                }
                             } catch(e) {
-                                console.error("解析 Blob 消息失败:", e);
+                                console.log("解析消息失败，可能是 Protobuf 格式:", e.message);
                             }
                         };
                         reader.onerror = function(e) {

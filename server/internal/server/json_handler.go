@@ -245,6 +245,8 @@ func (j *JSONMode) handleJSONMessage(msg *JSONMessage) {
         log.Printf("[JSON] 收到消息: type=%s, callIndex=%d", msg.Type, msg.CallIndex)
 
         switch msg.Type {
+        case "ping":
+                j.handlePing(msg)
         case "create_room":
                 j.handleCreateRoom(msg)
         case "join_room":
@@ -268,6 +270,12 @@ func (j *JSONMode) handleJSONMessage(msg *JSONMessage) {
         default:
                 log.Printf("[JSON] 未知消息类型: %s", msg.Type)
         }
+}
+
+// handlePing 处理 ping 消息
+func (j *JSONMode) handlePing(msg *JSONMessage) {
+        // ping 消息用于切换服务器到 JSON 模式，不需要特殊处理
+        log.Printf("[JSON] 收到 ping 消息，服务器已切换到 JSON 模式")
 }
 
 // handleCreateRoom 创建房间
