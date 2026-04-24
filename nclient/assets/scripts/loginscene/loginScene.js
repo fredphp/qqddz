@@ -479,6 +479,7 @@ cc.Class({
         contentLabel.overflow = cc.Label.Overflow.RESIZE_HEIGHT;  // ★ 自动调整高度
         contentLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;  // ★ 左对齐
         contentLabel.enableWrapText = true;  // ★ 启用自动换行
+        contentLabel.wrapWidth = 760;  // ★ 必须设置换行宽度，否则 RESIZE_HEIGHT 不生效
         labelNode.color = new cc.Color(50, 50, 50);
         
         // 6. ★ 最后添加 ScrollView 组件
@@ -547,93 +548,118 @@ cc.Class({
     _fetchAgreementContent: function() {
         var self = this;
         var defines = window.defines;
+        var HttpAPI = window.HttpAPI;
         
-        if (!defines || !defines.apiUrl) {
-            self._showDefaultAgreementContent();
-            return;
-        }
-        
-        var apiUrl = defines.apiUrl + '/api/v1/user-agreement/latest';
-        
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', apiUrl, true);
-        xhr.timeout = 10000;
-        
-        xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                    var response = JSON.parse(xhr.responseText);
-                    if (response && response.code === 0 && response.data && response.data.content) {
-                        self._updateAgreementContent(response.data.content);
+        // 优先使用 HttpAPI（支持解密）
+        if (defines && defines.apiUrl && HttpAPI) {
+            HttpAPI.getUserAgreement(
+                defines.apiUrl,
+                defines.cryptoKey || '',
+                function(err, data) {
+                    if (err || !data || !data.content) {
+                        console.log("API获取失败，使用默认内容:", err);
+                        self._showDefaultAgreementContent();
                     } else {
+                        self._updateAgreementContent(data.content);
+                    }
+                }
+            );
+        } else {
+            // 直接请求 API
+            if (!defines || !defines.apiUrl) {
+                self._showDefaultAgreementContent();
+                return;
+            }
+            
+            var apiUrl = defines.apiUrl + '/api/v1/user-agreement/latest';
+            
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', apiUrl, true);
+            xhr.timeout = 10000;
+            
+            xhr.onload = function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        var response = JSON.parse(xhr.responseText);
+                        if (response && response.code === 0 && response.data && response.data.content) {
+                            self._updateAgreementContent(response.data.content);
+                        } else {
+                            self._showDefaultAgreementContent();
+                        }
+                    } catch (e) {
                         self._showDefaultAgreementContent();
                     }
-                } catch (e) {
+                } else {
                     self._showDefaultAgreementContent();
                 }
-            } else {
+            };
+            
+            xhr.onerror = function() {
                 self._showDefaultAgreementContent();
-            }
-        };
-        
-        xhr.onerror = function() {
-            self._showDefaultAgreementContent();
-        };
-        
-        xhr.ontimeout = function() {
-            self._showDefaultAgreementContent();
-        };
-        
-        xhr.send();
+            };
+            
+            xhr.ontimeout = function() {
+                self._showDefaultAgreementContent();
+            };
+            
+            xhr.send();
+        }
     },
 
     // 更新协议内容
     _updateAgreementContent: function(content) {
-        if (!this._agreementContentLabel) return;
+        if (!this._agreementContentLabel) {
+            console.log("_updateAgreementContent: Label 不存在");
+            return;
+        }
 
         if (content) {
+            console.log("设置协议内容，长度:", content.length);
             this._agreementContentLabel.string = content;
             
-            // ★ RESIZE_HEIGHT 需要两帧才能正确计算高度
+            // ★ RESIZE_HEIGHT 需要延迟计算高度
             var self = this;
             this.scheduleOnce(function() {
                 self._updateContentSize();
-            }, 0.2);  // 增加延迟时间
+            }, 0.3);
         }
     },
 
     // 更新 ScrollView 的 content 尺寸
     _updateContentSize: function() {
-        if (!this._agreementContentLabel || !this._contentNode || !this._scrollView) return;
+        if (!this._agreementContentLabel || !this._contentNode || !this._scrollView) {
+            console.log("_updateContentSize: 组件不存在");
+            return;
+        }
         
         var viewHeight = 380;  // ScrollView 视口高度
         
-        // ★ Label 使用 RESIZE_HEIGHT，需要强制更新后获取高度
         var labelNode = this._agreementContentLabel.node;
-        
-        // 强制 Label 更新布局
-        this._agreementContentLabel['_forceUpdate'] && this._agreementContentLabel['_forceUpdate']();
-        
         var textHeight = labelNode.height;
         
-        // 计算最终的 content 高度
-        var actualHeight = textHeight + 50;  // 上下各留边距
+        console.log("Label节点高度:", textHeight, "宽度:", labelNode.width);
         
-        // 确保高度大于视口高度
-        if (actualHeight < viewHeight) {
-            actualHeight = viewHeight + 50;
+        // 计算最终的 content 高度
+        var actualHeight = textHeight + 60;
+        
+        // 确保高度大于视口高度，才能滚动
+        if (actualHeight < viewHeight + 50) {
+            actualHeight = viewHeight + 100;
         }
         
-        console.log("Label高度:", textHeight, "Content高度:", actualHeight);
+        console.log("设置 Content 高度:", actualHeight);
         
         // 更新 content 尺寸
         this._contentNode.setContentSize(cc.size(810, actualHeight));
         
-        // 强制更新 ScrollView
+        // 重新设置 content 到 ScrollView（触发更新）
         this._scrollView.content = this._contentNode;
         
-        // 滚动到顶部
-        this._scrollView.scrollToTop(0.05);
+        // 延迟滚动到顶部
+        var self = this;
+        this.scheduleOnce(function() {
+            self._scrollView.scrollToTop(0.1);
+        }, 0.1);
     },
 
     // 显示默认协议内容
@@ -651,13 +677,14 @@ cc.Class({
                 "【免责声明】\n" +
                 "本游戏不对因网络原因导致的服务中断承担责任。";
 
+            console.log("显示默认协议内容");
             this._agreementContentLabel.string = defaultContent;
             
-            // ★ 延迟更新尺寸
+            // 延迟更新尺寸
             var self = this;
             this.scheduleOnce(function() {
                 self._updateContentSize();
-            }, 0.2);
+            }, 0.3);
         }
     }
 });
