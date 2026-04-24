@@ -428,91 +428,79 @@ cc.Class({
         dividerLine.color = new cc.Color(220, 220, 220);
 
         // ==================== 内容滚动区域 ====================
-        var contentContainer = new cc.Node("content_container");
-        contentContainer.parent = panel;
-        contentContainer.setContentSize(cc.size(850, 400));
-        contentContainer.setPosition(0, -10);
-        var containerSprite = contentContainer.addComponent(cc.Sprite);
-        containerSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        contentContainer.color = new cc.Color(255, 255, 255);
-        
-        // ★ 先创建节点层级，最后添加 ScrollView 组件
-        
+        // ★ 简化结构：直接创建 ScrollView，不需要额外的容器
+
         // 1. 创建 ScrollView 节点
         var scrollNode = new cc.Node("scroll_view");
-        scrollNode.parent = contentContainer;
-        scrollNode.setContentSize(cc.size(830, 380));
-        scrollNode.setPosition(0, 0);
+        scrollNode.parent = panel;
+        scrollNode.setContentSize(cc.size(850, 400));
+        scrollNode.setPosition(0, -30);
         
-        // 2. 创建 view 节点
+        // 2. 创建 view 节点（ScrollView 的视口）
         var viewNode = new cc.Node("view");
         viewNode.parent = scrollNode;
-        viewNode.setContentSize(cc.size(830, 380));
+        viewNode.setContentSize(cc.size(850, 400));
         viewNode.setPosition(0, 0);
+        viewNode.anchorX = 0.5;
+        viewNode.anchorY = 0.5;
         
-        // 3. 添加 Mask 组件到 view
+        // 3. 添加 Mask 组件到 view（裁剪超出视口的内容）
         var mask = viewNode.addComponent(cc.Mask);
         mask.type = cc.Mask.Type.RECT;
         
-        // 4. 创建 content 节点
+        // 4. 创建 content 节点（ScrollView 的内容容器）
         var contentNode = new cc.Node("content");
         contentNode.parent = viewNode;
-        // ★ 初始高度设置大一些，确保内容可见
-        contentNode.setContentSize(cc.size(810, 2000));
-        // ★ 位置设置在视口中心，锚点在顶部
-        contentNode.setPosition(0, 190);
+        // ★ content 的锚点必须在顶部中心 (0.5, 1)
         contentNode.anchorX = 0.5;
         contentNode.anchorY = 1;
+        // ★ content 的位置：在 view 坐标系中，y = view高度/2 = 200（view 的顶部）
+        contentNode.setPosition(0, 200);
+        // ★ 初始高度，后续会根据内容调整
+        contentNode.setContentSize(cc.size(810, 500));
         
-        // 5. 创建 Label（左对齐，自动换行）
+        // 5. 创建 Label 节点
         var labelNode = new cc.Node("content_label");
         labelNode.parent = contentNode;
-        // ★ 左对齐：锚点在左上角
+        // ★ Label 锚点在左上角
         labelNode.anchorX = 0;
         labelNode.anchorY = 1;
-        // ★ 位置：x=-380 相对于 contentNode 中心（810/2 - padding = 405 - 25 = 380）
-        labelNode.setPosition(-380, -30);
-        // ★ 使用 wrapWidth 作为节点宽度
-        labelNode.setContentSize(cc.size(760, 50));
+        // ★ Label 位置：相对于 content 锚点（顶部中心）偏移
+        // x = -395 (content宽度810/2 - padding10 = 395，向左偏移)
+        // y = -20 (向下偏移一点，留出顶部间距)
+        labelNode.setPosition(-395, -20);
+        // ★ 设置节点宽度，高度会自动调整
+        labelNode.setContentSize(cc.size(790, 100));
         
+        // 6. 添加 Label 组件
         var contentLabel = labelNode.addComponent(cc.Label);
         contentLabel.string = "正在加载用户协议...";
-        contentLabel.fontSize = 20;
-        contentLabel.lineHeight = 32;
-        // ★ 关键：先设置换行宽度，再设置 overflow
+        contentLabel.fontSize = 22;
+        contentLabel.lineHeight = 34;
+        contentLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+        // ★ 设置自动换行和溢出模式
         contentLabel.enableWrapText = true;
-        contentLabel.wrapWidth = 760;  // ★ 必须设置换行宽度
-        contentLabel.overflow = cc.Label.Overflow.RESIZE_HEIGHT;  // ★ 自动调整高度
-        contentLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;  // ★ 左对齐
-        labelNode.color = new cc.Color(50, 50, 50);
+        contentLabel.wrapWidth = 790;
+        contentLabel.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
+        // ★ 设置深色文字，确保可见
+        labelNode.color = new cc.Color(60, 60, 60);
         
-        // 6. ★ 最后添加 ScrollView 组件
+        // 7. 添加 ScrollView 组件
         var scrollView = scrollNode.addComponent(cc.ScrollView);
         scrollView.content = contentNode;
         scrollView.horizontal = false;
         scrollView.vertical = true;
-        scrollView.inertia = true;       // ★ 惯性滚动
+        scrollView.inertia = true;
         scrollView.elastic = true;
-        scrollView.brake = 0.1;          // ★ 刹车系数越小，惯性越大
-        scrollView.scrollToTop(0);
+        scrollView.brake = 0.5;
         
-        // ★ 7. 添加鼠标滚轮滚动支持
+        // 8. 添加鼠标滚轮支持
         scrollNode.on(cc.Node.EventType.MOUSE_WHEEL, function(event) {
-            var scrollY = event.getScrollY();  // 获取滚轮滚动量
+            var scrollY = event.getScrollY();
             var currentOffset = scrollView.getScrollOffset();
-            
-            // 计算新的滚动位置
-            var scrollSpeed = 0.5;  // 滚动速度系数，可调整
-            var newOffsetY = currentOffset.y + scrollY * scrollSpeed;
-            
-            // 获取最大滚动范围
             var maxOffset = scrollView.getMaxScrollOffset();
-            
-            // 限制滚动范围
-            newOffsetY = Math.max(0, Math.min(newOffsetY, maxOffset.y));
-            
-            // 平滑滚动到新位置
-            scrollView.scrollToOffset(cc.v2(currentOffset.x, newOffsetY), 0.15);
+            var newOffsetY = Math.max(0, Math.min(currentOffset.y + scrollY * 0.5, maxOffset.y));
+            scrollView.scrollToOffset(cc.v2(currentOffset.x, newOffsetY), 0.1);
         }, self);
         
         // 保存引用
@@ -619,25 +607,13 @@ cc.Class({
 
         if (content) {
             console.log("设置协议内容，长度:", content.length);
-            
-            // ★ 先更新 Label 内容
             this._agreementContentLabel.string = content;
             
-            // ★ 强制更新 Label 尺寸（RESIZE_HEIGHT 需要一帧时间计算）
+            // 延迟更新尺寸（RESIZE_HEIGHT 需要一帧计算）
             var self = this;
-            var labelNode = this._agreementContentLabel.node;
-            
-            // 使用多次延迟确保布局正确
             this.scheduleOnce(function() {
-                console.log("第一次延迟更新，Label高度:", labelNode.height);
                 self._updateContentSize();
-                
-                // 再次延迟确认布局
-                self.scheduleOnce(function() {
-                    console.log("第二次延迟确认，Label高度:", labelNode.height);
-                    self._updateContentSize();
-                }, 0.2);
-            }, 0.1);
+            }, 0.05);
         }
     },
 
@@ -648,7 +624,7 @@ cc.Class({
             return;
         }
         
-        var viewHeight = 380;  // ScrollView 视口高度
+        var viewHeight = 400;  // ScrollView 视口高度（更新为400）
         
         var labelNode = this._agreementContentLabel.node;
         var textHeight = labelNode.height;
@@ -656,7 +632,7 @@ cc.Class({
         console.log("Label节点高度:", textHeight, "宽度:", labelNode.width);
         
         // 计算最终的 content 高度（包含上下 padding）
-        var actualHeight = textHeight + 80;
+        var actualHeight = textHeight + 60;
         
         // 确保高度大于视口高度，才能滚动
         if (actualHeight < viewHeight) {
@@ -668,19 +644,16 @@ cc.Class({
         // 更新 content 尺寸
         this._contentNode.setContentSize(cc.size(810, actualHeight));
         
-        // 重新设置 content 到 ScrollView（触发更新）
+        // 强制更新 ScrollView
         this._scrollView.content = this._contentNode;
         
-        // 强制更新 ScrollView 布局
-        this._scrollView.scrollToTop(0.01);
-        
-        // 延迟再次滚动到顶部，确保布局正确
+        // 延迟滚动到顶部
         var self = this;
         this.scheduleOnce(function() {
             if (self._scrollView) {
                 self._scrollView.scrollToTop(0);
             }
-        }, 0.2);
+        }, 0.05);
     },
 
     // 显示默认协议内容
@@ -705,12 +678,7 @@ cc.Class({
             var self = this;
             this.scheduleOnce(function() {
                 self._updateContentSize();
-                
-                // 再次延迟确认布局
-                self.scheduleOnce(function() {
-                    self._updateContentSize();
-                }, 0.2);
-            }, 0.1);
+            }, 0.05);
         }
     }
 });
