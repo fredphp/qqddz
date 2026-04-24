@@ -432,6 +432,7 @@ cc.Class({
             titleLine.color = new cc.Color(200, 160, 100);  // 金色装饰线
 
             // ==================== 协议内容显示区域 ====================
+            // 手动创建 ScrollView 结构：scroll_view -> view -> content -> label
 
             // 1. 创建 ScrollView 节点
             var scrollViewNode = new cc.Node("scroll_view");
@@ -439,23 +440,35 @@ cc.Class({
             scrollViewNode.setContentSize(cc.size(800, 300));
             scrollViewNode.setPosition(0, -30);
 
-            var scrollView = scrollViewNode.addComponent(cc.ScrollView);
-            scrollView.horizontal = false;
-            scrollView.vertical = true;
-            scrollView.inertia = true;
-            scrollView.elastic = true;
-            scrollView.brake = 0.3;
+            // 添加背景色块（放在 ScrollView 下面）
+            var bgNode = new cc.Node("bg");
+            bgNode.parent = scrollViewNode;
+            bgNode.setContentSize(cc.size(800, 300));
+            bgNode.setPosition(0, 0);
+            var bgSprite = bgNode.addComponent(cc.Sprite);
+            bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+            bgNode.color = new cc.Color(255, 250, 240);  // 浅米色背景
+            bgNode.opacity = 200;
 
-            // 2. 创建 content 节点（滚动内容容器）
+            // 2. 创建 view 节点（ScrollView 的可视区域，带遮罩）
+            var viewNode = new cc.Node("view");
+            viewNode.parent = scrollViewNode;
+            viewNode.setContentSize(cc.size(800, 300));
+            viewNode.setPosition(0, 0);
+
+            // 添加 Mask 组件裁剪超出区域的内容
+            var mask = viewNode.addComponent(cc.Mask);
+            mask.type = cc.Mask.TYPE_RECT;
+
+            // 3. 创建 content 节点（滚动内容容器）
             var contentNode = new cc.Node("content");
+            contentNode.parent = viewNode;  // 放在 view 节点下
             contentNode.setContentSize(cc.size(780, 500));  // 初始高度
             contentNode.anchorX = 0.5;
             contentNode.anchorY = 1;  // 锚点在顶部
+            contentNode.setPosition(0, 150);  // 顶部位置
 
-            // 设置 ScrollView 的 content（ScrollView 会自动创建 view 节点并将 content 放入）
-            scrollView.content = contentNode;
-
-            // 3. 创建 Label 节点（协议文本）- 放在 content 下
+            // 4. 创建 Label 节点（协议文本）
             var labelNode = new cc.Node("label");
             labelNode.parent = contentNode;
             labelNode.setContentSize(cc.size(760, 0));
@@ -473,16 +486,14 @@ cc.Class({
             contentLabel.wrapWidth = 760;  // 自动换行宽度
             labelNode.color = new cc.Color(60, 50, 40);  // 深棕色文字
 
-            // 添加背景色块
-            var bgNode = new cc.Node("bg");
-            bgNode.parent = scrollViewNode;
-            bgNode.setSiblingIndex(0);  // 放到最底层
-            bgNode.setContentSize(cc.size(800, 300));
-            bgNode.setPosition(0, 0);
-            var bgSprite = bgNode.addComponent(cc.Sprite);
-            bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            bgNode.color = new cc.Color(255, 250, 240);  // 浅米色背景
-            bgNode.opacity = 200;
+            // 5. 添加 ScrollView 组件并设置属性
+            var scrollView = scrollViewNode.addComponent(cc.ScrollView);
+            scrollView.content = contentNode;  // 设置 content 引用
+            scrollView.horizontal = false;
+            scrollView.vertical = true;
+            scrollView.inertia = true;
+            scrollView.elastic = true;
+            scrollView.brake = 0.3;
 
             // 保存引用，用于后续更新内容
             this._agreementContentLabel = contentLabel;
