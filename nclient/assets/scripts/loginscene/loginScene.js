@@ -398,10 +398,7 @@ cc.Class({
             bgMask.opacity = 150;
             bgMask.addComponent(cc.Sprite);
             
-            // 尝试加载背景图片
-            this._loadPopupBackground(popup);
-            
-            // 创建内容面板
+            // 创建内容面板（必须先创建，才能加载背景图片）
             var panel = new cc.Node("content_panel");
             panel.parent = popup;
             panel.setContentSize(cc.size(900, 520));
@@ -409,6 +406,9 @@ cc.Class({
             var panelSprite = panel.addComponent(cc.Sprite);
             panelSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
             panel.color = new cc.Color(255, 255, 255);
+            
+            // 加载背景图片（panel 创建后才能加载）
+            this._loadPopupBackground(popup);
             
             // 创建标题
             var titleNode = new cc.Node("title_label");
