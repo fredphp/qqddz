@@ -63,6 +63,9 @@ HttpAPI.get = function(url, cryptoKey, callback) {
     xhr.open('GET', url, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     
+    // 设置超时时间
+    xhr.timeout = 10000; // 10秒超时
+    
     xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
@@ -86,9 +89,13 @@ HttpAPI.get = function(url, cryptoKey, callback) {
                     callback('解析响应失败: ' + e.message, null);
                 }
             } else {
-                callback('请求失败: ' + xhr.status, null);
+                callback('请求失败: HTTP ' + xhr.status, null);
             }
         }
+    };
+    
+    xhr.ontimeout = function() {
+        callback('请求超时', null);
     };
     
     xhr.onerror = function() {
@@ -104,6 +111,9 @@ HttpAPI.post = function(url, data, cryptoKey, callback) {
     xhr.open('POST', url, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     
+    // 设置超时时间
+    xhr.timeout = 10000; // 10秒超时
+    
     xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
@@ -127,9 +137,13 @@ HttpAPI.post = function(url, data, cryptoKey, callback) {
                     callback('解析响应失败: ' + e.message, null);
                 }
             } else {
-                callback('请求失败: ' + xhr.status, null);
+                callback('请求失败: HTTP ' + xhr.status, null);
             }
         }
+    };
+    
+    xhr.ontimeout = function() {
+        callback('请求超时', null);
     };
     
     xhr.onerror = function() {
@@ -140,9 +154,11 @@ HttpAPI.post = function(url, data, cryptoKey, callback) {
 };
 
 // 获取用户协议（带缓存）
+// 重要：无论成功或失败，都会调用 callback
 HttpAPI.getUserAgreement = function(apiUrl, cryptoKey, callback) {
     // 检查内存缓存
     if (HttpAPI._userAgreementCache) {
+        console.log("使用内存缓存的用户协议");
         callback(null, HttpAPI._userAgreementCache);
         return;
     }
@@ -153,6 +169,7 @@ HttpAPI.getUserAgreement = function(apiUrl, cryptoKey, callback) {
         if (cached) {
             var cacheData = JSON.parse(cached);
             HttpAPI._userAgreementCache = cacheData;
+            console.log("使用localStorage缓存的用户协议");
             callback(null, cacheData);
             return;
         }
@@ -161,11 +178,15 @@ HttpAPI.getUserAgreement = function(apiUrl, cryptoKey, callback) {
     }
     
     // 从服务器获取（带解密）
+    console.log("从服务器获取用户协议:", apiUrl + '/api/v1/user-agreement/latest');
+    
     HttpAPI.get(
         apiUrl + '/api/v1/user-agreement/latest',
         cryptoKey,
         function(err, result) {
             if (err) {
+                console.warn("获取用户协议API失败:", err);
+                // 返回错误，但让调用者决定如何显示
                 callback(err, null);
                 return;
             }
@@ -190,6 +211,7 @@ HttpAPI.getUserAgreement = function(apiUrl, cryptoKey, callback) {
                 }
                 callback(null, result.data);
             } else {
+                console.warn("用户协议数据格式无效:", result);
                 callback(result ? result.message : '获取用户协议失败', null);
             }
         }

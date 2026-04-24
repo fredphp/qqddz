@@ -1,5 +1,5 @@
 // 登录场景控制器
-// 使用 Toggle 组件 + Sprite 实现标准复选框
+// 使用内置 Toggle 组件实现标准复选框（Cocos Creator 2.4.x 中 Toggle 即 CheckBox）
 
 cc.Class({
     name: 'loginScene',
@@ -23,14 +23,16 @@ cc.Class({
     onLoad () {
         console.log("loginScene onLoad 开始");
 
-        this._isChecked = false;
+        this._isAgreementChecked = false;
         this._initWaitNode();
         
-        // 初始化复选框
+        // 初始化复选框（使用 Toggle 组件）
         this._initCheckbox();
         
-        // 立即初始化登录按钮
+        // 初始化登录按钮
         this._initLoginButtons();
+        
+        // 初始化用户协议链接点击事件
         this._initUserAgreementLink();
 
         if (typeof window.myglobal === 'undefined') {
@@ -53,20 +55,20 @@ cc.Class({
         }
     },
 
-    // 初始化复选框 - 使用 Toggle + Sprite
+    // 初始化复选框 - 使用内置 Toggle 组件
     _initCheckbox: function() {
         console.log("=== 初始化复选框 ===");
         
         var self = this;
         
-        // 获取 check_mark 节点（复选框主节点）
+        // 获取 check_mark 节点
         var checkMarkNode = this.node.getChildByName("check_mark");
         if (!checkMarkNode) {
             console.error("check_mark 节点未找到");
             return;
         }
         
-        // 获取 Toggle 组件
+        // 获取 Toggle 组件（Cocos Creator 2.4.x 中 Toggle 即 CheckBox）
         var toggle = checkMarkNode.getComponent(cc.Toggle);
         if (!toggle) {
             console.error("Toggle 组件未找到");
@@ -75,69 +77,39 @@ cc.Class({
         
         this._toggle = toggle;
         this._checkMarkNode = checkMarkNode;
-        this._isChecked = toggle.isChecked;
         
-        // 添加 Toggle 事件
+        // 默认未选中
+        toggle.isChecked = false;
+        this._isAgreementChecked = false;
+        
+        // 清空并重新绑定 Toggle 事件
         toggle.checkEvents = [];
         var handler = new cc.Component.EventHandler();
         handler.target = this.node;
         handler.component = "loginScene";
-        handler.handler = "_onToggleChange";
+        handler.handler = "_onCheckboxToggle";
         handler.customEventData = "";
         toggle.checkEvents.push(handler);
-        
-        // 为协议文字添加点击响应（点击整行可切换）
-        var agreementLabel = this.node.getChildByName("agreement_label");
-        if (agreementLabel) {
-            var btn = agreementLabel.getComponent(cc.Button);
-            if (!btn) {
-                btn = agreementLabel.addComponent(cc.Button);
-            }
-            
-            btn.transition = cc.Button.Transition.NONE;
-            btn.interactable = true;
-            
-            btn.clickEvents = [];
-            var labelHandler = new cc.Component.EventHandler();
-            labelHandler.target = this.node;
-            labelHandler.component = "loginScene";
-            labelHandler.handler = "_onAgreementLabelClick";
-            labelHandler.customEventData = "";
-            btn.clickEvents.push(labelHandler);
-        }
         
         console.log("=== 复选框初始化完成 ===");
     },
 
-    // Toggle 状态变化回调
-    _onToggleChange: function(toggle) {
-        this._isChecked = toggle.isChecked;
-        console.log("Toggle 状态:", this._isChecked ? "选中" : "未选中");
-    },
-
-    // 点击协议文字时切换 Toggle
-    _onAgreementLabelClick: function() {
-        if (this._toggle) {
-            this._toggle.isChecked = !this._toggle.isChecked;
-            this._isChecked = this._toggle.isChecked;
-            console.log("点击文字切换，Toggle 状态:", this._isChecked ? "选中" : "未选中");
-        }
+    // Toggle/Checkbox 状态变化回调
+    _onCheckboxToggle: function(toggle) {
+        this._isAgreementChecked = toggle.isChecked;
+        console.log("复选框状态:", this._isAgreementChecked ? "已选中" : "未选中");
     },
 
     start () {
         console.log("loginScene start");
-        // 按钮初始化已移至 onLoad 中直接调用
     },
 
     _initLoginButtons: function() {
         console.log("=== _initLoginButtons 开始 ===");
-        console.log("this.node =", this.node ? this.node.name : "null");
 
         var wxLoginNode = this.node.getChildByName("login_wx");
-        console.log("login_wx 节点:", wxLoginNode ? "找到" : "未找到");
         if (wxLoginNode) {
             var button = wxLoginNode.getComponent(cc.Button);
-            console.log("login_wx Button 组件:", button ? "找到" : "未找到");
             if (button) {
                 button.interactable = true;
                 button.clickEvents = [];
@@ -148,15 +120,12 @@ cc.Class({
                 handler.handler = "_onWxLoginClick";
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
-                console.log("微信登录按钮事件已绑定，clickEvents.length =", button.clickEvents.length);
             }
         }
 
         var phoneLoginNode = this.node.getChildByName("login_phone");
-        console.log("login_phone 节点:", phoneLoginNode ? "找到" : "未找到");
         if (phoneLoginNode) {
             var button = phoneLoginNode.getComponent(cc.Button);
-            console.log("login_phone Button 组件:", button ? "找到" : "未找到");
             if (button) {
                 button.interactable = true;
                 button.clickEvents = [];
@@ -167,31 +136,20 @@ cc.Class({
                 handler.handler = "_onPhoneLoginClick";
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
-                console.log("手机登录按钮事件已绑定，clickEvents.length =", button.clickEvents.length);
                 
-                // 备选方案：直接在节点上添加触摸事件
+                // 备选方案：触摸事件
                 var self = this;
                 phoneLoginNode.off(cc.Node.EventType.TOUCH_END);
                 phoneLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-                    console.log(">>> 手机登录按钮被触摸 (TOUCH_END)");
                     self._onPhoneLoginClick();
                 }, this);
-                console.log("手机登录按钮触摸事件已添加");
-            } else {
-                console.error("login_phone 节点没有 Button 组件！");
             }
-        } else {
-            console.error("找不到 login_phone 节点！检查场景文件中的节点名称");
-            // 列出所有子节点名称
-            console.log("当前节点的子节点列表:");
-            this.node.children.forEach(function(child) {
-                console.log("  -", child.name);
-            });
         }
 
         console.log("=== _initLoginButtons 结束 ===");
     },
 
+    // 初始化用户协议链接点击事件
     _initUserAgreementLink: function() {
         var linkNode = this.node.getChildByName("user_agreement_link");
         if (linkNode) {
@@ -205,29 +163,34 @@ cc.Class({
                 var handler = new cc.Component.EventHandler();
                 handler.target = this.node;
                 handler.component = "loginScene";
-                handler.handler = "_onUserAgreementClick";
+                handler.handler = "_onUserAgreementLinkClick";
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
+                
+                console.log("用户协议链接事件已绑定");
             }
         }
     },
 
     _onWxLoginClick: function() {
-        console.log(">>> _onWxLoginClick 被调用");
+        console.log(">>> 微信登录按钮点击");
         this._doWxLogin();
     },
 
     _onPhoneLoginClick: function() {
-        console.log(">>> _onPhoneLoginClick 被调用");
+        console.log(">>> 手机登录按钮点击");
         this._doPhoneLogin();
     },
 
-    _onUserAgreementClick: function() {
-        this._showUserAgreement();
+    // 点击"用户协议"链接 - 弹出协议弹窗
+    _onUserAgreementLinkClick: function() {
+        console.log(">>> 用户协议链接点击");
+        this._showUserAgreementPopup();
     },
 
+    // 检查是否同意协议
     _checkAgreement: function() {
-        return this._isChecked;
+        return this._isAgreementChecked;
     },
 
     _waitForMyglobal: function() {
@@ -344,34 +307,27 @@ cc.Class({
     },
 
     _doPhoneLogin: function() {
-        console.log(">>> _doPhoneLogin 开始执行");
-        console.log("协议状态:", this._isChecked ? "已同意" : "未同意");
+        console.log(">>> _doPhoneLogin 开始");
         
         if (!this._checkAgreement()) {
             this._showError("请先同意用户协议");
             return;
         }
-        console.log("协议已同意，准备显示弹窗");
         this._showPhoneLoginPopup();
     },
 
     _showPhoneLoginPopup: function() {
         var self = this;
-        console.log(">>> _showPhoneLoginPopup 开始");
-        console.log("phone_login_prefab:", this.phone_login_prefab ? "已设置" : "未设置");
         
         if (this.phone_login_prefab) {
-            console.log("使用预设置的 prefab");
             this._createPhoneLoginPopup(this.phone_login_prefab);
         } else {
-            console.log("尝试从 resources 加载 prefab");
             cc.resources.load("prefabs/phone_login", cc.Prefab, function(err, prefab) {
                 if (err) {
                     self._showError("无法显示登录弹窗");
                     console.error("加载手机号登录弹窗失败:", err);
                     return;
                 }
-                console.log("prefab 加载成功");
                 self._createPhoneLoginPopup(prefab);
             });
         }
@@ -382,20 +338,19 @@ cc.Class({
             var popup = cc.instantiate(prefab);
             popup.parent = this.node;
             
-            // 监听微信登录请求事件
             popup.on("wx-login-request", function() {
                 this._doWxLogin();
             }, this);
             
             this._phoneLoginPopup = popup;
-            console.log("手机号登录弹窗已创建");
         } catch (e) {
             console.error("创建手机号登录弹窗失败:", e);
             this._showError("无法显示登录弹窗");
         }
     },
 
-    _showUserAgreement: function() {
+    // 显示用户协议弹窗（通过 API 获取内容）
+    _showUserAgreementPopup: function() {
         var self = this;
 
         if (this.user_agreement_prefabs) {
@@ -403,7 +358,9 @@ cc.Class({
         } else {
             cc.resources.load("prefabs/user_agreement", cc.Prefab, function(err, prefab) {
                 if (err) {
-                    self._showError("无法显示用户协议");
+                    console.error("加载用户协议 prefab 失败:", err);
+                    // 即使加载失败，也要创建默认弹窗
+                    self._createDefaultAgreementPopup();
                     return;
                 }
                 self._createUserAgreementPopup(prefab);
@@ -416,6 +373,7 @@ cc.Class({
             var popup = cc.instantiate(prefab);
             popup.parent = this.node;
 
+            // 绑定关闭按钮事件
             var closeBtn = popup.getChildByName("close_btn");
             if (closeBtn) {
                 var button = closeBtn.getComponent(cc.Button);
@@ -433,6 +391,103 @@ cc.Class({
 
             this._userAgreementPopup = popup;
         } catch (e) {
+            console.error("创建用户协议弹窗失败:", e);
+            this._createDefaultAgreementPopup();
+        }
+    },
+
+    // 创建默认的用户协议弹窗（当 prefab 加载失败时）
+    _createDefaultAgreementPopup: function() {
+        try {
+            // 创建弹窗根节点
+            var popup = new cc.Node("user_agreement_default");
+            popup.parent = this.node;
+            popup.setContentSize(cc.size(1280, 720));
+            popup.setPosition(0, 0);
+            
+            // 添加阻挡事件组件
+            popup.addComponent(cc.BlockInputEvents);
+            
+            // 创建背景遮罩
+            var bgNode = new cc.Node("bg");
+            bgNode.parent = popup;
+            bgNode.setContentSize(cc.size(1280, 720));
+            bgNode.setPosition(0, 0);
+            bgNode.color = new cc.Color(0, 0, 0);
+            bgNode.opacity = 180;
+            bgNode.addComponent(cc.Sprite);
+            
+            // 创建内容面板
+            var panel = new cc.Node("panel");
+            panel.parent = popup;
+            panel.setContentSize(cc.size(600, 400));
+            panel.setPosition(0, 0);
+            var panelSprite = panel.addComponent(cc.Sprite);
+            panel.color = new cc.Color(245, 245, 220);
+            
+            // 创建标题
+            var titleNode = new cc.Node("title");
+            titleNode.parent = panel;
+            titleNode.setContentSize(cc.size(200, 40));
+            titleNode.setPosition(0, 160);
+            var titleLabel = titleNode.addComponent(cc.Label);
+            titleLabel.string = "用户协议";
+            titleLabel.fontSize = 28;
+            titleLabel.lineHeight = 40;
+            titleNode.color = new cc.Color(139, 69, 19);
+            
+            // 创建内容
+            var contentNode = new cc.Node("content");
+            contentNode.parent = panel;
+            contentNode.setContentSize(cc.size(550, 250));
+            contentNode.setPosition(0, -10);
+            var contentLabel = contentNode.addComponent(cc.Label);
+            contentLabel.string = "协议加载失败，请稍后重试。\n\n请检查网络连接后重新点击查看。";
+            contentLabel.fontSize = 20;
+            contentLabel.lineHeight = 30;
+            contentLabel.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
+            contentNode.color = new cc.Color(80, 80, 80);
+            
+            // 创建关闭按钮
+            var closeBtn = new cc.Node("close_btn");
+            closeBtn.parent = popup;
+            closeBtn.setContentSize(cc.size(60, 60));
+            closeBtn.setPosition(270, 170);
+            var closeSprite = closeBtn.addComponent(cc.Sprite);
+            var closeBtnComp = closeBtn.addComponent(cc.Button);
+            
+            // 绑定关闭事件
+            closeBtnComp.clickEvents = [];
+            var handler = new cc.Component.EventHandler();
+            handler.target = this.node;
+            handler.component = "loginScene";
+            handler.handler = "_onCloseUserAgreement";
+            handler.customEventData = "";
+            closeBtnComp.clickEvents.push(handler);
+            
+            // 创建"我知道了"按钮
+            var confirmBtn = new cc.Node("confirm_btn");
+            confirmBtn.parent = panel;
+            confirmBtn.setContentSize(cc.size(120, 40));
+            confirmBtn.setPosition(0, -160);
+            var confirmLabel = confirmBtn.addComponent(cc.Label);
+            confirmLabel.string = "我知道了";
+            confirmLabel.fontSize = 20;
+            var confirmBtnComp = confirmBtn.addComponent(cc.Button);
+            
+            // 绑定关闭事件
+            confirmBtnComp.clickEvents = [];
+            var confirmHandler = new cc.Component.EventHandler();
+            confirmHandler.target = this.node;
+            confirmHandler.component = "loginScene";
+            confirmHandler.handler = "_onCloseUserAgreement";
+            confirmHandler.customEventData = "";
+            confirmBtnComp.clickEvents.push(confirmHandler);
+            
+            this._userAgreementPopup = popup;
+            
+        } catch (e) {
+            console.error("创建默认弹窗失败:", e);
             this._showError("无法显示用户协议");
         }
     },

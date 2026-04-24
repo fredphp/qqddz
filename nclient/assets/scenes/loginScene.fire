@@ -635,19 +635,19 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 280,
-      "height": 40
+      "width": 120,
+      "height": 24
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
-      "x": 0.5,
+      "x": 0,
       "y": 0.5
     },
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
-        0,
+        -135,
         -280,
         0,
         0,
@@ -689,14 +689,14 @@
     "_dstBlendFactor": 771,
     "_id": "f5m0KqGOROya8WlrfHxeOD",
     "_string": "我已阅读并同意",
-    "_N$string": "我已阅读并同意《用户协议》",
+    "_N$string": "我已阅读并同意",
     "_fontSize": 16,
-    "_lineHeight": 30,
+    "_lineHeight": 24,
     "_enableWrapText": false,
     "_N$file": null,
     "_isSystemFontUsed": true,
     "_spacingX": 0,
-    "_N$horizontalAlign": 1,
+    "_N$horizontalAlign": 0,
     "_N$verticalAlign": 1,
     "_N$fontFamily": "Arial",
     "_N$overflow": 0,
@@ -999,9 +999,9 @@
     "_opacity": 255,
     "_color": {
       "__type__": "cc.Color",
-      "r": 255,
-      "g": 215,
-      "b": 0,
+      "r": 30,
+      "g": 144,
+      "b": 255,
       "a": 255
     },
     "_contentSize": {
@@ -1018,7 +1018,7 @@
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
-        -100,
+        -130,
         -280,
         0,
         0,
@@ -1060,9 +1060,9 @@
     "_dstBlendFactor": 771,
     "_id": "userAgreementLinkLabel001",
     "_string": "《用户协议》",
-    "_N$string": "用户协议》",
-    "_fontSize": 18,
-    "_lineHeight": 30,
+    "_N$string": "《用户协议》",
+    "_fontSize": 16,
+    "_lineHeight": 24,
     "_enableWrapText": false,
     "_N$file": null,
     "_isSystemFontUsed": true,
@@ -1072,11 +1072,13 @@
     "_N$fontFamily": "Arial",
     "_N$overflow": 0,
     "_N$cacheMode": 0,
+    "_styleFlags": 4,
+    "_underlineHeight": 2,
     "_color": {
       "__type__": "cc.Color",
-      "r": 255,
-      "g": 215,
-      "b": 0,
+      "r": 30,
+      "g": 144,
+      "b": 255,
       "a": 255
     }
   },
