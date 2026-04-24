@@ -79,25 +79,26 @@ type DDZPlayerStatResponse struct {
 
 // DDZRoomConfigResponse 房间配置响应
 type DDZRoomConfigResponse struct {
-	ID             uint    `json:"ID"`
-	RoomName       string  `json:"roomName"`
-	RoomType       int     `json:"roomType"`
-	RoomTypeName   string  `json:"roomTypeName"`
-	BaseScore      int     `json:"baseScore"`
-	Multiplier     int     `json:"multiplier"`
-	MinGold        int64   `json:"minGold"`
-	MaxGold        int64   `json:"maxGold"`
-	BotEnabled     int     `json:"botEnabled"`
-	BotCount       int     `json:"botCount"`
-	FeeRate        float64 `json:"feeRate"`
-	MaxRound       int     `json:"maxRound"`
-	TimeoutSeconds int     `json:"timeoutSeconds"`
-	Status         int     `json:"status"`
-	StatusText     string  `json:"statusText"`
-	SortOrder      int     `json:"sortOrder"`
-	Description    string  `json:"description"`
-	CreatedAt      string  `json:"createdAt"`
-	UpdatedAt      string  `json:"updatedAt"`
+	ID           uint   `json:"ID"`
+	Name         string `json:"name"`
+	RoomType     int    `json:"roomType"`
+	RoomTypeName string `json:"roomTypeName"`
+	RoomLevel    int    `json:"roomLevel"`
+	BaseScore    int    `json:"baseScore"`
+	MinCoins     int64  `json:"minCoins"`
+	MaxCoins     int64  `json:"maxCoins"`
+	ServiceFee   int    `json:"serviceFee"`
+	MaxMultiple  int    `json:"maxMultiple"`
+	Timeout      int    `json:"timeout"`
+	AllowSpring  int    `json:"allowSpring"`
+	AllowBomb    int    `json:"allowBomb"`
+	AllowRocket  int    `json:"allowRocket"`
+	Status       int    `json:"status"`
+	StatusText   string `json:"statusText"`
+	Sort         int    `json:"sort"`
+	Description  string `json:"description"`
+	CreatedAt    string `json:"createdAt"`
+	UpdatedAt    string `json:"updatedAt"`
 }
 
 // DDZSmsCodeResponse 短信验证码响应
