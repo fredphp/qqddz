@@ -625,21 +625,60 @@ cc.Class({
         }
     },
     
-    // 将普通文本转换为 RichText 格式
+    // 将文本转换为 RichText 支持的格式
     _formatTextForRichText: function(text) {
         if (!text) return "<color=#333333>暂无内容</color>";
         
-        // 转义特殊字符
+        // 如果包含HTML标签，转换为RichText格式
+        if (text.indexOf('<h1>') !== -1 || text.indexOf('<h2>') !== -1 || 
+            text.indexOf('<p>') !== -1 || text.indexOf('<strong>') !== -1) {
+            console.log("检测到HTML格式内容，转换为RichText格式");
+            return this._convertHtmlToRichText(text);
+        }
+        
+        // 纯文本格式
         text = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        
-        // 将换行符转换为 RichText 的换行
         text = text.replace(/\n/g, '<br/>');
-        
-        // 高亮【】中的标题
         text = text.replace(/【([^】]+)】/g, '<b><color=#2d7a4e>【$1】</color></b>');
-        
-        // 包装在颜色标签中
         return "<color=#333333>" + text + "</color>";
+    },
+    
+    // 将HTML转换为RichText支持的格式
+    _convertHtmlToRichText: function(html) {
+        var result = html;
+        
+        // 移除 <!DOCTYPE...> 和 <html> 等外层标签
+        result = result.replace(/<!DOCTYPE[^>]*>/gi, '');
+        result = result.replace(/<\/?html[^>]*>/gi, '');
+        result = result.replace(/<\/?body[^>]*>/gi, '');
+        result = result.replace(/<head[\s\S]*?<\/head>/gi, '');
+        
+        // 转换标题标签 (使用[\s\S]匹配包括换行符在内的所有字符)
+        result = result.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '<br/><b><size=28><color=#2d7a4e>$1</color></size></b><br/><br/>');
+        result = result.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '<br/><b><size=24><color=#2d7a4e>$1</color></size></b><br/><br/>');
+        result = result.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, '<br/><b><size=22><color=#2d7a4e>$1</color></size></b><br/>');
+        
+        // 转换段落和格式标签
+        result = result.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, '$1<br/><br/>');
+        result = result.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '<b>$1</b>');
+        result = result.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, '<b>$1</b>');
+        result = result.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, '<i>$1</i>');
+        result = result.replace(/<u[^>]*>([\s\S]*?)<\/u>/gi, '<u>$1</u>');
+        
+        // 转换换行
+        result = result.replace(/<br\s*\/?>/gi, '<br/>');
+        result = result.replace(/\n/g, '<br/>');
+        
+        // 移除其他不支持的HTML标签
+        result = result.replace(/<[^>]+>/g, '');
+        
+        // 清理多余的换行
+        result = result.replace(/(<br\/>){3,}/g, '<br/><br/>');
+        result = result.replace(/^<br\/>/, '');
+        result = result.replace(/<br\/>$/, '');
+        
+        // 包装默认颜色
+        return "<color=#333333>" + result + "</color>";
     },
 
     // 更新 ScrollView 的 content 尺寸
