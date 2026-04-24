@@ -383,8 +383,11 @@ cc.Class({
         bgMask.color = new cc.Color(0, 0, 0);
         bgMask.opacity = 180;
         
-        // 背景遮罩添加阻挡事件（只在遮罩上，不影响按钮）
-        bgMask.addComponent(cc.BlockInputEvents);
+        // ★ 背景遮罩点击关闭弹窗
+        bgMask.on(cc.Node.EventType.TOUCH_END, function(event) {
+            console.log(">>> 背景遮罩点击");
+            self._closeUserAgreementPopup();
+        }, self);
         
         // ==================== 主面板（带背景图）====================
         var panel = new cc.Node("content_panel");
@@ -393,9 +396,9 @@ cc.Class({
         panel.setPosition(0, 0);
         var panelSprite = panel.addComponent(cc.Sprite);
         panelSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        panel.color = new cc.Color(255, 250, 240);  // 温暖米白色作为默认
+        panel.color = new cc.Color(255, 250, 240);
         
-        // ★ 加载背景图片（必须保留）
+        // ★ 加载背景图片
         cc.resources.load("images/user_agreement_bg", cc.SpriteFrame, function(err, spriteFrame) {
             if (!err && spriteFrame) {
                 panelSprite.spriteFrame = spriteFrame;
@@ -405,185 +408,135 @@ cc.Class({
             }
         });
 
-        // ==================== 头部区域 ====================
-        var header = new cc.Node("header");
-        header.parent = panel;
-        header.setContentSize(cc.size(900, 60));
-        header.setPosition(0, 230);
-        var headerSprite = header.addComponent(cc.Sprite);
-        headerSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        header.color = new cc.Color(50, 105, 70);  // 深绿色
-        
-        // 标题
+        // ==================== 标题（黑色文字）====================
         var titleNode = new cc.Node("title_label");
-        titleNode.parent = header;
-        titleNode.setContentSize(cc.size(300, 50));
-        titleNode.setPosition(-10, 0);
+        titleNode.parent = panel;
+        titleNode.setContentSize(cc.size(300, 60));
+        titleNode.setPosition(0, 230);
         var titleLabel = titleNode.addComponent(cc.Label);
         titleLabel.string = "用户协议";
-        titleLabel.fontSize = 30;
-        titleLabel.lineHeight = 50;
+        titleLabel.fontSize = 36;
+        titleLabel.lineHeight = 60;
         titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        titleNode.color = new cc.Color(255, 255, 255);
-        
-        // ==================== 右上角关闭按钮 ====================
+        titleNode.color = new cc.Color(30, 30, 30);  // ★ 黑色标题
+
+        // ==================== 右上角关闭按钮（美化样式）====================
         var closeBtn = new cc.Node("close_btn");
-        closeBtn.parent = header;
-        closeBtn.setContentSize(cc.size(50, 50));
-        closeBtn.setPosition(410, 0);
+        closeBtn.parent = panel;
+        closeBtn.setContentSize(cc.size(60, 60));
+        closeBtn.setPosition(400, 230);
         
-        // 关闭按钮背景
-        var closeBtnBg = new cc.Node("bg");
-        closeBtnBg.parent = closeBtn;
-        closeBtnBg.setContentSize(cc.size(40, 40));
-        closeBtnBg.setPosition(0, 0);
-        var closeBgSprite = closeBtnBg.addComponent(cc.Sprite);
-        closeBgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        closeBtnBg.color = new cc.Color(220, 80, 80);
+        // 关闭按钮外圈（白色圆环）
+        var closeOuter = new cc.Node("outer");
+        closeOuter.parent = closeBtn;
+        closeOuter.setContentSize(cc.size(50, 50));
+        closeOuter.setPosition(0, 0);
+        var outerSprite = closeOuter.addComponent(cc.Sprite);
+        outerSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        closeOuter.color = new cc.Color(255, 255, 255);
+        closeOuter.opacity = 230;
         
-        // 关闭按钮 X
+        // 关闭按钮内圈（浅灰色背景）
+        var closeInner = new cc.Node("inner");
+        closeInner.parent = closeBtn;
+        closeInner.setContentSize(cc.size(42, 42));
+        closeInner.setPosition(0, 0);
+        var innerSprite = closeInner.addComponent(cc.Sprite);
+        innerSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        closeInner.color = new cc.Color(240, 240, 240);
+        
+        // 关闭按钮 X（深灰色）
         var closeLabelNode = new cc.Node("x");
         closeLabelNode.parent = closeBtn;
         closeLabelNode.setPosition(0, 0);
         var closeLabel = closeLabelNode.addComponent(cc.Label);
         closeLabel.string = "×";
-        closeLabel.fontSize = 30;
-        closeLabel.lineHeight = 40;
+        closeLabel.fontSize = 38;
+        closeLabel.lineHeight = 50;
         closeLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        closeLabelNode.color = new cc.Color(255, 255, 255);
+        closeLabelNode.color = new cc.Color(80, 80, 80);  // 深灰色X
         
-        // 关闭按钮组件
+        // 添加 Button 组件
         var closeBtnComp = closeBtn.addComponent(cc.Button);
         closeBtnComp.transition = cc.Button.Transition.SCALE;
-        closeBtnComp.zoomScale = 1.15;
+        closeBtnComp.zoomScale = 1.2;
         closeBtnComp.interactable = true;
         
-        // ★ 关闭按钮事件（使用 self 确保上下文正确）
-        closeBtn.off(cc.Node.EventType.TOUCH_END);
+        // ★ 关闭按钮事件
         closeBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
-            console.log(">>> 关闭按钮点击，准备关闭弹窗");
+            event.stopPropagation();
+            console.log(">>> 关闭按钮点击");
             self._closeUserAgreementPopup();
         }, self);
-        
-        // ==================== 金色装饰线 ====================
-        var headerLine = new cc.Node("header_line");
-        headerLine.parent = panel;
-        headerLine.setContentSize(cc.size(880, 2));
-        headerLine.setPosition(0, 198);
-        var headerLineSprite = headerLine.addComponent(cc.Sprite);
-        headerLineSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        headerLine.color = new cc.Color(255, 200, 60);
+
+        // ==================== 分隔线 ====================
+        var dividerLine = new cc.Node("divider");
+        dividerLine.parent = panel;
+        dividerLine.setContentSize(cc.size(850, 1));
+        dividerLine.setPosition(0, 195);
+        var dividerSprite = dividerLine.addComponent(cc.Sprite);
+        dividerSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        dividerLine.color = new cc.Color(220, 220, 220);
 
         // ==================== 内容滚动区域 ====================
-        // 内容区域容器（带padding的背景）
         var contentContainer = new cc.Node("content_container");
         contentContainer.parent = panel;
-        contentContainer.setContentSize(cc.size(850, 320));
-        contentContainer.setPosition(0, 0);
+        contentContainer.setContentSize(cc.size(850, 400));
+        contentContainer.setPosition(0, -10);
         var containerSprite = contentContainer.addComponent(cc.Sprite);
         containerSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        contentContainer.color = new cc.Color(255, 255, 255);  // 白色背景
+        contentContainer.color = new cc.Color(255, 255, 255);
         
-        // ★ 创建 ScrollView（正确的层级结构）
+        // ★ 创建 ScrollView
         var scrollNode = new cc.Node("scroll_view");
         scrollNode.parent = contentContainer;
-        scrollNode.setContentSize(cc.size(830, 300));  // 留出 padding
+        scrollNode.setContentSize(cc.size(830, 380));
         scrollNode.setPosition(0, 0);
         
-        // 创建 view 节点（带 Mask）
+        // 创建 view（带 Mask）
         var viewNode = new cc.Node("view");
         viewNode.parent = scrollNode;
-        viewNode.setContentSize(cc.size(830, 300));
+        viewNode.setContentSize(cc.size(830, 380));
         viewNode.setPosition(0, 0);
         var mask = viewNode.addComponent(cc.Mask);
         mask.type = cc.Mask.Type.RECT;
         
-        // 创建 content 节点
+        // 创建 content
         var contentNode = new cc.Node("content");
         contentNode.parent = viewNode;
-        contentNode.setContentSize(cc.size(810, 300));
-        contentNode.setPosition(0, 150);  // anchorY=1，所以y偏移
-        contentNode.anchorY = 1;  // 锚点在顶部
+        contentNode.setContentSize(cc.size(810, 380));
+        contentNode.setPosition(0, 190);
+        contentNode.anchorY = 1;
         
-        // 创建 Label（带padding效果）
+        // ★ 创建 Label（居中显示）
         var labelNode = new cc.Node("content_label");
         labelNode.parent = contentNode;
-        // ★ padding: y偏移让文字有上边距
-        labelNode.setPosition(0, -10);
+        labelNode.setPosition(0, -15);
         labelNode.anchorY = 1;
         
         var contentLabel = labelNode.addComponent(cc.Label);
         contentLabel.string = "正在加载用户协议...";
-        contentLabel.fontSize = 20;
-        contentLabel.lineHeight = 30;
+        contentLabel.fontSize = 22;
+        contentLabel.lineHeight = 36;
         contentLabel.overflow = cc.Label.Overflow.NONE;
-        contentLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
-        contentLabel.wrapWidth = 790;  // 左右留padding
+        contentLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;  // ★ 居中对齐
+        contentLabel.wrapWidth = 790;
         labelNode.color = new cc.Color(50, 50, 50);
         
-        // ★ 添加 ScrollView 组件（最后添加）
+        // 添加 ScrollView 组件
         var scrollView = scrollNode.addComponent(cc.ScrollView);
         scrollView.content = contentNode;
         scrollView.horizontal = false;
         scrollView.vertical = true;
-        scrollView.inertia = true;      // ★ 惯性滚动
-        scrollView.elastic = true;       // 弹性效果
-        scrollView.brake = 0.5;          // 刹车系数（0=滑动顺畅，1=立即停止）
-        scrollView.scrollEvents = [];    // 清空滚动事件
+        scrollView.inertia = true;
+        scrollView.elastic = true;
+        scrollView.brake = 0.3;
         scrollView.scrollToTop(0);
         
         // 保存引用
         this._agreementContentLabel = contentLabel;
         this._scrollView = scrollView;
         this._contentNode = contentNode;
-
-        // ==================== "我知道了"按钮 ====================
-        var confirmBtn = new cc.Node("confirm_btn");
-        confirmBtn.parent = panel;
-        confirmBtn.setContentSize(cc.size(200, 55));
-        confirmBtn.setPosition(0, -215);
-        
-        // 按钮背景
-        var confirmBtnBg = new cc.Node("bg");
-        confirmBtnBg.parent = confirmBtn;
-        confirmBtnBg.setContentSize(cc.size(200, 55));
-        confirmBtnBg.setPosition(0, 0);
-        var confirmBgSprite = confirmBtnBg.addComponent(cc.Sprite);
-        confirmBgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        confirmBtnBg.color = new cc.Color(70, 165, 75);  // 绿色
-        
-        // 按钮文字
-        var confirmLabelNode = new cc.Node("label");
-        confirmLabelNode.parent = confirmBtn;
-        confirmLabelNode.setPosition(0, 0);
-        var confirmLabel = confirmLabelNode.addComponent(cc.Label);
-        confirmLabel.string = "我知道了";
-        confirmLabel.fontSize = 24;
-        confirmLabel.lineHeight = 55;
-        confirmLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        confirmLabelNode.color = new cc.Color(255, 255, 255);
-        
-        // 按钮组件
-        var confirmBtnComp = confirmBtn.addComponent(cc.Button);
-        confirmBtnComp.transition = cc.Button.Transition.SCALE;
-        confirmBtnComp.zoomScale = 1.08;
-        confirmBtnComp.interactable = true;
-        
-        // ★ 确认按钮事件（使用 self 确保上下文正确）
-        confirmBtn.off(cc.Node.EventType.TOUCH_END);
-        confirmBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
-            console.log(">>> 我知道了按钮点击，准备关闭弹窗");
-            self._closeUserAgreementPopup();
-        }, self);
-
-        // ==================== 底部装饰线 ====================
-        var bottomLine = new cc.Node("bottom_line");
-        bottomLine.parent = panel;
-        bottomLine.setContentSize(cc.size(900, 2));
-        bottomLine.setPosition(0, -255);
-        var bottomLineSprite = bottomLine.addComponent(cc.Sprite);
-        bottomLineSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        bottomLine.color = new cc.Color(50, 105, 70);
 
         // 保存弹窗引用
         this._userAgreementPopup = popup;
@@ -605,8 +558,6 @@ cc.Class({
             this._scrollView = null;
             this._contentNode = null;
             console.log("=== 弹窗已关闭 ===");
-        } else {
-            console.log("=== 弹窗引用为空 ===");
         }
     },
 
@@ -687,24 +638,21 @@ cc.Class({
         if (!this._agreementContentLabel || !this._contentNode) return;
         
         var label = this._agreementContentLabel;
-        var lineHeight = label.lineHeight || 30;
-        var fontSize = label.fontSize || 20;
+        var lineHeight = label.lineHeight || 36;
+        var fontSize = label.fontSize || 22;
         var wrapWidth = label.wrapWidth || 790;
         
-        // 估算行数
         var text = label.string || "";
         var charWidth = fontSize * 0.55;
         var charsPerLine = Math.floor(wrapWidth / charWidth);
         var lines = Math.ceil(text.length / charsPerLine);
         
-        // 计算实际高度（加上padding）
-        var actualHeight = lines * lineHeight + 40;
-        var minHeight = 300;
+        var actualHeight = lines * lineHeight + 50;
+        var minHeight = 380;
         var newHeight = Math.max(actualHeight, minHeight);
         
         this._contentNode.setContentSize(cc.size(810, newHeight));
         
-        // 滚动到顶部
         if (this._scrollView) {
             this._scrollView.scrollToTop(0.1);
         }
@@ -727,8 +675,7 @@ cc.Class({
                 "【知识产权】\n" +
                 "本游戏的所有内容（包括但不限于文字、图片、音频、视频等）均受知识产权法律保护。\n\n" +
                 "【免责声明】\n" +
-                "本游戏不对因网络原因导致的服务中断承担责任。\n\n" +
-                "点击「我知道了」按钮即表示您已阅读并同意本协议的全部内容。";
+                "本游戏不对因网络原因导致的服务中断承担责任。";
 
             this._agreementContentLabel.string = defaultContent;
             this._updateContentSize();
