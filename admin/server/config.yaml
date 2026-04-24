@@ -48,22 +48,23 @@ cors:
           expose-headers: Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Content-Type
           allow-credentials: true
 db-list:
-    - type: ""
-      alias-name: ""
+    # 斗地主游戏数据库
+    - type: mysql
+      alias-name: ddz-game
       prefix: ""
-      port: ""
-      config: ""
-      db-name: ""
-      username: ""
-      password: ""
-      path: ""
+      port: "3306"
+      config: charset=utf8mb4&parseTime=True&loc=Local
+      db-name: ddz_game
+      username: root
+      password: root
+      path: 127.0.0.1
       engine: ""
-      log-mode: ""
+      log-mode: error
       max-idle-conns: 10
       max-open-conns: 100
       singular: false
       log-zap: false
-      disable: true
+      disable: false
 disk-list:
     - mount-point: /
 email:

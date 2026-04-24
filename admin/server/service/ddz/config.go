@@ -3,7 +3,6 @@ package ddz
 import (
 	"errors"
 
-	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/ddz"
 	ddzReq "github.com/flipped-aurora/gin-vue-admin/server/model/ddz/request"
 )
@@ -14,24 +13,25 @@ var DDZConfigServiceApp = new(DDZConfigService)
 
 // GetRoomConfigList 获取房间配置列表
 func (s *DDZConfigService) GetRoomConfigList(req ddzReq.DDZRoomConfigSearch) (list interface{}, total int64, err error) {
+	db := GetDDZDB()
 	limit := req.PageSize
 	offset := req.PageSize * (req.Page - 1)
-	db := global.GVA_DB.Model(&ddz.DDZRoomConfig{})
+	query := db.Model(&ddz.DDZRoomConfig{})
 
 	if req.RoomType != nil {
-		db = db.Where("room_type = ?", *req.RoomType)
+		query = query.Where("room_type = ?", *req.RoomType)
 	}
 	if req.Status != nil {
-		db = db.Where("status = ?", *req.Status)
+		query = query.Where("status = ?", *req.Status)
 	}
 
-	err = db.Count(&total).Error
+	err = query.Count(&total).Error
 	if err != nil {
 		return nil, 0, err
 	}
 
 	var configs []ddz.DDZRoomConfig
-	err = db.Limit(limit).Offset(offset).Order("sort asc, id asc").Find(&configs).Error
+	err = query.Limit(limit).Offset(offset).Order("sort asc, id asc").Find(&configs).Error
 	if err != nil {
 		return nil, 0, err
 	}
@@ -41,13 +41,15 @@ func (s *DDZConfigService) GetRoomConfigList(req ddzReq.DDZRoomConfigSearch) (li
 
 // GetRoomConfigByID 根据ID获取房间配置
 func (s *DDZConfigService) GetRoomConfigByID(id uint) (ddz.DDZRoomConfig, error) {
+	db := GetDDZDB()
 	var config ddz.DDZRoomConfig
-	err := global.GVA_DB.First(&config, id).Error
+	err := db.First(&config, id).Error
 	return config, err
 }
 
 // CreateRoomConfig 创建房间配置
 func (s *DDZConfigService) CreateRoomConfig(req ddzReq.DDZRoomConfigCreate) error {
+	db := GetDDZDB()
 	config := ddz.DDZRoomConfig{
 		Name:        req.Name,
 		RoomType:    req.RoomType,
@@ -65,13 +67,14 @@ func (s *DDZConfigService) CreateRoomConfig(req ddzReq.DDZRoomConfigCreate) erro
 		Sort:        req.Sort,
 		Description: req.Description,
 	}
-	return global.GVA_DB.Create(&config).Error
+	return db.Create(&config).Error
 }
 
 // UpdateRoomConfig 更新房间配置
 func (s *DDZConfigService) UpdateRoomConfig(req ddzReq.DDZRoomConfigUpdate) error {
+	db := GetDDZDB()
 	var config ddz.DDZRoomConfig
-	err := global.GVA_DB.First(&config, req.ID).Error
+	err := db.First(&config, req.ID).Error
 	if err != nil {
 		return errors.New("房间配置不存在")
 	}
@@ -105,34 +108,36 @@ func (s *DDZConfigService) UpdateRoomConfig(req ddzReq.DDZRoomConfigUpdate) erro
 	updates["sort"] = req.Sort
 	updates["description"] = req.Description
 
-	return global.GVA_DB.Model(&config).Updates(updates).Error
+	return db.Model(&config).Updates(updates).Error
 }
 
 // DeleteRoomConfig 删除房间配置
 func (s *DDZConfigService) DeleteRoomConfig(id uint) error {
-	return global.GVA_DB.Delete(&ddz.DDZRoomConfig{}, id).Error
+	db := GetDDZDB()
+	return db.Delete(&ddz.DDZRoomConfig{}, id).Error
 }
 
 // GetGameConfigList 获取游戏配置列表
 func (s *DDZConfigService) GetGameConfigList(req ddzReq.DDZGameConfigSearch) (list interface{}, total int64, err error) {
+	db := GetDDZDB()
 	limit := req.PageSize
 	offset := req.PageSize * (req.Page - 1)
-	db := global.GVA_DB.Model(&ddz.DDZGameConfig{})
+	query := db.Model(&ddz.DDZGameConfig{})
 
 	if req.ConfigKey != "" {
-		db = db.Where("config_key LIKE ?", "%"+req.ConfigKey+"%")
+		query = query.Where("config_key LIKE ?", "%"+req.ConfigKey+"%")
 	}
 	if req.ConfigType != "" {
-		db = db.Where("config_type = ?", req.ConfigType)
+		query = query.Where("config_type = ?", req.ConfigType)
 	}
 
-	err = db.Count(&total).Error
+	err = query.Count(&total).Error
 	if err != nil {
 		return nil, 0, err
 	}
 
 	var configs []ddz.DDZGameConfig
-	err = db.Limit(limit).Offset(offset).Order("id asc").Find(&configs).Error
+	err = query.Limit(limit).Offset(offset).Order("id asc").Find(&configs).Error
 	if err != nil {
 		return nil, 0, err
 	}
@@ -142,8 +147,9 @@ func (s *DDZConfigService) GetGameConfigList(req ddzReq.DDZGameConfigSearch) (li
 
 // UpdateGameConfig 更新游戏配置
 func (s *DDZConfigService) UpdateGameConfig(req ddzReq.DDZGameConfigUpdate) error {
+	db := GetDDZDB()
 	var config ddz.DDZGameConfig
-	err := global.GVA_DB.First(&config, req.ID).Error
+	err := db.First(&config, req.ID).Error
 	if err != nil {
 		return errors.New("游戏配置不存在")
 	}
@@ -161,5 +167,5 @@ func (s *DDZConfigService) UpdateGameConfig(req ddzReq.DDZGameConfigUpdate) erro
 	updates["description"] = req.Description
 	updates["status"] = req.Status
 
-	return global.GVA_DB.Model(&config).Updates(updates).Error
+	return db.Model(&config).Updates(updates).Error
 }

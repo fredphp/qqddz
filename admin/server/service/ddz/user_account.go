@@ -4,11 +4,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/ddz"
 	ddzReq "github.com/flipped-aurora/gin-vue-admin/server/model/ddz/request"
 	ddzRes "github.com/flipped-aurora/gin-vue-admin/server/model/ddz/response"
-	"gorm.io/gorm"
 )
 
 type DDZUserAccountService struct{}
@@ -17,16 +15,17 @@ var DDZUserAccountServiceApp = new(DDZUserAccountService)
 
 // CreateUserAccount 创建用户账户
 func (s *DDZUserAccountService) CreateUserAccount(req ddzReq.DDZUserAccountCreate) (ddzRes.DDZUserAccountResponse, error) {
+	db := GetDDZDB()
 	// 检查PlayerID是否已存在
 	var count int64
-	global.GVA_DB.Model(&ddz.DDZUserAccount{}).Where("player_id = ?", req.PlayerID).Count(&count)
+	db.Model(&ddz.DDZUserAccount{}).Where("player_id = ?", req.PlayerID).Count(&count)
 	if count > 0 {
 		return ddzRes.DDZUserAccountResponse{}, errors.New("该玩家已有账户")
 	}
 
 	// 检查手机号是否已被使用
 	if req.Phone != "" {
-		global.GVA_DB.Model(&ddz.DDZUserAccount{}).Where("phone = ?", req.Phone).Count(&count)
+		db.Model(&ddz.DDZUserAccount{}).Where("phone = ?", req.Phone).Count(&count)
 		if count > 0 {
 			return ddzRes.DDZUserAccountResponse{}, errors.New("手机号已被使用")
 		}
@@ -50,7 +49,7 @@ func (s *DDZUserAccountService) CreateUserAccount(req ddzReq.DDZUserAccountCreat
 		account.LoginType = 1 // 默认手机号登录
 	}
 
-	err := global.GVA_DB.Create(&account).Error
+	err := db.Create(&account).Error
 	if err != nil {
 		return ddzRes.DDZUserAccountResponse{}, err
 	}
@@ -60,44 +59,46 @@ func (s *DDZUserAccountService) CreateUserAccount(req ddzReq.DDZUserAccountCreat
 
 // DeleteUserAccount 删除用户账户
 func (s *DDZUserAccountService) DeleteUserAccount(id uint) error {
+	db := GetDDZDB()
 	var account ddz.DDZUserAccount
-	err := global.GVA_DB.First(&account, id).Error
+	err := db.First(&account, id).Error
 	if err != nil {
 		return errors.New("账户不存在")
 	}
 
-	return global.GVA_DB.Delete(&account).Error
+	return db.Delete(&account).Error
 }
 
 // GetUserAccountList 获取用户账户列表
 func (s *DDZUserAccountService) GetUserAccountList(req ddzReq.DDZUserAccountSearch) (list interface{}, total int64, err error) {
+	db := GetDDZDB()
 	limit := req.PageSize
 	offset := req.PageSize * (req.Page - 1)
-	db := global.GVA_DB.Model(&ddz.DDZUserAccount{})
+	query := db.Model(&ddz.DDZUserAccount{})
 
 	if req.Phone != "" {
-		db = db.Where("phone LIKE ?", "%"+req.Phone+"%")
+		query = query.Where("phone LIKE ?", "%"+req.Phone+"%")
 	}
 	if req.PlayerID != "" {
-		db = db.Where("player_id = ?", req.PlayerID)
+		query = query.Where("player_id = ?", req.PlayerID)
 	}
 	if req.LoginType != nil {
-		db = db.Where("login_type = ?", *req.LoginType)
+		query = query.Where("login_type = ?", *req.LoginType)
 	}
 	if req.Status != nil {
-		db = db.Where("status = ?", *req.Status)
+		query = query.Where("status = ?", *req.Status)
 	}
 	if req.WxNickname != "" {
-		db = db.Where("wx_nickname LIKE ?", "%"+req.WxNickname+"%")
+		query = query.Where("wx_nickname LIKE ?", "%"+req.WxNickname+"%")
 	}
 
-	err = db.Count(&total).Error
+	err = query.Count(&total).Error
 	if err != nil {
 		return nil, 0, err
 	}
 
 	var accounts []ddz.DDZUserAccount
-	err = db.Limit(limit).Offset(offset).Order("id desc").Find(&accounts).Error
+	err = query.Limit(limit).Offset(offset).Order("id desc").Find(&accounts).Error
 	if err != nil {
 		return nil, 0, err
 	}
@@ -108,7 +109,7 @@ func (s *DDZUserAccountService) GetUserAccountList(req ddzReq.DDZUserAccountSear
 		resp := s.toUserAccountResponse(a)
 		// 获取关联玩家信息
 		var player ddz.DDZPlayer
-		if err := global.GVA_DB.Where("player_id = ?", a.PlayerID).First(&player).Error; err == nil {
+		if err := db.Where("player_id = ?", a.PlayerID).First(&player).Error; err == nil {
 			resp.PlayerNickname = player.Nickname
 			resp.PlayerAvatar = player.Avatar
 			resp.PlayerLevel = player.Level
@@ -123,8 +124,9 @@ func (s *DDZUserAccountService) GetUserAccountList(req ddzReq.DDZUserAccountSear
 
 // GetUserAccountByID 根据ID获取用户账户
 func (s *DDZUserAccountService) GetUserAccountByID(id uint) (ddzRes.DDZUserAccountResponse, error) {
+	db := GetDDZDB()
 	var account ddz.DDZUserAccount
-	err := global.GVA_DB.First(&account, id).Error
+	err := db.First(&account, id).Error
 	if err != nil {
 		return ddzRes.DDZUserAccountResponse{}, err
 	}
@@ -132,7 +134,7 @@ func (s *DDZUserAccountService) GetUserAccountByID(id uint) (ddzRes.DDZUserAccou
 	resp := s.toUserAccountResponse(account)
 	// 获取关联玩家信息
 	var player ddz.DDZPlayer
-	if err := global.GVA_DB.Where("player_id = ?", account.PlayerID).First(&player).Error; err == nil {
+	if err := db.Where("player_id = ?", account.PlayerID).First(&player).Error; err == nil {
 		resp.PlayerNickname = player.Nickname
 		resp.PlayerAvatar = player.Avatar
 		resp.PlayerLevel = player.Level
@@ -145,8 +147,9 @@ func (s *DDZUserAccountService) GetUserAccountByID(id uint) (ddzRes.DDZUserAccou
 
 // UpdateUserAccount 更新用户账户
 func (s *DDZUserAccountService) UpdateUserAccount(req ddzReq.DDZUserAccountUpdate) error {
+	db := GetDDZDB()
 	var account ddz.DDZUserAccount
-	err := global.GVA_DB.First(&account, req.ID).Error
+	err := db.First(&account, req.ID).Error
 	if err != nil {
 		return errors.New("账户不存在")
 	}
@@ -158,7 +161,7 @@ func (s *DDZUserAccountService) UpdateUserAccount(req ddzReq.DDZUserAccountUpdat
 	if req.Phone != "" {
 		// 检查手机号是否已被其他账户使用
 		var count int64
-		global.GVA_DB.Model(&ddz.DDZUserAccount{}).Where("phone = ? AND id != ?", req.Phone, req.ID).Count(&count)
+		db.Model(&ddz.DDZUserAccount{}).Where("phone = ? AND id != ?", req.Phone, req.ID).Count(&count)
 		if count > 0 {
 			return errors.New("手机号已被其他账户使用")
 		}
@@ -174,18 +177,19 @@ func (s *DDZUserAccountService) UpdateUserAccount(req ddzReq.DDZUserAccountUpdat
 		updates["status"] = *req.Status
 	}
 
-	return global.GVA_DB.Model(&account).Updates(updates).Error
+	return db.Model(&account).Updates(updates).Error
 }
 
 // UpdateUserAccountStatus 更新账户状态
 func (s *DDZUserAccountService) UpdateUserAccountStatus(req ddzReq.DDZUserAccountStatus) error {
+	db := GetDDZDB()
 	var account ddz.DDZUserAccount
-	err := global.GVA_DB.First(&account, req.ID).Error
+	err := db.First(&account, req.ID).Error
 	if err != nil {
 		return errors.New("账户不存在")
 	}
 
-	return global.GVA_DB.Model(&account).Updates(map[string]interface{}{
+	return db.Model(&account).Updates(map[string]interface{}{
 		"status":     req.Status,
 		"updated_at": time.Now(),
 	}).Error
@@ -193,36 +197,37 @@ func (s *DDZUserAccountService) UpdateUserAccountStatus(req ddzReq.DDZUserAccoun
 
 // GetLoginLogList 获取登录日志列表
 func (s *DDZUserAccountService) GetLoginLogList(req ddzReq.DDZLoginLogSearch) (list interface{}, total int64, err error) {
+	db := GetDDZDB()
 	limit := req.PageSize
 	offset := req.PageSize * (req.Page - 1)
-	db := global.GVA_DB.Model(&ddz.DDZLoginLog{})
+	query := db.Model(&ddz.DDZLoginLog{})
 
 	if req.PlayerID != "" {
-		db = db.Where("player_id = ?", req.PlayerID)
+		query = query.Where("player_id = ?", req.PlayerID)
 	}
 	if req.LoginType != nil {
-		db = db.Where("login_type = ?", *req.LoginType)
+		query = query.Where("login_type = ?", *req.LoginType)
 	}
 	if req.LoginResult != nil {
-		db = db.Where("login_result = ?", *req.LoginResult)
+		query = query.Where("login_result = ?", *req.LoginResult)
 	}
 	if req.IP != "" {
-		db = db.Where("ip LIKE ?", "%"+req.IP+"%")
+		query = query.Where("ip LIKE ?", "%"+req.IP+"%")
 	}
 	if req.StartDate != "" {
-		db = db.Where("created_at >= ?", req.StartDate)
+		query = query.Where("created_at >= ?", req.StartDate)
 	}
 	if req.EndDate != "" {
-		db = db.Where("created_at <= ?", req.EndDate+" 23:59:59")
+		query = query.Where("created_at <= ?", req.EndDate+" 23:59:59")
 	}
 
-	err = db.Count(&total).Error
+	err = query.Count(&total).Error
 	if err != nil {
 		return nil, 0, err
 	}
 
 	var logs []ddz.DDZLoginLog
-	err = db.Limit(limit).Offset(offset).Order("id desc").Find(&logs).Error
+	err = query.Limit(limit).Offset(offset).Order("id desc").Find(&logs).Error
 	if err != nil {
 		return nil, 0, err
 	}
@@ -233,7 +238,7 @@ func (s *DDZUserAccountService) GetLoginLogList(req ddzReq.DDZLoginLogSearch) (l
 		resp := s.toLoginLogResponse(l)
 		// 获取玩家昵称
 		var player ddz.DDZPlayer
-		if err := global.GVA_DB.Where("player_id = ?", l.PlayerID).First(&player).Error; err == nil {
+		if err := db.Where("player_id = ?", l.PlayerID).First(&player).Error; err == nil {
 			resp.PlayerNickname = player.Nickname
 		}
 		logList = append(logList, resp)
@@ -311,39 +316,40 @@ func (s *DDZUserAccountService) toLoginLogResponse(l ddz.DDZLoginLog) ddzRes.DDZ
 	}
 
 	return ddzRes.DDZLoginLogResponse{
-		ID:             l.ID,
-		PlayerID:       l.PlayerID,
-		AccountID:      l.AccountID,
-		LoginType:      l.LoginType,
-		LoginTypeText:  loginTypeText,
-		LoginResult:    l.LoginResult,
+		ID:              l.ID,
+		PlayerID:        l.PlayerID,
+		AccountID:       l.AccountID,
+		LoginType:       l.LoginType,
+		LoginTypeText:   loginTypeText,
+		LoginResult:     l.LoginResult,
 		LoginResultText: loginResultText,
-		FailReason:     l.FailReason,
-		IP:             l.IP,
-		DeviceID:       l.DeviceID,
-		DeviceType:     l.DeviceType,
-		UserAgent:      l.UserAgent,
-		Location:       l.Location,
-		CreatedAt:      l.CreatedAt.Format("2006-01-02 15:04:05"),
+		FailReason:      l.FailReason,
+		IP:              l.IP,
+		DeviceID:        l.DeviceID,
+		DeviceType:      l.DeviceType,
+		UserAgent:       l.UserAgent,
+		Location:        l.Location,
+		CreatedAt:       l.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }
 
 // BindPhone 绑定手机号
 func (s *DDZUserAccountService) BindPhone(accountID uint, phone string) error {
+	db := GetDDZDB()
 	var account ddz.DDZUserAccount
-	err := global.GVA_DB.First(&account, accountID).Error
+	err := db.First(&account, accountID).Error
 	if err != nil {
 		return errors.New("账户不存在")
 	}
 
 	// 检查手机号是否已被使用
 	var count int64
-	global.GVA_DB.Model(&ddz.DDZUserAccount{}).Where("phone = ? AND id != ?", phone, accountID).Count(&count)
+	db.Model(&ddz.DDZUserAccount{}).Where("phone = ? AND id != ?", phone, accountID).Count(&count)
 	if count > 0 {
 		return errors.New("手机号已被其他账户使用")
 	}
 
-	return global.GVA_DB.Model(&account).Updates(map[string]interface{}{
+	return db.Model(&account).Updates(map[string]interface{}{
 		"phone":      phone,
 		"updated_at": time.Now(),
 	}).Error
@@ -351,13 +357,14 @@ func (s *DDZUserAccountService) BindPhone(accountID uint, phone string) error {
 
 // UnbindWeChat 解绑微信
 func (s *DDZUserAccountService) UnbindWeChat(accountID uint) error {
+	db := GetDDZDB()
 	var account ddz.DDZUserAccount
-	err := global.GVA_DB.First(&account, accountID).Error
+	err := db.First(&account, accountID).Error
 	if err != nil {
 		return errors.New("账户不存在")
 	}
 
-	return global.GVA_DB.Model(&account).Updates(map[string]interface{}{
+	return db.Model(&account).Updates(map[string]interface{}{
 		"wx_open_id":     "",
 		"wx_union_id":    "",
 		"wx_session_key": "",
@@ -369,11 +376,12 @@ func (s *DDZUserAccountService) UnbindWeChat(accountID uint) error {
 
 // ResetToken 重置Token（强制下线）
 func (s *DDZUserAccountService) ResetToken(accountID uint) error {
-	return global.GVA_DB.Model(&ddz.DDZUserAccount{}).Where("id = ?", accountID).Updates(map[string]interface{}{
-		"token":                  "",
-		"token_expire_at":        nil,
-		"refresh_token":          "",
+	db := GetDDZDB()
+	return db.Model(&ddz.DDZUserAccount{}).Where("id = ?", accountID).Updates(map[string]interface{}{
+		"token":                   "",
+		"token_expire_at":         nil,
+		"refresh_token":           "",
 		"refresh_token_expire_at": nil,
-		"updated_at":             time.Now(),
+		"updated_at":              time.Now(),
 	}).Error
 }

@@ -1,7 +1,6 @@
 package ddz
 
 import (
-	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/ddz"
 	ddzReq "github.com/flipped-aurora/gin-vue-admin/server/model/ddz/request"
 	ddzRes "github.com/flipped-aurora/gin-vue-admin/server/model/ddz/response"
@@ -13,48 +12,49 @@ var DDZGameServiceApp = new(DDZGameService)
 
 // GetGameRecordList 获取游戏记录列表
 func (s *DDZGameService) GetGameRecordList(req ddzReq.DDZGameRecordSearch) (list interface{}, total int64, err error) {
+	db := GetDDZDB()
 	limit := req.PageSize
 	offset := req.PageSize * (req.Page - 1)
-	db := global.GVA_DB.Model(&ddz.DDZGameRecord{})
+	query := db.Model(&ddz.DDZGameRecord{})
 
 	if req.RoomID != "" {
-		db = db.Where("room_id = ?", req.RoomID)
+		query = query.Where("room_id = ?", req.RoomID)
 	}
 	if req.Winner != nil {
-		db = db.Where("winner = ?", *req.Winner)
+		query = query.Where("winner = ?", *req.Winner)
 	}
 	if req.RoomType != nil {
-		db = db.Where("room_type = ?", *req.RoomType)
+		query = query.Where("room_type = ?", *req.RoomType)
 	}
 	if req.StartTime != "" {
-		db = db.Where("game_time >= ?", req.StartTime)
+		query = query.Where("game_time >= ?", req.StartTime)
 	}
 	if req.EndTime != "" {
-		db = db.Where("game_time <= ?", req.EndTime)
+		query = query.Where("game_time <= ?", req.EndTime)
 	}
 	if req.Spring != nil {
-		db = db.Where("spring = ?", *req.Spring)
+		query = query.Where("spring = ?", *req.Spring)
 	}
 	if req.MinDuration > 0 {
-		db = db.Where("game_duration >= ?", req.MinDuration)
+		query = query.Where("game_duration >= ?", req.MinDuration)
 	}
 	if req.MaxDuration > 0 {
-		db = db.Where("game_duration <= ?", req.MaxDuration)
+		query = query.Where("game_duration <= ?", req.MaxDuration)
 	}
 
 	// 如果指定了玩家ID，需要关联查询
 	if req.PlayerID != "" {
-		db = db.Joins("JOIN ddz_game_player_records ON ddz_game_player_records.game_id = ddz_game_records.room_id").
+		query = query.Joins("JOIN ddz_game_player_records ON ddz_game_player_records.game_id = ddz_game_records.room_id").
 			Where("ddz_game_player_records.player_id = ?", req.PlayerID)
 	}
 
-	err = db.Count(&total).Error
+	err = query.Count(&total).Error
 	if err != nil {
 		return nil, 0, err
 	}
 
 	var records []ddz.DDZGameRecord
-	err = db.Limit(limit).Offset(offset).Order("id desc").Find(&records).Error
+	err = query.Limit(limit).Offset(offset).Order("id desc").Find(&records).Error
 	if err != nil {
 		return nil, 0, err
 	}
@@ -70,26 +70,27 @@ func (s *DDZGameService) GetGameRecordList(req ddzReq.DDZGameRecordSearch) (list
 
 // GetGameRecordDetail 获取游戏记录详情
 func (s *DDZGameService) GetGameRecordDetail(id uint) (ddzRes.DDZGameRecordDetailResponse, error) {
+	db := GetDDZDB()
 	var record ddz.DDZGameRecord
-	err := global.GVA_DB.First(&record, id).Error
+	err := db.First(&record, id).Error
 	if err != nil {
 		return ddzRes.DDZGameRecordDetailResponse{}, err
 	}
 
 	// 获取玩家记录
 	var playerRecords []ddz.DDZGamePlayerRecord
-	err = global.GVA_DB.Where("game_id = ?", record.RoomID).Find(&playerRecords).Error
+	err = db.Where("game_id = ?", record.RoomID).Find(&playerRecords).Error
 	if err != nil {
 		return ddzRes.DDZGameRecordDetailResponse{}, err
 	}
 
 	// 获取发牌记录
 	var dealRecord ddz.DDZDealRecord
-	global.GVA_DB.Where("game_id = ?", record.RoomID).First(&dealRecord)
+	db.Where("game_id = ?", record.RoomID).First(&dealRecord)
 
 	// 获取出牌记录
 	var playRecords []ddz.DDZGamePlayRecord
-	global.GVA_DB.Where("game_id = ?", record.RoomID).Order("turn_index asc").Find(&playRecords)
+	db.Where("game_id = ?", record.RoomID).Order("turn_index asc").Find(&playRecords)
 
 	// 转换玩家记录
 	players := make([]ddzRes.DDZGamePlayerInfo, 0, len(playerRecords))
@@ -157,8 +158,9 @@ func (s *DDZGameService) toGameRecordResponse(r ddz.DDZGameRecord) ddzRes.DDZGam
 
 // getPlayerNickname 获取玩家昵称
 func (s *DDZGameService) getPlayerNickname(playerID string) string {
+	db := GetDDZDB()
 	var player ddz.DDZPlayer
-	if err := global.GVA_DB.Where("player_id = ?", playerID).First(&player).Error; err != nil {
+	if err := db.Where("player_id = ?", playerID).First(&player).Error; err != nil {
 		return ""
 	}
 	return player.Nickname
