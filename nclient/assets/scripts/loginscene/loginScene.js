@@ -588,33 +588,51 @@ cc.Class({
 
         if (content) {
             this._agreementContentLabel.string = content;
-            this._updateContentSize();
+            
+            // ★ 延迟更新尺寸，确保 Label 已经完成排版
+            var self = this;
+            this.scheduleOnce(function() {
+                self._updateContentSize();
+            }, 0.1);
         }
     },
 
     // 更新 ScrollView 的 content 尺寸
     _updateContentSize: function() {
-        if (!this._agreementContentLabel || !this._contentNode) return;
+        if (!this._agreementContentLabel || !this._contentNode || !this._scrollView) return;
         
         var label = this._agreementContentLabel;
+        var viewHeight = 380;  // ScrollView 视口高度
+        
+        // ★ 方法1：使用 Label 的实际渲染高度（更准确）
+        var labelNode = label.node;
+        var textHeight = labelNode.height;
+        
+        // ★ 方法2：估算行数（作为备用验证）
         var lineHeight = label.lineHeight || 36;
         var fontSize = label.fontSize || 22;
         var wrapWidth = label.wrapWidth || 790;
-        
         var text = label.string || "";
-        var charWidth = fontSize * 0.55;
-        var charsPerLine = Math.floor(wrapWidth / charWidth);
+        
+        // 更准确的字符宽度计算（中文字符更宽）
+        var avgCharWidth = fontSize * 0.65;  // 中文字符约等于字体大小
+        var charsPerLine = Math.floor(wrapWidth / avgCharWidth);
         var lines = Math.ceil(text.length / charsPerLine);
+        var estimatedHeight = lines * lineHeight + 50;
         
-        var actualHeight = lines * lineHeight + 50;
-        var minHeight = 380;
-        var newHeight = Math.max(actualHeight, minHeight);
+        // 取两者中较大的值，并确保大于视口高度
+        var actualHeight = Math.max(textHeight, estimatedHeight, viewHeight + 100);
         
-        this._contentNode.setContentSize(cc.size(810, newHeight));
+        console.log("文本实际高度:", textHeight, "估算高度:", estimatedHeight, "最终高度:", actualHeight);
         
-        if (this._scrollView) {
-            this._scrollView.scrollToTop(0.1);
-        }
+        // ★ 关键：content 高度必须大于视口高度才能滚动
+        this._contentNode.setContentSize(cc.size(810, actualHeight));
+        
+        // 强制更新 ScrollView
+        this._scrollView.content = this._contentNode;
+        
+        // 滚动到顶部
+        this._scrollView.scrollToTop(0.05);
     },
 
     // 显示默认协议内容
@@ -633,7 +651,12 @@ cc.Class({
                 "本游戏不对因网络原因导致的服务中断承担责任。";
 
             this._agreementContentLabel.string = defaultContent;
-            this._updateContentSize();
+            
+            // ★ 延迟更新尺寸
+            var self = this;
+            this.scheduleOnce(function() {
+                self._updateContentSize();
+            }, 0.1);
         }
     }
 });
