@@ -1,5 +1,5 @@
 // 登录场景控制器
-// 使用内置 Toggle 组件实现标准复选框
+// 使用点击事件实现复选框功能（不依赖 Toggle 组件）
 
 cc.Class({
     name: 'loginScene',
@@ -26,7 +26,7 @@ cc.Class({
         this._isAgreementChecked = false;
         this._initWaitNode();
         
-        // 初始化复选框
+        // 初始化复选框（使用点击事件）
         this._initCheckbox();
         
         // 初始化登录按钮
@@ -55,7 +55,7 @@ cc.Class({
         }
     },
 
-    // 初始化复选框 - 使用内置 Toggle 组件
+    // 初始化复选框 - 使用点击事件直接实现
     _initCheckbox: function() {
         console.log("=== 初始化复选框 ===");
         
@@ -68,51 +68,46 @@ cc.Class({
             return;
         }
         
-        // 获取 Toggle 组件
-        var toggle = checkMarkNode.getComponent(cc.Toggle);
-        if (!toggle) {
-            console.error("Toggle 组件未找到");
-            return;
-        }
-        
-        this._toggle = toggle;
         this._checkMarkNode = checkMarkNode;
         
+        // 获取 checkmark 子节点（勾选图标）
+        var checkmark = checkMarkNode.getChildByName("checkmark");
+        if (checkmark) {
+            this._checkmarkIcon = checkmark;
+            checkmark.active = false; // 默认未选中
+            console.log("checkmark 子节点找到，默认隐藏");
+        } else {
+            console.warn("checkmark 子节点未找到");
+        }
+        
         // 默认未选中
-        toggle.isChecked = false;
         this._isAgreementChecked = false;
         
-        // 清空并重新绑定 Toggle 事件
-        toggle.checkEvents = [];
-        var handler = new cc.Component.EventHandler();
-        handler.target = this.node;
-        handler.component = "loginScene";
-        handler.handler = "_onCheckboxToggle";
-        handler.customEventData = "";
-        toggle.checkEvents.push(handler);
+        // 移除之前的按钮组件（如果存在），避免冲突
+        var button = checkMarkNode.getComponent(cc.Button);
+        if (button) {
+            button.enabled = false;
+            console.log("禁用 Button 组件");
+        }
         
-        // 添加触摸事件作为备选方案
+        // 直接使用触摸事件实现复选框
         checkMarkNode.off(cc.Node.EventType.TOUCH_END);
         checkMarkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
             console.log(">>> 复选框被点击");
-            toggle.isChecked = !toggle.isChecked;
-            self._onCheckboxToggle(toggle);
+            self._toggleCheckbox();
         }, this);
         
         console.log("=== 复选框初始化完成 ===");
     },
 
-    // Toggle 状态变化回调
-    _onCheckboxToggle: function(toggle) {
-        this._isAgreementChecked = toggle.isChecked;
+    // 切换复选框状态
+    _toggleCheckbox: function() {
+        this._isAgreementChecked = !this._isAgreementChecked;
         console.log("复选框状态:", this._isAgreementChecked ? "已选中" : "未选中");
         
-        // 更新 checkmark 子节点的显示状态
-        if (this._checkMarkNode) {
-            var checkmark = this._checkMarkNode.getChildByName("checkmark");
-            if (checkmark) {
-                checkmark.active = toggle.isChecked;
-            }
+        // 更新 checkmark 图标的显示状态
+        if (this._checkmarkIcon) {
+            this._checkmarkIcon.active = this._isAgreementChecked;
         }
     },
 
@@ -152,14 +147,14 @@ cc.Class({
                 handler.handler = "_onPhoneLoginClick";
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
-                
-                // 备选方案：触摸事件
-                var self = this;
-                phoneLoginNode.off(cc.Node.EventType.TOUCH_END);
-                phoneLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-                    self._onPhoneLoginClick();
-                }, this);
             }
+            
+            // 备选方案：触摸事件
+            var self = this;
+            phoneLoginNode.off(cc.Node.EventType.TOUCH_END);
+            phoneLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                self._onPhoneLoginClick();
+            }, this);
         }
 
         console.log("=== _initLoginButtons 结束 ===");
@@ -373,153 +368,201 @@ cc.Class({
         }
     },
 
-    // 显示用户协议弹窗
+    // 显示用户协议弹窗 - 使用动态创建，不依赖 prefab
     _showUserAgreementPopup: function() {
-        var self = this;
-
-        if (this.user_agreement_prefabs) {
-            this._createUserAgreementPopup(this.user_agreement_prefabs);
-        } else {
-            cc.resources.load("prefabs/user_agreement", cc.Prefab, function(err, prefab) {
-                if (err) {
-                    console.error("加载用户协议 prefab 失败:", err);
-                    // 即使加载失败，也要创建默认弹窗
-                    self._createDefaultAgreementPopup();
-                    return;
-                }
-                self._createUserAgreementPopup(prefab);
-            });
-        }
+        console.log("=== 显示用户协议弹窗 ===");
+        this._createDynamicAgreementPopup();
     },
 
-    _createUserAgreementPopup: function(prefab) {
+    // 动态创建用户协议弹窗（不使用 prefab）
+    _createDynamicAgreementPopup: function() {
         try {
-            var popup = cc.instantiate(prefab);
-            popup.parent = this.node;
-
-            // 绑定关闭按钮事件
-            var closeBtn = popup.getChildByName("close_btn");
-            if (closeBtn) {
-                var button = closeBtn.getComponent(cc.Button);
-                if (button) {
-                    button.clickEvents = [];
-
-                    var handler = new cc.Component.EventHandler();
-                    handler.target = this.node;
-                    handler.component = "loginScene";
-                    handler.handler = "_onCloseUserAgreement";
-                    handler.customEventData = "";
-                    button.clickEvents.push(handler);
-                }
-                
-                // 备选方案：触摸事件
-                var self = this;
-                closeBtn.off(cc.Node.EventType.TOUCH_END);
-                closeBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
-                    self._onCloseUserAgreement();
-                }, this);
-            }
-
-            this._userAgreementPopup = popup;
-        } catch (e) {
-            console.error("创建用户协议弹窗失败:", e);
-            this._createDefaultAgreementPopup();
-        }
-    },
-
-    // 创建默认的用户协议弹窗
-    _createDefaultAgreementPopup: function() {
-        try {
+            var self = this;
+            
             // 创建弹窗根节点
-            var popup = new cc.Node("user_agreement_default");
+            var popup = new cc.Node("user_agreement_popup");
             popup.parent = this.node;
             popup.setContentSize(cc.size(1280, 720));
             popup.setPosition(0, 0);
+            popup.zIndex = 1000;
             
             // 添加阻挡事件组件
             popup.addComponent(cc.BlockInputEvents);
             
-            // 创建背景遮罩
-            var bgNode = new cc.Node("bg");
-            bgNode.parent = popup;
-            bgNode.setContentSize(cc.size(1280, 720));
-            bgNode.setPosition(0, 0);
-            bgNode.color = new cc.Color(0, 0, 0);
-            bgNode.opacity = 150;
-            bgNode.addComponent(cc.Sprite);
+            // 创建半透明背景遮罩
+            var bgMask = new cc.Node("bg_mask");
+            bgMask.parent = popup;
+            bgMask.setContentSize(cc.size(1280, 720));
+            bgMask.setPosition(0, 0);
+            bgMask.color = new cc.Color(0, 0, 0);
+            bgMask.opacity = 150;
+            bgMask.addComponent(cc.Sprite);
+            
+            // 尝试加载背景图片
+            this._loadPopupBackground(popup);
             
             // 创建内容面板
-            var panel = new cc.Node("panel");
+            var panel = new cc.Node("content_panel");
             panel.parent = popup;
-            panel.setContentSize(cc.size(600, 400));
+            panel.setContentSize(cc.size(900, 520));
             panel.setPosition(0, 0);
             var panelSprite = panel.addComponent(cc.Sprite);
+            panelSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
             panel.color = new cc.Color(255, 255, 255);
             
             // 创建标题
-            var titleNode = new cc.Node("title");
+            var titleNode = new cc.Node("title_label");
             titleNode.parent = panel;
-            titleNode.setContentSize(cc.size(200, 40));
-            titleNode.setPosition(0, 160);
+            titleNode.setContentSize(cc.size(300, 50));
+            titleNode.setPosition(0, 220);
             var titleLabel = titleNode.addComponent(cc.Label);
             titleLabel.string = "用户协议";
-            titleLabel.fontSize = 28;
-            titleLabel.lineHeight = 40;
+            titleLabel.fontSize = 32;
+            titleLabel.lineHeight = 50;
+            titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
             titleNode.color = new cc.Color(50, 50, 50);
             
-            // 创建内容
-            var contentNode = new cc.Node("content");
-            contentNode.parent = panel;
-            contentNode.setContentSize(cc.size(550, 250));
-            contentNode.setPosition(0, -10);
+            // 创建滚动视图容器
+            var scrollContainer = new cc.Node("scroll_container");
+            scrollContainer.parent = panel;
+            scrollContainer.setContentSize(cc.size(850, 340));
+            scrollContainer.setPosition(0, -10);
+            
+            // 创建内容标签
+            var contentNode = new cc.Node("content_label");
+            contentNode.parent = scrollContainer;
+            contentNode.setContentSize(cc.size(850, 1000));
+            contentNode.setPosition(0, 180);
+            contentNode.anchorY = 1;
             var contentLabel = contentNode.addComponent(cc.Label);
-            contentLabel.string = "协议加载失败，请稍后重试。";
+            contentLabel.string = "正在加载用户协议...";
             contentLabel.fontSize = 18;
             contentLabel.lineHeight = 28;
-            contentNode.color = new cc.Color(80, 80, 80);
+            contentLabel.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
+            contentLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+            contentNode.color = new cc.Color(60, 60, 60);
             
             // 创建关闭按钮
             var closeBtn = new cc.Node("close_btn");
             closeBtn.parent = popup;
             closeBtn.setContentSize(cc.size(50, 50));
-            closeBtn.setPosition(270, 170);
-            var closeSprite = closeBtn.addComponent(cc.Sprite);
+            closeBtn.setPosition(490, 300);
+            
+            var closeLabel = closeBtn.addComponent(cc.Label);
+            closeLabel.string = "×";
+            closeLabel.fontSize = 36;
+            closeLabel.lineHeight = 50;
+            closeBtn.color = new cc.Color(100, 100, 100);
+            
             var closeBtnComp = closeBtn.addComponent(cc.Button);
+            closeBtnComp.transition = cc.Button.Transition.SCALE;
+            closeBtnComp.zoomScale = 1.2;
             
             // 绑定关闭事件
-            closeBtnComp.clickEvents = [];
-            var handler = new cc.Component.EventHandler();
-            handler.target = this.node;
-            handler.component = "loginScene";
-            handler.handler = "_onCloseUserAgreement";
-            handler.customEventData = "";
-            closeBtnComp.clickEvents.push(handler);
+            closeBtn.off(cc.Node.EventType.TOUCH_END);
+            closeBtn.on(cc.Node.EventType.TOUCH_END, function() {
+                self._onCloseUserAgreement();
+            }, this);
             
             // 创建"我知道了"按钮
             var confirmBtn = new cc.Node("confirm_btn");
             confirmBtn.parent = panel;
             confirmBtn.setContentSize(cc.size(150, 45));
-            confirmBtn.setPosition(0, -160);
+            confirmBtn.setPosition(0, -220);
+            
             var confirmLabel = confirmBtn.addComponent(cc.Label);
             confirmLabel.string = "我知道了";
             confirmLabel.fontSize = 22;
+            confirmLabel.lineHeight = 45;
+            confirmLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
             confirmBtn.color = new cc.Color(255, 140, 0);
+            
             var confirmBtnComp = confirmBtn.addComponent(cc.Button);
+            confirmBtnComp.transition = cc.Button.Transition.SCALE;
+            confirmBtnComp.zoomScale = 1.1;
             
             // 绑定关闭事件
-            confirmBtnComp.clickEvents = [];
-            var confirmHandler = new cc.Component.EventHandler();
-            confirmHandler.target = this.node;
-            confirmHandler.component = "loginScene";
-            confirmHandler.handler = "_onCloseUserAgreement";
-            confirmHandler.customEventData = "";
-            confirmBtnComp.clickEvents.push(confirmHandler);
+            confirmBtn.off(cc.Node.EventType.TOUCH_END);
+            confirmBtn.on(cc.Node.EventType.TOUCH_END, function() {
+                self._onCloseUserAgreement();
+            }, this);
             
             this._userAgreementPopup = popup;
+            this._agreementContentLabel = contentLabel;
+            
+            // 尝试从 API 获取协议内容
+            this._fetchAgreementContent();
+            
+            console.log("=== 弹窗创建完成 ===");
             
         } catch (e) {
-            console.error("创建默认弹窗失败:", e);
+            console.error("创建动态弹窗失败:", e);
             this._showError("无法显示用户协议");
+        }
+    },
+
+    // 尝试加载背景图片
+    _loadPopupBackground: function(popup) {
+        var panel = popup.getChildByName("content_panel");
+        if (!panel) return;
+        
+        cc.resources.load("images/user_agreement_bg", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.log("背景图片未找到，使用默认白色背景");
+                return;
+            }
+            
+            var sprite = panel.getComponent(cc.Sprite);
+            if (sprite && spriteFrame) {
+                sprite.spriteFrame = spriteFrame;
+                console.log("背景图片加载成功");
+            }
+        });
+    },
+
+    // 从 API 获取协议内容
+    _fetchAgreementContent: function() {
+        var self = this;
+        var defines = window.defines;
+        var HttpAPI = window.HttpAPI;
+        
+        if (!defines || !defines.apiUrl || !HttpAPI) {
+            console.warn("API 配置未定义，显示默认内容");
+            self._showDefaultAgreementContent();
+            return;
+        }
+
+        HttpAPI.getUserAgreement(
+            defines.apiUrl,
+            defines.cryptoKey || '',
+            function(err, data) {
+                if (err || !data) {
+                    console.warn("获取用户协议失败，显示默认内容");
+                    self._showDefaultAgreementContent();
+                    return;
+                }
+                
+                if (self._agreementContentLabel && data.content) {
+                    self._agreementContentLabel.string = data.content;
+                }
+            }
+        );
+    },
+
+    // 显示默认协议内容
+    _showDefaultAgreementContent: function() {
+        if (this._agreementContentLabel) {
+            this._agreementContentLabel.string = "欢迎使用本游戏！\n\n" +
+                "在使用本游戏前，请您仔细阅读并理解本用户协议的全部内容。\n\n" +
+                "1. 服务条款\n" +
+                "本游戏提供的服务仅供个人娱乐使用，不得用于商业目的。\n\n" +
+                "2. 用户行为规范\n" +
+                "用户应遵守相关法律法规，不得利用本游戏进行任何违法活动。\n\n" +
+                "3. 知识产权\n" +
+                "本游戏的所有内容（包括但不限于文字、图片、音频、视频等）均受知识产权法律保护。\n\n" +
+                "4. 免责声明\n" +
+                "本游戏不对因网络原因导致的服务中断承担责任。\n\n" +
+                "点击"我知道了"按钮即表示您已阅读并同意本协议的全部内容。";
         }
     },
 
@@ -527,6 +570,7 @@ cc.Class({
         if (this._userAgreementPopup) {
             this._userAgreementPopup.destroy();
             this._userAgreementPopup = null;
+            this._agreementContentLabel = null;
         }
     }
 });
