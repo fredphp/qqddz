@@ -345,7 +345,7 @@
       "__id__": 1
     },
     "component": "",
-    "_componentId": "b2c3d4e5-f678-90ab-cdef-123456789abc",
+    "_componentId": "a1b2c3d4-e5f6-4a7b-8c9d-e0f1a2b3c4d5",
     "handler": "onButtonClick",
     "customEventData": "close"
   },
@@ -872,7 +872,7 @@
     "_id": ""
   },
   {
-    "__type__": "b2c3d4e5-f678-90ab-cdef-123456789abc",
+    "__type__": "a1b2c3d4-e5f6-4a7b-8c9d-e0f1a2b3c4d5",
     "_name": "",
     "_objFlags": 0,
     "node": {
