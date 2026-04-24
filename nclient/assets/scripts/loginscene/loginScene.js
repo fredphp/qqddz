@@ -594,11 +594,11 @@ cc.Class({
         if (content) {
             this._agreementContentLabel.string = content;
             
-            // ★ 延迟更新尺寸，确保 Label 已经完成排版
+            // ★ RESIZE_HEIGHT 需要两帧才能正确计算高度
             var self = this;
             this.scheduleOnce(function() {
                 self._updateContentSize();
-            }, 0.1);
+            }, 0.2);  // 增加延迟时间
         }
     },
 
@@ -608,17 +608,20 @@ cc.Class({
         
         var viewHeight = 380;  // ScrollView 视口高度
         
-        // ★ Label 使用 RESIZE_HEIGHT，直接获取 node.height 即可
+        // ★ Label 使用 RESIZE_HEIGHT，需要强制更新后获取高度
         var labelNode = this._agreementContentLabel.node;
+        
+        // 强制 Label 更新布局
+        this._agreementContentLabel['_forceUpdate'] && this._agreementContentLabel['_forceUpdate']();
+        
         var textHeight = labelNode.height;
         
         // 计算最终的 content 高度
-        // textHeight 已经包含了文字的实际高度，加上上下 padding
-        var actualHeight = textHeight + 40;  // 上下各留20px边距
+        var actualHeight = textHeight + 50;  // 上下各留边距
         
         // 确保高度大于视口高度
         if (actualHeight < viewHeight) {
-            actualHeight = viewHeight;
+            actualHeight = viewHeight + 50;
         }
         
         console.log("Label高度:", textHeight, "Content高度:", actualHeight);
@@ -654,7 +657,7 @@ cc.Class({
             var self = this;
             this.scheduleOnce(function() {
                 self._updateContentSize();
-            }, 0.1);
+            }, 0.2);
         }
     }
 });
