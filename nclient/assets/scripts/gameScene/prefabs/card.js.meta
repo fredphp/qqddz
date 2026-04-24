@@ -2,7 +2,7 @@
   "ver": "1.1.0",
   "uuid": "4ab983ad-ebf2-4b40-8422-3e2bf20056f9",
   "importer": "javascript",
-  "isPlugin": false,
+  "isPlugin": true,
   "loadPluginInWeb": true,
   "loadPluginInNative": true,
   "loadPluginInEditor": false,

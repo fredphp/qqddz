@@ -2,6 +2,7 @@
 // 使用 Toggle 组件 + Sprite 实现标准复选框
 
 cc.Class({
+    name: 'loginScene',
     extends: cc.Component,
 
     properties: {

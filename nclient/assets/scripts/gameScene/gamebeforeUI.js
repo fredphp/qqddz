@@ -1,6 +1,7 @@
 // 使用全局变量，不使用 require
 
 cc.Class({
+    name: 'gamebeforeUI',
     extends: cc.Component,
 
     properties: {
