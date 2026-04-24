@@ -352,7 +352,7 @@ cc.Class({
         }
     },
 
-    // 动态创建手机登录弹窗 - 优化布局对齐
+    // 动态创建手机登录弹窗 - 优化美观度
     _createPhoneLoginDynamic: function() {
         var self = this;
 
@@ -377,251 +377,279 @@ cc.Class({
         bgMask.opacity = 150;
 
         // ==================== 弹窗面板 ====================
-        var panelWidth = 420;
-        var panelHeight = 380;
+        var panelWidth = 380;
+        var panelHeight = 360;
         var panel = new cc.Node("panel");
         panel.parent = popup;
         panel.setContentSize(cc.size(panelWidth, panelHeight));
         panel.setPosition(0, 0);
 
-        // 灰色边框
+        // 带圆角的灰色边框
         var border = new cc.Node("border");
         border.parent = panel;
         border.setContentSize(cc.size(panelWidth, panelHeight));
         border.setPosition(0, 0);
         var borderGfx = border.addComponent(cc.Graphics);
-        borderGfx.fillColor = new cc.Color(180, 180, 180);
-        borderGfx.rect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight);
+        borderGfx.fillColor = new cc.Color(200, 200, 200);
+        borderGfx.roundRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 8);
         borderGfx.fill();
 
-        // 白色内容背景
+        // 白色内容背景（圆角）
         var content = new cc.Node("content");
         content.parent = panel;
         content.setContentSize(cc.size(panelWidth - 4, panelHeight - 4));
         content.setPosition(0, 0);
         var contentGfx = content.addComponent(cc.Graphics);
         contentGfx.fillColor = new cc.Color(255, 255, 255);
-        contentGfx.rect(-(panelWidth - 4)/2, -(panelHeight - 4)/2, panelWidth - 4, panelHeight - 4);
+        contentGfx.roundRect(-(panelWidth - 4)/2, -(panelHeight - 4)/2, panelWidth - 4, panelHeight - 4, 6);
         contentGfx.fill();
 
         // ==================== 标题栏 ====================
-        var titleY = panelHeight/2 - 35;
+        var titleY = panelHeight/2 - 30;
         var titleNode = new cc.Node("title");
         titleNode.parent = panel;
         titleNode.setPosition(0, titleY);
         var titleLabel = titleNode.addComponent(cc.Label);
         titleLabel.string = "欢乐登录";
-        titleLabel.fontSize = 24;
-        titleLabel.lineHeight = 32;
+        titleLabel.fontSize = 22;
+        titleLabel.lineHeight = 30;
         titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         titleNode.color = new cc.Color(51, 51, 51);
 
         // 关闭按钮
         var closeBtn = new cc.Node("close_btn");
         closeBtn.parent = panel;
-        closeBtn.setContentSize(cc.size(32, 32));
-        closeBtn.setPosition(panelWidth/2 - 25, titleY);
+        closeBtn.setContentSize(cc.size(30, 30));
+        closeBtn.setPosition(panelWidth/2 - 22, titleY);
+        closeBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            popup.destroy();
+        }, this);
+        
         var closeX = new cc.Node("x");
         closeX.parent = closeBtn;
         var closeXLabel = closeX.addComponent(cc.Label);
         closeXLabel.string = "×";
-        closeXLabel.fontSize = 28;
-        closeX.color = new cc.Color(120, 120, 120);
-        closeBtn.on(cc.Node.EventType.TOUCH_END, function() {
-            popup.destroy();
-        }, this);
+        closeXLabel.fontSize = 26;
+        closeX.color = new cc.Color(150, 150, 150);
 
         // 分隔线
         var dividerLine = new cc.Node("divider");
         dividerLine.parent = panel;
-        dividerLine.setContentSize(cc.size(panelWidth - 40, 1));
-        dividerLine.setPosition(0, titleY - 25);
+        dividerLine.setPosition(0, titleY - 22);
         var dividerGfx = dividerLine.addComponent(cc.Graphics);
-        dividerGfx.strokeColor = new cc.Color(230, 230, 230);
-        dividerGfx.moveTo(-(panelWidth - 40)/2, 0);
-        dividerGfx.lineTo((panelWidth - 40)/2, 0);
+        dividerGfx.strokeColor = new cc.Color(235, 235, 235);
+        dividerGfx.lineWidth = 1;
+        dividerGfx.moveTo(-panelWidth/2 + 20, 0);
+        dividerGfx.lineTo(panelWidth/2 - 20, 0);
         dividerGfx.stroke();
 
         // ==================== 表单布局参数 ====================
-        var formLeftX = -panelWidth/2 + 70;  // 标签左对齐位置
-        var inputLeftX = -panelWidth/2 + 70;  // 输入框左对齐位置
-        var inputWidth = 280;  // 输入框宽度
-        var inputHeight = 40;  // 输入框高度
-        var rowHeight = 70;    // 每行高度
-        var startRowY = titleY - 70;  // 第一行Y坐标
+        var paddingX = 30;  // 左右边距
+        var formLeftX = -panelWidth/2 + paddingX;  // 表单左边界
+        var formWidth = panelWidth - paddingX * 2;  // 表单宽度
+        var inputHeight = 38;  // 输入框高度
+        var labelHeight = 22;  // 标签高度
+        var rowGap = 15;       // 行间距
+        
+        var currentY = titleY - 45;  // 当前Y位置
 
         // ==================== 手机号行 ====================
-        var phoneRowY = startRowY;
-
-        // 手机号标签
+        // 手机号标签 - 和输入框左对齐
         var phoneLabel = new cc.Node("phone_label");
         phoneLabel.parent = panel;
-        phoneLabel.setPosition(inputLeftX, phoneRowY + 22);
+        phoneLabel.anchorX = 0;
+        phoneLabel.setPosition(formLeftX, currentY);
         var phoneLabelComp = phoneLabel.addComponent(cc.Label);
         phoneLabelComp.string = "手机号";
         phoneLabelComp.fontSize = 14;
         phoneLabelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
-        phoneLabel.color = new cc.Color(102, 102, 102);
+        phoneLabel.color = new cc.Color(80, 80, 80);
+        
+        currentY -= labelHeight;
 
-        // 手机号输入框边框
-        var phoneInputBorder = new cc.Node("phone_input_border");
-        phoneInputBorder.parent = panel;
-        phoneInputBorder.setContentSize(cc.size(inputWidth, inputHeight));
-        phoneInputBorder.setPosition(inputLeftX + inputWidth/2, phoneRowY - 5);
-        var phoneBorderGfx = phoneInputBorder.addComponent(cc.Graphics);
-        phoneBorderGfx.strokeColor = new cc.Color(200, 200, 200);
-        phoneBorderGfx.lineWidth = 1;
-        phoneBorderGfx.rect(-inputWidth/2, -inputHeight/2, inputWidth, inputHeight);
-        phoneBorderGfx.stroke();
+        // 手机号输入框背景
+        var phoneInputBg = new cc.Node("phone_input_bg");
+        phoneInputBg.parent = panel;
+        phoneInputBg.setContentSize(cc.size(formWidth, inputHeight));
+        phoneInputBg.setPosition(0, currentY - inputHeight/2);
+        var phoneBgGfx = phoneInputBg.addComponent(cc.Graphics);
+        phoneBgGfx.fillColor = new cc.Color(248, 248, 248);
+        phoneBgGfx.roundRect(-formWidth/2, -inputHeight/2, formWidth, inputHeight, 4);
+        phoneBgGfx.fill();
+        phoneBgGfx.strokeColor = new cc.Color(220, 220, 220);
+        phoneBgGfx.lineWidth = 1;
+        phoneBgGfx.roundRect(-formWidth/2, -inputHeight/2, formWidth, inputHeight, 4);
+        phoneBgGfx.stroke();
 
         // 手机号输入框
         var phoneInputNode = new cc.Node("phone_input");
         phoneInputNode.parent = panel;
-        phoneInputNode.setContentSize(cc.size(inputWidth - 20, inputHeight - 4));
-        phoneInputNode.setPosition(inputLeftX + inputWidth/2, phoneRowY - 5);
+        phoneInputNode.setContentSize(cc.size(formWidth - 20, inputHeight));
+        phoneInputNode.setPosition(0, currentY - inputHeight/2);
         var phoneEditBox = phoneInputNode.addComponent(cc.EditBox);
         phoneEditBox.placeholder = "请输入手机号";
-        phoneEditBox.fontSize = 16;
-        phoneEditBox.placeholderFontSize = 14;
+        phoneEditBox.fontSize = 15;
+        phoneEditBox.placeholderFontSize = 13;
         phoneEditBox.fontColor = new cc.Color(51, 51, 51);
         phoneEditBox.placeholderFontColor = new cc.Color(180, 180, 180);
         phoneEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         phoneEditBox.maxLength = 11;
-        phoneEditBox.backgroundColor = new cc.Color(255, 255, 255, 0);
+        phoneEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);
+
+        currentY -= inputHeight + rowGap;
 
         // ==================== 验证码行 ====================
-        var codeRowY = startRowY - rowHeight;
-        var codeInputWidth = 170;
-        var sendBtnWidth = 100;
-
         // 验证码标签
         var codeLabel = new cc.Node("code_label");
         codeLabel.parent = panel;
-        codeLabel.setPosition(inputLeftX, codeRowY + 22);
+        codeLabel.anchorX = 0;
+        codeLabel.setPosition(formLeftX, currentY);
         var codeLabelComp = codeLabel.addComponent(cc.Label);
         codeLabelComp.string = "验证码";
         codeLabelComp.fontSize = 14;
         codeLabelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
-        codeLabel.color = new cc.Color(102, 102, 102);
+        codeLabel.color = new cc.Color(80, 80, 80);
+        
+        currentY -= labelHeight;
 
-        // 验证码输入框边框
-        var codeInputBorder = new cc.Node("code_input_border");
-        codeInputBorder.parent = panel;
-        codeInputBorder.setContentSize(cc.size(codeInputWidth, inputHeight));
-        codeInputBorder.setPosition(inputLeftX + codeInputWidth/2, codeRowY - 5);
-        var codeBorderGfx = codeInputBorder.addComponent(cc.Graphics);
-        codeBorderGfx.strokeColor = new cc.Color(200, 200, 200);
-        codeBorderGfx.lineWidth = 1;
-        codeBorderGfx.rect(-codeInputWidth/2, -inputHeight/2, codeInputWidth, inputHeight);
-        codeBorderGfx.stroke();
+        // 验证码输入框宽度（约占60%）
+        var codeInputWidth = Math.floor(formWidth * 0.55);
+        var sendBtnWidth = formWidth - codeInputWidth - 10;
+
+        // 验证码输入框背景
+        var codeInputBg = new cc.Node("code_input_bg");
+        codeInputBg.parent = panel;
+        codeInputBg.setContentSize(cc.size(codeInputWidth, inputHeight));
+        codeInputBg.setPosition(-formWidth/2 + codeInputWidth/2, currentY - inputHeight/2);
+        var codeBgGfx = codeInputBg.addComponent(cc.Graphics);
+        codeBgGfx.fillColor = new cc.Color(248, 248, 248);
+        codeBgGfx.roundRect(-codeInputWidth/2, -inputHeight/2, codeInputWidth, inputHeight, 4);
+        codeBgGfx.fill();
+        codeBgGfx.strokeColor = new cc.Color(220, 220, 220);
+        codeBgGfx.lineWidth = 1;
+        codeBgGfx.roundRect(-codeInputWidth/2, -inputHeight/2, codeInputWidth, inputHeight, 4);
+        codeBgGfx.stroke();
 
         // 验证码输入框
         var codeInputNode = new cc.Node("code_input");
         codeInputNode.parent = panel;
-        codeInputNode.setContentSize(cc.size(codeInputWidth - 20, inputHeight - 4));
-        codeInputNode.setPosition(inputLeftX + codeInputWidth/2, codeRowY - 5);
+        codeInputNode.setContentSize(cc.size(codeInputWidth - 16, inputHeight));
+        codeInputNode.setPosition(-formWidth/2 + codeInputWidth/2, currentY - inputHeight/2);
         var codeEditBox = codeInputNode.addComponent(cc.EditBox);
         codeEditBox.placeholder = "请输入验证码";
-        codeEditBox.fontSize = 16;
-        codeEditBox.placeholderFontSize = 14;
+        codeEditBox.fontSize = 15;
+        codeEditBox.placeholderFontSize = 13;
         codeEditBox.fontColor = new cc.Color(51, 51, 51);
         codeEditBox.placeholderFontColor = new cc.Color(180, 180, 180);
         codeEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         codeEditBox.maxLength = 6;
-        codeEditBox.backgroundColor = new cc.Color(255, 255, 255, 0);
+        codeEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);
 
-        // 获取验证码按钮
+        // 获取验证码按钮 - 更像按钮的样式
         var sendCodeBtn = new cc.Node("send_code_btn");
         sendCodeBtn.parent = panel;
         sendCodeBtn.setContentSize(cc.size(sendBtnWidth, inputHeight));
-        sendCodeBtn.setPosition(inputLeftX + codeInputWidth + sendBtnWidth/2 + 10, codeRowY - 5);
+        sendCodeBtn.setPosition(formWidth/2 - sendBtnWidth/2, currentY - inputHeight/2);
+        
         var sendCodeGfx = sendCodeBtn.addComponent(cc.Graphics);
-        sendCodeGfx.fillColor = new cc.Color(255, 149, 0);
+        sendCodeGfx.fillColor = new cc.Color(255, 152, 0);
         sendCodeGfx.roundRect(-sendBtnWidth/2, -inputHeight/2, sendBtnWidth, inputHeight, 4);
         sendCodeGfx.fill();
 
         var sendCodeLabel = new cc.Node("label");
         sendCodeLabel.parent = sendCodeBtn;
+        sendCodeLabel.setPosition(0, 0);
         var sendCodeLabelComp = sendCodeLabel.addComponent(cc.Label);
         sendCodeLabelComp.string = "获取验证码";
-        sendCodeLabelComp.fontSize = 14;
+        sendCodeLabelComp.fontSize = 13;
+        sendCodeLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        sendCodeLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
         sendCodeLabel.color = new cc.Color(255, 255, 255);
 
         var sendCodeBtnComp = sendCodeBtn.addComponent(cc.Button);
         sendCodeBtnComp.transition = cc.Button.Transition.SCALE;
-        sendCodeBtnComp.zoomScale = 1.05;
+        sendCodeBtnComp.zoomScale = 0.95;
+
+        currentY -= inputHeight + rowGap;
 
         // ==================== 消息提示 ====================
-        var messageRowY = codeRowY - 35;
         var messageLabel = new cc.Node("message_label");
         messageLabel.parent = panel;
-        messageLabel.setPosition(0, messageRowY);
+        messageLabel.setPosition(0, currentY);
         var messageLabelComp = messageLabel.addComponent(cc.Label);
         messageLabelComp.string = "";
-        messageLabelComp.fontSize = 13;
+        messageLabelComp.fontSize = 12;
         messageLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         messageLabel.active = false;
 
+        currentY -= 20;
+
         // ==================== 登录按钮行 ====================
-        var btnRowY = messageRowY - 55;
-        var btnWidth = 130;
-        var btnHeight = 42;
-        var btnGap = 20;
+        var btnWidth = (formWidth - 15) / 2;
+        var btnHeight = 40;
 
         // 手机登录按钮
         var phoneLoginBtn = new cc.Node("phone_login_btn");
         phoneLoginBtn.parent = panel;
         phoneLoginBtn.setContentSize(cc.size(btnWidth, btnHeight));
-        phoneLoginBtn.setPosition(-btnWidth/2 - btnGap/2, btnRowY);
+        phoneLoginBtn.setPosition(-btnWidth/2 - 7.5, currentY - btnHeight/2);
+        
         var phoneLoginGfx = phoneLoginBtn.addComponent(cc.Graphics);
-        phoneLoginGfx.fillColor = new cc.Color(255, 149, 0);
+        phoneLoginGfx.fillColor = new cc.Color(255, 152, 0);
         phoneLoginGfx.roundRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 4);
         phoneLoginGfx.fill();
 
         var phoneLoginLabel = new cc.Node("label");
         phoneLoginLabel.parent = phoneLoginBtn;
+        phoneLoginLabel.setPosition(0, 0);
         var phoneLoginLabelComp = phoneLoginLabel.addComponent(cc.Label);
         phoneLoginLabelComp.string = "手机登录";
-        phoneLoginLabelComp.fontSize = 16;
+        phoneLoginLabelComp.fontSize = 15;
+        phoneLoginLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        phoneLoginLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
         phoneLoginLabel.color = new cc.Color(255, 255, 255);
 
         var phoneLoginBtnComp = phoneLoginBtn.addComponent(cc.Button);
         phoneLoginBtnComp.transition = cc.Button.Transition.SCALE;
-        phoneLoginBtnComp.zoomScale = 1.05;
+        phoneLoginBtnComp.zoomScale = 0.95;
 
         // 微信登录按钮
         var wxLoginBtn = new cc.Node("wx_login_btn");
         wxLoginBtn.parent = panel;
         wxLoginBtn.setContentSize(cc.size(btnWidth, btnHeight));
-        wxLoginBtn.setPosition(btnWidth/2 + btnGap/2, btnRowY);
+        wxLoginBtn.setPosition(btnWidth/2 + 7.5, currentY - btnHeight/2);
+        
         var wxLoginGfx = wxLoginBtn.addComponent(cc.Graphics);
-        wxLoginGfx.fillColor = new cc.Color(76, 175, 80);
+        wxLoginGfx.fillColor = new cc.Color(7, 193, 96);
         wxLoginGfx.roundRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 4);
         wxLoginGfx.fill();
 
         var wxLoginLabel = new cc.Node("label");
         wxLoginLabel.parent = wxLoginBtn;
+        wxLoginLabel.setPosition(0, 0);
         var wxLoginLabelComp = wxLoginLabel.addComponent(cc.Label);
         wxLoginLabelComp.string = "微信登录";
-        wxLoginLabelComp.fontSize = 16;
+        wxLoginLabelComp.fontSize = 15;
+        wxLoginLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        wxLoginLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
         wxLoginLabel.color = new cc.Color(255, 255, 255);
 
         var wxLoginBtnComp = wxLoginBtn.addComponent(cc.Button);
         wxLoginBtnComp.transition = cc.Button.Transition.SCALE;
-        wxLoginBtnComp.zoomScale = 1.05;
+        wxLoginBtnComp.zoomScale = 0.95;
+
+        currentY -= btnHeight + 15;
 
         // ==================== 底部协议 ====================
-        var agreementRowY = btnRowY - 45;
         var agreementLabel = new cc.Node("agreement_label");
         agreementLabel.parent = panel;
-        agreementLabel.setPosition(0, agreementRowY);
+        agreementLabel.setPosition(0, currentY);
         var agreementRichText = agreementLabel.addComponent(cc.RichText);
-        agreementRichText.string = "<color=#999999>登录即表示同意</c><color=#2196F3><u>用户协议</u></c>";
-        agreementRichText.fontSize = 12;
-        agreementRichText.maxWidth = 300;
-        agreementRichText.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        agreementRichText.string = "<color=#999999>登录即表示同意</c><color=#1890ff><u>用户协议</u></c>";
+        agreementRichText.fontSize = 11;
+        agreementRichText.maxWidth = formWidth;
         
         // ==================== 功能逻辑 ====================
         var countdown = 0;
@@ -665,7 +693,7 @@ cc.Class({
                 if (countdown <= 0) {
                     sendCodeLabelComp.string = "获取验证码";
                     sendCodeBtnComp.interactable = true;
-                    updateBtnColor(sendCodeGfx, new cc.Color(255, 149, 0), sendBtnWidth, inputHeight);
+                    updateBtnColor(sendCodeGfx, new cc.Color(255, 152, 0), sendBtnWidth, inputHeight);
                 } else {
                     sendCodeLabelComp.string = countdown + "s";
                     self.scheduleOnce(tick, 1);
