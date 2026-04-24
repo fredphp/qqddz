@@ -688,7 +688,7 @@
     "_srcBlendFactor": 770,
     "_dstBlendFactor": 771,
     "_id": "f5m0KqGOROya8WlrfHxeOD",
-    "_string": "我已阅读并同意《用户协议》",
+    "_string": "我已阅读并同意",
     "_N$string": "我已阅读并同意《用户协议》",
     "_fontSize": 16,
     "_lineHeight": 30,
@@ -986,7 +986,7 @@
       "__id__": 2
     },
     "_children": [],
-    "_active": false,
+    "_active": true,
     "_components": [
       {
         "__id__": 20
@@ -1018,7 +1018,7 @@
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
-        -20,
+        -100,
         -280,
         0,
         0,
@@ -1059,7 +1059,7 @@
     "_srcBlendFactor": 770,
     "_dstBlendFactor": 771,
     "_id": "userAgreementLinkLabel001",
-    "_string": "用户协议》",
+    "_string": "《用户协议》",
     "_N$string": "用户协议》",
     "_fontSize": 18,
     "_lineHeight": 30,
