@@ -457,8 +457,11 @@ cc.Class({
         // 4. 创建 content 节点
         var contentNode = new cc.Node("content");
         contentNode.parent = viewNode;
-        contentNode.setContentSize(cc.size(810, 380));
+        // ★ 初始高度设置大一些，确保内容可见
+        contentNode.setContentSize(cc.size(810, 2000));
+        // ★ 位置设置在视口中心，锚点在顶部
         contentNode.setPosition(0, 190);
+        contentNode.anchorX = 0.5;
         contentNode.anchorY = 1;
         
         // 5. 创建 Label（左对齐，自动换行）
@@ -467,19 +470,20 @@ cc.Class({
         // ★ 左对齐：锚点在左上角
         labelNode.anchorX = 0;
         labelNode.anchorY = 1;
-        // ★ 位置：x=-405 是左边界，加上padding约25px = -380
-        labelNode.setPosition(-380, -20);
-        // ★ 必须设置节点尺寸，否则 RESIZE_HEIGHT 不生效
-        labelNode.setContentSize(cc.size(760, 100));
+        // ★ 位置：x=-380 相对于 contentNode 中心（810/2 - padding = 405 - 25 = 380）
+        labelNode.setPosition(-380, -30);
+        // ★ 使用 wrapWidth 作为节点宽度
+        labelNode.setContentSize(cc.size(760, 50));
         
         var contentLabel = labelNode.addComponent(cc.Label);
         contentLabel.string = "正在加载用户协议...";
         contentLabel.fontSize = 20;
         contentLabel.lineHeight = 32;
+        // ★ 关键：先设置换行宽度，再设置 overflow
+        contentLabel.enableWrapText = true;
+        contentLabel.wrapWidth = 760;  // ★ 必须设置换行宽度
         contentLabel.overflow = cc.Label.Overflow.RESIZE_HEIGHT;  // ★ 自动调整高度
         contentLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;  // ★ 左对齐
-        contentLabel.enableWrapText = true;  // ★ 启用自动换行
-        contentLabel.wrapWidth = 760;  // ★ 必须设置换行宽度，否则 RESIZE_HEIGHT 不生效
         labelNode.color = new cc.Color(50, 50, 50);
         
         // 6. ★ 最后添加 ScrollView 组件
@@ -615,13 +619,25 @@ cc.Class({
 
         if (content) {
             console.log("设置协议内容，长度:", content.length);
+            
+            // ★ 先更新 Label 内容
             this._agreementContentLabel.string = content;
             
-            // ★ RESIZE_HEIGHT 需要延迟计算高度
+            // ★ 强制更新 Label 尺寸（RESIZE_HEIGHT 需要一帧时间计算）
             var self = this;
+            var labelNode = this._agreementContentLabel.node;
+            
+            // 使用多次延迟确保布局正确
             this.scheduleOnce(function() {
+                console.log("第一次延迟更新，Label高度:", labelNode.height);
                 self._updateContentSize();
-            }, 0.3);
+                
+                // 再次延迟确认布局
+                self.scheduleOnce(function() {
+                    console.log("第二次延迟确认，Label高度:", labelNode.height);
+                    self._updateContentSize();
+                }, 0.2);
+            }, 0.1);
         }
     },
 
@@ -639,12 +655,12 @@ cc.Class({
         
         console.log("Label节点高度:", textHeight, "宽度:", labelNode.width);
         
-        // 计算最终的 content 高度
-        var actualHeight = textHeight + 60;
+        // 计算最终的 content 高度（包含上下 padding）
+        var actualHeight = textHeight + 80;
         
         // 确保高度大于视口高度，才能滚动
-        if (actualHeight < viewHeight + 50) {
-            actualHeight = viewHeight + 100;
+        if (actualHeight < viewHeight) {
+            actualHeight = viewHeight + 50;
         }
         
         console.log("设置 Content 高度:", actualHeight);
@@ -655,11 +671,16 @@ cc.Class({
         // 重新设置 content 到 ScrollView（触发更新）
         this._scrollView.content = this._contentNode;
         
-        // 延迟滚动到顶部
+        // 强制更新 ScrollView 布局
+        this._scrollView.scrollToTop(0.01);
+        
+        // 延迟再次滚动到顶部，确保布局正确
         var self = this;
         this.scheduleOnce(function() {
-            self._scrollView.scrollToTop(0.1);
-        }, 0.1);
+            if (self._scrollView) {
+                self._scrollView.scrollToTop(0);
+            }
+        }, 0.2);
     },
 
     // 显示默认协议内容
@@ -684,7 +705,12 @@ cc.Class({
             var self = this;
             this.scheduleOnce(function() {
                 self._updateContentSize();
-            }, 0.3);
+                
+                // 再次延迟确认布局
+                self.scheduleOnce(function() {
+                    self._updateContentSize();
+                }, 0.2);
+            }, 0.1);
         }
     }
 });
