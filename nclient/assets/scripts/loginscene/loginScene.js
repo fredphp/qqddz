@@ -462,8 +462,8 @@ cc.Class({
         richTextNode.parent = contentNode;
         richTextNode.anchorX = 0;
         richTextNode.anchorY = 1;
-        // ★ 增加左右两边的缩进（从20增加到40）
-        richTextNode.setPosition(40, -30);
+        // ★ 增加左右两边的缩进，减少上边距
+        richTextNode.setPosition(40, -10);
         // ★ 减小宽度以适应更大的边距
         richTextNode.setContentSize(cc.size(770, 500));
         
@@ -741,7 +741,7 @@ cc.Class({
         // 如果有 RichText，获取其高度
         if (this._agreementRichText) {
             var richTextNode = this._agreementRichText.node;
-            contentHeight = richTextNode.height + 80;  // 加上 padding
+            contentHeight = richTextNode.height + 120;  // 加上 padding（底部留40px间距）
             console.log("RichText节点高度:", richTextNode.height);
         }
         // 如果有 Label，获取其高度
