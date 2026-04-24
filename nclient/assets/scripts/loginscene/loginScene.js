@@ -701,72 +701,38 @@ cc.Class({
             sendCodeLabelComp.string = countdown + "s";
         };
         
-        // 发送验证码
+        // 发送验证码 - 测试阶段直接模拟成功
         sendCodeBtn.on(cc.Node.EventType.TOUCH_END, function() {
             phone = phoneEditBox.string || "";
             if (!validatePhone(phone)) {
                 showMessage("请输入正确的手机号", true);
                 return;
             }
-            
-            showMessage("正在发送...", false);
-            
-            var defines = window.defines;
-            if (!defines || !defines.apiUrl) {
-                showMessage("验证码已发送", false);
-                startCountdown();
-                return;
-            }
-            
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', defines.apiUrl + '/api/v1/auth/send-code', true);
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.timeout = 10000;
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        try {
-                            var resp = JSON.parse(xhr.responseText);
-                            if (resp.code === 0) {
-                                showMessage("验证码已发送", false);
-                                startCountdown();
-                            } else {
-                                showMessage(resp.message || "发送失败", true);
-                            }
-                        } catch(e) {
-                            showMessage("解析响应失败", true);
-                        }
-                    } else {
-                        showMessage("网络请求失败", true);
-                    }
-                }
-            };
-            xhr.send(JSON.stringify({ phone: phone }));
+            // 测试阶段：直接显示模拟发送成功
+            showMessage("验证码已发送(测试)", false);
+            startCountdown();
         });
-        
-        // 手机登录
+
+        // 手机登录 - 测试阶段只需验证手机号
         phoneLoginBtn.on(cc.Node.EventType.TOUCH_END, function() {
             phone = phoneEditBox.string || "";
-            code = codeEditBox.string || "";
-            
+
             if (!validatePhone(phone)) {
                 showMessage("请输入正确的手机号", true);
                 return;
             }
-            if (!validateCode(code)) {
-                showMessage("请输入验证码", true);
-                return;
-            }
-            
+
             showMessage("正在登录...", false);
-            
+
             var defines = window.defines;
             if (!defines || !defines.apiUrl) {
+                // 无API配置，模拟登录成功
                 if (window.myglobal && window.myglobal.playerData) {
                     window.myglobal.playerData.uniqueID = "phone_" + phone;
                     window.myglobal.playerData.accountID = "phone_" + phone;
                     window.myglobal.playerData.nickName = "玩家" + phone.substr(-4);
                     window.myglobal.playerData.gobal_count = 1000;
+                    window.myglobal.playerData.token = "test_token_" + Date.now();
                 }
                 showMessage("登录成功", false);
                 self.scheduleOnce(function() {
@@ -775,7 +741,8 @@ cc.Class({
                 }, 0.5);
                 return;
             }
-            
+
+            // 调用API登录
             var xhr = new XMLHttpRequest();
             xhr.open('POST', defines.apiUrl + '/api/v1/auth/phone-login', true);
             xhr.setRequestHeader('Content-Type', 'application/json');
@@ -788,10 +755,13 @@ cc.Class({
                             if (resp.code === 0 && resp.data) {
                                 showMessage("登录成功", false);
                                 if (window.myglobal && window.myglobal.playerData) {
-                                    window.myglobal.playerData.uniqueID = resp.data.uniqueID || "";
-                                    window.myglobal.playerData.accountID = resp.data.accountID || "";
-                                    window.myglobal.playerData.nickName = resp.data.nickName || "玩家";
-                                    window.myglobal.playerData.gobal_count = resp.data.goldcount || 0;
+                                    window.myglobal.playerData.uniqueID = resp.data.player_id || "";
+                                    window.myglobal.playerData.accountID = resp.data.account_id || "";
+                                    window.myglobal.playerData.nickName = resp.data.nickname || "玩家";
+                                    window.myglobal.playerData.userName = resp.data.username || "";
+                                    window.myglobal.playerData.avatar = resp.data.avatar || "";
+                                    window.myglobal.playerData.gobal_count = resp.data.gold || 0;
+                                    window.myglobal.playerData.token = resp.data.token || "";
                                 }
                                 self.scheduleOnce(function() {
                                     popup.destroy();
@@ -808,24 +778,83 @@ cc.Class({
                     }
                 }
             };
-            xhr.send(JSON.stringify({ phone: phone, code: code }));
+            // 测试阶段不发送验证码
+            xhr.send(JSON.stringify({ phone: phone }));
         });
-        
-        // 微信登录
+
+        // 微信登录 - 预留接口
         wxLoginBtn.on(cc.Node.EventType.TOUCH_END, function() {
             showMessage("正在登录...", false);
-            
-            if (window.myglobal && window.myglobal.playerData) {
-                window.myglobal.playerData.uniqueID = "wx_" + Date.now();
-                window.myglobal.playerData.accountID = "wx_" + Date.now();
-                window.myglobal.playerData.nickName = "微信用户";
-                window.myglobal.playerData.gobal_count = 1000;
+
+            var defines = window.defines;
+
+            if (!defines || !defines.apiUrl) {
+                // 无API配置，模拟登录成功
+                if (window.myglobal && window.myglobal.playerData) {
+                    window.myglobal.playerData.uniqueID = "wx_" + Date.now();
+                    window.myglobal.playerData.accountID = "wx_" + Date.now();
+                    window.myglobal.playerData.nickName = "微信用户";
+                    window.myglobal.playerData.gobal_count = 1000;
+                    window.myglobal.playerData.token = "test_wx_token_" + Date.now();
+                }
+                showMessage("登录成功", false);
+                self.scheduleOnce(function() {
+                    popup.destroy();
+                    cc.director.loadScene("hallScene");
+                }, 0.5);
+                return;
             }
-            showMessage("登录成功", false);
-            self.scheduleOnce(function() {
-                popup.destroy();
-                cc.director.loadScene("hallScene");
-            }, 0.5);
+
+            // 调用微信登录API
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', defines.apiUrl + '/api/v1/auth/wechat-login', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.timeout = 10000;
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            var resp = JSON.parse(xhr.responseText);
+                            if (resp.code === 0 && resp.data) {
+                                showMessage("登录成功", false);
+                                if (window.myglobal && window.myglobal.playerData) {
+                                    window.myglobal.playerData.uniqueID = resp.data.player_id || "";
+                                    window.myglobal.playerData.accountID = resp.data.account_id || "";
+                                    window.myglobal.playerData.nickName = resp.data.nickname || "微信用户";
+                                    window.myglobal.playerData.userName = resp.data.username || "";
+                                    window.myglobal.playerData.avatar = resp.data.avatar || "";
+                                    window.myglobal.playerData.gobal_count = resp.data.gold || 0;
+                                    window.myglobal.playerData.token = resp.data.token || "";
+                                }
+                                self.scheduleOnce(function() {
+                                    popup.destroy();
+                                    cc.director.loadScene("hallScene");
+                                }, 0.5);
+                            } else {
+                                showMessage(resp.message || "登录失败", true);
+                            }
+                        } catch(e) {
+                            showMessage("解析响应失败", true);
+                        }
+                    } else {
+                        // 测试阶段，模拟成功
+                        if (window.myglobal && window.myglobal.playerData) {
+                            window.myglobal.playerData.uniqueID = "wx_" + Date.now();
+                            window.myglobal.playerData.accountID = "wx_" + Date.now();
+                            window.myglobal.playerData.nickName = "微信用户";
+                            window.myglobal.playerData.gobal_count = 1000;
+                            window.myglobal.playerData.token = "test_wx_token_" + Date.now();
+                        }
+                        showMessage("登录成功(测试)", false);
+                        self.scheduleOnce(function() {
+                            popup.destroy();
+                            cc.director.loadScene("hallScene");
+                        }, 0.5);
+                    }
+                }
+            };
+            // 微信登录需要code，这里预留接口
+            xhr.send(JSON.stringify({ code: "test_code_" + Date.now() }));
         });
         
         return popup;
