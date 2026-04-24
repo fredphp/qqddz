@@ -1,5 +1,5 @@
 // 登录场景控制器
-// 使用内置 Toggle 组件实现标准复选框（Cocos Creator 2.4.x 中 Toggle 即 CheckBox）
+// 使用内置 Toggle 组件实现标准复选框
 
 cc.Class({
     name: 'loginScene',
@@ -26,7 +26,7 @@ cc.Class({
         this._isAgreementChecked = false;
         this._initWaitNode();
         
-        // 初始化复选框（使用 Toggle 组件）
+        // 初始化复选框
         this._initCheckbox();
         
         // 初始化登录按钮
@@ -68,7 +68,7 @@ cc.Class({
             return;
         }
         
-        // 获取 Toggle 组件（Cocos Creator 2.4.x 中 Toggle 即 CheckBox）
+        // 获取 Toggle 组件
         var toggle = checkMarkNode.getComponent(cc.Toggle);
         if (!toggle) {
             console.error("Toggle 组件未找到");
@@ -91,13 +91,29 @@ cc.Class({
         handler.customEventData = "";
         toggle.checkEvents.push(handler);
         
+        // 添加触摸事件作为备选方案
+        checkMarkNode.off(cc.Node.EventType.TOUCH_END);
+        checkMarkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+            console.log(">>> 复选框被点击");
+            toggle.isChecked = !toggle.isChecked;
+            self._onCheckboxToggle(toggle);
+        }, this);
+        
         console.log("=== 复选框初始化完成 ===");
     },
 
-    // Toggle/Checkbox 状态变化回调
+    // Toggle 状态变化回调
     _onCheckboxToggle: function(toggle) {
         this._isAgreementChecked = toggle.isChecked;
         console.log("复选框状态:", this._isAgreementChecked ? "已选中" : "未选中");
+        
+        // 更新 checkmark 子节点的显示状态
+        if (this._checkMarkNode) {
+            var checkmark = this._checkMarkNode.getChildByName("checkmark");
+            if (checkmark) {
+                checkmark.active = toggle.isChecked;
+            }
+        }
     },
 
     start () {
@@ -169,6 +185,14 @@ cc.Class({
                 
                 console.log("用户协议链接事件已绑定");
             }
+            
+            // 备选方案：触摸事件
+            var self = this;
+            linkNode.off(cc.Node.EventType.TOUCH_END);
+            linkNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                console.log(">>> 用户协议链接被点击");
+                self._onUserAgreementLinkClick();
+            }, this);
         }
     },
 
@@ -349,7 +373,7 @@ cc.Class({
         }
     },
 
-    // 显示用户协议弹窗（通过 API 获取内容）
+    // 显示用户协议弹窗
     _showUserAgreementPopup: function() {
         var self = this;
 
@@ -387,6 +411,13 @@ cc.Class({
                     handler.customEventData = "";
                     button.clickEvents.push(handler);
                 }
+                
+                // 备选方案：触摸事件
+                var self = this;
+                closeBtn.off(cc.Node.EventType.TOUCH_END);
+                closeBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+                    self._onCloseUserAgreement();
+                }, this);
             }
 
             this._userAgreementPopup = popup;
@@ -396,7 +427,7 @@ cc.Class({
         }
     },
 
-    // 创建默认的用户协议弹窗（当 prefab 加载失败时）
+    // 创建默认的用户协议弹窗
     _createDefaultAgreementPopup: function() {
         try {
             // 创建弹窗根节点
@@ -414,7 +445,7 @@ cc.Class({
             bgNode.setContentSize(cc.size(1280, 720));
             bgNode.setPosition(0, 0);
             bgNode.color = new cc.Color(0, 0, 0);
-            bgNode.opacity = 180;
+            bgNode.opacity = 150;
             bgNode.addComponent(cc.Sprite);
             
             // 创建内容面板
@@ -423,7 +454,7 @@ cc.Class({
             panel.setContentSize(cc.size(600, 400));
             panel.setPosition(0, 0);
             var panelSprite = panel.addComponent(cc.Sprite);
-            panel.color = new cc.Color(245, 245, 220);
+            panel.color = new cc.Color(255, 255, 255);
             
             // 创建标题
             var titleNode = new cc.Node("title");
@@ -434,7 +465,7 @@ cc.Class({
             titleLabel.string = "用户协议";
             titleLabel.fontSize = 28;
             titleLabel.lineHeight = 40;
-            titleNode.color = new cc.Color(139, 69, 19);
+            titleNode.color = new cc.Color(50, 50, 50);
             
             // 创建内容
             var contentNode = new cc.Node("content");
@@ -442,16 +473,15 @@ cc.Class({
             contentNode.setContentSize(cc.size(550, 250));
             contentNode.setPosition(0, -10);
             var contentLabel = contentNode.addComponent(cc.Label);
-            contentLabel.string = "协议加载失败，请稍后重试。\n\n请检查网络连接后重新点击查看。";
-            contentLabel.fontSize = 20;
-            contentLabel.lineHeight = 30;
-            contentLabel.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
+            contentLabel.string = "协议加载失败，请稍后重试。";
+            contentLabel.fontSize = 18;
+            contentLabel.lineHeight = 28;
             contentNode.color = new cc.Color(80, 80, 80);
             
             // 创建关闭按钮
             var closeBtn = new cc.Node("close_btn");
             closeBtn.parent = popup;
-            closeBtn.setContentSize(cc.size(60, 60));
+            closeBtn.setContentSize(cc.size(50, 50));
             closeBtn.setPosition(270, 170);
             var closeSprite = closeBtn.addComponent(cc.Sprite);
             var closeBtnComp = closeBtn.addComponent(cc.Button);
@@ -468,11 +498,12 @@ cc.Class({
             // 创建"我知道了"按钮
             var confirmBtn = new cc.Node("confirm_btn");
             confirmBtn.parent = panel;
-            confirmBtn.setContentSize(cc.size(120, 40));
+            confirmBtn.setContentSize(cc.size(150, 45));
             confirmBtn.setPosition(0, -160);
             var confirmLabel = confirmBtn.addComponent(cc.Label);
             confirmLabel.string = "我知道了";
-            confirmLabel.fontSize = 20;
+            confirmLabel.fontSize = 22;
+            confirmBtn.color = new cc.Color(255, 140, 0);
             var confirmBtnComp = confirmBtn.addComponent(cc.Button);
             
             // 绑定关闭事件
