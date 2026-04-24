@@ -1,17 +1,18 @@
 // 用户协议弹窗脚本
 // 功能：从 API 获取用户协议内容并显示，无论 API 成功失败都必须显示弹窗
+// 设计：绿色头部 + 黑桃图标 + 米色内容区 + 黄色确认按钮
 
 cc.Class({
     name: 'userAgreement',
     extends: cc.Component,
 
     properties: {
-        // 标题标签
+        // 标题标签（在绿色头部中）
         title_label: {
             type: cc.Label,
             default: null
         },
-        // 内容标签
+        // 内容标签（在滚动视图中）
         content_label: {
             type: cc.Label,
             default: null
@@ -30,6 +31,21 @@ cc.Class({
         scroll_view: {
             type: cc.ScrollView,
             default: null
+        },
+        // 确认按钮节点
+        confirm_btn: {
+            type: cc.Node,
+            default: null
+        },
+        // 头部节点（用于设置绿色背景）
+        header_node: {
+            type: cc.Node,
+            default: null
+        },
+        // 黑桃图标节点
+        spade_icon: {
+            type: cc.Node,
+            default: null
         }
     },
 
@@ -40,7 +56,7 @@ cc.Class({
         this._isValid = true;
         
         // 默认协议内容（API 失败时显示）
-        this._defaultContent = "协议加载失败，请稍后重试。\n\n请检查网络连接后重新点击查看用户协议。";
+        this._defaultContent = "欢迎使用本游戏！在使用前，请您仔细阅读以下用户协议：\n\n1. 服务条款：本游戏提供的服务仅供娱乐目的，用户需遵守相关法律法规。\n\n2. 账号安全：用户应妥善保管账号信息，因个人原因导致的账号损失由用户自行承担。\n\n3. 游戏规则：禁止使用外挂、作弊等违规行为，违者将受到封号等处罚。\n\n4. 隐私保护：我们重视用户隐私，相关信息仅用于提供和优化服务。";
         this._defaultTitle = "用户协议";
         this._defaultVersion = "";
         
@@ -207,12 +223,12 @@ cc.Class({
         
         switch (customData) {
             case "close":
-                // 安全销毁节点
+                // 关闭按钮（头部右侧的X按钮）
                 this._isValid = false;
                 this.node.destroy();
                 break;
             case "confirm":
-                // "我知道了"按钮
+                // "我知道了"按钮（底部黄色按钮）
                 this._isValid = false;
                 this.node.destroy();
                 break;
