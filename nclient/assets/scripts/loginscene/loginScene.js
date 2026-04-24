@@ -489,8 +489,8 @@ cc.Class({
         phoneEditBox.placeholder = "请输入手机号";
         phoneEditBox.fontSize = 14;
         phoneEditBox.placeholderFontSize = 12;
-        phoneEditBox.fontColor = new cc.Color(51, 51, 51);
-        phoneEditBox.placeholderFontColor = new cc.Color(180, 180, 180);
+        phoneEditBox.fontColor = new cc.Color(0, 0, 0);  // 黑色文字
+        phoneEditBox.placeholderFontColor = new cc.Color(120, 120, 120);  // 灰色占位符
         phoneEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         phoneEditBox.maxLength = 11;
@@ -537,8 +537,8 @@ cc.Class({
         codeEditBox.placeholder = "验证码";
         codeEditBox.fontSize = 14;
         codeEditBox.placeholderFontSize = 12;
-        codeEditBox.fontColor = new cc.Color(51, 51, 51);
-        codeEditBox.placeholderFontColor = new cc.Color(180, 180, 180);
+        codeEditBox.fontColor = new cc.Color(0, 0, 0);  // 黑色文字
+        codeEditBox.placeholderFontColor = new cc.Color(120, 120, 120);  // 灰色占位符
         codeEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         codeEditBox.maxLength = 6;
