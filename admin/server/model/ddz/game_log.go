@@ -4,32 +4,6 @@ import (
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
 )
 
-// DDZGameRecord 游戏记录模型
-type DDZGameRecord struct {
-	global.GVA_MODEL
-	GameID          string  `json:"gameId" gorm:"uniqueIndex;comment:游戏唯一标识"`
-	RoomID          string  `json:"roomId" gorm:"index;comment:房间ID"`
-	RoomType        int     `json:"roomType" gorm:"default:1;comment:房间类型"`
-	LandlordID      uint64  `json:"landlordId" gorm:"index;comment:地主玩家ID"`
-	Farmer1ID       uint64  `json:"farmer1Id" gorm:"index;comment:农民1玩家ID"`
-	Farmer2ID       uint64  `json:"farmer2Id" gorm:"index;评论:农民2玩家ID"`
-	BaseScore       int     `json:"baseScore" gorm:"default:1;comment:底分"`
-	Multiplier      int     `json:"multiplier" gorm:"default:1;comment:最终倍数"`
-	BombCount       int     `json:"bombCount" gorm:"default:0;comment:炸弹数量"`
-	Spring          int     `json:"spring" gorm:"default:0;comment:是否春天 0否 1地主春天 2反春天"`
-	Result          int     `json:"result" gorm:"index;comment:结果 1地主胜 2农民胜"`
-	LandlordWinGold int64   `json:"landlordWinGold" gorm:"default:0;comment:地主输赢金币"`
-	Farmer1WinGold  int64   `json:"farmer1WinGold" gorm:"default:0;comment:农民1输赢金币"`
-	Farmer2WinGold  int64   `json:"farmer2WinGold" gorm:"default:0;评论:农民2输赢金币"`
-	StartedAt       string  `json:"startedAt" gorm:"index;comment:开始时间"`
-	EndedAt         *string `json:"endedAt" gorm:"comment:结束时间"`
-	DurationSeconds int     `json:"durationSeconds" gorm:"default:0;comment:游戏时长(秒)"`
-}
-
-func (DDZGameRecord) TableName() string {
-	return "ddz_game_records"
-}
-
 // DDZBidLog 叫地主日志模型
 type DDZBidLog struct {
 	global.GVA_MODEL
@@ -105,43 +79,4 @@ type DDZPlayerStat struct {
 
 func (DDZPlayerStat) TableName() string {
 	return "ddz_player_stats"
-}
-
-// DDZRoomConfig 房间配置模型
-type DDZRoomConfig struct {
-	global.GVA_MODEL
-	RoomName       string  `json:"roomName" gorm:"comment:房间名称"`
-	RoomType       int     `json:"roomType" gorm:"uniqueIndex;comment:房间类型 1普通场 2高级场 3富豪场 4至尊场"`
-	BaseScore      int     `json:"baseScore" gorm:"default:1;comment:底分"`
-	Multiplier     int     `json:"multiplier" gorm:"default:1;comment:初始倍数"`
-	MinGold        int64   `json:"minGold" gorm:"default:0;comment:最低入场金币"`
-	MaxGold        int64   `json:"maxGold" gorm:"default:0;comment:最高入场金币(0表示无限制)"`
-	BotEnabled     int     `json:"botEnabled" gorm:"default:1;comment:是否允许机器人"`
-	BotCount       int     `json:"botCount" gorm:"default:0;comment:房间机器人数量"`
-	FeeRate        float64 `json:"feeRate" gorm:"default:0;comment:手续费率"`
-	MaxRound       int     `json:"maxRound" gorm:"default:20;comment:最大回合数"`
-	TimeoutSeconds int     `json:"timeoutSeconds" gorm:"default:30;comment:操作超时时间(秒)"`
-	Status         int     `json:"status" gorm:"default:1;comment:状态 0关闭 1开启"`
-	SortOrder      int     `json:"sortOrder" gorm:"default:0;comment:排序权重"`
-	Description    string  `json:"description" gorm:"comment:房间描述"`
-}
-
-func (DDZRoomConfig) TableName() string {
-	return "ddz_room_config"
-}
-
-// DDZSmsCode 短信验证码模型
-type DDZSmsCode struct {
-	global.GVA_MODEL
-	Phone    string `json:"phone" gorm:"index;comment:手机号"`
-	Code     string `json:"code" gorm:"comment:验证码"`
-	Type     int    `json:"type" gorm:"default:1;comment:类型 1登录 2注册 3绑定手机 4修改密码"`
-	IsUsed   int    `json:"isUsed" gorm:"default:0;comment:是否已使用 0否 1是"`
-	ExpireAt string `json:"expireAt" gorm:"comment:过期时间"`
-	UsedAt   string `json:"usedAt" gorm:"comment:使用时间"`
-	IP       string `json:"ip" gorm:"comment:请求IP"`
-}
-
-func (DDZSmsCode) TableName() string {
-	return "ddz_sms_codes"
 }
