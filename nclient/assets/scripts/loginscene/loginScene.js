@@ -741,7 +741,7 @@ cc.Class({
         // 如果有 RichText，获取其高度
         if (this._agreementRichText) {
             var richTextNode = this._agreementRichText.node;
-            contentHeight = richTextNode.height + 120;  // 加上 padding（底部留40px间距）
+            contentHeight = richTextNode.height + 160;  // 加上 padding（底部留更多空间避免被边框遮挡）
             console.log("RichText节点高度:", richTextNode.height);
         }
         // 如果有 Label，获取其高度
