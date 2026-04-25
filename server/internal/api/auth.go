@@ -6,6 +6,7 @@ import (
         "log"
         "math/rand"
         "net/http"
+        "strings"
         "sync"
         "time"
 
@@ -162,6 +163,15 @@ func (h *AuthHandler) PhoneLogin(w http.ResponseWriter, r *http.Request) {
         // 测试阶段：跳过验证码验证，直接登录
         log.Printf("⚠️ 测试模式：跳过验证码验证 - 手机号: %s", req.Phone)
 
+        // 获取客户端信息
+        clientIP := getClientIP(r)
+        userAgent := r.Header.Get("User-Agent")
+        deviceID := r.Header.Get("X-Device-ID")
+        deviceType := r.Header.Get("X-Device-Type")
+        if deviceType == "" {
+                deviceType = parseDeviceType(userAgent)
+        }
+
         // 检查数据库是否已连接
         if !database.GetInstance().IsConnected() {
                 log.Printf("⚠️ 数据库未连接，使用模拟登录")
@@ -173,6 +183,8 @@ func (h *AuthHandler) PhoneLogin(w http.ResponseWriter, r *http.Request) {
         player, account, isNewUser, err := h.getOrCreatePlayerByPhone(req.Phone)
         if err != nil {
                 log.Printf("❌ 登录失败: %v", err)
+                // 记录登录失败日志
+                h.createLoginLog(0, 0, database.LoginTypePhone, false, err.Error(), clientIP, deviceID, deviceType, userAgent)
                 writeJSONError(w, http.StatusInternalServerError, "登录失败")
                 return
         }
@@ -189,18 +201,23 @@ func (h *AuthHandler) PhoneLogin(w http.ResponseWriter, r *http.Request) {
                         "token":             token,
                         "token_expire_at":   &tokenExpire,
                         "last_login_at":     &now,
-                        "last_login_ip":     r.RemoteAddr,
+                        "last_login_ip":     clientIP,
                         "login_count":       account.LoginCount + 1,
+                        "device_id":         deviceID,
+                        "device_type":       deviceType,
                 })
 
                 // 更新玩家最后登录时间
                 db.Model(&database.Player{}).Where("id = ?", player.ID).Updates(map[string]interface{}{
                         "last_login_at": &now,
-                        "last_login_ip": r.RemoteAddr,
+                        "last_login_ip": clientIP,
                 })
         }
 
-        log.Printf("✅ 手机号登录成功 - 手机号: %s, 玩家ID: %d, 新用户: %v", req.Phone, player.ID, isNewUser)
+        // 记录登录成功日志
+        h.createLoginLog(player.ID, account.ID, database.LoginTypePhone, true, "", clientIP, deviceID, deviceType, userAgent)
+
+        log.Printf("✅ 手机号登录成功 - 手机号: %s, 玩家ID: %d, 新用户: %v, IP: %s, 设备: %s", req.Phone, player.ID, isNewUser, clientIP, deviceType)
 
         writeJSONSuccess(w, &LoginResponse{
                 UniqueID:  fmt.Sprintf("%d", player.ID),
@@ -438,4 +455,107 @@ func StartCodeCleaner() {
                         codeStoreLock.Unlock()
                 }
         }()
+}
+
+// getClientIP 获取客户端真实IP
+func getClientIP(r *http.Request) string {
+        // 优先从代理头获取
+        ip := r.Header.Get("X-Forwarded-For")
+        if ip != "" {
+                // X-Forwarded-For可能包含多个IP，取第一个
+                ips := strings.Split(ip, ",")
+                if len(ips) > 0 {
+                        return strings.TrimSpace(ips[0])
+                }
+        }
+
+        ip = r.Header.Get("X-Real-IP")
+        if ip != "" {
+                return ip
+        }
+
+        ip = r.Header.Get("X-Client-IP")
+        if ip != "" {
+                return ip
+        }
+
+        // 最后使用RemoteAddr
+        ip = r.RemoteAddr
+        if idx := strings.LastIndex(ip, ":"); idx != -1 {
+                ip = ip[:idx]
+        }
+        return ip
+}
+
+// parseDeviceType 从User-Agent解析设备类型
+func parseDeviceType(userAgent string) string {
+        userAgent = strings.ToLower(userAgent)
+
+        if strings.Contains(userAgent, "iphone") || strings.Contains(userAgent, "ipad") {
+                if strings.Contains(userAgent, "ipad") {
+                        return "iPad"
+                }
+                return "iPhone"
+        }
+
+        if strings.Contains(userAgent, "android") {
+                if strings.Contains(userAgent, "mobile") {
+                        return "Android"
+                }
+                return "Android Tablet"
+        }
+
+        if strings.Contains(userAgent, "windows phone") {
+                return "Windows Phone"
+        }
+
+        if strings.Contains(userAgent, "macintosh") || strings.Contains(userAgent, "mac os x") {
+                return "Mac"
+        }
+
+        if strings.Contains(userAgent, "windows") {
+                return "Windows"
+        }
+
+        if strings.Contains(userAgent, "linux") {
+                return "Linux"
+        }
+
+        if strings.Contains(userAgent, "micromessenger") {
+                return "WeChat"
+        }
+
+        return "Unknown"
+}
+
+// createLoginLog 创建登录日志
+func (h *AuthHandler) createLoginLog(playerID, accountID uint64, loginType uint8, success bool, failReason, ip, deviceID, deviceType, userAgent string) {
+        db := database.DB()
+        if db == nil {
+                return
+        }
+
+        var loginResult uint8
+        if success {
+                loginResult = database.LoginResultSuccess
+        } else {
+                loginResult = database.LoginResultFail
+        }
+
+        loginLog := &database.LoginLog{
+                PlayerID:    playerID,
+                AccountID:   accountID,
+                LoginType:   loginType,
+                LoginResult: loginResult,
+                FailReason:  failReason,
+                IP:          ip,
+                DeviceID:    deviceID,
+                DeviceType:  deviceType,
+                UserAgent:   userAgent,
+                CreatedAt:   time.Now(),
+        }
+
+        if err := db.Create(loginLog).Error; err != nil {
+                log.Printf("⚠️ 创建登录日志失败: %v", err)
+        }
 }
