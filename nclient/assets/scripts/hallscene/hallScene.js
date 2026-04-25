@@ -85,26 +85,17 @@ cc.Class({
         
         // 显示提示（后续可以跳转到对应的游戏房间）
         this._showMessage("即将进入" + roomName);
-        
-        // TODO: 根据房间类型进入对应的游戏
-        // var myglobal = window.myglobal;
-        // if (myglobal && myglobal.socket) {
-        //     myglobal.socket.request_joinRoom({ roomLevel: roomIndex }, function(err, result) {
-        //         if (!err) {
-        //             cc.director.loadScene("gameScene");
-        //         }
-        //     });
-        // }
     },
     
     // 显示消息提示
     _showMessage: function(message) {
         console.log(message);
-        // 可以添加 Toast 提示
     },
     
     // 移除公告栏
     _removeNoticeBoard: function() {
+        var self = this;
+        
         // 查找并移除可能存在的公告栏节点
         var noticeNames = ["notice", "gonggao", "公告", "notice_board", "dingbuuibantoumingdi"];
         for (var i = 0; i < noticeNames.length; i++) {
@@ -115,7 +106,13 @@ cc.Class({
             }
         }
         
-        // 同时检查 Canvas 下的公告栏
+        // 遍历所有子节点查找包含特定文字的节点
+        this._hideNodesWithText(this.node, "游戏公告");
+        this._hideNodesWithText(this.node, "娱乐休闲");
+        this._hideNodesWithText(this.node, "自觉远离");
+        this._hideNodesWithText(this.node, "赌博");
+        
+        // 检查 Canvas 下的公告栏
         var canvas = cc.find("Canvas");
         if (canvas) {
             for (var j = 0; j < noticeNames.length; j++) {
@@ -124,11 +121,70 @@ cc.Class({
                     node.active = false;
                 }
             }
+            this._hideNodesWithText(canvas, "游戏公告");
+        }
+        
+        // 延迟再次检查（确保动态创建的节点也被处理）
+        this.scheduleOnce(function() {
+            self._removeNoticeBoardDelayed();
+        }, 0.5);
+    },
+    
+    // 延迟移除公告栏
+    _removeNoticeBoardDelayed: function() {
+        console.log("延迟检查公告栏...");
+        
+        // 再次隐藏按钮
+        var createRoomBtn = this.node.getChildByName("btn_create_room");
+        var joinRoomBtn = this.node.getChildByName("btn_join_room");
+        if (createRoomBtn) createRoomBtn.active = false;
+        if (joinRoomBtn) joinRoomBtn.active = false;
+        
+        // 再次查找并隐藏公告栏
+        this._hideNodesWithText(this.node, "游戏公告");
+        this._hideNodesWithText(this.node, "娱乐休闲");
+        this._hideNodesWithText(this.node, "自觉远离");
+        this._hideNodesWithText(this.node, "赌博");
+        
+        // 检查场景中所有节点
+        var scene = cc.director.getScene();
+        if (scene) {
+            this._hideNodesWithText(scene, "游戏公告");
+            this._hideNodesWithText(scene, "娱乐休闲");
+        }
+    },
+    
+    // 递归查找并隐藏包含特定文字的节点
+    _hideNodesWithText: function(parentNode, searchText) {
+        if (!parentNode || !parentNode.children) return;
+        
+        var children = parentNode.children;
+        for (var i = 0; i < children.length; i++) {
+            var child = children[i];
+            
+            // 检查节点上的 Label 组件
+            var label = child.getComponent(cc.Label);
+            if (label && label.string) {
+                if (label.string.indexOf(searchText) >= 0) {
+                    // 找到包含文字的节点，隐藏其父节点或祖父节点
+                    var targetNode = child.parent ? child.parent : child;
+                    targetNode.active = false;
+                    console.log("已隐藏包含文字'" + searchText + "'的节点, 父节点: " + (child.parent ? child.parent.name : "无"));
+                    continue;
+                }
+            }
+            
+            // 递归查找子节点
+            if (child.children && child.children.length > 0) {
+                this._hideNodesWithText(child, searchText);
+            }
         }
     },
 
     start () {
-
+        // 在 start 中再次确保隐藏
+        this._hideUnwantedButtons();
+        this._removeNoticeBoard();
     },
 
     // update (dt) {},
