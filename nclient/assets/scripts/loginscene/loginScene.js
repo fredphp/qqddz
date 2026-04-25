@@ -673,7 +673,7 @@ cc.Class({
         phoneDisplayLabelComp.lineHeight = inputHeight - 4;
         phoneDisplayLabelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
         phoneDisplayLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
-        phoneDisplayLabel.node.color = new cc.Color(0, 0, 0, 255);
+        phoneDisplayLabel.color = new cc.Color(0, 0, 0, 255);
         phoneDisplayLabel.active = false; // 默认隐藏，编辑时由EditBox显示
 
         // 添加编辑事件监听
@@ -755,7 +755,7 @@ cc.Class({
         codeDisplayLabelComp.lineHeight = inputHeight - 4;
         codeDisplayLabelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
         codeDisplayLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
-        codeDisplayLabel.node.color = new cc.Color(0, 0, 0, 255);
+        codeDisplayLabel.color = new cc.Color(0, 0, 0, 255);
         codeDisplayLabel.active = false; // 默认隐藏，编辑时由EditBox显示
 
         // 添加编辑事件监听
