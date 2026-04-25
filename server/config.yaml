@@ -21,8 +21,8 @@ api:
   # 数据加密密钥（32字节用于AES-256，可通过 hex 编码或直接字符串）
   # 建议使用: openssl rand -hex 16 生成16字节随机数作为密钥
   crypto_key: "qqddz2026gameaes256secretkey123!"
-  # 是否启用加密
-  enable_crypto: true
+  # 是否启用加密（临时禁用以测试登录）
+  enable_crypto: false
 
 # MySQL 数据库配置（用于游戏业务数据）
 mysql:
