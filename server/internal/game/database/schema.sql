@@ -362,3 +362,82 @@ CREATE INDEX idx_game_records_composite3 ON ddz_game_records (farmer2_id, starte
 
 -- 出牌日志复合索引
 CREATE INDEX idx_play_logs_composite ON ddz_play_logs (game_id, round_num, play_order);
+
+-- =============================================
+-- 8. 用户账户表 (ddz_user_accounts)
+-- =============================================
+CREATE TABLE IF NOT EXISTS `ddz_user_accounts` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '账户ID',
+    `player_id` BIGINT UNSIGNED NOT NULL COMMENT '关联玩家ID',
+    `phone` VARCHAR(20) DEFAULT NULL COMMENT '手机号',
+    `password` VARCHAR(128) DEFAULT NULL COMMENT '密码(加密存储)',
+    `wx_open_id` VARCHAR(64) DEFAULT NULL COMMENT '微信OpenID',
+    `wx_union_id` VARCHAR(64) DEFAULT NULL COMMENT '微信UnionID',
+    `wx_session_key` VARCHAR(64) DEFAULT NULL COMMENT '微信会话密钥',
+    `wx_nickname` VARCHAR(64) DEFAULT NULL COMMENT '微信昵称',
+    `wx_avatar` VARCHAR(256) DEFAULT NULL COMMENT '微信头像URL',
+    `login_type` TINYINT NOT NULL DEFAULT 1 COMMENT '登录类型: 1-手机号, 2-微信, 3-游客',
+    `token` VARCHAR(128) DEFAULT NULL COMMENT '登录Token',
+    `token_expire_at` DATETIME DEFAULT NULL COMMENT 'Token过期时间',
+    `refresh_token` VARCHAR(128) DEFAULT NULL COMMENT '刷新Token',
+    `refresh_token_expire_at` DATETIME DEFAULT NULL COMMENT '刷新Token过期时间',
+    `device_id` VARCHAR(64) DEFAULT NULL COMMENT '设备ID',
+    `device_type` VARCHAR(32) DEFAULT NULL COMMENT '设备类型: ios/android/web',
+    `last_login_at` DATETIME DEFAULT NULL COMMENT '最后登录时间',
+    `last_login_ip` VARCHAR(64) DEFAULT NULL COMMENT '最后登录IP',
+    `login_count` INT NOT NULL DEFAULT 0 COMMENT '登录次数',
+    `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 0-禁用, 1-正常, 2-封禁',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted_at` DATETIME DEFAULT NULL COMMENT '删除时间(软删除)',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `idx_player_id` (`player_id`),
+    UNIQUE KEY `idx_phone` (`phone`),
+    UNIQUE KEY `idx_wx_open_id` (`wx_open_id`),
+    KEY `idx_token` (`token`),
+    KEY `idx_status` (`status`),
+    KEY `idx_deleted_at` (`deleted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户账户表';
+
+-- =============================================
+-- 9. 登录日志表 (ddz_login_logs)
+-- =============================================
+CREATE TABLE IF NOT EXISTS `ddz_login_logs` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+    `player_id` BIGINT UNSIGNED NOT NULL COMMENT '玩家ID',
+    `account_id` BIGINT UNSIGNED DEFAULT NULL COMMENT '账户ID',
+    `login_type` TINYINT NOT NULL COMMENT '登录类型: 1-手机号, 2-微信, 3-游客',
+    `login_result` TINYINT NOT NULL COMMENT '登录结果: 0-失败, 1-成功',
+    `fail_reason` VARCHAR(128) DEFAULT NULL COMMENT '失败原因',
+    `ip` VARCHAR(64) DEFAULT NULL COMMENT '登录IP',
+    `device_id` VARCHAR(64) DEFAULT NULL COMMENT '设备ID',
+    `device_type` VARCHAR(32) DEFAULT NULL COMMENT '设备类型',
+    `user_agent` VARCHAR(256) DEFAULT NULL COMMENT 'User-Agent',
+    `location` VARCHAR(64) DEFAULT NULL COMMENT '登录地点',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_player_id` (`player_id`),
+    KEY `idx_account_id` (`account_id`),
+    KEY `idx_login_type` (`login_type`),
+    KEY `idx_login_result` (`login_result`),
+    KEY `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='登录日志表';
+
+-- =============================================
+-- 10. 短信验证码表 (ddz_sms_codes)
+-- =============================================
+CREATE TABLE IF NOT EXISTS `ddz_sms_codes` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
+    `phone` VARCHAR(20) NOT NULL COMMENT '手机号',
+    `code` VARCHAR(10) NOT NULL COMMENT '验证码',
+    `type` TINYINT NOT NULL DEFAULT 1 COMMENT '类型: 1-登录, 2-注册, 3-绑定手机, 4-修改密码',
+    `is_used` TINYINT NOT NULL DEFAULT 0 COMMENT '是否已使用: 0-否, 1-是',
+    `expire_at` DATETIME NOT NULL COMMENT '过期时间',
+    `used_at` DATETIME DEFAULT NULL COMMENT '使用时间',
+    `ip` VARCHAR(64) DEFAULT NULL COMMENT '请求IP',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_phone` (`phone`),
+    KEY `idx_type` (`type`),
+    KEY `idx_expire_at` (`expire_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='短信验证码表';
