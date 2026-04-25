@@ -17,25 +17,24 @@ var DDZPlayerServiceApp = new(DDZPlayerService)
 // CreatePlayer 创建玩家
 func (s *DDZPlayerService) CreatePlayer(req ddzReq.DDZPlayerCreate) (ddzRes.DDZPlayerResponse, error) {
 	db := GetDDZDB()
-	// 检查玩家ID是否已存在
+	// 检查用户名是否已存在
 	var count int64
-	db.Model(&ddz.DDZPlayer{}).Where("player_id = ?", req.PlayerID).Count(&count)
+	db.Model(&ddz.DDZPlayer{}).Where("username = ? OR nickname = ?", req.PlayerID, req.Nickname).Count(&count)
 	if count > 0 {
-		return ddzRes.DDZPlayerResponse{}, errors.New("玩家ID已存在")
+		return ddzRes.DDZPlayerResponse{}, errors.New("玩家ID或昵称已存在")
 	}
 
 	// 创建玩家
 	player := ddz.DDZPlayer{
-		PlayerID:  req.PlayerID,
-		Nickname:  req.Nickname,
-		Avatar:    req.Avatar,
-		Gender:    req.Gender,
-		Coins:     req.Coins,
-		Diamonds:  req.Diamonds,
-		VipLevel:  req.VipLevel,
-		DeviceID:  req.DeviceID,
-		Level:     1,
-		Status:    1, // 默认正常状态
+		Username:   req.PlayerID,
+		Nickname:   req.Nickname,
+		Avatar:     req.Avatar,
+		Gender:     uint8(req.Gender),
+		Gold:       req.Coins,
+		Diamond:    int(req.Diamonds),
+		VIPLevel:   req.VipLevel,
+		Level:      1,
+		Status:     1, // 默认正常状态
 	}
 
 	err := db.Create(&player).Error
@@ -58,11 +57,11 @@ func (s *DDZPlayerService) DeletePlayer(id uint) error {
 	return db.Delete(&player).Error
 }
 
-// DeletePlayerByPlayerID 删除玩家（根据PlayerID）
+// DeletePlayerByPlayerID 删除玩家（根据Username/PlayerID）
 func (s *DDZPlayerService) DeletePlayerByPlayerID(playerID string) error {
 	db := GetDDZDB()
 	var player ddz.DDZPlayer
-	err := db.Where("player_id = ?", playerID).First(&player).Error
+	err := db.Where("username = ?", playerID).First(&player).Error
 	if err != nil {
 		return errors.New("玩家不存在")
 	}
@@ -78,7 +77,7 @@ func (s *DDZPlayerService) GetPlayerList(req ddzReq.DDZPlayerSearch) (list inter
 	query := db.Model(&ddz.DDZPlayer{})
 
 	if req.PlayerID != "" {
-		query = query.Where("player_id = ?", req.PlayerID)
+		query = query.Where("username = ? OR id = ?", req.PlayerID, req.PlayerID)
 	}
 	if req.Nickname != "" {
 		query = query.Where("nickname LIKE ?", "%"+req.Nickname+"%")
@@ -90,10 +89,10 @@ func (s *DDZPlayerService) GetPlayerList(req ddzReq.DDZPlayerSearch) (list inter
 		query = query.Where("vip_level = ?", req.VipLevel)
 	}
 	if req.MinCoins > 0 {
-		query = query.Where("coins >= ?", req.MinCoins)
+		query = query.Where("gold >= ?", req.MinCoins)
 	}
 	if req.MaxCoins > 0 {
-		query = query.Where("coins <= ?", req.MaxCoins)
+		query = query.Where("gold <= ?", req.MaxCoins)
 	}
 
 	err = query.Count(&total).Error
@@ -127,11 +126,11 @@ func (s *DDZPlayerService) GetPlayerByID(id uint) (ddzRes.DDZPlayerResponse, err
 	return s.toPlayerResponse(player), nil
 }
 
-// GetPlayerByPlayerID 根据PlayerID获取玩家
+// GetPlayerByPlayerID 根据Username/PlayerID获取玩家
 func (s *DDZPlayerService) GetPlayerByPlayerID(playerID string) (ddzRes.DDZPlayerResponse, error) {
 	db := GetDDZDB()
 	var player ddz.DDZPlayer
-	err := db.Where("player_id = ?", playerID).First(&player).Error
+	err := db.Where("username = ?", playerID).First(&player).Error
 	if err != nil {
 		return ddzRes.DDZPlayerResponse{}, err
 	}
@@ -142,43 +141,24 @@ func (s *DDZPlayerService) GetPlayerByPlayerID(playerID string) (ddzRes.DDZPlaye
 func (s *DDZPlayerService) BanPlayer(req ddzReq.DDZPlayerBan) error {
 	db := GetDDZDB()
 	var player ddz.DDZPlayer
-	err := db.Where("player_id = ?", req.PlayerID).First(&player).Error
+	err := db.Where("username = ?", req.PlayerID).First(&player).Error
 	if err != nil {
 		return errors.New("玩家不存在")
 	}
 
-	now := time.Now().Format("2006-01-02 15:04:05")
-	updates := map[string]interface{}{
-		"status":     2,
-		"ban_reason": req.Reason,
-		"ban_time":   now,
-	}
-
-	if req.Duration > 0 {
-		unbanTime := time.Now().Add(time.Duration(req.Duration) * time.Hour).Format("2006-01-02 15:04:05")
-		updates["unban_time"] = unbanTime
-	} else {
-		updates["unban_time"] = nil
-	}
-
-	return db.Model(&player).Updates(updates).Error
+	return db.Model(&player).Update("status", 2).Error
 }
 
 // UnbanPlayer 解封玩家
 func (s *DDZPlayerService) UnbanPlayer(req ddzReq.DDZPlayerUnban) error {
 	db := GetDDZDB()
 	var player ddz.DDZPlayer
-	err := db.Where("player_id = ?", req.PlayerID).First(&player).Error
+	err := db.Where("username = ?", req.PlayerID).First(&player).Error
 	if err != nil {
 		return errors.New("玩家不存在")
 	}
 
-	return db.Model(&player).Updates(map[string]interface{}{
-		"status":     1,
-		"ban_reason": "",
-		"ban_time":   nil,
-		"unban_time": nil,
-	}).Error
+	return db.Model(&player).Update("status", 1).Error
 }
 
 // UpdatePlayer 更新玩家信息
@@ -206,10 +186,10 @@ func (s *DDZPlayerService) UpdatePlayer(req ddzReq.DDZPlayerUpdate) error {
 		updates["vip_level"] = req.VipLevel
 	}
 	if req.Coins != 0 {
-		updates["coins"] = req.Coins
+		updates["gold"] = req.Coins
 	}
 	if req.Diamonds != 0 {
-		updates["diamonds"] = req.Diamonds
+		updates["diamond"] = req.Diamonds
 	}
 
 	return db.Model(&player).Updates(updates).Error
@@ -219,57 +199,50 @@ func (s *DDZPlayerService) UpdatePlayer(req ddzReq.DDZPlayerUpdate) error {
 func (s *DDZPlayerService) UpdatePlayerCoins(req ddzReq.DDZPlayerCoinsUpdate) error {
 	db := GetDDZDB()
 	return db.Model(&ddz.DDZPlayer{}).
-		Where("player_id = ?", req.PlayerID).
-		Update("coins", gorm.Expr("coins + ?", req.Coins)).Error
+		Where("username = ?", req.PlayerID).
+		Update("gold", gorm.Expr("gold + ?", req.Coins)).Error
 }
 
 // toPlayerResponse 转换为响应格式
 func (s *DDZPlayerService) toPlayerResponse(p ddz.DDZPlayer) ddzRes.DDZPlayerResponse {
+	totalGames := p.WinCount + p.LoseCount
 	winRate := float64(0)
-	if p.TotalGames > 0 {
-		winRate = float64(p.WinCount) / float64(p.TotalGames) * 100
-	}
-
-	var banTime, unbanTime string
-	if p.BanTime != nil {
-		banTime = *p.BanTime
-	}
-	if p.UnbanTime != nil {
-		unbanTime = *p.UnbanTime
+	if totalGames > 0 {
+		winRate = float64(p.WinCount) / float64(totalGames) * 100
 	}
 
 	var lastLoginAt string
 	if p.LastLoginAt != nil {
-		lastLoginAt = *p.LastLoginAt
+		lastLoginAt = p.LastLoginAt.Format("2006-01-02 15:04:05")
 	}
 
 	return ddzRes.DDZPlayerResponse{
-		ID:           p.ID,
-		PlayerID:     p.PlayerID,
-		Nickname:     p.Nickname,
-		Avatar:       p.Avatar,
-		Gender:       p.Gender,
-		Coins:        p.Coins,
-		Diamonds:     p.Diamonds,
-		WinCount:     p.WinCount,
-		LoseCount:    p.LoseCount,
-		DrawCount:    p.DrawCount,
-		TotalGames:   p.TotalGames,
-		WinRate:      winRate,
-		MaxWinStreak: p.MaxWinStreak,
-		WinStreak:    p.WinStreak,
-		Level:        p.Level,
-		Experience:   p.Experience,
-		VipLevel:     p.VipLevel,
-		Status:       p.Status,
-		BanReason:    p.BanReason,
-		BanTime:      banTime,
-		UnbanTime:    unbanTime,
-		LastLoginIP:  p.LastLoginIP,
-		LastLoginAt:  lastLoginAt,
-		RegisterIP:   p.RegisterIP,
-		DeviceID:     p.DeviceID,
-		CreatedAt:    p.CreatedAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt:    p.UpdatedAt.Format("2006-01-02 15:04:05"),
+		ID:          uint(p.ID),
+		PlayerID:    p.Username,
+		Nickname:    p.Nickname,
+		Avatar:      p.Avatar,
+		Gender:      int(p.Gender),
+		Coins:       p.Gold,
+		Diamonds:    int64(p.Diamond),
+		WinCount:    p.WinCount,
+		LoseCount:   p.LoseCount,
+		DrawCount:   0,
+		TotalGames:  totalGames,
+		WinRate:     winRate,
+		MaxWinStreak: 0,
+		WinStreak:   0,
+		Level:       p.Level,
+		Experience:  p.Experience,
+		VipLevel:    p.VIPLevel,
+		Status:      int(p.Status),
+		BanReason:   "",
+		BanTime:     "",
+		UnbanTime:   "",
+		LastLoginIP: p.LastLoginIP,
+		LastLoginAt: lastLoginAt,
+		RegisterIP:  "",
+		DeviceID:    "",
+		CreatedAt:   p.CreatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt:   p.UpdatedAt.Format("2006-01-02 15:04:05"),
 	}
 }
