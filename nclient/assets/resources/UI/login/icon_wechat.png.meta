@@ -1,0 +1,11 @@
+{
+  "ver": "1.0.0",
+  "uuid": "c6426355-7dfb-4ab8-9104-2b457699a821",
+  "type": "sprite-frame",
+  "wrapMode": "clamp",
+  "filterMode": "bilinear",
+  "subMetas": {
+    "textureType": 0,
+    "rawTextureUuid": "b6418686-d448-4c37-81dc-77e18facdb1a"
+  }
+}
