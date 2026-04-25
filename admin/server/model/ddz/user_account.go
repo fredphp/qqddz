@@ -9,10 +9,10 @@ import (
 // DDZUserAccount 用户账户模型 - 用于登录认证
 type DDZUserAccount struct {
         global.GVA_MODEL
-        PlayerID             uint   `json:"playerId" gorm:"uniqueIndex;comment:关联玩家ID"`
-        Phone                string `json:"phone" gorm:"uniqueIndex;comment:手机号"`
+        PlayerID             uint   `json:"playerId" gorm:"index;comment:关联玩家ID"`
+        Phone                string `json:"phone" gorm:"index;comment:手机号"`
         Password             string `json:"-" gorm:"comment:密码(加密存储)"`
-        WxOpenID             string `json:"wxOpenId" gorm:"uniqueIndex;comment:微信OpenID"`
+        WxOpenID             string `json:"wxOpenId" gorm:"index;comment:微信OpenID"`
         WxUnionID            string `json:"wxUnionId" gorm:"index;comment:微信UnionID"`
         WxSessionKey         string `json:"-" gorm:"comment:微信会话密钥"`
         WxNickname           string `json:"wxNickname" gorm:"comment:微信昵称"`
