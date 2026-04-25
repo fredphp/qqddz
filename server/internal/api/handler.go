@@ -2,8 +2,10 @@
 package api
 
 import (
+        "bytes"
         "context"
         "encoding/json"
+        "io"
         "log"
         "net/http"
 
@@ -119,21 +121,38 @@ func (h *Handler) WriteError(w http.ResponseWriter, code int, message string) {
 // EncryptMiddleware 加密中间件（支持GET请求，只加密响应）
 func (h *Handler) EncryptMiddleware(next http.HandlerFunc) http.HandlerFunc {
         return func(w http.ResponseWriter, r *http.Request) {
+                log.Printf("🔐 EncryptMiddleware 处理请求: %s %s", r.Method, r.URL.Path)
+                
                 if !h.enableCrypto || h.crypto == nil {
+                        log.Printf("🔐 加密未启用，直接处理请求")
                         next(w, r)
                         return
                 }
 
                 // 对于POST/PUT请求，尝试解密请求体
                 if r.Method == http.MethodPost || r.Method == http.MethodPut {
-                        var encReq crypto.EncryptedRequest
-                        if err := json.NewDecoder(r.Body).Decode(&encReq); err == nil {
-                                // 解密数据
-                                reqData, err := h.crypto.DecryptRequest(&encReq)
-                                if err == nil {
-                                        // 将解密后的数据存入上下文
-                                        ctx := context.WithValue(r.Context(), RequestDataKey{}, reqData)
-                                        *r = *r.WithContext(ctx)
+                        // 读取请求体
+                        bodyBytes, err := io.ReadAll(r.Body)
+                        if err != nil {
+                                log.Printf("⚠️ 读取请求体失败: %v", err)
+                        } else {
+                                // 恢复请求体供后续处理
+                                r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+                                
+                                var encReq crypto.EncryptedRequest
+                                if err := json.Unmarshal(bodyBytes, &encReq); err == nil {
+                                        // 解密数据
+                                        reqData, err := h.crypto.DecryptRequest(&encReq)
+                                        if err == nil {
+                                                log.Printf("🔐 请求体解密成功")
+                                                // 将解密后的数据存入上下文
+                                                ctx := context.WithValue(r.Context(), RequestDataKey{}, reqData)
+                                                *r = *r.WithContext(ctx)
+                                        } else {
+                                                log.Printf("🔐 请求体解密失败，使用原始数据: %v", err)
+                                        }
+                                } else {
+                                        log.Printf("🔐 请求体非加密格式，使用原始数据")
                                 }
                         }
                 }
