@@ -111,12 +111,12 @@ func (s *DDZUserAccountService) GetUserAccountList(req ddzReq.DDZUserAccountSear
                 resp := s.toUserAccountResponse(a)
                 // 获取关联玩家信息
                 var player ddz.DDZPlayer
-                if err := db.Where("player_id = ?", a.PlayerID).First(&player).Error; err == nil {
+                if err := db.Where("id = ?", a.PlayerID).First(&player).Error; err == nil {
                         resp.PlayerNickname = player.Nickname
                         resp.PlayerAvatar = player.Avatar
                         resp.PlayerLevel = player.Level
-                        resp.PlayerVipLevel = player.VipLevel
-                        resp.PlayerCoins = player.Coins
+                        resp.PlayerVipLevel = player.VIPLevel
+                        resp.PlayerCoins = player.Gold
                 }
                 accountList = append(accountList, resp)
         }
@@ -136,12 +136,12 @@ func (s *DDZUserAccountService) GetUserAccountByID(id uint) (ddzRes.DDZUserAccou
         resp := s.toUserAccountResponse(account)
         // 获取关联玩家信息
         var player ddz.DDZPlayer
-        if err := db.Where("player_id = ?", account.PlayerID).First(&player).Error; err == nil {
+        if err := db.Where("id = ?", account.PlayerID).First(&player).Error; err == nil {
                 resp.PlayerNickname = player.Nickname
                 resp.PlayerAvatar = player.Avatar
                 resp.PlayerLevel = player.Level
-                resp.PlayerVipLevel = player.VipLevel
-                resp.PlayerCoins = player.Coins
+                resp.PlayerVipLevel = player.VIPLevel
+                resp.PlayerCoins = player.Gold
         }
 
         return resp, nil
@@ -247,7 +247,7 @@ func (s *DDZUserAccountService) GetLoginLogList(req ddzReq.DDZLoginLogSearch) (l
                 resp := s.toLoginLogResponse(l)
                 // 获取玩家昵称
                 var player ddz.DDZPlayer
-                if err := db.Where("player_id = ?", l.PlayerID).First(&player).Error; err == nil {
+                if err := db.Where("id = ?", l.PlayerID).First(&player).Error; err == nil {
                         resp.PlayerNickname = player.Nickname
                 }
                 logList = append(logList, resp)
