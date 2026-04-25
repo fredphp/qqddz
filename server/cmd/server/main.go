@@ -22,7 +22,11 @@ func main() {
         if err != nil {
                 log.Printf("加载配置文件失败，使用默认配置: %v", err)
                 cfg = config.Default()
+        } else {
+                log.Printf("✅ 配置文件加载成功: %s", *configPath)
         }
+        log.Printf("📋 加载的MySQL配置: Host=%s, Port=%d, User=%s, Database=%s",
+                cfg.MySQL.Host, cfg.MySQL.Port, cfg.MySQL.User, cfg.MySQL.Database)
 
         // 创建WebSocket服务器（如果不是仅API模式）
         var wsServer *server.Server
