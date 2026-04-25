@@ -7,6 +7,9 @@ var HttpAPI = {};
 HttpAPI.decryptAESGCM = function(encryptedBase64, keyString) {
     return new Promise(function(resolve, reject) {
         try {
+            console.log("解密开始 - 密文长度:", encryptedBase64.length);
+            console.log("解密开始 - 密钥:", keyString ? "已配置(" + keyString.length + "字符)" : "未配置");
+            
             // Base64 解码
             var raw = atob(encryptedBase64);
             
@@ -17,9 +20,13 @@ HttpAPI.decryptAESGCM = function(encryptedBase64, keyString) {
                 encrypted[i] = raw.charCodeAt(i);
             }
             
+            console.log("解密开始 - 原始字节数:", rawLength);
+            
             // 获取nonce (前12字节)
             var nonce = encrypted.slice(0, 12);
             var ciphertext = encrypted.slice(12);
+            
+            console.log("解密开始 - nonce长度:", nonce.length, ", 密文长度:", ciphertext.length);
             
             // 准备密钥 (32字节)
             var keyBytes = new Uint8Array(32);
@@ -35,6 +42,7 @@ HttpAPI.decryptAESGCM = function(encryptedBase64, keyString) {
                 false,
                 ['decrypt']
             ).then(function(cryptoKey) {
+                console.log("解密 - 密钥导入成功");
                 return crypto.subtle.decrypt(
                     {
                         name: 'AES-GCM',
@@ -47,11 +55,14 @@ HttpAPI.decryptAESGCM = function(encryptedBase64, keyString) {
             }).then(function(decrypted) {
                 var decoder = new TextDecoder('utf-8');
                 var jsonStr = decoder.decode(decrypted);
+                console.log("解密成功 - JSON字符串:", jsonStr.substring(0, 200));
                 resolve(JSON.parse(jsonStr));
             }).catch(function(err) {
+                console.error("解密失败 - 错误:", err);
                 reject(err);
             });
         } catch (e) {
+            console.error("解密异常:", e);
             reject(e);
         }
     });
@@ -107,6 +118,10 @@ HttpAPI.get = function(url, cryptoKey, callback) {
 
 // 发送POST请求
 HttpAPI.post = function(url, data, cryptoKey, callback) {
+    console.log("HttpAPI.post - URL:", url);
+    console.log("HttpAPI.post - 数据:", JSON.stringify(data));
+    console.log("HttpAPI.post - 加密密钥:", cryptoKey ? "已配置(" + cryptoKey.length + "字符)" : "未配置");
+    
     var xhr = new XMLHttpRequest();
     xhr.open('POST', url, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
@@ -116,24 +131,32 @@ HttpAPI.post = function(url, data, cryptoKey, callback) {
     
     xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
+            console.log("HttpAPI.post - 状态:", xhr.status);
+            console.log("HttpAPI.post - 响应文本(前500字符):", xhr.responseText.substring(0, 500));
+            
             if (xhr.status >= 200 && xhr.status < 300) {
                 try {
                     var response = JSON.parse(xhr.responseText);
+                    console.log("HttpAPI.post - 解析后响应:", response);
                     
                     // 检查是否是加密响应
                     if (response.data && response.timestamp && typeof response.data === 'string') {
+                        console.log("HttpAPI.post - 检测到加密响应，开始解密...");
                         // 加密响应，需要解密
                         HttpAPI.decryptAESGCM(response.data, cryptoKey).then(function(decrypted) {
+                            console.log("HttpAPI.post - 解密成功:", decrypted);
                             callback(null, decrypted);
                         }).catch(function(err) {
-                            console.error('解密失败:', err);
-                            callback('解密失败: ' + err.message, null);
+                            console.error('HttpAPI.post - 解密失败:', err);
+                            callback('解密失败: ' + (err.message || err), null);
                         });
                     } else {
+                        console.log("HttpAPI.post - 未加密响应，直接返回");
                         // 未加密响应，直接返回
                         callback(null, response);
                     }
                 } catch (e) {
+                    console.error('HttpAPI.post - 解析响应失败:', e);
                     callback('解析响应失败: ' + e.message, null);
                 }
             } else {
@@ -143,10 +166,12 @@ HttpAPI.post = function(url, data, cryptoKey, callback) {
     };
     
     xhr.ontimeout = function() {
+        console.error("HttpAPI.post - 请求超时");
         callback('请求超时', null);
     };
     
-    xhr.onerror = function() {
+    xhr.onerror = function(e) {
+        console.error("HttpAPI.post - 网络错误:", e);
         callback('网络错误', null);
     };
     
