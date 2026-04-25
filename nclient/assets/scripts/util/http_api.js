@@ -3,6 +3,84 @@
 
 var HttpAPI = {};
 
+// 生成随机字符串
+HttpAPI.generateNonce = function(length) {
+    var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var result = '';
+    for (var i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+};
+
+// AES-GCM 加密函数 (使用Web Crypto API)
+HttpAPI.encryptAESGCM = function(plaintext, keyString) {
+    return new Promise(function(resolve, reject) {
+        try {
+            console.log("加密开始 - 明文长度:", plaintext.length);
+            console.log("加密开始 - 密钥:", keyString ? "已配置(" + keyString.length + "字符)" : "未配置");
+
+            // 准备密钥 (32字节)
+            var keyBytes = new Uint8Array(32);
+            for (var i = 0; i < 32 && i < keyString.length; i++) {
+                keyBytes[i] = keyString.charCodeAt(i);
+            }
+
+            // 生成随机nonce (12字节)
+            var nonce = new Uint8Array(12);
+            if (window.crypto && window.crypto.getRandomValues) {
+                window.crypto.getRandomValues(nonce);
+            } else {
+                // 降级方案
+                for (var j = 0; j < 12; j++) {
+                    nonce[j] = Math.floor(Math.random() * 256);
+                }
+            }
+
+            // 将明文转换为Uint8Array
+            var encoder = new TextEncoder('utf-8');
+            var data = encoder.encode(plaintext);
+
+            // 使用Web Crypto API加密
+            crypto.subtle.importKey(
+                'raw',
+                keyBytes,
+                { name: 'AES-GCM' },
+                false,
+                ['encrypt']
+            ).then(function(cryptoKey) {
+                console.log("加密 - 密钥导入成功");
+                return crypto.subtle.encrypt(
+                    {
+                        name: 'AES-GCM',
+                        iv: nonce,
+                        tagLength: 128
+                    },
+                    cryptoKey,
+                    data
+                );
+            }).then(function(encrypted) {
+                // 将nonce和密文合并
+                var encryptedArray = new Uint8Array(encrypted);
+                var result = new Uint8Array(nonce.length + encryptedArray.length);
+                result.set(nonce, 0);
+                result.set(encryptedArray, nonce.length);
+
+                // Base64编码
+                var base64 = btoa(String.fromCharCode.apply(null, result));
+                console.log("加密成功 - 密文长度:", base64.length);
+                resolve(base64);
+            }).catch(function(err) {
+                console.error("加密失败 - 错误:", err);
+                reject(err);
+            });
+        } catch (e) {
+            console.error("加密异常:", e);
+            reject(e);
+        }
+    });
+};
+
 // AES-GCM 解密函数 (使用Web Crypto API)
 HttpAPI.decryptAESGCM = function(encryptedBase64, keyString) {
     return new Promise(function(resolve, reject) {
@@ -253,7 +331,92 @@ HttpAPI.clearUserAgreementCache = function() {
     }
 };
 
+// 发送加密POST请求
+// action: 请求动作名称
+// params: 请求参数
+// cryptoKey: 加密密钥
+// callback: 回调函数
+HttpAPI.postEncrypted = function(url, action, params, cryptoKey, callback) {
+    console.log("HttpAPI.postEncrypted - URL:", url);
+    console.log("HttpAPI.postEncrypted - Action:", action);
+    console.log("HttpAPI.postEncrypted - Params:", JSON.stringify(params));
+    console.log("HttpAPI.postEncrypted - 加密密钥:", cryptoKey ? "已配置(" + cryptoKey.length + "字符)" : "未配置");
+
+    // 构造请求数据
+    var requestData = {
+        action: action,
+        params: params || {}
+    };
+    var plaintext = JSON.stringify(requestData);
+
+    // 加密请求数据
+    HttpAPI.encryptAESGCM(plaintext, cryptoKey).then(function(encryptedData) {
+        // 构造加密请求结构
+        var encryptedRequest = {
+            data: encryptedData,
+            timestamp: Date.now(),
+            nonce: HttpAPI.generateNonce(16)
+        };
+
+        console.log("HttpAPI.postEncrypted - 加密请求:", JSON.stringify(encryptedRequest).substring(0, 200) + "...");
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.timeout = 10000; // 10秒超时
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                console.log("HttpAPI.postEncrypted - 状态:", xhr.status);
+                console.log("HttpAPI.postEncrypted - 响应文本(前500字符):", xhr.responseText.substring(0, 500));
+
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        var response = JSON.parse(xhr.responseText);
+                        console.log("HttpAPI.postEncrypted - 解析后响应:", response);
+
+                        // 检查是否是加密响应
+                        if (response.data && response.timestamp && typeof response.data === 'string') {
+                            console.log("HttpAPI.postEncrypted - 检测到加密响应，开始解密...");
+                            HttpAPI.decryptAESGCM(response.data, cryptoKey).then(function(decrypted) {
+                                console.log("HttpAPI.postEncrypted - 解密成功:", decrypted);
+                                callback(null, decrypted);
+                            }).catch(function(err) {
+                                console.error('HttpAPI.postEncrypted - 解密失败:', err);
+                                callback('解密失败: ' + (err.message || err), null);
+                            });
+                        } else {
+                            console.log("HttpAPI.postEncrypted - 未加密响应，直接返回");
+                            callback(null, response);
+                        }
+                    } catch (e) {
+                        console.error('HttpAPI.postEncrypted - 解析响应失败:', e);
+                        callback('解析响应失败: ' + e.message, null);
+                    }
+                } else {
+                    callback('请求失败: HTTP ' + xhr.status, null);
+                }
+            }
+        };
+
+        xhr.ontimeout = function() {
+            console.error("HttpAPI.postEncrypted - 请求超时");
+            callback('请求超时', null);
+        };
+
+        xhr.onerror = function(e) {
+            console.error("HttpAPI.postEncrypted - 网络错误:", e);
+            callback('网络错误', null);
+        };
+
+        xhr.send(JSON.stringify(encryptedRequest));
+    }).catch(function(err) {
+        console.error("HttpAPI.postEncrypted - 加密失败:", err);
+        callback('加密失败: ' + (err.message || err), null);
+    });
+};
+
 // 设置全局变量
 window.HttpAPI = HttpAPI;
 
-console.log("http_api.js loaded with AES-GCM decryption support");
+console.log("http_api.js loaded with AES-GCM encryption/decryption support");

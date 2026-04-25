@@ -721,31 +721,54 @@ cc.Class({
                 return;
             }
             
-            // 调用API发送验证码
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', defines.apiUrl + '/api/v1/auth/send-code', true);
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.timeout = 10000;
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        try {
-                            var resp = JSON.parse(xhr.responseText);
-                            if (resp.code === 0) {
-                                showMessage("验证码已发送", false);
-                                startCountdown();
-                            } else {
-                                showMessage(resp.message || "发送失败", true);
-                            }
-                        } catch(e) {
-                            showMessage("解析响应失败", true);
+            // 使用加密请求发送验证码
+            var HttpAPI = window.HttpAPI;
+            if (HttpAPI && defines.cryptoKey) {
+                HttpAPI.postEncrypted(
+                    defines.apiUrl + '/api/v1/auth/send-code',
+                    'send_code',
+                    { phone: phone },
+                    defines.cryptoKey,
+                    function(err, resp) {
+                        if (err) {
+                            showMessage(err || "发送失败", true);
+                            return;
                         }
-                    } else {
-                        showMessage("网络请求失败", true);
+                        if (resp && resp.code === 0) {
+                            showMessage("验证码已发送", false);
+                            startCountdown();
+                        } else {
+                            showMessage(resp.message || "发送失败", true);
+                        }
                     }
-                }
-            };
-            xhr.send(JSON.stringify({ phone: phone }));
+                );
+            } else {
+                // 降级：使用明文请求
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', defines.apiUrl + '/api/v1/auth/send-code', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.timeout = 10000;
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            try {
+                                var resp = JSON.parse(xhr.responseText);
+                                if (resp.code === 0) {
+                                    showMessage("验证码已发送", false);
+                                    startCountdown();
+                                } else {
+                                    showMessage(resp.message || "发送失败", true);
+                                }
+                            } catch(e) {
+                                showMessage("解析响应失败", true);
+                            }
+                        } else {
+                            showMessage("网络请求失败", true);
+                        }
+                    }
+                };
+                xhr.send(JSON.stringify({ phone: phone }));
+            }
         });
 
         // 手机登录
@@ -778,45 +801,80 @@ cc.Class({
                 return;
             }
 
-            // 调用API登录
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', defines.apiUrl + '/api/v1/auth/phone-login', true);
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.setRequestHeader('X-Device-ID', 'web_' + Date.now());
-            xhr.setRequestHeader('X-Device-Type', 'Web Browser');
-            xhr.timeout = 10000;
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        try {
-                            var resp = JSON.parse(xhr.responseText);
-                            if (resp.code === 0 && resp.data) {
-                                showMessage("登录成功", false);
-                                if (window.myglobal && window.myglobal.playerData) {
-                                    window.myglobal.playerData.uniqueID = resp.data.player_id || "";
-                                    window.myglobal.playerData.accountID = resp.data.account_id || "";
-                                    window.myglobal.playerData.nickName = resp.data.nickname || "玩家";
-                                    window.myglobal.playerData.userName = resp.data.username || "";
-                                    window.myglobal.playerData.avatar = resp.data.avatar || "";
-                                    window.myglobal.playerData.gobal_count = resp.data.gold || 0;
-                                    window.myglobal.playerData.token = resp.data.token || "";
-                                }
-                                self.scheduleOnce(function() {
-                                    popup.destroy();
-                                    cc.director.loadScene("hallScene");
-                                }, 0.5);
-                            } else {
-                                showMessage(resp.message || "登录失败", true);
-                            }
-                        } catch(e) {
-                            showMessage("解析响应失败", true);
+            // 使用加密请求登录
+            var HttpAPI = window.HttpAPI;
+            if (HttpAPI && defines.cryptoKey) {
+                HttpAPI.postEncrypted(
+                    defines.apiUrl + '/api/v1/auth/phone-login',
+                    'phone_login',
+                    { phone: phone, code: code },
+                    defines.cryptoKey,
+                    function(err, resp) {
+                        if (err) {
+                            showMessage(err || "登录失败", true);
+                            return;
                         }
-                    } else {
-                        showMessage("网络请求失败", true);
+                        if (resp && resp.code === 0 && resp.data) {
+                            showMessage("登录成功", false);
+                            if (window.myglobal && window.myglobal.playerData) {
+                                window.myglobal.playerData.uniqueID = resp.data.uniqueID || "";
+                                window.myglobal.playerData.accountID = resp.data.accountID || "";
+                                window.myglobal.playerData.nickName = resp.data.nickName || "玩家";
+                                window.myglobal.playerData.userName = resp.data.username || "";
+                                window.myglobal.playerData.avatar = resp.data.avatarUrl || "";
+                                window.myglobal.playerData.gobal_count = resp.data.goldCount || 0;
+                                window.myglobal.playerData.token = resp.data.token || "";
+                            }
+                            self.scheduleOnce(function() {
+                                popup.destroy();
+                                cc.director.loadScene("hallScene");
+                            }, 0.5);
+                        } else {
+                            showMessage(resp.message || "登录失败", true);
+                        }
                     }
-                }
-            };
-            xhr.send(JSON.stringify({ phone: phone, code: code }));
+                );
+            } else {
+                // 降级：使用明文请求
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', defines.apiUrl + '/api/v1/auth/phone-login', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.setRequestHeader('X-Device-ID', 'web_' + Date.now());
+                xhr.setRequestHeader('X-Device-Type', 'Web Browser');
+                xhr.timeout = 10000;
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            try {
+                                var resp = JSON.parse(xhr.responseText);
+                                if (resp.code === 0 && resp.data) {
+                                    showMessage("登录成功", false);
+                                    if (window.myglobal && window.myglobal.playerData) {
+                                        window.myglobal.playerData.uniqueID = resp.data.player_id || "";
+                                        window.myglobal.playerData.accountID = resp.data.account_id || "";
+                                        window.myglobal.playerData.nickName = resp.data.nickname || "玩家";
+                                        window.myglobal.playerData.userName = resp.data.username || "";
+                                        window.myglobal.playerData.avatar = resp.data.avatar || "";
+                                        window.myglobal.playerData.gobal_count = resp.data.gold || 0;
+                                        window.myglobal.playerData.token = resp.data.token || "";
+                                    }
+                                    self.scheduleOnce(function() {
+                                        popup.destroy();
+                                        cc.director.loadScene("hallScene");
+                                    }, 0.5);
+                                } else {
+                                    showMessage(resp.message || "登录失败", true);
+                                }
+                            } catch(e) {
+                                showMessage("解析响应失败", true);
+                            }
+                        } else {
+                            showMessage("网络请求失败", true);
+                        }
+                    }
+                };
+                xhr.send(JSON.stringify({ phone: phone, code: code }));
+            }
         });
 
         // 微信登录
@@ -842,43 +900,78 @@ cc.Class({
                 return;
             }
 
-            // 调用微信登录API
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', defines.apiUrl + '/api/v1/auth/wx-login', true);
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.timeout = 10000;
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        try {
-                            var resp = JSON.parse(xhr.responseText);
-                            if (resp.code === 0 && resp.data) {
-                                showMessage("登录成功", false);
-                                if (window.myglobal && window.myglobal.playerData) {
-                                    window.myglobal.playerData.uniqueID = resp.data.player_id || "";
-                                    window.myglobal.playerData.accountID = resp.data.account_id || "";
-                                    window.myglobal.playerData.nickName = resp.data.nickname || "微信用户";
-                                    window.myglobal.playerData.userName = resp.data.username || "";
-                                    window.myglobal.playerData.avatar = resp.data.avatar || "";
-                                    window.myglobal.playerData.gobal_count = resp.data.gold || 0;
-                                    window.myglobal.playerData.token = resp.data.token || "";
-                                }
-                                self.scheduleOnce(function() {
-                                    popup.destroy();
-                                    cc.director.loadScene("hallScene");
-                                }, 0.5);
-                            } else {
-                                showMessage(resp.message || "登录失败", true);
-                            }
-                        } catch(e) {
-                            showMessage("解析响应失败", true);
+            // 使用加密请求微信登录
+            var HttpAPI = window.HttpAPI;
+            if (HttpAPI && defines.cryptoKey) {
+                HttpAPI.postEncrypted(
+                    defines.apiUrl + '/api/v1/auth/wx-login',
+                    'wx_login',
+                    { code: "test_code_" + Date.now() },
+                    defines.cryptoKey,
+                    function(err, resp) {
+                        if (err) {
+                            showMessage(err || "登录失败", true);
+                            return;
                         }
-                    } else {
-                        showMessage("网络请求失败", true);
+                        if (resp && resp.code === 0 && resp.data) {
+                            showMessage("登录成功", false);
+                            if (window.myglobal && window.myglobal.playerData) {
+                                window.myglobal.playerData.uniqueID = resp.data.uniqueID || "";
+                                window.myglobal.playerData.accountID = resp.data.accountID || "";
+                                window.myglobal.playerData.nickName = resp.data.nickName || "微信用户";
+                                window.myglobal.playerData.userName = resp.data.username || "";
+                                window.myglobal.playerData.avatar = resp.data.avatarUrl || "";
+                                window.myglobal.playerData.gobal_count = resp.data.goldCount || 0;
+                                window.myglobal.playerData.token = resp.data.token || "";
+                            }
+                            self.scheduleOnce(function() {
+                                popup.destroy();
+                                cc.director.loadScene("hallScene");
+                            }, 0.5);
+                        } else {
+                            showMessage(resp.message || "登录失败", true);
+                        }
                     }
-                }
-            };
-            xhr.send(JSON.stringify({ code: "test_code_" + Date.now() }));
+                );
+            } else {
+                // 降级：使用明文请求
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', defines.apiUrl + '/api/v1/auth/wx-login', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.timeout = 10000;
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            try {
+                                var resp = JSON.parse(xhr.responseText);
+                                if (resp.code === 0 && resp.data) {
+                                    showMessage("登录成功", false);
+                                    if (window.myglobal && window.myglobal.playerData) {
+                                        window.myglobal.playerData.uniqueID = resp.data.player_id || "";
+                                        window.myglobal.playerData.accountID = resp.data.account_id || "";
+                                        window.myglobal.playerData.nickName = resp.data.nickname || "微信用户";
+                                        window.myglobal.playerData.userName = resp.data.username || "";
+                                        window.myglobal.playerData.avatar = resp.data.avatar || "";
+                                        window.myglobal.playerData.gobal_count = resp.data.gold || 0;
+                                        window.myglobal.playerData.token = resp.data.token || "";
+                                    }
+                                    self.scheduleOnce(function() {
+                                        popup.destroy();
+                                        cc.director.loadScene("hallScene");
+                                    }, 0.5);
+                                } else {
+                                    showMessage(resp.message || "登录失败", true);
+                                }
+                            } catch(e) {
+                                showMessage("解析响应失败", true);
+                            }
+                        } else {
+                            showMessage("网络请求失败", true);
+                        }
+                    }
+                };
+                xhr.send(JSON.stringify({ code: "test_code_" + Date.now() }));
+            }
         });
         
         return popup;

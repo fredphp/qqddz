@@ -73,11 +73,22 @@ func (h *AuthHandler) SendVerificationCode(w http.ResponseWriter, r *http.Reques
                 return
         }
 
-        // 获取请求数据
+        // 获取请求数据 - 优先从上下文获取解密后的数据
         var req SendCodeRequest
-        if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-                writeJSONError(w, http.StatusBadRequest, "请求格式错误")
-                return
+        if reqData := GetRequestData(r); reqData != nil {
+                // 从加密请求中获取参数
+                if params, ok := reqData.Params.(map[string]interface{}); ok {
+                        if phone, ok := params["phone"].(string); ok {
+                                req.Phone = phone
+                        }
+                }
+                log.Printf("🔐 从加密请求获取参数 - 手机号: %s", req.Phone)
+        } else {
+                // 从原始请求体解析
+                if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+                        writeJSONError(w, http.StatusBadRequest, "请求格式错误")
+                        return
+                }
         }
 
         // 验证手机号
@@ -117,10 +128,25 @@ func (h *AuthHandler) PhoneLogin(w http.ResponseWriter, r *http.Request) {
                 return
         }
 
+        // 获取请求数据 - 优先从上下文获取解密后的数据
         var req PhoneLoginRequest
-        if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-                writeJSONError(w, http.StatusBadRequest, "请求格式错误")
-                return
+        if reqData := GetRequestData(r); reqData != nil {
+                // 从加密请求中获取参数
+                if params, ok := reqData.Params.(map[string]interface{}); ok {
+                        if phone, ok := params["phone"].(string); ok {
+                                req.Phone = phone
+                        }
+                        if code, ok := params["code"].(string); ok {
+                                req.Code = code
+                        }
+                }
+                log.Printf("🔐 从加密请求获取参数 - 手机号: %s, 验证码: %s", req.Phone, req.Code)
+        } else {
+                // 从原始请求体解析
+                if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+                        writeJSONError(w, http.StatusBadRequest, "请求格式错误")
+                        return
+                }
         }
 
         // 验证手机号
@@ -363,10 +389,28 @@ func (h *AuthHandler) WxLogin(w http.ResponseWriter, r *http.Request) {
                 return
         }
 
+        // 获取请求数据 - 优先从上下文获取解密后的数据
         var req WxLoginRequest
-        if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-                writeJSONError(w, http.StatusBadRequest, "请求格式错误")
-                return
+        if reqData := GetRequestData(r); reqData != nil {
+                // 从加密请求中获取参数
+                if params, ok := reqData.Params.(map[string]interface{}); ok {
+                        if code, ok := params["code"].(string); ok {
+                                req.Code = code
+                        }
+                        if nickName, ok := params["nickName"].(string); ok {
+                                req.NickName = nickName
+                        }
+                        if avatar, ok := params["avatar"].(string); ok {
+                                req.Avatar = avatar
+                        }
+                }
+                log.Printf("🔐 从加密请求获取参数 - 授权码: %s", req.Code)
+        } else {
+                // 从原始请求体解析
+                if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+                        writeJSONError(w, http.StatusBadRequest, "请求格式错误")
+                        return
+                }
         }
 
         // 微信授权码
@@ -428,9 +472,30 @@ func (h *AuthHandler) WxAppLogin(w http.ResponseWriter, r *http.Request) {
                 AvatarUrl string `json:"avatarUrl"`
         }
 
-        if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-                writeJSONError(w, http.StatusBadRequest, "请求格式错误")
-                return
+        // 获取请求数据 - 优先从上下文获取解密后的数据
+        if reqData := GetRequestData(r); reqData != nil {
+                // 从加密请求中获取参数
+                if params, ok := reqData.Params.(map[string]interface{}); ok {
+                        if openId, ok := params["openId"].(string); ok {
+                                req.OpenID = openId
+                        }
+                        if unionId, ok := params["unionId"].(string); ok {
+                                req.UnionID = unionId
+                        }
+                        if nickName, ok := params["nickName"].(string); ok {
+                                req.NickName = nickName
+                        }
+                        if avatarUrl, ok := params["avatarUrl"].(string); ok {
+                                req.AvatarUrl = avatarUrl
+                        }
+                }
+                log.Printf("🔐 从加密请求获取参数 - OpenID: %s", req.OpenID)
+        } else {
+                // 从原始请求体解析
+                if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+                        writeJSONError(w, http.StatusBadRequest, "请求格式错误")
+                        return
+                }
         }
 
         // 使用OpenID或UnionID作为唯一标识
