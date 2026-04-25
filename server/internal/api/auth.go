@@ -125,6 +125,9 @@ func (h *AuthHandler) PhoneLogin(w http.ResponseWriter, r *http.Request) {
                 return
         }
 
+        // TODO: 验证码验证功能暂时屏蔽，测试阶段跳过验证
+        // 生产环境需要取消以下注释，启用验证码验证
+        /*
         // 验证验证码
         codeStoreLock.RLock()
         codeInfo, exists := codeStore[req.Phone]
@@ -152,6 +155,10 @@ func (h *AuthHandler) PhoneLogin(w http.ResponseWriter, r *http.Request) {
         codeStoreLock.Lock()
         delete(codeStore, req.Phone)
         codeStoreLock.Unlock()
+        */
+
+        // 测试阶段：跳过验证码验证，直接登录
+        log.Printf("⚠️ 测试模式：跳过验证码验证 - 手机号: %s", req.Phone)
 
         // 模拟登录/注册成功
         // 生产环境应该查询数据库，判断是否为新用户

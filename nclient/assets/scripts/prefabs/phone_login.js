@@ -250,7 +250,8 @@ cc.Class({
 
     // 验证验证码
     _validateCode: function(code) {
-        return code && code.length >= 4 && code.length <= 6;
+        // 保留非空检测，测试阶段不验证格式
+        return code && code.length > 0;
     },
 
     // 开始倒计时
