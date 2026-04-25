@@ -121,9 +121,16 @@ func RegisterRoutes(mux *http.ServeMux, h *Handler) {
 // corsMiddleware CORS中间件
 func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
         return func(w http.ResponseWriter, r *http.Request) {
-                w.Header().Set("Access-Control-Allow-Origin", "*")
-                w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-                w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+                // 只设置一次CORS头
+                if w.Header().Get("Access-Control-Allow-Origin") == "" {
+                        w.Header().Set("Access-Control-Allow-Origin", "*")
+                }
+                if w.Header().Get("Access-Control-Allow-Methods") == "" {
+                        w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                }
+                if w.Header().Get("Access-Control-Allow-Headers") == "" {
+                        w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Device-ID, X-Device-Type")
+                }
                 if r.Method == "OPTIONS" {
                         w.WriteHeader(http.StatusOK)
                         return
