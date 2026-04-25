@@ -128,29 +128,45 @@ func (h *AuthHandler) PhoneLogin(w http.ResponseWriter, r *http.Request) {
                 return
         }
 
+        log.Printf("=== PhoneLogin 开始处理 ===")
+
         // 获取请求数据 - 优先从上下文获取解密后的数据
         var req PhoneLoginRequest
         if reqData := GetRequestData(r); reqData != nil {
+                log.Printf("🔐 从加密请求获取到数据: action=%s", reqData.Action)
                 // 从加密请求中获取参数
                 if params, ok := reqData.Params.(map[string]interface{}); ok {
+                        log.Printf("🔐 params 类型: %T, 内容: %+v", reqData.Params, params)
                         if phone, ok := params["phone"].(string); ok {
                                 req.Phone = phone
+                                log.Printf("🔐 获取到手机号: %s", req.Phone)
+                        } else {
+                                log.Printf("⚠️ params['phone'] 类型断言失败或不存在, phone值: %+v", params["phone"])
                         }
                         if code, ok := params["code"].(string); ok {
                                 req.Code = code
+                                log.Printf("🔐 获取到验证码: %s", req.Code)
+                        } else {
+                                log.Printf("⚠️ params['code'] 类型断言失败或不存在, code值: %+v", params["code"])
                         }
+                } else {
+                        log.Printf("⚠️ reqData.Params 不是 map[string]interface{}, 类型: %T", reqData.Params)
                 }
-                log.Printf("🔐 从加密请求获取参数 - 手机号: %s, 验证码: %s", req.Phone, req.Code)
+                log.Printf("🔐 从加密请求获取参数完成 - 手机号: %s, 验证码: %s", req.Phone, req.Code)
         } else {
+                log.Printf("⚠️ 未从上下文获取到加密数据，尝试解析原始请求体")
                 // 从原始请求体解析
                 if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+                        log.Printf("❌ 解析原始请求体失败: %v", err)
                         writeJSONError(w, http.StatusBadRequest, "请求格式错误")
                         return
                 }
+                log.Printf("📄 从原始请求体获取参数 - 手机号: %s, 验证码: %s", req.Phone, req.Code)
         }
 
         // 验证手机号
         if !isValidPhone(req.Phone) {
+                log.Printf("❌ 手机号格式不正确: '%s', 长度: %d", req.Phone, len(req.Phone))
                 writeJSONError(w, http.StatusBadRequest, "手机号格式不正确")
                 return
         }

@@ -122,7 +122,7 @@ func (h *Handler) WriteError(w http.ResponseWriter, code int, message string) {
 func (h *Handler) EncryptMiddleware(next http.HandlerFunc) http.HandlerFunc {
         return func(w http.ResponseWriter, r *http.Request) {
                 log.Printf("🔐 EncryptMiddleware 处理请求: %s %s", r.Method, r.URL.Path)
-                
+
                 if !h.enableCrypto || h.crypto == nil {
                         log.Printf("🔐 加密未启用，直接处理请求")
                         next(w, r)
@@ -136,23 +136,29 @@ func (h *Handler) EncryptMiddleware(next http.HandlerFunc) http.HandlerFunc {
                         if err != nil {
                                 log.Printf("⚠️ 读取请求体失败: %v", err)
                         } else {
+                                log.Printf("🔐 请求体长度: %d 字节", len(bodyBytes))
+
                                 // 恢复请求体供后续处理
                                 r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-                                
+
                                 var encReq crypto.EncryptedRequest
                                 if err := json.Unmarshal(bodyBytes, &encReq); err == nil {
+                                        log.Printf("🔐 解析加密请求成功 - timestamp: %d, nonce: %s, data长度: %d",
+                                                encReq.Timestamp, encReq.Nonce, len(encReq.Data))
+
                                         // 解密数据
                                         reqData, err := h.crypto.DecryptRequest(&encReq)
                                         if err == nil {
-                                                log.Printf("🔐 请求体解密成功")
+                                                log.Printf("🔐 请求体解密成功 - action: %s", reqData.Action)
+                                                log.Printf("🔐 解密后的参数: %+v", reqData.Params)
                                                 // 将解密后的数据存入上下文
                                                 ctx := context.WithValue(r.Context(), RequestDataKey{}, reqData)
                                                 *r = *r.WithContext(ctx)
                                         } else {
-                                                log.Printf("🔐 请求体解密失败，使用原始数据: %v", err)
+                                                log.Printf("❌ 请求体解密失败: %v", err)
                                         }
                                 } else {
-                                        log.Printf("🔐 请求体非加密格式，使用原始数据")
+                                        log.Printf("🔐 请求体非加密格式: %v", err)
                                 }
                         }
                 }
