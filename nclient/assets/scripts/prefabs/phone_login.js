@@ -1,6 +1,6 @@
 // 手机号登录弹窗控制器
 // 用于处理手机号验证码登录功能
-// 设计风格：根据设计图实现 - 更大的弹窗尺寸
+// 设计风格：大尺寸弹窗 (680x580)
 
 cc.Class({
     name: 'phone_login',
@@ -30,10 +30,6 @@ cc.Class({
             type: cc.Button,
             default: null
         },
-        wx_login_btn: {
-            type: cc.Button,
-            default: null
-        },
 
         // 标签
         send_code_label: {
@@ -50,14 +46,11 @@ cc.Class({
     },
 
     onLoad: function() {
-        console.log("PhoneLogin onLoad - 新版大尺寸弹窗");
+        console.log("PhoneLogin onLoad - 大尺寸弹窗版本");
 
         this._countdown = 0;
         this._phone = "";
         this._code = "";
-
-        // 动态加载图片资源并设置布局
-        this._setupUI();
 
         this._initButtons();
         this._hideMessage();
@@ -69,158 +62,6 @@ cc.Class({
         if (this.code_input) {
             this._code = this.code_input.string || "";
         }
-    },
-
-    // 设置UI - 加载图片并调整布局
-    _setupUI: function() {
-        var self = this;
-
-        // 获取主要节点
-        var contentPanel = this.node.getChildByName("content_panel");
-        var closeBtn = this.close_btn ? this.close_btn.node : this.node.getChildByName("close_btn");
-
-        // 设置内容面板大小 - 更大的弹窗 (560x440)
-        if (contentPanel) {
-            contentPanel.setContentSize(560, 440);
-        }
-
-        // 加载背景图片
-        this._loadSprite("UI/login/login_bg", contentPanel);
-
-        // 加载关闭按钮图片
-        this._loadSprite("UI/login/btn_close", closeBtn);
-        if (closeBtn) {
-            closeBtn.setContentSize(48, 48);
-            closeBtn.setPosition(280, 220);
-        }
-
-        // 设置标题
-        if (contentPanel) {
-            var titleLabel = contentPanel.getChildByName("title_label");
-            if (titleLabel) {
-                titleLabel.setPosition(0, 180);
-                var label = titleLabel.getComponent(cc.Label);
-                if (label) {
-                    label.string = "手机登录";
-                    label.fontSize = 32;
-                    label.lineHeight = 40;
-                }
-            }
-
-            // 设置手机号输入区域
-            var phoneBg = contentPanel.getChildByName("phone_bg");
-            if (phoneBg) {
-                phoneBg.setPosition(0, 100);
-                phoneBg.setContentSize(460, 60);
-            }
-
-            // 设置手机图标
-            if (phoneBg) {
-                var phoneIcon = phoneBg.getChildByName("phone_icon");
-                if (phoneIcon) {
-                    this._loadSprite("UI/login/icon_phone", phoneIcon);
-                    phoneIcon.setPosition(-190, 0);
-                }
-
-                var phoneInput = phoneBg.getChildByName("phone_input");
-                if (phoneInput) {
-                    phoneInput.setContentSize(380, 50);
-                    phoneInput.setPosition(20, 0);
-                }
-            }
-
-            // 设置验证码行
-            var codeRow = contentPanel.getChildByName("code_row");
-            if (codeRow) {
-                codeRow.setPosition(0, 20);
-                codeRow.setContentSize(460, 60);
-
-                var codeBg = codeRow.getChildByName("code_bg");
-                if (codeBg) {
-                    codeBg.setContentSize(280, 60);
-                    codeBg.setPosition(-90, 0);
-
-                    // 设置验证码图标
-                    var codeIcon = codeBg.getChildByName("code_icon");
-                    if (codeIcon) {
-                        this._loadSprite("UI/login/icon_shield", codeIcon);
-                        codeIcon.setPosition(-100, 0);
-                    }
-
-                    var codeInput = codeBg.getChildByName("code_input");
-                    if (codeInput) {
-                        codeInput.setContentSize(200, 50);
-                        codeInput.setPosition(20, 0);
-                    }
-                }
-
-                // 设置获取验证码按钮
-                var sendCodeBtn = codeRow.getChildByName("send_code_btn");
-                if (sendCodeBtn) {
-                    this._loadSprite("UI/login/get_mobile_code", sendCodeBtn);
-                    sendCodeBtn.setPosition(180, 0);
-                    sendCodeBtn.setContentSize(140, 50);
-                }
-            }
-
-            // 设置登录按钮
-            var loginBtn = contentPanel.getChildByName("login_btn");
-            if (loginBtn) {
-                this._loadSprite("UI/login/btn_mobile_login", loginBtn);
-                loginBtn.setPosition(0, -60);
-                loginBtn.setContentSize(460, 60);
-            }
-
-            // 设置分隔线
-            var divider = contentPanel.getChildByName("divider");
-            if (divider) {
-                divider.setPosition(0, -120);
-                divider.setContentSize(400, 1);
-            }
-
-            // 设置"其他方式"标签
-            var orLabel = contentPanel.getChildByName("or_label");
-            if (orLabel) {
-                orLabel.setPosition(0, -135);
-                var label = orLabel.getComponent(cc.Label);
-                if (label) {
-                    label.string = "其他方式登录";
-                    label.fontSize = 16;
-                }
-            }
-
-            // 设置微信登录按钮
-            var wxLoginBtn = contentPanel.getChildByName("wx_login_btn");
-            if (wxLoginBtn) {
-                this._loadSprite("UI/login/icon_wechat", wxLoginBtn);
-                wxLoginBtn.setPosition(0, -170);
-                wxLoginBtn.setContentSize(56, 56);
-            }
-        }
-    },
-
-    // 加载单个精灵
-    _loadSprite: function(path, node) {
-        if (!node) {
-            console.log("节点不存在，跳过加载: " + path);
-            return;
-        }
-
-        var sprite = node.getComponent(cc.Sprite);
-        if (!sprite) {
-            sprite = node.addComponent(cc.Sprite);
-        }
-
-        cc.resources.load(path, cc.SpriteFrame, function(err, spriteFrame) {
-            if (err) {
-                console.log("加载图片失败: " + path, err);
-                return;
-            }
-
-            sprite.spriteFrame = spriteFrame;
-            sprite.sizeMode = cc.Sprite.SizeMode.RAW;
-            console.log("图片加载成功: " + path);
-        });
     },
 
     _initButtons: function() {
@@ -247,14 +88,6 @@ cc.Class({
             this.login_btn.node.off(cc.Node.EventType.TOUCH_END);
             this.login_btn.node.on(cc.Node.EventType.TOUCH_END, function() {
                 self._onLoginClick();
-            }, this);
-        }
-
-        // 微信登录按钮
-        if (this.wx_login_btn) {
-            this.wx_login_btn.node.off(cc.Node.EventType.TOUCH_END);
-            this.wx_login_btn.node.on(cc.Node.EventType.TOUCH_END, function() {
-                self._onWxLoginClick();
             }, this);
         }
     },
@@ -357,34 +190,6 @@ cc.Class({
         });
     },
 
-    // 微信登录
-    _onWxLoginClick: function() {
-        var self = this;
-
-        this._showMessage("正在唤起微信授权...", false);
-
-        // 检查是否在微信环境
-        if (typeof wx !== 'undefined' && wx.login) {
-            // 微信小游戏环境
-            wx.login({
-                success: function(res) {
-                    if (res.code) {
-                        self._wxLoginRequest(res.code);
-                    } else {
-                        self._showMessage("微信授权失败", true);
-                    }
-                },
-                fail: function() {
-                    self._showMessage("微信授权失败", true);
-                }
-            });
-        } else {
-            // 模拟微信登录（开发环境）
-            console.log("非微信环境，模拟微信登录");
-            self._wxLoginRequest("mock_code_" + Date.now());
-        }
-    },
-
     // 关闭弹窗
     _onCloseClick: function() {
         if (this._countdown > 0) {
@@ -443,7 +248,7 @@ cc.Class({
     // 重置发送验证码按钮
     _resetSendCodeBtn: function() {
         if (this.send_code_label) {
-            this.send_code_label.string = "发送验证码";
+            this.send_code_label.string = "获取验证码";
         }
 
         if (this.send_code_btn) {
@@ -462,6 +267,8 @@ cc.Class({
             } else {
                 this.message_label.node.color = new cc.Color(100, 200, 100);
             }
+        } else {
+            console.log(isError ? "[错误] " + message : "[信息] " + message);
         }
     },
 
@@ -588,85 +395,6 @@ cc.Class({
         };
 
         xhr.send(JSON.stringify({ phone: phone, code: code }));
-    },
-
-    // 微信登录请求
-    _wxLoginRequest: function(code) {
-        var self = this;
-
-        var defines = window.defines;
-        if (!defines || !defines.apiUrl) {
-            console.log("API未配置，模拟微信登录成功");
-            self._onWxLoginSuccess({
-                uniqueID: "wx_" + Date.now(),
-                accountID: "wx_" + Date.now(),
-                nickName: "微信用户",
-                avatarUrl: "",
-                goldcount: 1000
-            });
-            return;
-        }
-
-        var xhr = new XMLHttpRequest();
-        var url = defines.apiUrl + '/api/v1/auth/wx-login';
-
-        xhr.open('POST', url, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        // 添加设备信息头
-        xhr.setRequestHeader('X-Device-ID', this._getDeviceID());
-        xhr.setRequestHeader('X-Device-Type', this._getDeviceType());
-        xhr.timeout = 10000;
-
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4) {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    try {
-                        var response = JSON.parse(xhr.responseText);
-                        if (response.code === 0 && response.data) {
-                            console.log("微信登录成功:", response.data);
-                            self._onWxLoginSuccess(response.data);
-                        } else {
-                            self._showMessage(response.message || "微信登录失败", true);
-                        }
-                    } catch (e) {
-                        self._showMessage("解析响应失败", true);
-                    }
-                } else {
-                    self._showMessage("网络请求失败", true);
-                }
-            }
-        };
-
-        xhr.ontimeout = function() {
-            self._showMessage("请求超时", true);
-        };
-
-        xhr.onerror = function() {
-            self._showMessage("网络错误", true);
-        };
-
-        xhr.send(JSON.stringify({ code: code }));
-    },
-
-    // 微信登录成功处理
-    _onWxLoginSuccess: function(data) {
-        this._showMessage("登录成功", false);
-
-        // 保存用户数据
-        if (window.myglobal && window.myglobal.playerData) {
-            window.myglobal.playerData.uniqueID = data.uniqueID || "";
-            window.myglobal.playerData.accountID = data.accountID || "";
-            window.myglobal.playerData.nickName = data.nickName || "微信用户";
-            window.myglobal.playerData.avatarUrl = data.avatarUrl || "";
-            window.myglobal.playerData.gobal_count = data.goldcount || 0;
-        }
-
-        // 跳转到大厅场景
-        var self = this;
-        this.scheduleOnce(function() {
-            self._onCloseClick();
-            cc.director.loadScene("hallScene");
-        }, 0.5);
     },
 
     // =============================================
