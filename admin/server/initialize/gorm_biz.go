@@ -13,8 +13,74 @@ func bizModel() error {
 		db = global.GVA_DB
 	}
 
-	// 禁用外键约束检查，避免类型不匹配错误
+	// 禁用外键约束检查
 	db.Exec("SET FOREIGN_KEY_CHECKS = 0;")
+
+	// 删除 ddz_game_records 表的所有外键约束
+	var foreignKeys []string
+	db.Raw(`
+		SELECT CONSTRAINT_NAME
+		FROM information_schema.TABLE_CONSTRAINTS
+		WHERE TABLE_SCHEMA = DATABASE()
+		AND TABLE_NAME = 'ddz_game_records'
+		AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+	`).Scan(&foreignKeys)
+
+	for _, fk := range foreignKeys {
+		db.Exec("ALTER TABLE `ddz_game_records` DROP FOREIGN KEY `" + fk + "`")
+	}
+
+	// 删除 ddz_game_player_records 表的所有外键约束
+	db.Raw(`
+		SELECT CONSTRAINT_NAME
+		FROM information_schema.TABLE_CONSTRAINTS
+		WHERE TABLE_SCHEMA = DATABASE()
+		AND TABLE_NAME = 'ddz_game_player_records'
+		AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+	`).Scan(&foreignKeys)
+
+	for _, fk := range foreignKeys {
+		db.Exec("ALTER TABLE `ddz_game_player_records` DROP FOREIGN KEY `" + fk + "`")
+	}
+
+	// 删除 ddz_game_play_records 表的所有外键约束
+	db.Raw(`
+		SELECT CONSTRAINT_NAME
+		FROM information_schema.TABLE_CONSTRAINTS
+		WHERE TABLE_SCHEMA = DATABASE()
+		AND TABLE_NAME = 'ddz_game_play_records'
+		AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+	`).Scan(&foreignKeys)
+
+	for _, fk := range foreignKeys {
+		db.Exec("ALTER TABLE `ddz_game_play_records` DROP FOREIGN KEY `" + fk + "`")
+	}
+
+	// 删除 ddz_deal_records 表的所有外键约束
+	db.Raw(`
+		SELECT CONSTRAINT_NAME
+		FROM information_schema.TABLE_CONSTRAINTS
+		WHERE TABLE_SCHEMA = DATABASE()
+		AND TABLE_NAME = 'ddz_deal_records'
+		AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+	`).Scan(&foreignKeys)
+
+	for _, fk := range foreignKeys {
+		db.Exec("ALTER TABLE `ddz_deal_records` DROP FOREIGN KEY `" + fk + "`")
+	}
+
+	// 删除 ddz_player_online 表的所有外键约束
+	db.Raw(`
+		SELECT CONSTRAINT_NAME
+		FROM information_schema.TABLE_CONSTRAINTS
+		WHERE TABLE_SCHEMA = DATABASE()
+		AND TABLE_NAME = 'ddz_player_online'
+		AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+	`).Scan(&foreignKeys)
+
+	for _, fk := range foreignKeys {
+		db.Exec("ALTER TABLE `ddz_player_online` DROP FOREIGN KEY `" + fk + "`")
+	}
 
 	err := db.AutoMigrate(
 		ddz.DDZPlayer{},
