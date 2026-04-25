@@ -26,11 +26,13 @@ func NewServer(cfg *config.Config) (*Server, error) {
         var dbConfig *DBConfig
         if cfg.MySQL.Host != "" {
                 dbConfig = &DBConfig{
-                        Host:     cfg.MySQL.Host,
-                        Port:     cfg.MySQL.Port,
-                        User:     cfg.MySQL.User,
-                        Password: cfg.MySQL.Password,
-                        Database: cfg.MySQL.Database,
+                        Host:      cfg.MySQL.Host,
+                        Port:      cfg.MySQL.Port,
+                        User:      cfg.MySQL.User,
+                        Password:  cfg.MySQL.Password,
+                        Database:  cfg.MySQL.Database,
+                        Charset:   "utf8mb4",
+                        Collation: "utf8mb4_unicode_ci",
                 }
                 log.Printf("📋 创建dbConfig: %+v", dbConfig)
         } else {

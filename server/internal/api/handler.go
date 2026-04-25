@@ -34,11 +34,13 @@ func NewHandler(cryptoKey string, enableCrypto bool, dbConfig *DBConfig) (*Handl
         // 初始化数据库连接
         if dbConfig != nil && dbConfig.Host != "" {
                 dbCfg := &database.DatabaseConfig{
-                        Host:     dbConfig.Host,
-                        Port:     dbConfig.Port,
-                        Username: dbConfig.User,
-                        Password: dbConfig.Password,
-                        Database: dbConfig.Database,
+                        Host:      dbConfig.Host,
+                        Port:      dbConfig.Port,
+                        Username:  dbConfig.User,
+                        Password:  dbConfig.Password,
+                        Database:  dbConfig.Database,
+                        Charset:   dbConfig.Charset,
+                        Collation: dbConfig.Collation,
                 }
                 log.Printf("🔗 正在连接数据库: %s@%s:%d/%s", dbCfg.Username, dbCfg.Host, dbCfg.Port, dbCfg.Database)
                 if err := database.InitDB(dbCfg); err != nil {
