@@ -75,25 +75,38 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 // RegisterRoutes 注册路由
 func RegisterRoutes(mux *http.ServeMux, h *Handler) {
+        log.Println("📝 注册API路由...")
+
         // 认证接口（不加密，方便前端调用）
+        log.Println("📝 注册路由: /api/v1/auth/send-code")
         mux.HandleFunc("/api/v1/auth/send-code", corsMiddleware(h.auth.SendVerificationCode))
+        log.Println("📝 注册路由: /api/v1/auth/phone-login")
         mux.HandleFunc("/api/v1/auth/phone-login", corsMiddleware(h.auth.PhoneLogin))
+        log.Println("📝 注册路由: /api/v1/auth/wx-login")
         mux.HandleFunc("/api/v1/auth/wx-login", corsMiddleware(h.auth.WxLogin))
+        log.Println("📝 注册路由: /api/v1/auth/wx-app-login")
         mux.HandleFunc("/api/v1/auth/wx-app-login", corsMiddleware(h.auth.WxAppLogin))
 
         // 公开接口（加密响应）
+        log.Println("📝 注册路由: /api/v1/user-agreement/latest")
         mux.HandleFunc("/api/v1/user-agreement/latest", h.EncryptMiddleware(h.agreement.GetLatest))
+        log.Println("📝 注册路由: /api/v1/user-agreement/get")
         mux.HandleFunc("/api/v1/user-agreement/get", h.EncryptMiddleware(h.agreement.GetByID))
+        log.Println("📝 注册路由: /api/v1/user-agreement/list")
         mux.HandleFunc("/api/v1/user-agreement/list", h.EncryptMiddleware(h.agreement.List))
 
         // 内部接口（用于后台管理调用，刷新缓存，不加密）
+        log.Println("📝 注册路由: /api/internal/cache/refresh/user-agreement")
         mux.HandleFunc("/api/internal/cache/refresh/user-agreement", h.agreement.RefreshCache)
 
         // 健康检查（不加密）
+        log.Println("📝 注册路由: /api/health")
         mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
                 w.WriteHeader(http.StatusOK)
                 w.Write([]byte("OK"))
         })
+
+        log.Println("✅ API路由注册完成")
 }
 
 // corsMiddleware CORS中间件
