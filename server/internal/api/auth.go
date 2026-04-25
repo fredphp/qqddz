@@ -205,7 +205,6 @@ func (h *AuthHandler) PhoneLogin(w http.ResponseWriter, r *http.Request) {
         tokenExpire := now.Add(7 * 24 * time.Hour) // 7天过期
 
         // 更新账户Token
-        db := database.DB()
         if db != nil {
                 db.Model(&database.UserAccount{}).Where("id = ?", account.ID).Updates(map[string]interface{}{
                         "token":             token,
