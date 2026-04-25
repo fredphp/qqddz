@@ -30,7 +30,7 @@ mysql:
   port: 3306
   user: "root"
   password: "root"
-  database: "hlddz"
+  database: "ddz_game"
 
 game:
   # 玩家回合超时时间（秒）

@@ -43,6 +43,7 @@ func NewHandler(cryptoKey string, enableCrypto bool, dbConfig *DBConfig) (*Handl
                 log.Printf("🔗 正在连接数据库: %s@%s:%d/%s", dbCfg.Username, dbCfg.Host, dbCfg.Port, dbCfg.Database)
                 if err := database.InitDB(dbCfg); err != nil {
                         log.Printf("⚠️ 数据库连接失败: %v，将使用模拟模式", err)
+                        log.Printf("⚠️ 请检查: 1.MySQL服务是否启动 2.数据库'%s'是否存在 3.用户名密码是否正确", dbCfg.Database)
                 } else {
                         log.Println("✅ 数据库连接成功")
                         // 自动迁移表结构
@@ -54,7 +55,12 @@ func NewHandler(cryptoKey string, enableCrypto bool, dbConfig *DBConfig) (*Handl
                         }
                 }
         } else {
-                log.Println("⚠️ 未配置数据库，将使用模拟模式")
+                log.Printf("⚠️ 未配置数据库(dbConfig=%v, Host=%s)，将使用模拟模式", dbConfig != nil, func() string {
+                        if dbConfig != nil {
+                                return dbConfig.Host
+                        }
+                        return ""
+                }())
         }
 
         // 创建用户协议处理器
