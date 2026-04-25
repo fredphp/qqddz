@@ -1,1 +1,38 @@
-{"ver":"2.3.8","uuid":"44ebe3a7-b611-46ff-a729-0b21286ca2e3","type":"sprite","wrapMode":"clamp","filterMode":"bilinear","premultiplyAlpha":false,"genMipmaps":false,"packable":true,"width":120,"height":40,"platformSettings":{},"subMetas":{"6c48a":{"ver":"1.0.5","uuid":"e6448ab6-4d55-444f-8d59-f506ed99ed2c","rawTextureUuid":"44ebe3a7-b611-46ff-a729-0b21286ca2e3","trimType":"auto","trimThreshold":1,"rotated":false,"offsetX":0,"offsetY":0,"trimX":0,"trimY":0,"width":120,"height":40,"rawWidth":120,"rawHeight":40,"borderTop":0,"borderBottom":0,"borderLeft":0,"borderRight":0,"packable":true,"pixelsToUnit":100,"pivotX":0.5,"pivotY":0.5,"meshType":0,"isUuid":true,"imageUuidOrDatabaseUri":"44ebe3a7-b611-46ff-a729-0b21286ca2e3","atlasUuid":""}}}
+{
+  "ver": "2.3.7",
+  "uuid": "458191ca-4744-452c-82fc-23248b95d6f8",
+  "importer": "texture",
+  "type": "sprite",
+  "wrapMode": "clamp",
+  "filterMode": "bilinear",
+  "premultiplyAlpha": false,
+  "genMipmaps": false,
+  "packable": true,
+  "width": 120,
+  "height": 40,
+  "platformSettings": {},
+  "subMetas": {
+    "get_mobile_code": {
+      "ver": "1.0.6",
+      "uuid": "82e440b0-4f19-4d85-bc60-1f453d672f98",
+      "importer": "sprite-frame",
+      "rawTextureUuid": "458191ca-4744-452c-82fc-23248b95d6f8",
+      "trimType": "auto",
+      "trimThreshold": 1,
+      "rotated": false,
+      "offsetX": 0,
+      "offsetY": 0,
+      "trimX": 0,
+      "trimY": 0,
+      "width": 120,
+      "height": 40,
+      "rawWidth": 120,
+      "rawHeight": 40,
+      "borderTop": 0,
+      "borderBottom": 0,
+      "borderLeft": 0,
+      "borderRight": 0,
+      "subMetas": {}
+    }
+  }
+}
