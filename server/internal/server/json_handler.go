@@ -192,6 +192,13 @@ func decodePayloadToJSON(msgType protocol.MessageType, payload []byte) (json.Raw
                 }
                 return json.Marshal(p)
 
+        case protocol.MsgForceLogout:
+                var p protocol.ForceLogoutPayload
+                if err := payloadconv.DecodePayload(msgType, payload, &p); err != nil {
+                        return nil, err
+                }
+                return json.Marshal(p)
+
         default:
                 // 未知类型，尝试解码为通用 map
                 var p map[string]interface{}

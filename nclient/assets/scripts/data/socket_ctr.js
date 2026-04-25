@@ -65,6 +65,7 @@ window.socketCtr = function(){
         PLAYER_PASS: "player_pass",
         GAME_OVER: "game_over",
         ERROR: "error",
+        FORCE_LOGOUT: "force_logout", // 强制下线
     }
 
     // 发送消息
@@ -209,6 +210,11 @@ window.socketCtr = function(){
             case MessageType.ERROR:
                 console.error("服务器错误:", data.message)
                 evt.fire("error", data)
+                break
+                
+            case MessageType.FORCE_LOGOUT:
+                console.warn("🚫 收到强制下线通知:", data)
+                _handleForceLogout(data)
                 break
                 
             default:
@@ -506,6 +512,49 @@ window.socketCtr = function(){
             id: _playerId,
             name: _playerName
         }
+    }
+
+    // ========== 强制下线处理 ==========
+    
+    // 处理强制下线消息
+    var _handleForceLogout = function(data) {
+        var reason = data.reason || "您已被管理员强制下线"
+        console.warn("🚫 强制下线原因:", reason)
+        
+        // 设置强制下线标记
+        if (typeof window.myglobal !== 'undefined' && window.myglobal.onForceLogout) {
+            window.myglobal.onForceLogout(reason)
+        } else if (typeof window.playerData !== 'undefined') {
+            // 降级处理
+            var pd = window.playerData()
+            if (pd && pd.setForceLogout) {
+                pd.setForceLogout(reason)
+            }
+        }
+        
+        // 关闭 WebSocket 连接
+        if (_socket) {
+            _socket.close()
+        }
+        _isConnected = false
+        
+        // 触发强制下线事件
+        var evt = _getEvent()
+        if (evt) {
+            evt.fire("force_logout", {
+                reason: reason,
+                playerId: data.player_id
+            })
+        }
+    }
+    
+    // 断开连接
+    that.disconnect = function() {
+        if (_socket) {
+            _socket.close()
+        }
+        _isConnected = false
+        console.log("WebSocket 连接已断开")
     }
 
     return that

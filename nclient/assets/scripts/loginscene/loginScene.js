@@ -1072,12 +1072,18 @@ cc.Class({
             var defines = window.defines;
             if (!defines || !defines.apiUrl) {
                 // 无API配置，模拟登录成功
-                if (window.myglobal && window.myglobal.playerData) {
-                    window.myglobal.playerData.uniqueID = "phone_" + phone;
-                    window.myglobal.playerData.accountID = "phone_" + phone;
-                    window.myglobal.playerData.nickName = "玩家" + phone.substr(-4);
-                    window.myglobal.playerData.gobal_count = 1000;
-                    window.myglobal.playerData.token = "test_token_" + Date.now();
+                if (window.myglobal) {
+                    var loginData = {
+                        uniqueID: "phone_" + phone,
+                        accountID: "phone_" + phone,
+                        nickName: "玩家" + phone.substr(-4),
+                        avatarUrl: "",
+                        goldCount: 1000,
+                        token: "test_token_" + Date.now(),
+                        phone: phone,
+                        loginType: 1
+                    };
+                    window.myglobal.onLoginSuccess(loginData);
                 }
                 showMessage("登录成功", false);
                 self.scheduleOnce(function() {
@@ -1181,12 +1187,17 @@ cc.Class({
 
             if (!defines || !defines.apiUrl) {
                 // 无API配置，模拟登录成功
-                if (window.myglobal && window.myglobal.playerData) {
-                    window.myglobal.playerData.uniqueID = "wx_" + Date.now();
-                    window.myglobal.playerData.accountID = "wx_" + Date.now();
-                    window.myglobal.playerData.nickName = "微信用户";
-                    window.myglobal.playerData.gobal_count = 1000;
-                    window.myglobal.playerData.token = "test_wx_token_" + Date.now();
+                if (window.myglobal) {
+                    var loginData = {
+                        uniqueID: "wx_" + Date.now(),
+                        accountID: "wx_" + Date.now(),
+                        nickName: "微信用户",
+                        avatarUrl: "",
+                        goldCount: 1000,
+                        token: "test_wx_token_" + Date.now(),
+                        loginType: 2
+                    };
+                    window.myglobal.onLoginSuccess(loginData);
                 }
                 showMessage("登录成功", false);
                 self.scheduleOnce(function() {

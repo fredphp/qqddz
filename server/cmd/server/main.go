@@ -53,6 +53,9 @@ func main() {
 
         // 启动WebSocket服务器
         if wsServer != nil {
+                // 设置WebSocket服务器引用到API包
+                api.SetWSServer(wsServer)
+
                 go func() {
                         log.Println("🎮 斗地主WebSocket服务器启动中...")
                         if err := wsServer.Start(); err != nil {

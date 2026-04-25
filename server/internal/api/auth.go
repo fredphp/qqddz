@@ -877,15 +877,15 @@ func (h *AuthHandler) ForceLogout(w http.ResponseWriter, r *http.Request) {
         }
 
         // 通知 WebSocket 服务强制下线
-        // 通过 Redis 或其他方式通知 WebSocket 服务
-        // 这里需要根据实际架构实现
+        offline := !ForceLogoutPlayer(req.PlayerID, req.Reason)
 
-        log.Printf("✅ 强制下线成功 - PlayerID: %s", req.PlayerID)
+        log.Printf("✅ 强制下线成功 - PlayerID: %s, 是否在线: %v", req.PlayerID, !offline)
 
         writeJSONSuccess(w, map[string]interface{}{
                 "success":  true,
                 "message":  "强制下线成功",
                 "playerId": req.PlayerID,
+                "wasOnline": !offline,
         })
 }
 
