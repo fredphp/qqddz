@@ -485,6 +485,7 @@ cc.Class({
         phoneInputNode.parent = panel;
         phoneInputNode.setContentSize(cc.size(phoneInputWidth - 16, inputHeight));
         phoneInputNode.setPosition(phoneInputX, currentY);
+        phoneInputNode.color = new cc.Color(0, 0, 0);  // 设置节点颜色为黑色
         var phoneEditBox = phoneInputNode.addComponent(cc.EditBox);
         phoneEditBox.placeholder = "请输入手机号";
         phoneEditBox.fontSize = 14;
@@ -494,7 +495,7 @@ cc.Class({
         phoneEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         phoneEditBox.maxLength = 11;
-        phoneEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);
+        phoneEditBox.backgroundColor = new cc.Color(255, 255, 255, 255);  // 白色背景
 
         currentY -= inputHeight + rowGap;
 
@@ -533,6 +534,7 @@ cc.Class({
         codeInputNode.parent = panel;
         codeInputNode.setContentSize(cc.size(codeInputWidth - 12, inputHeight));
         codeInputNode.setPosition(codeInputX, currentY);
+        codeInputNode.color = new cc.Color(0, 0, 0);  // 设置节点颜色为黑色
         var codeEditBox = codeInputNode.addComponent(cc.EditBox);
         codeEditBox.placeholder = "验证码";
         codeEditBox.fontSize = 14;
@@ -542,7 +544,7 @@ cc.Class({
         codeEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         codeEditBox.maxLength = 6;
-        codeEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);
+        codeEditBox.backgroundColor = new cc.Color(255, 255, 255, 255);  // 白色背景
 
         // 获取验证码按钮
         var sendCodeBtnX = -formWidth/2 + labelWidth + codeInputWidth + sendBtnWidth/2 + 10;
