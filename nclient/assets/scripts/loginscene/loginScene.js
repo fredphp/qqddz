@@ -1,40 +1,164 @@
 // 登录场景控制器
 // 使用点击事件实现复选框功能（不依赖 Toggle 组件）
 
-// 辅助函数：修复Web平台EditBox的CSS样式
+// 全局样式修复函数 - 更强大的版本
+var _globalStyleFixApplied = false;
+
+// 辅助函数：修复Web平台EditBox的CSS样式（增强版）
 var _fixEditBoxStyle = function(editBox, fontColor, bgColor) {
     if (!cc.sys.isBrowser) return;
-    
-    // 延迟执行，等待HTML input元素创建完成
-    setTimeout(function() {
-        try {
-            // 查找所有input元素
-            var inputs = document.querySelectorAll('input');
-            for (var i = 0; i < inputs.length; i++) {
-                var input = inputs[i];
-                // 修复样式
-                if (fontColor) {
-                    input.style.color = fontColor;
-                    input.style.setProperty('color', fontColor, 'important');
-                }
-                if (bgColor) {
-                    input.style.backgroundColor = bgColor;
-                    input.style.setProperty('background-color', bgColor, 'important');
-                }
-                // 确保文字可见
-                input.style.opacity = '1';
-                input.style.setProperty('opacity', '1', 'important');
-                input.style.fontSize = '16px';
-                input.style.fontFamily = 'Arial, sans-serif';
-                // 移除可能影响显示的样式
-                input.style.textShadow = 'none';
-                input.style.webkitTextFillColor = fontColor || '#000000';
-                console.log('EditBox样式已修复:', input.style.color, input.style.backgroundColor);
-            }
-        } catch (e) {
-            console.warn('修复EditBox样式失败:', e);
+
+    fontColor = fontColor || '#000000';
+    bgColor = bgColor || '#ffffff';
+
+    console.log('=== 开始修复EditBox样式 ===', fontColor, bgColor);
+
+    // 立即尝试修复
+    _applyInputStyles(fontColor, bgColor);
+
+    // 延迟修复（等待HTML input元素创建）
+    setTimeout(function() { _applyInputStyles(fontColor, bgColor); }, 50);
+    setTimeout(function() { _applyInputStyles(fontColor, bgColor); }, 100);
+    setTimeout(function() { _applyInputStyles(fontColor, bgColor); }, 200);
+    setTimeout(function() { _applyInputStyles(fontColor, bgColor); }, 500);
+
+    // 注入全局CSS样式（最高优先级）
+    if (!_globalStyleFixApplied) {
+        _globalStyleFixApplied = true;
+        _injectGlobalStyles(fontColor, bgColor);
+    }
+};
+
+// 应用样式到所有input元素
+var _applyInputStyles = function(fontColor, bgColor) {
+    try {
+        var inputs = document.querySelectorAll('input');
+        console.log('找到 input 元素数量:', inputs.length);
+
+        for (var i = 0; i < inputs.length; i++) {
+            var input = inputs[i];
+            _styleSingleInput(input, fontColor, bgColor);
         }
-    }, 100);
+
+        // 也处理 textarea（可能被用于 EditBox）
+        var textareas = document.querySelectorAll('textarea');
+        for (var j = 0; j < textareas.length; j++) {
+            _styleSingleInput(textareas[j], fontColor, bgColor);
+        }
+    } catch (e) {
+        console.error('修复EditBox样式失败:', e);
+    }
+};
+
+// 样式化单个input元素
+var _styleSingleInput = function(input, fontColor, bgColor) {
+    // 设置文字颜色
+    input.style.setProperty('color', fontColor, 'important');
+    input.style.color = fontColor;
+
+    // 设置背景色
+    input.style.setProperty('background-color', bgColor, 'important');
+    input.style.backgroundColor = bgColor;
+
+    // 确保可见性
+    input.style.setProperty('opacity', '1', 'important');
+    input.style.opacity = '1';
+    input.style.setProperty('visibility', 'visible', 'important');
+    input.style.visibility = 'visible';
+
+    // 设置字体大小
+    input.style.setProperty('font-size', '16px', 'important');
+    input.style.fontSize = '16px';
+
+    // 设置字体
+    input.style.setProperty('font-family', 'Arial, sans-serif', 'important');
+
+    // 修复 WebKit 特殊样式
+    input.style.setProperty('-webkit-text-fill-color', fontColor, 'important');
+    input.style.webkitTextFillColor = fontColor;
+
+    // 移除可能影响显示的样式
+    input.style.textShadow = 'none';
+    input.style.setProperty('text-shadow', 'none', 'important');
+
+    // 确保没有caret-color问题
+    input.style.setProperty('caret-color', fontColor, 'important');
+    input.style.caretColor = fontColor;
+
+    console.log('Input样式已修复:', input.value || '(空)', '颜色:', input.style.color);
+};
+
+// 注入全局CSS样式
+var _injectGlobalStyles = function(fontColor, bgColor) {
+    try {
+        var styleId = 'cocos-editbox-fix-style';
+        if (document.getElementById(styleId)) return;
+
+        var css = `
+            input, textarea {
+                color: ${fontColor} !important;
+                background-color: ${bgColor} !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                font-size: 16px !important;
+                -webkit-text-fill-color: ${fontColor} !important;
+                caret-color: ${fontColor} !important;
+            }
+            input::placeholder, textarea::placeholder {
+                color: #999999 !important;
+                opacity: 1 !important;
+            }
+            input:focus, textarea:focus {
+                color: ${fontColor} !important;
+                outline: none !important;
+            }
+        `;
+
+        var style = document.createElement('style');
+        style.id = styleId;
+        style.type = 'text/css';
+        style.appendChild(document.createTextNode(css));
+        document.head.appendChild(style);
+
+        console.log('=== 全局EditBox样式已注入 ===');
+    } catch (e) {
+        console.error('注入全局样式失败:', e);
+    }
+};
+
+// MutationObserver 监听新创建的input元素
+var _startInputObserver = function() {
+    if (!cc.sys.isBrowser) return;
+
+    try {
+        var observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeName === 'INPUT' || node.nodeName === 'TEXTAREA') {
+                        console.log('检测到新input元素创建');
+                        _styleSingleInput(node, '#000000', '#ffffff');
+                    }
+                    // 检查子节点
+                    if (node.querySelectorAll) {
+                        var inputs = node.querySelectorAll('input, textarea');
+                        inputs.forEach(function(inp) {
+                            console.log('检测到子节点中的input元素');
+                            _styleSingleInput(inp, '#000000', '#ffffff');
+                        });
+                    }
+                });
+            });
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        console.log('=== Input元素监听器已启动 ===');
+    } catch (e) {
+        console.warn('启动Input监听器失败:', e);
+    }
 };
 
 cc.Class({
@@ -58,6 +182,10 @@ cc.Class({
 
     onLoad () {
         console.log("loginScene onLoad 开始");
+
+        // 启动Web平台Input样式监听器
+        _startInputObserver();
+        _injectGlobalStyles('#000000', '#ffffff');
 
         this._isAgreementChecked = false;
         this._initWaitNode();
@@ -534,6 +662,21 @@ cc.Class({
         phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         phoneEditBox.maxLength = 11;
         phoneEditBox.backgroundColor = new cc.Color(255, 255, 255, 255); // 完全不透明的白色背景
+
+        // 添加编辑事件监听
+        phoneInputNode.on('editing-did-begin', function() {
+            console.log('手机号输入框开始编辑');
+            _applyInputStyles('#000000', '#ffffff');
+        });
+        phoneInputNode.on('editing-did-changed', function() {
+            console.log('手机号输入框内容变化:', phoneEditBox.string);
+            _applyInputStyles('#000000', '#ffffff');
+        });
+        phoneInputNode.on('editing-did-ended', function() {
+            console.log('手机号输入框结束编辑:', phoneEditBox.string);
+            _applyInputStyles('#000000', '#ffffff');
+        });
+
         // 修复Web平台样式
         _fixEditBoxStyle(phoneEditBox, '#000000', '#ffffff');
 
@@ -582,6 +725,21 @@ cc.Class({
         codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         codeEditBox.maxLength = 6;
         codeEditBox.backgroundColor = new cc.Color(255, 255, 255, 255); // 完全不透明的白色背景
+
+        // 添加编辑事件监听
+        codeInputNode.on('editing-did-begin', function() {
+            console.log('验证码输入框开始编辑');
+            _applyInputStyles('#000000', '#ffffff');
+        });
+        codeInputNode.on('editing-did-changed', function() {
+            console.log('验证码输入框内容变化:', codeEditBox.string);
+            _applyInputStyles('#000000', '#ffffff');
+        });
+        codeInputNode.on('editing-did-ended', function() {
+            console.log('验证码输入框结束编辑:', codeEditBox.string);
+            _applyInputStyles('#000000', '#ffffff');
+        });
+
         // 修复Web平台样式
         _fixEditBoxStyle(codeEditBox, '#000000', '#ffffff');
 
