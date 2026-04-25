@@ -7,7 +7,8 @@ var defines = {};
 defines.serverUrl = "ws://localhost:1780/ws";
 
 // Go 后端 HTTP API 地址 (如果Go服务不可用，可使用Next.js API: "")
-defines.apiUrl = "http://localhost:1781";
+// 使用虚拟域名 ddzapi.qqddz.local (通过代理访问)
+defines.apiUrl = "http://ddzapi.qqddz.local";
 
 // API 数据加密密钥（与服务端配置一致，必须是32字节）
 defines.cryptoKey = "qqddz2026gameaes256secretkey123!";

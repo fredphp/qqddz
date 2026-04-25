@@ -68,7 +68,7 @@ HttpAPI.get = function(url, cryptoKey, callback) {
     
     xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
-            if (xhr.status === 200) {
+            if (xhr.status >= 200 && xhr.status < 300) {
                 try {
                     var response = JSON.parse(xhr.responseText);
                     
@@ -116,7 +116,7 @@ HttpAPI.post = function(url, data, cryptoKey, callback) {
     
     xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
-            if (xhr.status === 200) {
+            if (xhr.status >= 200 && xhr.status < 300) {
                 try {
                     var response = JSON.parse(xhr.responseText);
                     

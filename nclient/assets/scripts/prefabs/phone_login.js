@@ -395,10 +395,30 @@ cc.Class({
             code: code
         };
 
+        console.log("登录请求URL:", url);
+        console.log("加密密钥:", cryptoKey ? "已配置(" + cryptoKey.length + "字符)" : "未配置");
+
         // 使用HttpAPI.post发送请求（支持加密解密）
-        if (window.HttpAPI) {
+        if (window.HttpAPI && window.HttpAPI.post) {
+            console.log("使用HttpAPI.post发送登录请求");
+            window.HttpAPI.post(url, requestData, cryptoKey, function(err, result) {
+                if (err) {
+                    console.error("登录请求失败:", err);
+                    callback(false, err, null);
+                    return;
+                }
+
+                console.log("登录响应:", result);
+                if (result && result.code === 0 && result.data) {
+                    callback(true, "登录成功", result.data);
+                } else {
+                    callback(false, result ? result.message : "登录失败", null);
+                }
+            });
+        } else {
+            // 降级：直接发送请求
+            console.warn("HttpAPI未加载，使用原始请求");
             var self = this;
-            // 添加设备信息头
             var xhr = new XMLHttpRequest();
             xhr.open('POST', url, true);
             xhr.setRequestHeader('Content-Type', 'application/json');
@@ -411,30 +431,32 @@ cc.Class({
                     if (xhr.status >= 200 && xhr.status < 300) {
                         try {
                             var response = JSON.parse(xhr.responseText);
-
-                            // 检查是否是加密响应
+                            console.log("原始响应:", response);
+                            
                             if (response.data && response.timestamp && typeof response.data === 'string') {
                                 // 加密响应，需要解密
-                                window.HttpAPI.decryptAESGCM(response.data, cryptoKey).then(function(decrypted) {
-                                    console.log("登录响应(解密后):", decrypted);
-                                    if (decrypted && decrypted.code === 0 && decrypted.data) {
-                                        callback(true, "登录成功", decrypted.data);
-                                    } else {
-                                        callback(false, decrypted ? decrypted.message : "登录失败", null);
-                                    }
-                                }).catch(function(err) {
-                                    console.error("解密失败:", err);
-                                    callback(false, "解密响应失败", null);
-                                });
-                            } else {
-                                // 未加密响应
-                                if (response.code === 0 && response.data) {
-                                    callback(true, "登录成功", response.data);
+                                if (window.HttpAPI && window.HttpAPI.decryptAESGCM) {
+                                    window.HttpAPI.decryptAESGCM(response.data, cryptoKey).then(function(decrypted) {
+                                        console.log("解密后响应:", decrypted);
+                                        if (decrypted && decrypted.code === 0 && decrypted.data) {
+                                            callback(true, "登录成功", decrypted.data);
+                                        } else {
+                                            callback(false, decrypted ? decrypted.message : "登录失败", null);
+                                        }
+                                    }).catch(function(decryptErr) {
+                                        console.error("解密失败:", decryptErr);
+                                        callback(false, "解密响应失败", null);
+                                    });
                                 } else {
-                                    callback(false, response.message || "登录失败", null);
+                                    callback(false, "服务器返回加密数据，请刷新页面重试", null);
                                 }
+                            } else if (response.code === 0 && response.data) {
+                                callback(true, "登录成功", response.data);
+                            } else {
+                                callback(false, response.message || "登录失败", null);
                             }
                         } catch (e) {
+                            console.error("解析响应失败:", e);
                             callback(false, "解析响应失败", null);
                         }
                     } else {
@@ -452,46 +474,6 @@ cc.Class({
             };
 
             xhr.send(JSON.stringify(requestData));
-        } else {
-            // 降级：直接发送请求
-            console.warn("HttpAPI未加载，使用原始请求");
-            var xhr2 = new XMLHttpRequest();
-            xhr2.open('POST', url, true);
-            xhr2.setRequestHeader('Content-Type', 'application/json');
-            xhr2.setRequestHeader('X-Device-ID', this._getDeviceID());
-            xhr2.setRequestHeader('X-Device-Type', this._getDeviceType());
-            xhr2.timeout = 10000;
-
-            xhr2.onreadystatechange = function() {
-                if (xhr2.readyState === 4) {
-                    if (xhr2.status >= 200 && xhr2.status < 300) {
-                        try {
-                            var response = JSON.parse(xhr2.responseText);
-                            if (response.data && response.timestamp && typeof response.data === 'string') {
-                                callback(false, "服务器返回加密数据，请刷新页面重试", null);
-                            } else if (response.code === 0 && response.data) {
-                                callback(true, "登录成功", response.data);
-                            } else {
-                                callback(false, response.message || "登录失败", null);
-                            }
-                        } catch (e) {
-                            callback(false, "解析响应失败", null);
-                        }
-                    } else {
-                        callback(false, "网络请求失败", null);
-                    }
-                }
-            };
-
-            xhr2.ontimeout = function() {
-                callback(false, "请求超时", null);
-            };
-
-            xhr2.onerror = function() {
-                callback(false, "网络错误", null);
-            };
-
-            xhr2.send(JSON.stringify(requestData));
         }
     },
 
