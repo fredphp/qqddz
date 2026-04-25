@@ -201,6 +201,8 @@ func (h *AuthHandler) PhoneLogin(w http.ResponseWriter, r *http.Request) {
                 return
         }
 
+        log.Printf("✅ 登录成功 - 玩家ID: %d, 账户ID: %d, 新用户: %v", player.ID, account.ID, isNewUser)
+
         // 生成token
         token := generateToken(32)
         now := time.Now()
@@ -282,6 +284,8 @@ func (h *AuthHandler) getOrCreatePlayerByPhone(phone string) (*database.Player, 
         var newPlayer *database.Player
         var newAccount *database.UserAccount
 
+        log.Printf("🔨 开始执行事务创建玩家和账户...")
+        
         // 使用事务创建玩家和账户
         err := database.Transaction(func(tx *gorm.DB) error {
                 // 创建玩家 - 使用手机号作为用户名确保唯一性
@@ -322,8 +326,11 @@ func (h *AuthHandler) getOrCreatePlayerByPhone(phone string) (*database.Player, 
         })
 
         if err != nil {
+                log.Printf("❌ 事务执行失败: %v", err)
                 return nil, nil, false, err
         }
+        
+        log.Printf("✅ 事务执行成功！")
 
         log.Printf("✅ 创建新用户完成 - 手机号: %s, 玩家ID: %d, 账户ID: %d", phone, newPlayer.ID, newAccount.ID)
 
