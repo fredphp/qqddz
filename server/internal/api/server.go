@@ -110,10 +110,11 @@ func RegisterRoutes(mux *http.ServeMux, h *Handler) {
 }
 
 // corsMiddleware CORS中间件
-// 注意：CORS已由Nginx处理，此处不再重复设置
 func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
         return func(w http.ResponseWriter, r *http.Request) {
-                // OPTIONS预检请求由Nginx处理，这里只处理实际请求
+                w.Header().Set("Access-Control-Allow-Origin", "*")
+                w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
                 if r.Method == "OPTIONS" {
                         w.WriteHeader(http.StatusOK)
                         return
