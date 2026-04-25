@@ -324,6 +324,15 @@ func (h *AuthHandler) WxLogin(w http.ResponseWriter, r *http.Request) {
                 return
         }
 
+        // 获取客户端信息
+        clientIP := getClientIP(r)
+        userAgent := r.Header.Get("User-Agent")
+        deviceID := r.Header.Get("X-Device-ID")
+        deviceType := r.Header.Get("X-Device-Type")
+        if deviceType == "" {
+                deviceType = parseDeviceType(userAgent)
+        }
+
         // TODO: 生产环境应该调用微信API获取用户信息
         // 1. 使用code换取access_token
         // 2. 使用access_token获取用户信息
@@ -338,7 +347,10 @@ func (h *AuthHandler) WxLogin(w http.ResponseWriter, r *http.Request) {
         }
         token := generateToken(32)
 
-        log.Printf("✅ 微信登录成功 - 授权码: %s, 账号ID: %s", req.Code, accountID)
+        // 记录登录日志
+        h.createLoginLog(0, 0, database.LoginTypeWechat, true, "", clientIP, deviceID, deviceType, userAgent)
+
+        log.Printf("✅ 微信登录成功 - 授权码: %s, 账号ID: %s, IP: %s, 设备: %s", req.Code, accountID, clientIP, deviceType)
 
         writeJSONSuccess(w, &LoginResponse{
                 UniqueID:  accountID,
@@ -380,6 +392,15 @@ func (h *AuthHandler) WxAppLogin(w http.ResponseWriter, r *http.Request) {
                 return
         }
 
+        // 获取客户端信息
+        clientIP := getClientIP(r)
+        userAgent := r.Header.Get("User-Agent")
+        deviceID := r.Header.Get("X-Device-ID")
+        deviceType := r.Header.Get("X-Device-Type")
+        if deviceType == "" {
+                deviceType = parseDeviceType(userAgent)
+        }
+
         accountID := "wxapp_" + uniqueID[:16]
         nickName := req.NickName
         if nickName == "" {
@@ -387,7 +408,10 @@ func (h *AuthHandler) WxAppLogin(w http.ResponseWriter, r *http.Request) {
         }
         token := generateToken(32)
 
-        log.Printf("✅ 微信APP登录成功 - OpenID: %s, 账号ID: %s", uniqueID, accountID)
+        // 记录登录日志
+        h.createLoginLog(0, 0, database.LoginTypeWechat, true, "", clientIP, deviceID, deviceType, userAgent)
+
+        log.Printf("✅ 微信APP登录成功 - OpenID: %s, 账号ID: %s, IP: %s, 设备: %s", uniqueID, accountID, clientIP, deviceType)
 
         writeJSONSuccess(w, &LoginResponse{
                 UniqueID:  accountID,

@@ -399,6 +399,9 @@ cc.Class({
 
         xhr.open('POST', url, true);
         xhr.setRequestHeader('Content-Type', 'application/json');
+        // 添加设备信息头
+        xhr.setRequestHeader('X-Device-ID', this._getDeviceID());
+        xhr.setRequestHeader('X-Device-Type', this._getDeviceType());
         xhr.timeout = 10000;
 
         xhr.onreadystatechange = function() {
@@ -454,6 +457,9 @@ cc.Class({
 
         xhr.open('POST', url, true);
         xhr.setRequestHeader('Content-Type', 'application/json');
+        // 添加设备信息头
+        xhr.setRequestHeader('X-Device-ID', this._getDeviceID());
+        xhr.setRequestHeader('X-Device-Type', this._getDeviceType());
         xhr.timeout = 10000;
 
         xhr.onreadystatechange = function() {
@@ -506,5 +512,97 @@ cc.Class({
             self._onCloseClick();
             cc.director.loadScene("hallScene");
         }, 0.5);
+    },
+
+    // =============================================
+    // 设备信息获取
+    // =============================================
+
+    // 获取设备唯一标识
+    _getDeviceID: function() {
+        var DEVICE_ID_KEY = "ddz_device_id";
+        var deviceId = "";
+
+        // 尝试从本地存储获取
+        try {
+            deviceId = cc.sys.localStorage.getItem(DEVICE_ID_KEY);
+        } catch (e) {
+            console.log("获取本地设备ID失败:", e);
+        }
+
+        // 如果不存在，生成新的设备ID
+        if (!deviceId) {
+            deviceId = this._generateUUID();
+            try {
+                cc.sys.localStorage.setItem(DEVICE_ID_KEY, deviceId);
+            } catch (e) {
+                console.log("保存设备ID失败:", e);
+            }
+        }
+
+        return deviceId;
+    },
+
+    // 获取设备类型
+    _getDeviceType: function() {
+        var platform = cc.sys.platform;
+        var os = cc.sys.os;
+        var deviceType = "Unknown";
+
+        // 根据平台判断
+        if (platform === cc.sys.WECHAT_GAME) {
+            deviceType = "WeChat";
+        } else if (platform === cc.sys.ANDROID) {
+            deviceType = "Android";
+        } else if (platform === cc.sys.IPHONE) {
+            deviceType = "iPhone";
+        } else if (platform === cc.sys.IPAD) {
+            deviceType = "iPad";
+        } else if (platform === cc.sys.MAC_OS) {
+            deviceType = "Mac";
+        } else if (platform === cc.sys.WINDOWS) {
+            deviceType = "Windows";
+        } else if (platform === cc.sys.LINUX) {
+            deviceType = "Linux";
+        } else if (platform === cc.sys.MOBILE_BROWSER) {
+            // 移动浏览器，根据OS判断
+            if (os === cc.sys.OS_IOS) {
+                deviceType = "iOS Browser";
+            } else if (os === cc.sys.OS_ANDROID) {
+                deviceType = "Android Browser";
+            } else {
+                deviceType = "Mobile Browser";
+            }
+        } else if (platform === cc.sys.DESKTOP_BROWSER) {
+            // 桌面浏览器，根据OS判断
+            if (os === cc.sys.OS_WINDOWS) {
+                deviceType = "Windows Browser";
+            } else if (os === cc.sys.OS_OSX) {
+                deviceType = "Mac Browser";
+            } else if (os === cc.sys.OS_LINUX) {
+                deviceType = "Linux Browser";
+            } else {
+                deviceType = "Desktop Browser";
+            }
+        }
+
+        // 添加浏览器信息
+        var browserType = cc.sys.browserType;
+        if (browserType) {
+            deviceType += " (" + browserType + ")";
+        }
+
+        return deviceType;
+    },
+
+    // 生成UUID
+    _generateUUID: function() {
+        var d = new Date().getTime();
+        var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = (d + Math.random() * 16) % 16 | 0;
+            d = Math.floor(d / 16);
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+        return uuid;
     }
 });
