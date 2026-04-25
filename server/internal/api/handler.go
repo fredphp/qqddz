@@ -40,13 +40,17 @@ func NewHandler(cryptoKey string, enableCrypto bool, dbConfig *DBConfig) (*Handl
                         Password: dbConfig.Password,
                         Database: dbConfig.Database,
                 }
+                log.Printf("🔗 正在连接数据库: %s@%s:%d/%s", dbCfg.Username, dbCfg.Host, dbCfg.Port, dbCfg.Database)
                 if err := database.InitDB(dbCfg); err != nil {
                         log.Printf("⚠️ 数据库连接失败: %v，将使用模拟模式", err)
                 } else {
                         log.Println("✅ 数据库连接成功")
                         // 自动迁移表结构
+                        log.Println("📋 正在执行数据库表迁移...")
                         if err := database.GetInstance().AutoMigrate(); err != nil {
                                 log.Printf("⚠️ 数据库表迁移失败: %v", err)
+                        } else {
+                                log.Println("✅ 数据库表迁移成功")
                         }
                 }
         } else {

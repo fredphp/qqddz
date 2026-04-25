@@ -11,6 +11,7 @@ import (
         "time"
 
         "github.com/palemoky/fight-the-landlord/internal/game/database"
+        "gorm.io/gorm"
 )
 
 // 验证码存储
@@ -174,10 +175,12 @@ func (h *AuthHandler) PhoneLogin(w http.ResponseWriter, r *http.Request) {
 
         // 检查数据库是否已连接
         if !database.GetInstance().IsConnected() {
-                log.Printf("⚠️ 数据库未连接，使用模拟登录")
+                log.Printf("⚠️ 数据库未连接，使用模拟登录 - 请检查数据库配置")
                 h.mockPhoneLogin(w, req.Phone)
                 return
         }
+
+        log.Printf("📊 数据库已连接，开始处理登录请求 - 手机号: %s", req.Phone)
 
         // 查询或创建用户
         player, account, isNewUser, err := h.getOrCreatePlayerByPhone(req.Phone)
@@ -185,7 +188,7 @@ func (h *AuthHandler) PhoneLogin(w http.ResponseWriter, r *http.Request) {
                 log.Printf("❌ 登录失败: %v", err)
                 // 记录登录失败日志
                 h.createLoginLog(0, 0, database.LoginTypePhone, false, err.Error(), clientIP, deviceID, deviceType, userAgent)
-                writeJSONError(w, http.StatusInternalServerError, "登录失败")
+                writeJSONError(w, http.StatusInternalServerError, "登录失败: "+err.Error())
                 return
         }
 
@@ -237,18 +240,29 @@ func (h *AuthHandler) getOrCreatePlayerByPhone(phone string) (*database.Player, 
                 return nil, nil, false, fmt.Errorf("数据库未初始化")
         }
 
+        log.Printf("🔍 查询手机号 %s 对应的账户...", phone)
+
         // 查询账户是否存在
         var account database.UserAccount
         result := db.Where("phone = ?", phone).First(&account)
 
         if result.Error == nil {
+                log.Printf("✅ 账户已存在 - 账户ID: %d, 玩家ID: %d", account.ID, account.PlayerID)
                 // 账户已存在，获取玩家信息
                 var player database.Player
                 if err := db.First(&player, account.PlayerID).Error; err != nil {
-                        return nil, nil, false, err
+                        log.Printf("❌ 获取玩家信息失败: %v", err)
+                        return nil, nil, false, fmt.Errorf("获取玩家信息失败: %w", err)
                 }
                 return &player, &account, false, nil
         }
+
+        // 检查是否是"表不存在"错误
+        if result.Error != gorm.ErrRecordNotFound {
+                log.Printf("❌ 查询账户失败: %v", result.Error)
+        }
+
+        log.Printf("📝 账户不存在，创建新用户 - 手机号: %s", phone)
 
         // 账户不存在，创建新用户
         nickName := "用户" + phone[len(phone)-4:]
@@ -263,9 +277,12 @@ func (h *AuthHandler) getOrCreatePlayerByPhone(phone string) (*database.Player, 
                 UpdatedAt:   now,
         }
 
+        log.Printf("🔨 创建玩家记录 - 昵称: %s", nickName)
         if err := database.CreatePlayer(player); err != nil {
+                log.Printf("❌ 创建玩家失败: %v", err)
                 return nil, nil, false, fmt.Errorf("创建玩家失败: %w", err)
         }
+        log.Printf("✅ 玩家创建成功 - 玩家ID: %d", player.ID)
 
         // 创建账户
         account = database.UserAccount{
@@ -277,11 +294,14 @@ func (h *AuthHandler) getOrCreatePlayerByPhone(phone string) (*database.Player, 
                 UpdatedAt:  now,
         }
 
+        log.Printf("🔨 创建账户记录 - 玩家ID: %d, 手机号: %s", player.ID, phone)
         if err := db.Create(&account).Error; err != nil {
+                log.Printf("❌ 创建账户失败: %v", err)
                 return nil, nil, false, fmt.Errorf("创建账户失败: %w", err)
         }
+        log.Printf("✅ 账户创建成功 - 账户ID: %d", account.ID)
 
-        log.Printf("✅ 创建新用户 - 手机号: %s, 玩家ID: %d", phone, player.ID)
+        log.Printf("✅ 创建新用户完成 - 手机号: %s, 玩家ID: %d, 账户ID: %d", phone, player.ID, account.ID)
 
         return player, &account, true, nil
 }
