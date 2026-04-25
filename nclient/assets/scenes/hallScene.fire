@@ -241,32 +241,7 @@
     "_children": [],
     "_active": true,
     "_level": 1,
-    "_components": [
-      {
-        "__type__": "cc.Sprite",
-        "_name": "",
-        "_objFlags": 0,
-        "node": {
-          "__id__": 4
-        },
-        "_enabled": false,
-        "_type": 1,
-        "_sizeMode": 0,
-        "_fillType": 0,
-        "_fillCenter": {
-          "__type__": "cc.Vec2",
-          "x": 0,
-          "y": 0
-        },
-        "_fillStart": 0,
-        "_fillRange": 0,
-        "_isTrimmedMode": true,
-        "_srcBlendFactor": 770,
-        "_dstBlendFactor": 771,
-        "_atlas": null,
-        "_spriteFrame": null
-      }
-    ],
+    "_components": [],
     "_prefab": null,
     "_opacity": 255,
     "_color": {
