@@ -380,7 +380,7 @@ type UserAccount struct {
         PlayerID             uint64         `gorm:"uniqueIndex;not null;comment:关联玩家ID" json:"player_id"`
         Phone                string         `gorm:"type:varchar(20);uniqueIndex;comment:手机号" json:"phone"`
         Password             string         `gorm:"type:varchar(128);comment:密码(加密存储)" json:"-"`
-        WxOpenID             string         `gorm:"type:varchar(64);uniqueIndex;comment:微信OpenID" json:"wx_openid"`
+        WxOpenID             string         `gorm:"type:varchar(64);index;comment:微信OpenID" json:"wx_openid"`
         WxUnionID            string         `gorm:"type:varchar(64);index;comment:微信UnionID" json:"wx_unionid"`
         WxSessionKey         string         `gorm:"type:varchar(64);comment:微信会话密钥" json:"-"`
         WxNickname           string         `gorm:"type:varchar(64);comment:微信昵称" json:"wx_nickname"`
