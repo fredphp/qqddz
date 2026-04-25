@@ -175,6 +175,8 @@ func (h *AuthHandler) PhoneLogin(w http.ResponseWriter, r *http.Request) {
 
         // 检查数据库是否已连接
         db := database.DB()
+        log.Printf("🔍 数据库检查: db=%v, IsConnected=%v", db != nil, database.GetInstance().IsConnected())
+        
         if db == nil {
                 log.Printf("⚠️ 数据库DB实例为nil，使用模拟登录 - 请检查数据库配置")
                 h.mockPhoneLogin(w, req.Phone)
