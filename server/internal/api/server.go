@@ -86,23 +86,23 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func RegisterRoutes(mux *http.ServeMux, h *Handler) {
         log.Println("📝 注册API路由...")
 
-        // 认证接口（不加密，方便前端调用）
+        // 认证接口（加密响应）
         log.Println("📝 注册路由: /api/v1/auth/send-code")
-        mux.HandleFunc("/api/v1/auth/send-code", corsMiddleware(h.auth.SendVerificationCode))
+        mux.HandleFunc("/api/v1/auth/send-code", corsMiddleware(h.EncryptMiddleware(h.auth.SendVerificationCode)))
         log.Println("📝 注册路由: /api/v1/auth/phone-login")
-        mux.HandleFunc("/api/v1/auth/phone-login", corsMiddleware(h.auth.PhoneLogin))
+        mux.HandleFunc("/api/v1/auth/phone-login", corsMiddleware(h.EncryptMiddleware(h.auth.PhoneLogin)))
         log.Println("📝 注册路由: /api/v1/auth/wx-login")
-        mux.HandleFunc("/api/v1/auth/wx-login", corsMiddleware(h.auth.WxLogin))
+        mux.HandleFunc("/api/v1/auth/wx-login", corsMiddleware(h.EncryptMiddleware(h.auth.WxLogin)))
         log.Println("📝 注册路由: /api/v1/auth/wx-app-login")
-        mux.HandleFunc("/api/v1/auth/wx-app-login", corsMiddleware(h.auth.WxAppLogin))
+        mux.HandleFunc("/api/v1/auth/wx-app-login", corsMiddleware(h.EncryptMiddleware(h.auth.WxAppLogin)))
 
         // 公开接口（加密响应）
         log.Println("📝 注册路由: /api/v1/user-agreement/latest")
-        mux.HandleFunc("/api/v1/user-agreement/latest", h.EncryptMiddleware(h.agreement.GetLatest))
+        mux.HandleFunc("/api/v1/user-agreement/latest", corsMiddleware(h.EncryptMiddleware(h.agreement.GetLatest)))
         log.Println("📝 注册路由: /api/v1/user-agreement/get")
-        mux.HandleFunc("/api/v1/user-agreement/get", h.EncryptMiddleware(h.agreement.GetByID))
+        mux.HandleFunc("/api/v1/user-agreement/get", corsMiddleware(h.EncryptMiddleware(h.agreement.GetByID)))
         log.Println("📝 注册路由: /api/v1/user-agreement/list")
-        mux.HandleFunc("/api/v1/user-agreement/list", h.EncryptMiddleware(h.agreement.List))
+        mux.HandleFunc("/api/v1/user-agreement/list", corsMiddleware(h.EncryptMiddleware(h.agreement.List)))
 
         // 内部接口（用于后台管理调用，刷新缓存，不加密）
         log.Println("📝 注册路由: /api/internal/cache/refresh/user-agreement")
