@@ -272,7 +272,9 @@ func (h *AuthHandler) getOrCreatePlayerByPhone(phone string) (*database.Player, 
         log.Printf("📝 账户不存在，创建新用户 - 手机号: %s", phone)
 
         // 账户不存在，创建新用户
-        nickName := "用户" + phone[len(phone)-4:]
+        // 生成唯一昵称：用户 + 手机号后4位 + 4位随机数
+        randomSuffix := generateCode(4)
+        nickName := "用户" + phone[len(phone)-4:] + randomSuffix
         now := time.Now()
 
         var newPlayer *database.Player
@@ -294,7 +296,7 @@ func (h *AuthHandler) getOrCreatePlayerByPhone(phone string) (*database.Player, 
                         log.Printf("❌ 创建玩家失败: %v", err)
                         return fmt.Errorf("创建玩家失败: %w", err)
                 }
-                log.Printf("✅ 玩家创建成功 - 玩家ID: %d", newPlayer.ID)
+                log.Printf("✅ 玩家创建成功 - 玩家ID: %d, 昵称: %s", newPlayer.ID, nickName)
 
                 // 创建账户
                 newAccount = &database.UserAccount{
