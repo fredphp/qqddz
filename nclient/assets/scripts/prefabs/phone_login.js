@@ -177,6 +177,7 @@ cc.Class({
                     window.myglobal.playerData.nickName = data.nickName || "玩家";
                     window.myglobal.playerData.avatarUrl = data.avatarUrl || "";
                     window.myglobal.playerData.gobal_count = data.goldcount || 0;
+                    window.myglobal.playerData.token = data.token || "";
                 }
 
                 // 跳转到大厅场景
@@ -290,7 +291,7 @@ cc.Class({
         }
     },
 
-    // 发送验证码请求
+    // 发送验证码请求 - 使用HttpAPI支持加密解密
     _sendCodeRequest: function(phone, callback) {
         console.log("发送验证码到手机:", phone);
 
@@ -301,45 +302,73 @@ cc.Class({
             return;
         }
 
-        var xhr = new XMLHttpRequest();
         var url = defines.apiUrl + '/api/v1/auth/send-code';
+        var cryptoKey = defines.cryptoKey || "";
 
-        xhr.open('POST', url, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.timeout = 10000;
-
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4) {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    try {
-                        var response = JSON.parse(xhr.responseText);
-                        if (response.code === 0) {
-                            console.log("验证码发送成功:", response.data);
-                            callback(true, response.data ? response.data.message : "发送成功");
-                        } else {
-                            callback(false, response.message || "发送失败");
-                        }
-                    } catch (e) {
-                        callback(false, "解析响应失败");
-                    }
-                } else {
-                    callback(false, "网络请求失败");
+        // 使用HttpAPI.post发送请求（支持加密解密）
+        if (window.HttpAPI) {
+            window.HttpAPI.post(url, { phone: phone }, cryptoKey, function(err, result) {
+                if (err) {
+                    console.error("发送验证码失败:", err);
+                    callback(false, err);
+                    return;
                 }
-            }
-        };
 
-        xhr.ontimeout = function() {
-            callback(false, "请求超时");
-        };
+                console.log("验证码响应:", result);
+                if (result && result.code === 0) {
+                    var msg = "验证码已发送";
+                    // 开发环境：显示验证码
+                    if (result.data && result.data.code) {
+                        msg = "验证码: " + result.data.code;
+                    }
+                    callback(true, msg);
+                } else {
+                    callback(false, result ? result.message : "发送失败");
+                }
+            });
+        } else {
+            // 降级：直接发送请求（不支持解密）
+            console.warn("HttpAPI未加载，使用原始请求");
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', url, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.timeout = 10000;
 
-        xhr.onerror = function() {
-            callback(false, "网络错误");
-        };
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            var response = JSON.parse(xhr.responseText);
+                            // 检查是否是加密响应
+                            if (response.data && response.timestamp && typeof response.data === 'string') {
+                                callback(false, "服务器返回加密数据，请刷新页面重试");
+                            } else if (response.code === 0) {
+                                callback(true, "验证码已发送");
+                            } else {
+                                callback(false, response.message || "发送失败");
+                            }
+                        } catch (e) {
+                            callback(false, "解析响应失败");
+                        }
+                    } else {
+                        callback(false, "网络请求失败");
+                    }
+                }
+            };
 
-        xhr.send(JSON.stringify({ phone: phone }));
+            xhr.ontimeout = function() {
+                callback(false, "请求超时");
+            };
+
+            xhr.onerror = function() {
+                callback(false, "网络错误");
+            };
+
+            xhr.send(JSON.stringify({ phone: phone }));
+        }
     },
 
-    // 手机号登录请求
+    // 手机号登录请求 - 使用HttpAPI支持加密解密
     _phoneLoginRequest: function(phone, code, callback) {
         console.log("手机号登录:", phone, code);
 
@@ -351,50 +380,119 @@ cc.Class({
                 accountID: "phone_" + phone,
                 nickName: "玩家" + phone.substr(-4),
                 avatarUrl: "",
-                goldcount: 1000
+                goldcount: 1000,
+                token: "mock_token_" + Date.now()
             });
             return;
         }
 
-        var xhr = new XMLHttpRequest();
         var url = defines.apiUrl + '/api/v1/auth/phone-login';
+        var cryptoKey = defines.cryptoKey || "";
 
-        xhr.open('POST', url, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        // 添加设备信息头
-        xhr.setRequestHeader('X-Device-ID', this._getDeviceID());
-        xhr.setRequestHeader('X-Device-Type', this._getDeviceType());
-        xhr.timeout = 10000;
+        // 准备请求数据
+        var requestData = {
+            phone: phone,
+            code: code
+        };
 
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4) {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    try {
-                        var response = JSON.parse(xhr.responseText);
-                        if (response.code === 0 && response.data) {
-                            console.log("登录成功:", response.data);
-                            callback(true, "登录成功", response.data);
-                        } else {
-                            callback(false, response.message || "登录失败", null);
+        // 使用HttpAPI.post发送请求（支持加密解密）
+        if (window.HttpAPI) {
+            var self = this;
+            // 添加设备信息头
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', url, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.setRequestHeader('X-Device-ID', this._getDeviceID());
+            xhr.setRequestHeader('X-Device-Type', this._getDeviceType());
+            xhr.timeout = 10000;
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            var response = JSON.parse(xhr.responseText);
+
+                            // 检查是否是加密响应
+                            if (response.data && response.timestamp && typeof response.data === 'string') {
+                                // 加密响应，需要解密
+                                window.HttpAPI.decryptAESGCM(response.data, cryptoKey).then(function(decrypted) {
+                                    console.log("登录响应(解密后):", decrypted);
+                                    if (decrypted && decrypted.code === 0 && decrypted.data) {
+                                        callback(true, "登录成功", decrypted.data);
+                                    } else {
+                                        callback(false, decrypted ? decrypted.message : "登录失败", null);
+                                    }
+                                }).catch(function(err) {
+                                    console.error("解密失败:", err);
+                                    callback(false, "解密响应失败", null);
+                                });
+                            } else {
+                                // 未加密响应
+                                if (response.code === 0 && response.data) {
+                                    callback(true, "登录成功", response.data);
+                                } else {
+                                    callback(false, response.message || "登录失败", null);
+                                }
+                            }
+                        } catch (e) {
+                            callback(false, "解析响应失败", null);
                         }
-                    } catch (e) {
-                        callback(false, "解析响应失败", null);
+                    } else {
+                        callback(false, "网络请求失败: HTTP " + xhr.status, null);
                     }
-                } else {
-                    callback(false, "网络请求失败", null);
                 }
-            }
-        };
+            };
 
-        xhr.ontimeout = function() {
-            callback(false, "请求超时", null);
-        };
+            xhr.ontimeout = function() {
+                callback(false, "请求超时", null);
+            };
 
-        xhr.onerror = function() {
-            callback(false, "网络错误", null);
-        };
+            xhr.onerror = function() {
+                callback(false, "网络错误", null);
+            };
 
-        xhr.send(JSON.stringify({ phone: phone, code: code }));
+            xhr.send(JSON.stringify(requestData));
+        } else {
+            // 降级：直接发送请求
+            console.warn("HttpAPI未加载，使用原始请求");
+            var xhr2 = new XMLHttpRequest();
+            xhr2.open('POST', url, true);
+            xhr2.setRequestHeader('Content-Type', 'application/json');
+            xhr2.setRequestHeader('X-Device-ID', this._getDeviceID());
+            xhr2.setRequestHeader('X-Device-Type', this._getDeviceType());
+            xhr2.timeout = 10000;
+
+            xhr2.onreadystatechange = function() {
+                if (xhr2.readyState === 4) {
+                    if (xhr2.status >= 200 && xhr2.status < 300) {
+                        try {
+                            var response = JSON.parse(xhr2.responseText);
+                            if (response.data && response.timestamp && typeof response.data === 'string') {
+                                callback(false, "服务器返回加密数据，请刷新页面重试", null);
+                            } else if (response.code === 0 && response.data) {
+                                callback(true, "登录成功", response.data);
+                            } else {
+                                callback(false, response.message || "登录失败", null);
+                            }
+                        } catch (e) {
+                            callback(false, "解析响应失败", null);
+                        }
+                    } else {
+                        callback(false, "网络请求失败", null);
+                    }
+                }
+            };
+
+            xhr2.ontimeout = function() {
+                callback(false, "请求超时", null);
+            };
+
+            xhr2.onerror = function() {
+                callback(false, "网络错误", null);
+            };
+
+            xhr2.send(JSON.stringify(requestData));
+        }
     },
 
     // =============================================
@@ -448,7 +546,6 @@ cc.Class({
         } else if (platform === cc.sys.LINUX) {
             deviceType = "Linux";
         } else if (platform === cc.sys.MOBILE_BROWSER) {
-            // 移动浏览器，根据OS判断
             if (os === cc.sys.OS_IOS) {
                 deviceType = "iOS Browser";
             } else if (os === cc.sys.OS_ANDROID) {
@@ -457,7 +554,6 @@ cc.Class({
                 deviceType = "Mobile Browser";
             }
         } else if (platform === cc.sys.DESKTOP_BROWSER) {
-            // 桌面浏览器，根据OS判断
             if (os === cc.sys.OS_WINDOWS) {
                 deviceType = "Windows Browser";
             } else if (os === cc.sys.OS_OSX) {
