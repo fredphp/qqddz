@@ -97,6 +97,16 @@ func RegisterRoutes(mux *http.ServeMux, h *Handler) {
         log.Println("📝 注册路由: /api/v1/auth/wx-app-login")
         mux.HandleFunc("/api/v1/auth/wx-app-login", h.EncryptMiddleware(h.auth.WxAppLogin))
 
+        // Token 验证和登出接口
+        log.Println("📝 注册路由: /api/v1/auth/verify-token")
+        mux.HandleFunc("/api/v1/auth/verify-token", h.EncryptMiddleware(h.auth.VerifyToken))
+        log.Println("📝 注册路由: /api/v1/auth/logout")
+        mux.HandleFunc("/api/v1/auth/logout", h.EncryptMiddleware(h.auth.Logout))
+
+        // 强制下线接口（管理员调用）
+        log.Println("📝 注册路由: /api/v1/auth/force-logout")
+        mux.HandleFunc("/api/v1/auth/force-logout", h.EncryptMiddleware(h.auth.ForceLogout))
+
         // 公开接口（加密响应）
         log.Println("📝 注册路由: /api/v1/user-agreement/latest")
         mux.HandleFunc("/api/v1/user-agreement/latest", h.EncryptMiddleware(h.agreement.GetLatest))

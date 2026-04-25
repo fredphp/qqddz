@@ -2,6 +2,7 @@
  * 全局模块
  * 纯全局变量方式，延迟初始化
  * 确保所有依赖都已加载
+ * 支持自动登录和强制下线检测
  */
 
 (function() {
@@ -17,7 +18,9 @@
         socket: null,
         playerData: null,
         eventlister: null,
-        _initialized: false
+        _initialized: false,
+        _forceLogout: false,  // 是否被强制下线
+        _forceLogoutReason: ""  // 强制下线原因
     };
     
     // 检查依赖是否都已加载
@@ -62,10 +65,16 @@
             this.eventlister = window.eventLister({});
             this._initialized = true;
             
+            // 尝试从本地存储恢复玩家数据
+            if (this.playerData.loadFromLocal()) {
+                console.log("✅ 从本地存储恢复登录状态");
+            }
+            
             console.log("myglobal 初始化完成");
             console.log("  - socket:", !!this.socket);
             console.log("  - playerData:", !!this.playerData);
             console.log("  - eventlister:", !!this.eventlister);
+            console.log("  - 已登录:", this.playerData.isLoggedIn());
             
             return true;
         } catch(e) {
@@ -98,6 +107,163 @@
         setTimeout(tryInit, 50);
     };
     
+    // ==================== 登录状态管理 ====================
+    
+    // 检查是否有本地登录会话
+    myglobal.hasLocalSession = function() {
+        if (!this.playerData) return false;
+        return this.playerData.hasLocalSession();
+    };
+    
+    // 检查是否已登录
+    myglobal.isLoggedIn = function() {
+        if (!this.playerData) return false;
+        return this.playerData.isLoggedIn();
+    };
+    
+    // 登录成功后调用
+    myglobal.onLoginSuccess = function(loginData) {
+        if (this.playerData) {
+            this.playerData.updateFromLogin(loginData);
+        }
+        this._forceLogout = false;
+        this._forceLogoutReason = "";
+        console.log("✅ 登录成功，状态已保存");
+    };
+    
+    // 登出
+    myglobal.logout = function() {
+        if (this.playerData) {
+            this.playerData.logout();
+        }
+        this._forceLogout = false;
+        this._forceLogoutReason = "";
+        
+        // 断开 WebSocket 连接
+        if (this.socket && this.socket.disconnect) {
+            this.socket.disconnect();
+        }
+        
+        console.log("✅ 用户已登出");
+        
+        // 跳转到登录场景
+        if (typeof cc !== 'undefined' && cc.director) {
+            cc.director.loadScene("loginScene");
+        }
+    };
+    
+    // 被强制下线
+    myglobal.onForceLogout = function(reason) {
+        this._forceLogout = true;
+        this._forceLogoutReason = reason || "您已被强制下线";
+        
+        console.warn("⚠️ 用户被强制下线:", reason);
+        
+        // 清除本地登录状态
+        if (this.playerData) {
+            this.playerData.clearLocal();
+        }
+        
+        // 断开 WebSocket 连接
+        if (this.socket && this.socket.disconnect) {
+            this.socket.disconnect();
+        }
+        
+        // 显示提示并跳转到登录场景
+        this.showForceLogoutMessage(reason);
+    };
+    
+    // 显示强制下线提示
+    myglobal.showForceLogoutMessage = function(reason) {
+        var message = reason || "您已被管理员强制下线";
+        
+        // 在游戏中显示提示
+        if (typeof cc !== 'undefined') {
+            // 创建提示弹窗
+            var self = this;
+            setTimeout(function() {
+                alert(message + "\n\n请重新登录");
+                if (cc.director) {
+                    cc.director.loadScene("loginScene");
+                }
+            }, 100);
+        } else {
+            alert(message + "\n\n请重新登录");
+            window.location.reload();
+        }
+    };
+    
+    // 检查是否被强制下线
+    myglobal.wasForceLoggedOut = function() {
+        return this._forceLogout;
+    };
+    
+    // 获取强制下线原因
+    myglobal.getForceLogoutReason = function() {
+        return this._forceLogoutReason;
+    };
+    
+    // ==================== Token 验证 ====================
+    
+    // 验证 Token 是否有效（通过 API）
+    myglobal.verifyToken = function(callback) {
+        var self = this;
+        
+        if (!this.playerData || !this.playerData.token) {
+            callback(false, "无登录凭证");
+            return;
+        }
+        
+        var defines = window.defines;
+        if (!defines || !defines.apiUrl) {
+            callback(true, "无API配置，跳过验证");
+            return;
+        }
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', defines.apiUrl + '/api/v1/auth/verify-token', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.timeout = 10000;
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        var resp = JSON.parse(xhr.responseText);
+                        if (resp.code === 0 && resp.data && resp.data.valid) {
+                            // Token 有效，更新用户信息
+                            if (resp.data.player) {
+                                self.playerData.updateFromLogin(resp.data.player);
+                            }
+                            callback(true, "Token有效");
+                        } else {
+                            // Token 无效，清除本地状态
+                            self.playerData.clearLocal();
+                            callback(false, resp.message || "登录已过期");
+                        }
+                    } catch (e) {
+                        callback(false, "验证失败");
+                    }
+                } else {
+                    callback(false, "网络错误");
+                }
+            }
+        };
+        
+        xhr.onerror = function() {
+            callback(false, "网络错误");
+        };
+        
+        xhr.ontimeout = function() {
+            callback(false, "请求超时");
+        };
+        
+        xhr.send(JSON.stringify({
+            token: this.playerData.token,
+            player_id: this.playerData.uniqueID
+        }));
+    };
+
     // 设置全局变量
     window.myglobal = myglobal;
     
@@ -113,5 +279,5 @@
         }
     }
     
-    console.log("mygolbal.js loaded");
+    console.log("mygolbal.js loaded with login state management");
 })();

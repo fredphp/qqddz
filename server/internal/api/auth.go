@@ -715,3 +715,219 @@ func (h *AuthHandler) createLoginLog(playerID, accountID uint64, loginType uint8
                 log.Printf("⚠️ 创建登录日志失败: %v", err)
         }
 }
+
+// VerifyTokenRequest Token验证请求
+type VerifyTokenRequest struct {
+        Token    string `json:"token"`
+        PlayerID string `json:"player_id"`
+}
+
+// VerifyToken 验证Token是否有效
+func (h *AuthHandler) VerifyToken(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodPost {
+                writeJSONError(w, http.StatusMethodNotAllowed, "方法不允许")
+                return
+        }
+
+        log.Printf("=== VerifyToken 开始处理 ===")
+
+        // 获取请求数据
+        var req VerifyTokenRequest
+        if reqData := GetRequestData(r); reqData != nil {
+                // 从加密请求中获取参数
+                if params, ok := reqData.Params.(map[string]interface{}); ok {
+                        if token, ok := params["token"].(string); ok {
+                                req.Token = token
+                        }
+                        if playerID, ok := params["player_id"].(string); ok {
+                                req.PlayerID = playerID
+                        }
+                }
+        } else {
+                // 从原始请求体解析
+                if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+                        writeJSONError(w, http.StatusBadRequest, "请求格式错误")
+                        return
+                }
+        }
+
+        log.Printf("🔐 验证Token - PlayerID: %s, Token长度: %d", req.PlayerID, len(req.Token))
+
+        if req.Token == "" {
+                writeJSONError(w, http.StatusBadRequest, "缺少Token")
+                return
+        }
+
+        db := database.DB()
+        if db == nil {
+                // 无数据库连接，简单验证
+                writeJSONSuccess(w, map[string]interface{}{
+                        "valid": true,
+                        "message": "验证成功（无数据库模式）",
+                })
+                return
+        }
+
+        // 查询账户
+        var account database.UserAccount
+        result := db.Where("token = ?", req.Token).First(&account)
+        if result.Error != nil {
+                log.Printf("❌ Token无效: %v", result.Error)
+                writeJSONSuccess(w, map[string]interface{}{
+                        "valid":   false,
+                        "message": "Token无效或已过期",
+                })
+                return
+        }
+
+        // 检查Token是否过期
+        if account.TokenExpireAt != nil && account.TokenExpireAt.Before(time.Now()) {
+                log.Printf("❌ Token已过期: %v", account.TokenExpireAt)
+                writeJSONSuccess(w, map[string]interface{}{
+                        "valid":   false,
+                        "message": "Token已过期",
+                })
+                return
+        }
+
+        // 检查账户状态
+        if account.Status != database.PlayerStatusNormal {
+                log.Printf("❌ 账户状态异常: %d", account.Status)
+                writeJSONSuccess(w, map[string]interface{}{
+                        "valid":   false,
+                        "message": "账户已被禁用",
+                })
+                return
+        }
+
+        // 获取玩家信息
+        var player database.Player
+        if err := db.First(&player, account.PlayerID).Error; err != nil {
+                log.Printf("❌ 获取玩家信息失败: %v", err)
+                writeJSONSuccess(w, map[string]interface{}{
+                        "valid":   false,
+                        "message": "玩家信息不存在",
+                })
+                return
+        }
+
+        log.Printf("✅ Token验证成功 - 玩家: %s", player.Nickname)
+
+        writeJSONSuccess(w, map[string]interface{}{
+                "valid":   true,
+                "message": "验证成功",
+                "player": map[string]interface{}{
+                        "uniqueID":  fmt.Sprintf("%d", player.ID),
+                        "accountID": fmt.Sprintf("%d", account.ID),
+                        "nickName":  player.Nickname,
+                        "avatarUrl": player.Avatar,
+                        "goldCount": player.Gold,
+                        "token":     account.Token,
+                },
+        })
+}
+
+// ForceLogoutRequest 强制下线请求
+type ForceLogoutRequest struct {
+        PlayerID string `json:"player_id"`
+        Reason   string `json:"reason"`
+}
+
+// ForceLogout 强制用户下线（管理员调用）
+func (h *AuthHandler) ForceLogout(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodPost {
+                writeJSONError(w, http.StatusMethodNotAllowed, "方法不允许")
+                return
+        }
+
+        log.Printf("=== ForceLogout 开始处理 ===")
+
+        // 获取请求数据
+        var req ForceLogoutRequest
+        if reqData := GetRequestData(r); reqData != nil {
+                if params, ok := reqData.Params.(map[string]interface{}); ok {
+                        if playerID, ok := params["player_id"].(string); ok {
+                                req.PlayerID = playerID
+                        }
+                        if reason, ok := params["reason"].(string); ok {
+                                req.Reason = reason
+                        }
+                }
+        } else {
+                if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+                        writeJSONError(w, http.StatusBadRequest, "请求格式错误")
+                        return
+                }
+        }
+
+        log.Printf("🔐 强制下线 - PlayerID: %s, Reason: %s", req.PlayerID, req.Reason)
+
+        if req.PlayerID == "" {
+                writeJSONError(w, http.StatusBadRequest, "缺少玩家ID")
+                return
+        }
+
+        // 使 Token 失效
+        db := database.DB()
+        if db != nil {
+                db.Model(&database.UserAccount{}).Where("player_id = ?", req.PlayerID).Updates(map[string]interface{}{
+                        "token":           "",
+                        "token_expire_at": nil,
+                })
+        }
+
+        // 通知 WebSocket 服务强制下线
+        // 通过 Redis 或其他方式通知 WebSocket 服务
+        // 这里需要根据实际架构实现
+
+        log.Printf("✅ 强制下线成功 - PlayerID: %s", req.PlayerID)
+
+        writeJSONSuccess(w, map[string]interface{}{
+                "success":  true,
+                "message":  "强制下线成功",
+                "playerId": req.PlayerID,
+        })
+}
+
+// Logout 登出
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodPost {
+                writeJSONError(w, http.StatusMethodNotAllowed, "方法不允许")
+                return
+        }
+
+        log.Printf("=== Logout 开始处理 ===")
+
+        // 获取请求数据
+        var req struct {
+                Token string `json:"token"`
+        }
+        if reqData := GetRequestData(r); reqData != nil {
+                if params, ok := reqData.Params.(map[string]interface{}); ok {
+                        if token, ok := params["token"].(string); ok {
+                                req.Token = token
+                        }
+                }
+        } else {
+                if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+                        writeJSONError(w, http.StatusBadRequest, "请求格式错误")
+                        return
+                }
+        }
+
+        // 使 Token 失效
+        db := database.DB()
+        if db != nil && req.Token != "" {
+                db.Model(&database.UserAccount{}).Where("token = ?", req.Token).Updates(map[string]interface{}{
+                        "token":           "",
+                        "token_expire_at": nil,
+                })
+        }
+
+        log.Printf("✅ 登出成功")
+
+        writeJSONSuccess(w, map[string]interface{}{
+                "success": true,
+                "message": "登出成功",
+        })
+}

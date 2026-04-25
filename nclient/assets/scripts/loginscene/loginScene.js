@@ -199,6 +199,9 @@ cc.Class({
         // 初始化用户协议链接点击事件
         this._initUserAgreementLink();
 
+        // 检查是否有本地登录会话，尝试自动登录
+        this._checkAutoLogin();
+
         if (typeof window.myglobal === 'undefined') {
             console.error("myglobal 未定义，尝试等待...");
             this._waitForMyglobal();
@@ -206,6 +209,53 @@ cc.Class({
         }
 
         this._initAndStart();
+    },
+
+    // 检查自动登录
+    _checkAutoLogin: function() {
+        console.log("=== 检查自动登录 ===");
+        
+        var myglobal = window.myglobal;
+        if (!myglobal) {
+            console.log("myglobal 未定义，跳过自动登录");
+            return;
+        }
+
+        // 检查是否被强制下线
+        if (myglobal.wasForceLoggedOut()) {
+            console.log("用户被强制下线，不自动登录");
+            this._showError(myglobal.getForceLogoutReason());
+            return;
+        }
+
+        // 检查是否有本地会话
+        if (myglobal.hasLocalSession()) {
+            console.log("发现本地登录会话，尝试验证 Token...");
+            
+            var self = this;
+            myglobal.verifyToken(function(valid, message) {
+                if (valid) {
+                    console.log("✅ Token 验证成功，自动登录");
+                    self._showError("自动登录中...");
+                    
+                    // 延迟跳转到大厅
+                    self.scheduleOnce(function() {
+                        if (myglobal.socket && myglobal.socket.initSocket) {
+                            myglobal.socket.initSocket();
+                        }
+                        cc.director.loadScene("hallScene");
+                    }, 0.5);
+                } else {
+                    console.log("⚠️ Token 验证失败:", message);
+                    // Token 无效，清除本地状态，显示登录界面
+                    if (myglobal.playerData) {
+                        myglobal.playerData.clearLocal();
+                    }
+                }
+            });
+        } else {
+            console.log("无本地登录会话");
+        }
     },
 
     _initWaitNode: function() {
@@ -1052,14 +1102,19 @@ cc.Class({
                         }
                         if (resp && resp.code === 0 && resp.data) {
                             showMessage("登录成功", false);
-                            if (window.myglobal && window.myglobal.playerData) {
-                                window.myglobal.playerData.uniqueID = resp.data.uniqueID || "";
-                                window.myglobal.playerData.accountID = resp.data.accountID || "";
-                                window.myglobal.playerData.nickName = resp.data.nickName || "玩家";
-                                window.myglobal.playerData.userName = resp.data.username || "";
-                                window.myglobal.playerData.avatar = resp.data.avatarUrl || "";
-                                window.myglobal.playerData.gobal_count = resp.data.goldCount || 0;
-                                window.myglobal.playerData.token = resp.data.token || "";
+                            // 使用 myglobal.onLoginSuccess 保存登录状态
+                            if (window.myglobal) {
+                                var loginData = {
+                                    uniqueID: resp.data.uniqueID || "",
+                                    accountID: resp.data.accountID || "",
+                                    nickName: resp.data.nickName || "玩家",
+                                    avatarUrl: resp.data.avatarUrl || "",
+                                    goldCount: resp.data.goldcount || 0,
+                                    token: resp.data.token || "",
+                                    phone: phone,
+                                    loginType: 1
+                                };
+                                window.myglobal.onLoginSuccess(loginData);
                             }
                             self.scheduleOnce(function() {
                                 popup.destroy();
@@ -1085,14 +1140,19 @@ cc.Class({
                                 var resp = JSON.parse(xhr.responseText);
                                 if (resp.code === 0 && resp.data) {
                                     showMessage("登录成功", false);
-                                    if (window.myglobal && window.myglobal.playerData) {
-                                        window.myglobal.playerData.uniqueID = resp.data.player_id || "";
-                                        window.myglobal.playerData.accountID = resp.data.account_id || "";
-                                        window.myglobal.playerData.nickName = resp.data.nickname || "玩家";
-                                        window.myglobal.playerData.userName = resp.data.username || "";
-                                        window.myglobal.playerData.avatar = resp.data.avatar || "";
-                                        window.myglobal.playerData.gobal_count = resp.data.gold || 0;
-                                        window.myglobal.playerData.token = resp.data.token || "";
+                                    // 使用 myglobal.onLoginSuccess 保存登录状态
+                                    if (window.myglobal) {
+                                        var loginData = {
+                                            uniqueID: resp.data.player_id || "",
+                                            accountID: resp.data.account_id || "",
+                                            nickName: resp.data.nickname || "玩家",
+                                            avatarUrl: resp.data.avatar || "",
+                                            goldCount: resp.data.gold || 0,
+                                            token: resp.data.token || "",
+                                            phone: phone,
+                                            loginType: 1
+                                        };
+                                        window.myglobal.onLoginSuccess(loginData);
                                     }
                                     self.scheduleOnce(function() {
                                         popup.destroy();
