@@ -1,6 +1,42 @@
 // 登录场景控制器
 // 使用点击事件实现复选框功能（不依赖 Toggle 组件）
 
+// 辅助函数：修复Web平台EditBox的CSS样式
+var _fixEditBoxStyle = function(editBox, fontColor, bgColor) {
+    if (!cc.sys.isBrowser) return;
+    
+    // 延迟执行，等待HTML input元素创建完成
+    setTimeout(function() {
+        try {
+            // 查找所有input元素
+            var inputs = document.querySelectorAll('input');
+            for (var i = 0; i < inputs.length; i++) {
+                var input = inputs[i];
+                // 修复样式
+                if (fontColor) {
+                    input.style.color = fontColor;
+                    input.style.setProperty('color', fontColor, 'important');
+                }
+                if (bgColor) {
+                    input.style.backgroundColor = bgColor;
+                    input.style.setProperty('background-color', bgColor, 'important');
+                }
+                // 确保文字可见
+                input.style.opacity = '1';
+                input.style.setProperty('opacity', '1', 'important');
+                input.style.fontSize = '16px';
+                input.style.fontFamily = 'Arial, sans-serif';
+                // 移除可能影响显示的样式
+                input.style.textShadow = 'none';
+                input.style.webkitTextFillColor = fontColor || '#000000';
+                console.log('EditBox样式已修复:', input.style.color, input.style.backgroundColor);
+            }
+        } catch (e) {
+            console.warn('修复EditBox样式失败:', e);
+        }
+    }, 100);
+};
+
 cc.Class({
     name: 'loginScene',
     extends: cc.Component,
@@ -498,6 +534,8 @@ cc.Class({
         phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         phoneEditBox.maxLength = 11;
         phoneEditBox.backgroundColor = new cc.Color(255, 255, 255, 255); // 完全不透明的白色背景
+        // 修复Web平台样式
+        _fixEditBoxStyle(phoneEditBox, '#000000', '#ffffff');
 
         formY -= inputHeight + rowGap;
 
@@ -544,6 +582,8 @@ cc.Class({
         codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         codeEditBox.maxLength = 6;
         codeEditBox.backgroundColor = new cc.Color(255, 255, 255, 255); // 完全不透明的白色背景
+        // 修复Web平台样式
+        _fixEditBoxStyle(codeEditBox, '#000000', '#ffffff');
 
         // 获取验证码按钮（黄色）
         var sendCodeBtn = new cc.Node("send_code_btn");
