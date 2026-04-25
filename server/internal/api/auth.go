@@ -269,13 +269,13 @@ func (h *AuthHandler) getOrCreatePlayerByPhone(phone string) (*database.Player, 
         nickName := "用户" + phone[len(phone)-4:]
         now := time.Now()
 
-        var player *database.Player
-        var account *database.UserAccount
+        var newPlayer *database.Player
+        var newAccount *database.UserAccount
 
         // 使用事务创建玩家和账户
         err := database.Transaction(func(tx *gorm.DB) error {
                 // 创建玩家
-                player = &database.Player{
+                newPlayer = &database.Player{
                         Nickname:    nickName,
                         Gold:        1000, // 初始金币
                         Status:      database.PlayerStatusNormal,
@@ -284,15 +284,15 @@ func (h *AuthHandler) getOrCreatePlayerByPhone(phone string) (*database.Player, 
                 }
 
                 log.Printf("🔨 创建玩家记录 - 昵称: %s", nickName)
-                if err := tx.Create(player).Error; err != nil {
+                if err := tx.Create(newPlayer).Error; err != nil {
                         log.Printf("❌ 创建玩家失败: %v", err)
                         return fmt.Errorf("创建玩家失败: %w", err)
                 }
-                log.Printf("✅ 玩家创建成功 - 玩家ID: %d", player.ID)
+                log.Printf("✅ 玩家创建成功 - 玩家ID: %d", newPlayer.ID)
 
                 // 创建账户
-                account = &database.UserAccount{
-                        PlayerID:   player.ID,
+                newAccount = &database.UserAccount{
+                        PlayerID:   newPlayer.ID,
                         Phone:      phone,
                         LoginType:  database.LoginTypePhone,
                         Status:     database.PlayerStatusNormal,
@@ -300,12 +300,12 @@ func (h *AuthHandler) getOrCreatePlayerByPhone(phone string) (*database.Player, 
                         UpdatedAt:  now,
                 }
 
-                log.Printf("🔨 创建账户记录 - 玩家ID: %d, 手机号: %s", player.ID, phone)
-                if err := tx.Create(account).Error; err != nil {
+                log.Printf("🔨 创建账户记录 - 玩家ID: %d, 手机号: %s", newPlayer.ID, phone)
+                if err := tx.Create(newAccount).Error; err != nil {
                         log.Printf("❌ 创建账户失败: %v", err)
                         return fmt.Errorf("创建账户失败: %w", err)
                 }
-                log.Printf("✅ 账户创建成功 - 账户ID: %d", account.ID)
+                log.Printf("✅ 账户创建成功 - 账户ID: %d", newAccount.ID)
 
                 return nil
         })
@@ -314,9 +314,9 @@ func (h *AuthHandler) getOrCreatePlayerByPhone(phone string) (*database.Player, 
                 return nil, nil, false, err
         }
 
-        log.Printf("✅ 创建新用户完成 - 手机号: %s, 玩家ID: %d, 账户ID: %d", phone, player.ID, account.ID)
+        log.Printf("✅ 创建新用户完成 - 手机号: %s, 玩家ID: %d, 账户ID: %d", phone, newPlayer.ID, newAccount.ID)
 
-        return player, account, true, nil
+        return newPlayer, newAccount, true, nil
 }
 
 // mockPhoneLogin 模拟登录（数据库未连接时使用）
