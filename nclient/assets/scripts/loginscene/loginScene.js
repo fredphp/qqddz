@@ -492,12 +492,12 @@ cc.Class({
         phoneEditBox.placeholder = "请输入手机号";
         phoneEditBox.fontSize = 16;
         phoneEditBox.placeholderFontSize = 14;
-        phoneEditBox.fontColor = new cc.Color(50, 50, 50);
+        phoneEditBox.fontColor = new cc.Color(0, 0, 0); // 纯黑色字体
         phoneEditBox.placeholderFontColor = new cc.Color(180, 180, 180);
         phoneEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         phoneEditBox.maxLength = 11;
-        phoneEditBox.backgroundColor = new cc.Color(255, 255, 255, 0);
+        phoneEditBox.backgroundColor = new cc.Color(255, 255, 255, 255); // 完全不透明的白色背景
 
         formY -= inputHeight + rowGap;
 
@@ -538,12 +538,12 @@ cc.Class({
         codeEditBox.placeholder = "验证码";
         codeEditBox.fontSize = 16;
         codeEditBox.placeholderFontSize = 14;
-        codeEditBox.fontColor = new cc.Color(50, 50, 50);
+        codeEditBox.fontColor = new cc.Color(0, 0, 0); // 纯黑色字体
         codeEditBox.placeholderFontColor = new cc.Color(180, 180, 180);
         codeEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         codeEditBox.maxLength = 6;
-        codeEditBox.backgroundColor = new cc.Color(255, 255, 255, 0);
+        codeEditBox.backgroundColor = new cc.Color(255, 255, 255, 255); // 完全不透明的白色背景
 
         // 获取验证码按钮（黄色）
         var sendCodeBtn = new cc.Node("send_code_btn");
