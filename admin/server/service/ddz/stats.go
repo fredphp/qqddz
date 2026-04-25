@@ -17,7 +17,7 @@ func (s *DDZStatsService) GetOverviewStats() (ddzRes.DDZOverviewStatsResponse, e
 	db := GetDDZDB()
 	var totalPlayers, activePlayers, totalGames int64
 	var todayGames, todayNewPlayers int64
-	var totalCoins int64
+	var totalGold int64
 
 	today := time.Now().Format("2006-01-02")
 
@@ -42,7 +42,7 @@ func (s *DDZStatsService) GetOverviewStats() (ddzRes.DDZOverviewStatsResponse, e
 		Where("DATE(created_at) = ?", today).Count(&todayNewPlayers)
 
 	// 总金币
-	db.Model(&ddz.DDZPlayer{}).Select("COALESCE(SUM(coins), 0)").Scan(&totalCoins)
+	db.Model(&ddz.DDZPlayer{}).Select("COALESCE(SUM(gold), 0)").Scan(&totalGold)
 
 	return ddzRes.DDZOverviewStatsResponse{
 		TotalPlayers:    totalPlayers,
@@ -53,7 +53,7 @@ func (s *DDZStatsService) GetOverviewStats() (ddzRes.DDZOverviewStatsResponse, e
 		TodayNewPlayers: todayNewPlayers,
 		AvgOnlineTime:   0,
 		AvgGameDuration: 0,
-		TotalCoins:      totalCoins,
+		TotalCoins:      totalGold,
 	}, nil
 }
 
@@ -97,16 +97,16 @@ func (s *DDZStatsService) GetLeaderboard(req ddzReq.DDZLeaderboardSearch) (ddzRe
 
 	switch req.RankType {
 	case "coins":
-		db.Order("coins desc").Limit(req.Limit).Find(&players)
+		db.Order("gold desc").Limit(req.Limit).Find(&players)
 		for i, p := range players {
 			result = append(result, ddzRes.DDZLeaderboardResponse{
 				Rank:     i + 1,
-				PlayerID: p.PlayerID,
+				PlayerID: p.Username,
 				Nickname: p.Nickname,
 				Avatar:   p.Avatar,
-				Score:    p.Coins,
+				Score:    p.Gold,
 				Level:    p.Level,
-				VipLevel: p.VipLevel,
+				VipLevel: p.VIPLevel,
 			})
 		}
 	case "level":
@@ -114,12 +114,12 @@ func (s *DDZStatsService) GetLeaderboard(req ddzReq.DDZLeaderboardSearch) (ddzRe
 		for i, p := range players {
 			result = append(result, ddzRes.DDZLeaderboardResponse{
 				Rank:     i + 1,
-				PlayerID: p.PlayerID,
+				PlayerID: p.Username,
 				Nickname: p.Nickname,
 				Avatar:   p.Avatar,
 				Score:    int64(p.Level),
 				Level:    p.Level,
-				VipLevel: p.VipLevel,
+				VipLevel: p.VIPLevel,
 			})
 		}
 	case "wins":
@@ -127,30 +127,32 @@ func (s *DDZStatsService) GetLeaderboard(req ddzReq.DDZLeaderboardSearch) (ddzRe
 		for i, p := range players {
 			result = append(result, ddzRes.DDZLeaderboardResponse{
 				Rank:     i + 1,
-				PlayerID: p.PlayerID,
+				PlayerID: p.Username,
 				Nickname: p.Nickname,
 				Avatar:   p.Avatar,
 				Score:    int64(p.WinCount),
 				Level:    p.Level,
-				VipLevel: p.VipLevel,
+				VipLevel: p.VIPLevel,
 			})
 		}
 	case "winrate":
-		db.Where("total_games >= ?", 10).Order("win_count * 1.0 / total_games desc").Limit(req.Limit).Find(&players)
+		// 计算胜率：需要至少玩过10场游戏
+		db.Where("(win_count + lose_count) >= ?", 10).Order("CASE WHEN (win_count + lose_count) > 0 THEN win_count * 1.0 / (win_count + lose_count) ELSE 0 END desc").Limit(req.Limit).Find(&players)
 		for i, p := range players {
+			totalGames := p.WinCount + p.LoseCount
 			winRate := float64(0)
-			if p.TotalGames > 0 {
-				winRate = float64(p.WinCount) / float64(p.TotalGames) * 100
+			if totalGames > 0 {
+				winRate = float64(p.WinCount) / float64(totalGames) * 100
 			}
 			result = append(result, ddzRes.DDZLeaderboardResponse{
 				Rank:     i + 1,
-				PlayerID: p.PlayerID,
+				PlayerID: p.Username,
 				Nickname: p.Nickname,
 				Avatar:   p.Avatar,
 				Score:    int64(winRate),
 				WinRate:  winRate,
 				Level:    p.Level,
-				VipLevel: p.VipLevel,
+				VipLevel: p.VIPLevel,
 			})
 		}
 	}
