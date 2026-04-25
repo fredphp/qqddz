@@ -2,198 +2,201 @@
 package database
 
 import (
-	"fmt"
-	"log"
-	"sync"
-	"time"
+        "fmt"
+        "log"
+        "sync"
+        "time"
 
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+        "gorm.io/driver/mysql"
+        "gorm.io/gorm"
+        "gorm.io/gorm/logger"
 )
 
 // DatabaseConfig 数据库配置
 type DatabaseConfig struct {
-	Host            string        `yaml:"host" json:"host"`                         // 数据库主机
-	Port            int           `yaml:"port" json:"port"`                         // 数据库端口
-	Username        string        `yaml:"username" json:"username"`                 // 用户名
-	Password        string        `yaml:"password" json:"password"`                 // 密码
-	Database        string        `yaml:"database" json:"database"`                 // 数据库名
-	Charset         string        `yaml:"charset" json:"charset"`                   // 字符集
-	Collation       string        `yaml:"collation" json:"collation"`               // 排序规则
-	MaxIdleConns    int           `yaml:"max_idle_conns" json:"max_idle_conns"`     // 最大空闲连接数
-	MaxOpenConns    int           `yaml:"max_open_conns" json:"max_open_conns"`     // 最大打开连接数
-	ConnMaxLifetime time.Duration `yaml:"conn_max_lifetime" json:"conn_max_lifetime"` // 连接最大生命周期
-	LogLevel        string        `yaml:"log_level" json:"log_level"`               // 日志级别: silent, error, warn, info
+        Host            string        `yaml:"host" json:"host"`                         // 数据库主机
+        Port            int           `yaml:"port" json:"port"`                         // 数据库端口
+        Username        string        `yaml:"username" json:"username"`                 // 用户名
+        Password        string        `yaml:"password" json:"password"`                 // 密码
+        Database        string        `yaml:"database" json:"database"`                 // 数据库名
+        Charset         string        `yaml:"charset" json:"charset"`                   // 字符集
+        Collation       string        `yaml:"collation" json:"collation"`               // 排序规则
+        MaxIdleConns    int           `yaml:"max_idle_conns" json:"max_idle_conns"`     // 最大空闲连接数
+        MaxOpenConns    int           `yaml:"max_open_conns" json:"max_open_conns"`     // 最大打开连接数
+        ConnMaxLifetime time.Duration `yaml:"conn_max_lifetime" json:"conn_max_lifetime"` // 连接最大生命周期
+        LogLevel        string        `yaml:"log_level" json:"log_level"`               // 日志级别: silent, error, warn, info
 }
 
 // DefaultConfig 返回默认数据库配置
 func DefaultConfig() *DatabaseConfig {
-	return &DatabaseConfig{
-		Host:            "localhost",
-		Port:            3306,
-		Username:        "root",
-		Password:        "",
-		Database:        "ddz_game",
-		Charset:         "utf8mb4",
-		Collation:       "utf8mb4_unicode_ci",
-		MaxIdleConns:    10,
-		MaxOpenConns:    100,
-		ConnMaxLifetime: time.Hour,
-		LogLevel:        "warn",
-	}
+        return &DatabaseConfig{
+                Host:            "localhost",
+                Port:            3306,
+                Username:        "root",
+                Password:        "",
+                Database:        "ddz_game",
+                Charset:         "utf8mb4",
+                Collation:       "utf8mb4_unicode_ci",
+                MaxIdleConns:    10,
+                MaxOpenConns:    100,
+                ConnMaxLifetime: time.Hour,
+                LogLevel:        "warn",
+        }
 }
 
 // Database 数据库连接管理器
 type Database struct {
-	db     *gorm.DB
-	config *DatabaseConfig
-	mu     sync.RWMutex
+        db     *gorm.DB
+        config *DatabaseConfig
+        mu     sync.RWMutex
 }
 
 var (
-	instance *Database
-	once     sync.Once
+        instance *Database
+        once     sync.Once
 )
 
 // GetInstance 获取数据库单例实例
 func GetInstance() *Database {
-	once.Do(func() {
-		instance = &Database{
-			config: DefaultConfig(),
-		}
-	})
-	return instance
+        once.Do(func() {
+                instance = &Database{
+                        config: DefaultConfig(),
+                }
+        })
+        return instance
 }
 
 // Init 使用配置初始化数据库连接
 func (d *Database) Init(config *DatabaseConfig) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+        d.mu.Lock()
+        defer d.mu.Unlock()
 
-	if config != nil {
-		d.config = config
-	}
+        if config != nil {
+                d.config = config
+        }
 
-	dsn := d.buildDSN()
-	
-	// 配置GORM日志级别
-	logLevel := d.getLogLevel()
-	
-	gormConfig := &gorm.Config{
-		Logger: logger.Default.LogMode(logLevel),
-	}
+        dsn := d.buildDSN()
+        
+        // 配置GORM日志级别
+        logLevel := d.getLogLevel()
+        
+        gormConfig := &gorm.Config{
+                Logger: logger.Default.LogMode(logLevel),
+        }
 
-	db, err := gorm.Open(mysql.Open(dsn), gormConfig)
-	if err != nil {
-		return fmt.Errorf("failed to connect database: %w", err)
-	}
+        db, err := gorm.Open(mysql.Open(dsn), gormConfig)
+        if err != nil {
+                return fmt.Errorf("failed to connect database: %w", err)
+        }
 
-	// 获取底层sql.DB以配置连接池
-	sqlDB, err := db.DB()
-	if err != nil {
-		return fmt.Errorf("failed to get sql.DB: %w", err)
-	}
+        // 获取底层sql.DB以配置连接池
+        sqlDB, err := db.DB()
+        if err != nil {
+                return fmt.Errorf("failed to get sql.DB: %w", err)
+        }
 
-	// 配置连接池
-	sqlDB.SetMaxIdleConns(d.config.MaxIdleConns)
-	sqlDB.SetMaxOpenConns(d.config.MaxOpenConns)
-	sqlDB.SetConnMaxLifetime(d.config.ConnMaxLifetime)
+        // 配置连接池
+        sqlDB.SetMaxIdleConns(d.config.MaxIdleConns)
+        sqlDB.SetMaxOpenConns(d.config.MaxOpenConns)
+        sqlDB.SetConnMaxLifetime(d.config.ConnMaxLifetime)
 
-	// 测试连接
-	if err := sqlDB.Ping(); err != nil {
-		return fmt.Errorf("failed to ping database: %w", err)
-	}
+        // 测试连接
+        if err := sqlDB.Ping(); err != nil {
+                return fmt.Errorf("failed to ping database: %w", err)
+        }
 
-	d.db = db
-	log.Println("Database connected successfully")
-	return nil
+        d.db = db
+        log.Println("Database connected successfully")
+        return nil
 }
 
 // buildDSN 构建数据库连接字符串
 func (d *Database) buildDSN() string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&collation=%s&parseTime=True&loc=Local",
-		d.config.Username,
-		d.config.Password,
-		d.config.Host,
-		d.config.Port,
-		d.config.Database,
-		d.config.Charset,
-		d.config.Collation,
-	)
+        return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&collation=%s&parseTime=True&loc=Local",
+                d.config.Username,
+                d.config.Password,
+                d.config.Host,
+                d.config.Port,
+                d.config.Database,
+                d.config.Charset,
+                d.config.Collation,
+        )
 }
 
 // getLogLevel 获取日志级别
 func (d *Database) getLogLevel() logger.LogLevel {
-	switch d.config.LogLevel {
-	case "silent":
-		return logger.Silent
-	case "error":
-		return logger.Error
-	case "info":
-		return logger.Info
-	default:
-		return logger.Warn
-	}
+        switch d.config.LogLevel {
+        case "silent":
+                return logger.Silent
+        case "error":
+                return logger.Error
+        case "info":
+                return logger.Info
+        default:
+                return logger.Warn
+        }
 }
 
 // GetDB 获取GORM数据库实例
 func (d *Database) GetDB() *gorm.DB {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-	return d.db
+        d.mu.RLock()
+        defer d.mu.RUnlock()
+        return d.db
 }
 
 // Close 关闭数据库连接
 func (d *Database) Close() error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+        d.mu.Lock()
+        defer d.mu.Unlock()
 
-	if d.db != nil {
-		sqlDB, err := d.db.DB()
-		if err != nil {
-			return err
-		}
-		return sqlDB.Close()
-	}
-	return nil
+        if d.db != nil {
+                sqlDB, err := d.db.DB()
+                if err != nil {
+                        return err
+                }
+                return sqlDB.Close()
+        }
+        return nil
 }
 
 // IsConnected 检查数据库是否已连接
 func (d *Database) IsConnected() bool {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
+        d.mu.RLock()
+        defer d.mu.RUnlock()
 
-	if d.db == nil {
-		return false
-	}
+        if d.db == nil {
+                return false
+        }
 
-	sqlDB, err := d.db.DB()
-	if err != nil {
-		return false
-	}
+        sqlDB, err := d.db.DB()
+        if err != nil {
+                return false
+        }
 
-	return sqlDB.Ping() == nil
+        return sqlDB.Ping() == nil
 }
 
 // AutoMigrate 自动迁移数据库表结构
 func (d *Database) AutoMigrate() error {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
+        d.mu.RLock()
+        defer d.mu.RUnlock()
 
-	if d.db == nil {
-		return fmt.Errorf("database not initialized")
-	}
+        if d.db == nil {
+                return fmt.Errorf("database not initialized")
+        }
 
-	return d.db.AutoMigrate(
-		&Player{},
-		&RoomConfig{},
-		&GameRecord{},
-		&DealLog{},
-		&BidLog{},
-		&PlayLog{},
-		&PlayerStats{},
-	)
+        return d.db.AutoMigrate(
+                &Player{},
+                &RoomConfig{},
+                &GameRecord{},
+                &DealLog{},
+                &BidLog{},
+                &PlayLog{},
+                &PlayerStats{},
+                &UserAccount{},
+                &SmsCode{},
+                &LoginLog{},
+        )
 }
 
 // =============================================
@@ -202,17 +205,17 @@ func (d *Database) AutoMigrate() error {
 
 // DB 获取数据库实例
 func DB() *gorm.DB {
-	return GetInstance().GetDB()
+        return GetInstance().GetDB()
 }
 
 // InitDB 初始化数据库连接
 func InitDB(config *DatabaseConfig) error {
-	return GetInstance().Init(config)
+        return GetInstance().Init(config)
 }
 
 // CloseDB 关闭数据库连接
 func CloseDB() error {
-	return GetInstance().Close()
+        return GetInstance().Close()
 }
 
 // =============================================
@@ -221,78 +224,78 @@ func CloseDB() error {
 
 // CreatePlayer 创建玩家
 func CreatePlayer(player *Player) error {
-	return DB().Create(player).Error
+        return DB().Create(player).Error
 }
 
 // GetPlayerByID 根据ID获取玩家
 func GetPlayerByID(id uint64) (*Player, error) {
-	var player Player
-	err := DB().First(&player, id).Error
-	if err != nil {
-		return nil, err
-	}
-	return &player, nil
+        var player Player
+        err := DB().First(&player, id).Error
+        if err != nil {
+                return nil, err
+        }
+        return &player, nil
 }
 
 // GetPlayerByNickname 根据昵称获取玩家
 func GetPlayerByNickname(nickname string) (*Player, error) {
-	var player Player
-	err := DB().Where("nickname = ?", nickname).First(&player).Error
-	if err != nil {
-		return nil, err
-	}
-	return &player, nil
+        var player Player
+        err := DB().Where("nickname = ?", nickname).First(&player).Error
+        if err != nil {
+                return nil, err
+        }
+        return &player, nil
 }
 
 // UpdatePlayerGold 更新玩家金币
 func UpdatePlayerGold(playerID uint64, goldChange int64) error {
-	return DB().Model(&Player{}).
-		Where("id = ?", playerID).
-		Update("gold", gorm.Expr("gold + ?", goldChange)).Error
+        return DB().Model(&Player{}).
+                Where("id = ?", playerID).
+                Update("gold", gorm.Expr("gold + ?", goldChange)).Error
 }
 
 // UpdatePlayerStats 更新玩家统计数据
 func UpdatePlayerStats(playerID uint64, win bool, isLandlord bool) error {
-	updates := make(map[string]interface{})
-	
-	if win {
-		updates["win_count"] = gorm.Expr("win_count + 1")
-	} else {
-		updates["lose_count"] = gorm.Expr("lose_count + 1")
-	}
-	
-	if isLandlord {
-		updates["landlord_count"] = gorm.Expr("landlord_count + 1")
-	} else {
-		updates["farmer_count"] = gorm.Expr("farmer_count + 1")
-	}
-	
-	return DB().Model(&Player{}).
-		Where("id = ?", playerID).
-		Updates(updates).Error
+        updates := make(map[string]interface{})
+        
+        if win {
+                updates["win_count"] = gorm.Expr("win_count + 1")
+        } else {
+                updates["lose_count"] = gorm.Expr("lose_count + 1")
+        }
+        
+        if isLandlord {
+                updates["landlord_count"] = gorm.Expr("landlord_count + 1")
+        } else {
+                updates["farmer_count"] = gorm.Expr("farmer_count + 1")
+        }
+        
+        return DB().Model(&Player{}).
+                Where("id = ?", playerID).
+                Updates(updates).Error
 }
 
 // GetPlayerList 获取玩家列表
 func GetPlayerList(page, pageSize int, orderBy string) ([]Player, int64, error) {
-	var players []Player
-	var total int64
+        var players []Player
+        var total int64
 
-	db := DB().Model(&Player{})
-	
-	if err := db.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
+        db := DB().Model(&Player{})
+        
+        if err := db.Count(&total).Error; err != nil {
+                return nil, 0, err
+        }
 
-	if orderBy == "" {
-		orderBy = "id DESC"
-	}
+        if orderBy == "" {
+                orderBy = "id DESC"
+        }
 
-	offset := (page - 1) * pageSize
-	if err := db.Order(orderBy).Offset(offset).Limit(pageSize).Find(&players).Error; err != nil {
-		return nil, 0, err
-	}
+        offset := (page - 1) * pageSize
+        if err := db.Order(orderBy).Offset(offset).Limit(pageSize).Find(&players).Error; err != nil {
+                return nil, 0, err
+        }
 
-	return players, total, nil
+        return players, total, nil
 }
 
 // =============================================
@@ -301,40 +304,40 @@ func GetPlayerList(page, pageSize int, orderBy string) ([]Player, int64, error) 
 
 // CreateRoomConfig 创建房间配置
 func CreateRoomConfig(config *RoomConfig) error {
-	return DB().Create(config).Error
+        return DB().Create(config).Error
 }
 
 // GetRoomConfigByID 根据ID获取房间配置
 func GetRoomConfigByID(id uint64) (*RoomConfig, error) {
-	var config RoomConfig
-	err := DB().First(&config, id).Error
-	if err != nil {
-		return nil, err
-	}
-	return &config, nil
+        var config RoomConfig
+        err := DB().First(&config, id).Error
+        if err != nil {
+                return nil, err
+        }
+        return &config, nil
 }
 
 // GetRoomConfigByType 根据类型获取房间配置
 func GetRoomConfigByType(roomType uint8) (*RoomConfig, error) {
-	var config RoomConfig
-	err := DB().Where("room_type = ? AND status = ?", roomType, RoomStatusOpen).
-		First(&config).Error
-	if err != nil {
-		return nil, err
-	}
-	return &config, nil
+        var config RoomConfig
+        err := DB().Where("room_type = ? AND status = ?", roomType, RoomStatusOpen).
+                First(&config).Error
+        if err != nil {
+                return nil, err
+        }
+        return &config, nil
 }
 
 // GetActiveRoomConfigs 获取所有启用的房间配置
 func GetActiveRoomConfigs() ([]RoomConfig, error) {
-	var configs []RoomConfig
-	err := DB().Where("status = ?", RoomStatusOpen).
-		Order("sort_order ASC").
-		Find(&configs).Error
-	if err != nil {
-		return nil, err
-	}
-	return configs, nil
+        var configs []RoomConfig
+        err := DB().Where("status = ?", RoomStatusOpen).
+                Order("sort_order ASC").
+                Find(&configs).Error
+        if err != nil {
+                return nil, err
+        }
+        return configs, nil
 }
 
 // =============================================
@@ -343,49 +346,49 @@ func GetActiveRoomConfigs() ([]RoomConfig, error) {
 
 // CreateGameRecord 创建游戏记录
 func CreateGameRecord(record *GameRecord) error {
-	return DB().Create(record).Error
+        return DB().Create(record).Error
 }
 
 // GetGameRecordByID 根据ID获取游戏记录
 func GetGameRecordByID(id uint64) (*GameRecord, error) {
-	var record GameRecord
-	err := DB().First(&record, id).Error
-	if err != nil {
-		return nil, err
-	}
-	return &record, nil
+        var record GameRecord
+        err := DB().First(&record, id).Error
+        if err != nil {
+                return nil, err
+        }
+        return &record, nil
 }
 
 // GetGameRecordByGameID 根据游戏ID获取游戏记录
 func GetGameRecordByGameID(gameID string) (*GameRecord, error) {
-	var record GameRecord
-	err := DB().Where("game_id = ?", gameID).First(&record).Error
-	if err != nil {
-		return nil, err
-	}
-	return &record, nil
+        var record GameRecord
+        err := DB().Where("game_id = ?", gameID).First(&record).Error
+        if err != nil {
+                return nil, err
+        }
+        return &record, nil
 }
 
 // GetPlayerGameRecords 获取玩家游戏记录
 func GetPlayerGameRecords(playerID uint64, page, pageSize int) ([]GameRecord, int64, error) {
-	var records []GameRecord
-	var total int64
+        var records []GameRecord
+        var total int64
 
-	db := DB().Model(&GameRecord{}).
-		Where("landlord_id = ? OR farmer1_id = ? OR farmer2_id = ?", playerID, playerID, playerID)
+        db := DB().Model(&GameRecord{}).
+                Where("landlord_id = ? OR farmer1_id = ? OR farmer2_id = ?", playerID, playerID, playerID)
 
-	if err := db.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
+        if err := db.Count(&total).Error; err != nil {
+                return nil, 0, err
+        }
 
-	offset := (page - 1) * pageSize
-	if err := db.Order("started_at DESC").
-		Offset(offset).Limit(pageSize).
-		Find(&records).Error; err != nil {
-		return nil, 0, err
-	}
+        offset := (page - 1) * pageSize
+        if err := db.Order("started_at DESC").
+                Offset(offset).Limit(pageSize).
+                Find(&records).Error; err != nil {
+                return nil, 0, err
+        }
 
-	return records, total, nil
+        return records, total, nil
 }
 
 // =============================================
@@ -394,24 +397,24 @@ func GetPlayerGameRecords(playerID uint64, page, pageSize int) ([]GameRecord, in
 
 // CreatePlayLog 创建出牌日志
 func CreatePlayLog(log *PlayLog) error {
-	return DB().Create(log).Error
+        return DB().Create(log).Error
 }
 
 // BatchCreatePlayLogs 批量创建出牌日志
 func BatchCreatePlayLogs(logs []PlayLog) error {
-	return DB().Create(&logs).Error
+        return DB().Create(&logs).Error
 }
 
 // GetPlayLogsByGameID 根据游戏ID获取出牌日志
 func GetPlayLogsByGameID(gameID string) ([]PlayLog, error) {
-	var logs []PlayLog
-	err := DB().Where("game_id = ?", gameID).
-		Order("round_num ASC, play_order ASC").
-		Find(&logs).Error
-	if err != nil {
-		return nil, err
-	}
-	return logs, nil
+        var logs []PlayLog
+        err := DB().Where("game_id = ?", gameID).
+                Order("round_num ASC, play_order ASC").
+                Find(&logs).Error
+        if err != nil {
+                return nil, err
+        }
+        return logs, nil
 }
 
 // =============================================
@@ -420,22 +423,22 @@ func GetPlayLogsByGameID(gameID string) ([]PlayLog, error) {
 
 // CreateDealLog 创建发牌日志
 func CreateDealLog(log *DealLog) error {
-	return DB().Create(log).Error
+        return DB().Create(log).Error
 }
 
 // BatchCreateDealLogs 批量创建发牌日志
 func BatchCreateDealLogs(logs []DealLog) error {
-	return DB().Create(&logs).Error
+        return DB().Create(&logs).Error
 }
 
 // GetDealLogsByGameID 根据游戏ID获取发牌日志
 func GetDealLogsByGameID(gameID string) ([]DealLog, error) {
-	var logs []DealLog
-	err := DB().Where("game_id = ?", gameID).Find(&logs).Error
-	if err != nil {
-		return nil, err
-	}
-	return logs, nil
+        var logs []DealLog
+        err := DB().Where("game_id = ?", gameID).Find(&logs).Error
+        if err != nil {
+                return nil, err
+        }
+        return logs, nil
 }
 
 // =============================================
@@ -444,24 +447,24 @@ func GetDealLogsByGameID(gameID string) ([]DealLog, error) {
 
 // CreateBidLog 创建叫地主日志
 func CreateBidLog(log *BidLog) error {
-	return DB().Create(log).Error
+        return DB().Create(log).Error
 }
 
 // BatchCreateBidLogs 批量创建叫地主日志
 func BatchCreateBidLogs(logs []BidLog) error {
-	return DB().Create(&logs).Error
+        return DB().Create(&logs).Error
 }
 
 // GetBidLogsByGameID 根据游戏ID获取叫地主日志
 func GetBidLogsByGameID(gameID string) ([]BidLog, error) {
-	var logs []BidLog
-	err := DB().Where("game_id = ?", gameID).
-		Order("bid_order ASC").
-		Find(&logs).Error
-	if err != nil {
-		return nil, err
-	}
-	return logs, nil
+        var logs []BidLog
+        err := DB().Where("game_id = ?", gameID).
+                Order("bid_order ASC").
+                Find(&logs).Error
+        if err != nil {
+                return nil, err
+        }
+        return logs, nil
 }
 
 // =============================================
@@ -470,37 +473,37 @@ func GetBidLogsByGameID(gameID string) ([]BidLog, error) {
 
 // CreatePlayerStats 创建玩家统计
 func CreatePlayerStats(stats *PlayerStats) error {
-	return DB().Create(stats).Error
+        return DB().Create(stats).Error
 }
 
 // GetPlayerStatsByDate 根据玩家ID和日期获取统计
 func GetPlayerStatsByDate(playerID uint64, date time.Time) (*PlayerStats, error) {
-	var stats PlayerStats
-	err := DB().Where("player_id = ? AND stat_date = ?", playerID, date.Format("2006-01-02")).
-		First(&stats).Error
-	if err != nil {
-		return nil, err
-	}
-	return &stats, nil
+        var stats PlayerStats
+        err := DB().Where("player_id = ? AND stat_date = ?", playerID, date.Format("2006-01-02")).
+                First(&stats).Error
+        if err != nil {
+                return nil, err
+        }
+        return &stats, nil
 }
 
 // GetPlayerStatsHistory 获取玩家统计历史
 func GetPlayerStatsHistory(playerID uint64, days int) ([]PlayerStats, error) {
-	var stats []PlayerStats
-	startDate := time.Now().AddDate(0, 0, -days).Format("2006-01-02")
-	
-	err := DB().Where("player_id = ? AND stat_date >= ?", playerID, startDate).
-		Order("stat_date DESC").
-		Find(&stats).Error
-	if err != nil {
-		return nil, err
-	}
-	return stats, nil
+        var stats []PlayerStats
+        startDate := time.Now().AddDate(0, 0, -days).Format("2006-01-02")
+        
+        err := DB().Where("player_id = ? AND stat_date >= ?", playerID, startDate).
+                Order("stat_date DESC").
+                Find(&stats).Error
+        if err != nil {
+                return nil, err
+        }
+        return stats, nil
 }
 
 // UpsertPlayerStats 创建或更新玩家统计
 func UpsertPlayerStats(stats *PlayerStats) error {
-	return DB().Save(stats).Error
+        return DB().Save(stats).Error
 }
 
 // =============================================
@@ -509,41 +512,41 @@ func UpsertPlayerStats(stats *PlayerStats) error {
 
 // GetGoldRankList 获取金币排行榜
 func GetGoldRankList(limit int) ([]Player, error) {
-	var players []Player
-	err := DB().Where("status = ?", PlayerStatusNormal).
-		Order("gold DESC").
-		Limit(limit).
-		Find(&players).Error
-	if err != nil {
-		return nil, err
-	}
-	return players, nil
+        var players []Player
+        err := DB().Where("status = ?", PlayerStatusNormal).
+                Order("gold DESC").
+                Limit(limit).
+                Find(&players).Error
+        if err != nil {
+                return nil, err
+        }
+        return players, nil
 }
 
 // GetWinRateRankList 获取胜率排行榜
 func GetWinRateRankList(minGames, limit int) ([]Player, error) {
-	var players []Player
-	err := DB().Where("status = ? AND (win_count + lose_count) >= ?", PlayerStatusNormal, minGames).
-		Order("(win_count * 100.0 / (win_count + lose_count)) DESC").
-		Limit(limit).
-		Find(&players).Error
-	if err != nil {
-		return nil, err
-	}
-	return players, nil
+        var players []Player
+        err := DB().Where("status = ? AND (win_count + lose_count) >= ?", PlayerStatusNormal, minGames).
+                Order("(win_count * 100.0 / (win_count + lose_count)) DESC").
+                Limit(limit).
+                Find(&players).Error
+        if err != nil {
+                return nil, err
+        }
+        return players, nil
 }
 
 // GetLevelRankList 获取等级排行榜
 func GetLevelRankList(limit int) ([]Player, error) {
-	var players []Player
-	err := DB().Where("status = ?", PlayerStatusNormal).
-		Order("level DESC, experience DESC").
-		Limit(limit).
-		Find(&players).Error
-	if err != nil {
-		return nil, err
-	}
-	return players, nil
+        var players []Player
+        err := DB().Where("status = ?", PlayerStatusNormal).
+                Order("level DESC, experience DESC").
+                Limit(limit).
+                Find(&players).Error
+        if err != nil {
+                return nil, err
+        }
+        return players, nil
 }
 
 // =============================================
@@ -552,61 +555,61 @@ func GetLevelRankList(limit int) ([]Player, error) {
 
 // Transaction 执行事务
 func Transaction(fn func(tx *gorm.DB) error) error {
-	return DB().Transaction(fn)
+        return DB().Transaction(fn)
 }
 
 // SaveGameResult 保存游戏结果(事务操作)
 func SaveGameResult(record *GameRecord, dealLogs []DealLog, bidLogs []BidLog, playLogs []PlayLog) error {
-	return Transaction(func(tx *gorm.DB) error {
-		// 保存游戏记录
-		if err := tx.Create(record).Error; err != nil {
-			return err
-		}
-		
-		// 保存发牌日志
-		if len(dealLogs) > 0 {
-			if err := tx.Create(&dealLogs).Error; err != nil {
-				return err
-			}
-		}
-		
-		// 保存叫地主日志
-		if len(bidLogs) > 0 {
-			if err := tx.Create(&bidLogs).Error; err != nil {
-				return err
-			}
-		}
-		
-		// 保存出牌日志
-		if len(playLogs) > 0 {
-			if err := tx.Create(&playLogs).Error; err != nil {
-				return err
-			}
-		}
-		
-		// 更新玩家金币
-		if err := UpdatePlayerGold(record.LandlordID, record.LandlordWinGold); err != nil {
-			return err
-		}
-		if err := UpdatePlayerGold(record.Farmer1ID, record.Farmer1WinGold); err != nil {
-			return err
-		}
-		if err := UpdatePlayerGold(record.Farmer2ID, record.Farmer2WinGold); err != nil {
-			return err
-		}
-		
-		// 更新玩家统计数据
-		landlordWin := record.Result == GameResultLandlordWin
-		if err := UpdatePlayerStats(record.LandlordID, landlordWin, true); err != nil {
-			return err
-		}
-		if err := UpdatePlayerStats(record.Farmer1ID, !landlordWin, false); err != nil {
-			return err
-		}
-		if err := UpdatePlayerStats(record.Farmer2ID, !landlordWin, false); err != nil {
-			return err
-		}
-		
-		return nil
-	})
+        return Transaction(func(tx *gorm.DB) error {
+                // 保存游戏记录
+                if err := tx.Create(record).Error; err != nil {
+                        return err
+                }
+                
+                // 保存发牌日志
+                if len(dealLogs) > 0 {
+                        if err := tx.Create(&dealLogs).Error; err != nil {
+                                return err
+                        }
+                }
+                
+                // 保存叫地主日志
+                if len(bidLogs) > 0 {
+                        if err := tx.Create(&bidLogs).Error; err != nil {
+                                return err
+                        }
+                }
+                
+                // 保存出牌日志
+                if len(playLogs) > 0 {
+                        if err := tx.Create(&playLogs).Error; err != nil {
+                                return err
+                        }
+                }
+                
+                // 更新玩家金币
+                if err := UpdatePlayerGold(record.LandlordID, record.LandlordWinGold); err != nil {
+                        return err
+                }
+                if err := UpdatePlayerGold(record.Farmer1ID, record.Farmer1WinGold); err != nil {
+                        return err
+                }
+                if err := UpdatePlayerGold(record.Farmer2ID, record.Farmer2WinGold); err != nil {
+                        return err
+                }
+                
+                // 更新玩家统计数据
+                landlordWin := record.Result == GameResultLandlordWin
+                if err := UpdatePlayerStats(record.LandlordID, landlordWin, true); err != nil {
+                        return err
+                }
+                if err := UpdatePlayerStats(record.Farmer1ID, !landlordWin, false); err != nil {
+                        return err
+                }
+                if err := UpdatePlayerStats(record.Farmer2ID, !landlordWin, false); err != nil {
+                        return err
+                }
+                
+                return nil
+        })
 }

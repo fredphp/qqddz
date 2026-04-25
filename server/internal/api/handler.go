@@ -4,9 +4,11 @@ package api
 import (
         "context"
         "encoding/json"
+        "log"
         "net/http"
 
         "github.com/palemoky/fight-the-landlord/internal/crypto"
+        "github.com/palemoky/fight-the-landlord/internal/game/database"
 )
 
 // Handler API处理器
@@ -27,6 +29,28 @@ func NewHandler(cryptoKey string, enableCrypto bool, dbConfig *DBConfig) (*Handl
                 if err != nil {
                         return nil, err
                 }
+        }
+
+        // 初始化数据库连接
+        if dbConfig != nil && dbConfig.Host != "" {
+                dbCfg := &database.DatabaseConfig{
+                        Host:     dbConfig.Host,
+                        Port:     dbConfig.Port,
+                        Username: dbConfig.User,
+                        Password: dbConfig.Password,
+                        Database: dbConfig.Database,
+                }
+                if err := database.InitDB(dbCfg); err != nil {
+                        log.Printf("⚠️ 数据库连接失败: %v，将使用模拟模式", err)
+                } else {
+                        log.Println("✅ 数据库连接成功")
+                        // 自动迁移表结构
+                        if err := database.GetInstance().AutoMigrate(); err != nil {
+                                log.Printf("⚠️ 数据库表迁移失败: %v", err)
+                        }
+                }
+        } else {
+                log.Println("⚠️ 未配置数据库，将使用模拟模式")
         }
 
         // 创建用户协议处理器
@@ -180,6 +204,12 @@ func GetRequestData(r *http.Request) *crypto.RequestData {
 
 // Close 关闭资源
 func (h *Handler) Close() error {
+        // 关闭数据库连接
+        if database.GetInstance().IsConnected() {
+                if err := database.CloseDB(); err != nil {
+                        log.Printf("关闭数据库连接失败: %v", err)
+                }
+        }
         if h.agreement != nil {
                 return h.agreement.Close()
         }

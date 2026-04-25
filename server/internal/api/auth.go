@@ -8,6 +8,8 @@ import (
         "net/http"
         "sync"
         "time"
+
+        "github.com/palemoky/fight-the-landlord/internal/game/database"
 )
 
 // 验证码存储
@@ -160,15 +162,120 @@ func (h *AuthHandler) PhoneLogin(w http.ResponseWriter, r *http.Request) {
         // 测试阶段：跳过验证码验证，直接登录
         log.Printf("⚠️ 测试模式：跳过验证码验证 - 手机号: %s", req.Phone)
 
-        // 模拟登录/注册成功
-        // 生产环境应该查询数据库，判断是否为新用户
-        accountID := "phone_" + req.Phone
-        nickName := "用户" + req.Phone[len(req.Phone)-4:]
+        // 检查数据库是否已连接
+        if !database.GetInstance().IsConnected() {
+                log.Printf("⚠️ 数据库未连接，使用模拟登录")
+                h.mockPhoneLogin(w, req.Phone)
+                return
+        }
 
-        // 生成token（简化版，生产环境应使用JWT等）
+        // 查询或创建用户
+        player, account, isNewUser, err := h.getOrCreatePlayerByPhone(req.Phone)
+        if err != nil {
+                log.Printf("❌ 登录失败: %v", err)
+                writeJSONError(w, http.StatusInternalServerError, "登录失败")
+                return
+        }
+
+        // 生成token
+        token := generateToken(32)
+        now := time.Now()
+        tokenExpire := now.Add(7 * 24 * time.Hour) // 7天过期
+
+        // 更新账户Token
+        db := database.DB()
+        if db != nil {
+                db.Model(&database.UserAccount{}).Where("id = ?", account.ID).Updates(map[string]interface{}{
+                        "token":             token,
+                        "token_expire_at":   &tokenExpire,
+                        "last_login_at":     &now,
+                        "last_login_ip":     r.RemoteAddr,
+                        "login_count":       account.LoginCount + 1,
+                })
+
+                // 更新玩家最后登录时间
+                db.Model(&database.Player{}).Where("id = ?", player.ID).Updates(map[string]interface{}{
+                        "last_login_at": &now,
+                        "last_login_ip": r.RemoteAddr,
+                })
+        }
+
+        log.Printf("✅ 手机号登录成功 - 手机号: %s, 玩家ID: %d, 新用户: %v", req.Phone, player.ID, isNewUser)
+
+        writeJSONSuccess(w, &LoginResponse{
+                UniqueID:  fmt.Sprintf("%d", player.ID),
+                AccountID: fmt.Sprintf("%d", account.ID),
+                NickName:  player.Nickname,
+                AvatarUrl: player.Avatar,
+                GoldCount: int(player.Gold),
+                Token:     token,
+                IsNewUser: isNewUser,
+        })
+}
+
+// getOrCreatePlayerByPhone 根据手机号获取或创建玩家
+func (h *AuthHandler) getOrCreatePlayerByPhone(phone string) (*database.Player, *database.UserAccount, bool, error) {
+        db := database.DB()
+        if db == nil {
+                return nil, nil, false, fmt.Errorf("数据库未初始化")
+        }
+
+        // 查询账户是否存在
+        var account database.UserAccount
+        result := db.Where("phone = ?", phone).First(&account)
+
+        if result.Error == nil {
+                // 账户已存在，获取玩家信息
+                var player database.Player
+                if err := db.First(&player, account.PlayerID).Error; err != nil {
+                        return nil, nil, false, err
+                }
+                return &player, &account, false, nil
+        }
+
+        // 账户不存在，创建新用户
+        nickName := "用户" + phone[len(phone)-4:]
+        now := time.Now()
+
+        // 创建玩家
+        player := &database.Player{
+                Nickname:    nickName,
+                Gold:        1000, // 初始金币
+                Status:      database.PlayerStatusNormal,
+                CreatedAt:   now,
+                UpdatedAt:   now,
+        }
+
+        if err := database.CreatePlayer(player); err != nil {
+                return nil, nil, false, fmt.Errorf("创建玩家失败: %w", err)
+        }
+
+        // 创建账户
+        account = database.UserAccount{
+                PlayerID:   player.ID,
+                Phone:      phone,
+                LoginType:  database.LoginTypePhone,
+                Status:     database.PlayerStatusNormal,
+                CreatedAt:  now,
+                UpdatedAt:  now,
+        }
+
+        if err := db.Create(&account).Error; err != nil {
+                return nil, nil, false, fmt.Errorf("创建账户失败: %w", err)
+        }
+
+        log.Printf("✅ 创建新用户 - 手机号: %s, 玩家ID: %d", phone, player.ID)
+
+        return player, &account, true, nil
+}
+
+// mockPhoneLogin 模拟登录（数据库未连接时使用）
+func (h *AuthHandler) mockPhoneLogin(w http.ResponseWriter, phone string) {
+        accountID := "phone_" + phone
+        nickName := "用户" + phone[len(phone)-4:]
         token := generateToken(32)
 
-        log.Printf("✅ 手机号登录成功 - 手机号: %s, 账号ID: %s", req.Phone, accountID)
+        log.Printf("✅ 模拟登录成功 - 手机号: %s", phone)
 
         writeJSONSuccess(w, &LoginResponse{
                 UniqueID:  accountID,
@@ -177,7 +284,7 @@ func (h *AuthHandler) PhoneLogin(w http.ResponseWriter, r *http.Request) {
                 AvatarUrl: "",
                 GoldCount: 1000,
                 Token:     token,
-                IsNewUser: false, // 实际应该根据数据库查询结果判断
+                IsNewUser: true,
         })
 }
 
