@@ -18,6 +18,10 @@ type Server struct {
 
 // NewServer 创建HTTP API服务器
 func NewServer(cfg *config.Config) (*Server, error) {
+        // 打印MySQL配置信息用于调试
+        log.Printf("📋 MySQL配置: Host=%s, Port=%d, User=%s, Database=%s", 
+                cfg.MySQL.Host, cfg.MySQL.Port, cfg.MySQL.User, cfg.MySQL.Database)
+        
         // 创建数据库配置
         var dbConfig *DBConfig
         if cfg.MySQL.Host != "" {
@@ -28,6 +32,9 @@ func NewServer(cfg *config.Config) (*Server, error) {
                         Password: cfg.MySQL.Password,
                         Database: cfg.MySQL.Database,
                 }
+                log.Printf("📋 创建dbConfig: %+v", dbConfig)
+        } else {
+                log.Printf("⚠️ cfg.MySQL.Host 为空，不创建dbConfig")
         }
 
         // 创建处理器
