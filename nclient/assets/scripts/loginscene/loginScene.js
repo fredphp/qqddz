@@ -656,16 +656,30 @@ cc.Class({
         phoneEditBox.placeholder = "请输入手机号";
         phoneEditBox.fontSize = 16;
         phoneEditBox.placeholderFontSize = 14;
-        phoneEditBox.fontColor = new cc.Color(0, 0, 0); // 纯黑色字体
+        phoneEditBox.fontColor = new cc.Color(0, 0, 0, 255); // 纯黑色字体，带完全不透明度
         phoneEditBox.placeholderFontColor = new cc.Color(180, 180, 180);
         phoneEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         phoneEditBox.maxLength = 11;
         phoneEditBox.backgroundColor = new cc.Color(255, 255, 255, 255); // 完全不透明的白色背景
 
+        // 创建显示Label - 用于在非编辑状态下显示文字
+        var phoneDisplayLabel = new cc.Node("display_label");
+        phoneDisplayLabel.parent = phoneInputNode;
+        phoneDisplayLabel.setPosition(0, 0);
+        var phoneDisplayLabelComp = phoneDisplayLabel.addComponent(cc.Label);
+        phoneDisplayLabelComp.string = "";
+        phoneDisplayLabelComp.fontSize = 16;
+        phoneDisplayLabelComp.lineHeight = inputHeight - 4;
+        phoneDisplayLabelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+        phoneDisplayLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        phoneDisplayLabel.node.color = new cc.Color(0, 0, 0, 255);
+        phoneDisplayLabel.active = false; // 默认隐藏，编辑时由EditBox显示
+
         // 添加编辑事件监听
         phoneInputNode.on('editing-did-begin', function() {
             console.log('手机号输入框开始编辑');
+            phoneDisplayLabel.active = false; // 编辑时隐藏显示Label
             _applyInputStyles('#000000', '#ffffff');
         });
         phoneInputNode.on('editing-did-changed', function() {
@@ -674,6 +688,11 @@ cc.Class({
         });
         phoneInputNode.on('editing-did-ended', function() {
             console.log('手机号输入框结束编辑:', phoneEditBox.string);
+            // 更新显示Label并显示
+            phoneDisplayLabelComp.string = phoneEditBox.string;
+            if (phoneEditBox.string && phoneEditBox.string.length > 0) {
+                phoneDisplayLabel.active = true;
+            }
             _applyInputStyles('#000000', '#ffffff');
         });
 
@@ -719,16 +738,30 @@ cc.Class({
         codeEditBox.placeholder = "验证码";
         codeEditBox.fontSize = 16;
         codeEditBox.placeholderFontSize = 14;
-        codeEditBox.fontColor = new cc.Color(0, 0, 0); // 纯黑色字体
+        codeEditBox.fontColor = new cc.Color(0, 0, 0, 255); // 纯黑色字体，带完全不透明度
         codeEditBox.placeholderFontColor = new cc.Color(180, 180, 180);
         codeEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         codeEditBox.maxLength = 6;
         codeEditBox.backgroundColor = new cc.Color(255, 255, 255, 255); // 完全不透明的白色背景
 
+        // 创建显示Label - 用于在非编辑状态下显示文字
+        var codeDisplayLabel = new cc.Node("display_label");
+        codeDisplayLabel.parent = codeInputNode;
+        codeDisplayLabel.setPosition(0, 0);
+        var codeDisplayLabelComp = codeDisplayLabel.addComponent(cc.Label);
+        codeDisplayLabelComp.string = "";
+        codeDisplayLabelComp.fontSize = 16;
+        codeDisplayLabelComp.lineHeight = inputHeight - 4;
+        codeDisplayLabelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+        codeDisplayLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        codeDisplayLabel.node.color = new cc.Color(0, 0, 0, 255);
+        codeDisplayLabel.active = false; // 默认隐藏，编辑时由EditBox显示
+
         // 添加编辑事件监听
         codeInputNode.on('editing-did-begin', function() {
             console.log('验证码输入框开始编辑');
+            codeDisplayLabel.active = false; // 编辑时隐藏显示Label
             _applyInputStyles('#000000', '#ffffff');
         });
         codeInputNode.on('editing-did-changed', function() {
@@ -737,6 +770,11 @@ cc.Class({
         });
         codeInputNode.on('editing-did-ended', function() {
             console.log('验证码输入框结束编辑:', codeEditBox.string);
+            // 更新显示Label并显示
+            codeDisplayLabelComp.string = codeEditBox.string;
+            if (codeEditBox.string && codeEditBox.string.length > 0) {
+                codeDisplayLabel.active = true;
+            }
             _applyInputStyles('#000000', '#ffffff');
         });
 
