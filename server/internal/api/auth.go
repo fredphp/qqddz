@@ -282,8 +282,9 @@ func (h *AuthHandler) getOrCreatePlayerByPhone(phone string) (*database.Player, 
 
         // 使用事务创建玩家和账户
         err := database.Transaction(func(tx *gorm.DB) error {
-                // 创建玩家
+                // 创建玩家 - 使用手机号作为用户名确保唯一性
                 newPlayer = &database.Player{
+                        Username:    "phone_" + phone,
                         Nickname:    nickName,
                         Gold:        1000, // 初始金币
                         Status:      database.PlayerStatusNormal,
@@ -291,7 +292,7 @@ func (h *AuthHandler) getOrCreatePlayerByPhone(phone string) (*database.Player, 
                         UpdatedAt:   now,
                 }
 
-                log.Printf("🔨 创建玩家记录 - 昵称: %s", nickName)
+                log.Printf("🔨 创建玩家记录 - 用户名: phone_%s, 昵称: %s", phone, nickName)
                 if err := tx.Create(newPlayer).Error; err != nil {
                         log.Printf("❌ 创建玩家失败: %v", err)
                         return fmt.Errorf("创建玩家失败: %w", err)
