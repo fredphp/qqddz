@@ -287,7 +287,7 @@
       "__id__": 2
     },
     "_children": [],
-    "_active": true,
+    "_active": false,
     "_level": 1,
     "_components": [
       {
@@ -2850,7 +2850,7 @@
       "ctor": "Float64Array",
       "array": [
         -350,
-        50,
+        -30,
         0,
         0,
         0,
@@ -2940,7 +2940,7 @@
       "ctor": "Float64Array",
       "array": [
         -100,
-        50,
+        -30,
         0,
         0,
         0,
@@ -3030,7 +3030,7 @@
       "ctor": "Float64Array",
       "array": [
         150,
-        50,
+        -30,
         0,
         0,
         0,
@@ -3120,7 +3120,7 @@
       "ctor": "Float64Array",
       "array": [
         400,
-        50,
+        -30,
         0,
         0,
         0,

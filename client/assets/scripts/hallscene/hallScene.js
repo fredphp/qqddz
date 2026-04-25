@@ -97,7 +97,7 @@ cc.Class({
         var self = this;
         
         // 查找并移除可能存在的公告栏节点
-        var noticeNames = ["notice", "gonggao", "公告", "notice_board", "dingbuuibantoumingdi"];
+        var noticeNames = ["notice", "gonggao", "公告", "notice_board", "dingbuuibantoumingdi", "xiongmao3"];
         for (var i = 0; i < noticeNames.length; i++) {
             var noticeNode = this.node.getChildByName(noticeNames[i]);
             if (noticeNode) {
