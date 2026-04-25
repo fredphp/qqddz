@@ -81,60 +81,6 @@
         "__id__": 5
       },
       {
-        "__id__": 6
-      },
-      {
-        "__id__": 8
-      },
-      {
-        "__id__": 10
-      },
-      {
-        "__id__": 12
-      },
-      {
-        "__id__": 14
-      },
-      {
-        "__id__": 17
-      },
-      {
-        "__id__": 20
-      },
-      {
-        "__id__": 23
-      },
-      {
-        "__id__": 26
-      },
-      {
-        "__id__": 29
-      },
-      {
-        "__id__": 32
-      },
-      {
-        "__id__": 36
-      },
-      {
-        "__id__": 40
-      },
-      {
-        "__id__": 41
-      },
-      {
-        "__id__": 43
-      },
-      {
-        "__id__": 45
-      },
-      {
-        "__id__": 47
-      },
-      {
-        "__id__": 49
-      },
-      {
         "__id__": 58
       },
       {
@@ -367,7 +313,7 @@
         1,
         1,
         1,
-        null
+        1
       ]
     }
   },
@@ -2875,7 +2821,7 @@
     "_skewX": 0,
     "_skewY": 0,
     "groupIndex": 0,
-    "_id": "room_btn_0",
+    "_id": "eRoomBtn0",
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
@@ -2919,7 +2865,7 @@
     "_isTrimmedMode": true,
     "_state": 0,
     "_atlas": null,
-    "_id": "room_sprite_0"
+    "_id": "eRoomSprite0"
   },
   {
     "__type__": "cc.Node",
@@ -2965,7 +2911,7 @@
     "_skewX": 0,
     "_skewY": 0,
     "groupIndex": 0,
-    "_id": "room_btn_1",
+    "_id": "eRoomBtn1",
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
@@ -3009,7 +2955,7 @@
     "_isTrimmedMode": true,
     "_state": 0,
     "_atlas": null,
-    "_id": "room_sprite_1"
+    "_id": "eRoomSprite1"
   },
   {
     "__type__": "cc.Node",
@@ -3055,7 +3001,7 @@
     "_skewX": 0,
     "_skewY": 0,
     "groupIndex": 0,
-    "_id": "room_btn_2",
+    "_id": "eRoomBtn2",
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
@@ -3099,7 +3045,7 @@
     "_isTrimmedMode": true,
     "_state": 0,
     "_atlas": null,
-    "_id": "room_sprite_2"
+    "_id": "eRoomSprite2"
   },
   {
     "__type__": "cc.Node",
@@ -3145,7 +3091,7 @@
     "_skewX": 0,
     "_skewY": 0,
     "groupIndex": 0,
-    "_id": "room_btn_3",
+    "_id": "eRoomBtn3",
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
@@ -3189,6 +3135,6 @@
     "_isTrimmedMode": true,
     "_state": 0,
     "_atlas": null,
-    "_id": "room_sprite_3"
+    "_id": "eRoomSprite3"
   }
 ]
