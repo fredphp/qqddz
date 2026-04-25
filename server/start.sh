@@ -181,6 +181,10 @@ build_project() {
     print_info "正在下载依赖..."
     go mod download
     
+    # 整理依赖（确保所有依赖正确安装）
+    print_info "正在整理依赖..."
+    go mod tidy
+    
     # 编译服务端
     print_info "正在编译服务端..."
     go build -o bin/server ./cmd/server
