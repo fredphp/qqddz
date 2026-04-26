@@ -118,6 +118,16 @@ func RegisterRoutes(mux *http.ServeMux, h *Handler) {
         // 内部接口（用于后台管理调用，刷新缓存，不加密）
         log.Println("📝 注册路由: /api/internal/cache/refresh/user-agreement")
         mux.HandleFunc("/api/internal/cache/refresh/user-agreement", h.agreement.RefreshCache)
+        log.Println("📝 注册路由: /api/internal/cache/refresh/room-config")
+        mux.HandleFunc("/api/internal/cache/refresh/room-config", h.roomConfig.RefreshCache)
+
+        // 房间配置接口（加密响应）
+        log.Println("📝 注册路由: /api/v1/room/config/list")
+        mux.HandleFunc("/api/v1/room/config/list", h.EncryptMiddleware(h.roomConfig.GetActiveRoomConfigs))
+        log.Println("📝 注册路由: /api/v1/room/config/get")
+        mux.HandleFunc("/api/v1/room/config/get", h.EncryptMiddleware(h.roomConfig.GetRoomConfigByType))
+        log.Println("📝 注册路由: /api/v1/room/check-entry")
+        mux.HandleFunc("/api/v1/room/check-entry", h.EncryptMiddleware(h.roomConfig.CheckPlayerEntry))
 
         // 健康检查（不加密）
         log.Println("📝 注册路由: /api/health")

@@ -331,6 +331,101 @@ HttpAPI.clearUserAgreementCache = function() {
     }
 };
 
+// 获取房间配置列表（带缓存）
+HttpAPI.getRoomConfigList = function(apiUrl, cryptoKey, callback) {
+    // 检查内存缓存
+    if (HttpAPI._roomConfigCache) {
+        console.log("使用内存缓存的房间配置");
+        callback(null, HttpAPI._roomConfigCache);
+        return;
+    }
+    
+    // 尝试从localStorage加载缓存
+    try {
+        var cached = localStorage.getItem('room_config_cache');
+        if (cached) {
+            var cacheData = JSON.parse(cached);
+            HttpAPI._roomConfigCache = cacheData;
+            console.log("使用localStorage缓存的房间配置");
+            callback(null, cacheData);
+            return;
+        }
+    } catch (e) {
+        // 忽略缓存错误
+    }
+    
+    // 从服务器获取
+    console.log("从服务器获取房间配置:", apiUrl + '/api/v1/room/config/list');
+    
+    HttpAPI.get(
+        apiUrl + '/api/v1/room/config/list',
+        cryptoKey,
+        function(err, result) {
+            if (err) {
+                console.warn("获取房间配置API失败:", err);
+                callback(err, null);
+                return;
+            }
+            
+            // result 已经是解密后的数据
+            if (result && result.code === 0 && result.data) {
+                // 缓存结果
+                HttpAPI._roomConfigCache = result.data;
+                try {
+                    localStorage.setItem('room_config_cache', JSON.stringify(result.data));
+                } catch (e) {
+                    // 忽略缓存错误
+                }
+                callback(null, result.data);
+            } else if (result && Array.isArray(result)) {
+                // 兼容直接返回数组的情况
+                HttpAPI._roomConfigCache = result;
+                try {
+                    localStorage.setItem('room_config_cache', JSON.stringify(result));
+                } catch (e) {
+                    // 忽略缓存错误
+                }
+                callback(null, result);
+            } else {
+                console.warn("房间配置数据格式无效:", result);
+                callback(result ? result.message : '获取房间配置失败', null);
+            }
+        }
+    );
+};
+
+// 清除房间配置缓存
+HttpAPI.clearRoomConfigCache = function() {
+    HttpAPI._roomConfigCache = null;
+    try {
+        localStorage.removeItem('room_config_cache');
+    } catch (e) {
+        // 忽略错误
+    }
+};
+
+// 检查玩家是否可以进入房间
+HttpAPI.checkPlayerEntry = function(apiUrl, playerId, roomType, cryptoKey, callback) {
+    var url = apiUrl + '/api/v1/room/check-entry?player_id=' + playerId + '&room_type=' + roomType;
+    console.log("检查玩家入场条件:", url);
+    
+    HttpAPI.get(url, cryptoKey, function(err, result) {
+        if (err) {
+            callback(err, null);
+            return;
+        }
+        
+        if (result && result.code === 0 && result.data) {
+            callback(null, result.data);
+        } else if (result && result.can_enter !== undefined) {
+            // 兼容直接返回结果的情况
+            callback(null, result);
+        } else {
+            callback(result ? result.message : '检查入场条件失败', null);
+        }
+    });
+};
+
 // 发送加密POST请求
 // action: 请求动作名称
 // params: 请求参数

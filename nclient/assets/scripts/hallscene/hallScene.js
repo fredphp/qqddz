@@ -24,14 +24,109 @@ cc.Class({
         this.nickname_label.string = myglobal.playerData.nickName
         this.gobal_count.string = ":" + myglobal.playerData.gobal_count
         
+        // 房间配置数据
+        this.roomConfigs = [];
+        
         // 隐藏不需要的按钮
         this._hideUnwantedButtons();
         
-        // 初始化房间选择按钮
-        this._initRoomButtons();
+        // 从 API 获取房间配置
+        this._fetchRoomConfigs();
         
         // 移除公告栏
         this._removeNoticeBoard();
+    },
+    
+    // 从 API 获取房间配置
+    _fetchRoomConfigs: function() {
+        var self = this;
+        var apiUrl = window.defines ? window.defines.apiUrl : '';
+        var cryptoKey = window.defines ? window.defines.cryptoKey : '';
+        
+        console.log("获取房间配置 - API URL:", apiUrl);
+        
+        if (!apiUrl || !window.HttpAPI) {
+            console.warn("API URL 未配置或 HttpAPI 未加载，使用默认房间配置");
+            self._initRoomButtons(self._getDefaultRoomConfigs());
+            return;
+        }
+        
+        window.HttpAPI.getRoomConfigList(apiUrl, cryptoKey, function(err, configs) {
+            if (err) {
+                console.warn("获取房间配置失败:", err);
+                // 使用默认配置
+                self._initRoomButtons(self._getDefaultRoomConfigs());
+                return;
+            }
+            
+            console.log("获取到房间配置:", configs);
+            
+            if (configs && configs.length > 0) {
+                self.roomConfigs = configs;
+                self._initRoomButtons(configs);
+            } else {
+                console.warn("房间配置为空，使用默认配置");
+                self._initRoomButtons(self._getDefaultRoomConfigs());
+            }
+        });
+    },
+    
+    // 获取默认房间配置
+    _getDefaultRoomConfigs: function() {
+        return [
+            {
+                id: 1,
+                room_name: "初级房",
+                room_type: 1,
+                base_score: 1,
+                multiplier: 1,
+                min_gold: 1000,
+                max_gold: 50000,
+                entry_gold: 1000,
+                description: "适合新手玩家",
+                status: 1,
+                sort_order: 1
+            },
+            {
+                id: 2,
+                room_name: "中级房",
+                room_type: 2,
+                base_score: 2,
+                multiplier: 1,
+                min_gold: 50000,
+                max_gold: 200000,
+                entry_gold: 50000,
+                description: "适合有一定经验的玩家",
+                status: 1,
+                sort_order: 2
+            },
+            {
+                id: 3,
+                room_name: "高级房",
+                room_type: 3,
+                base_score: 5,
+                multiplier: 2,
+                min_gold: 200000,
+                max_gold: 1000000,
+                entry_gold: 200000,
+                description: "高手对决",
+                status: 1,
+                sort_order: 3
+            },
+            {
+                id: 4,
+                room_name: "大师房",
+                room_type: 4,
+                base_score: 10,
+                multiplier: 3,
+                min_gold: 1000000,
+                max_gold: 5000000,
+                entry_gold: 1000000,
+                description: "大师专属",
+                status: 1,
+                sort_order: 4
+            }
+        ];
     },
     
     // 隐藏不需要的按钮
@@ -47,65 +142,110 @@ cc.Class({
         }
     },
     
-    // 初始化房间选择按钮
-    _initRoomButtons: function() {
+    // 初始化房间选择按钮 - 根据配置动态显示
+    _initRoomButtons: function(roomConfigs) {
         var self = this;
-        var roomButtons = ["btn_room_junior", "btn_room_middle", "btn_room_senior", "btn_room_master"];
-        var roomNames = ["初级房", "中级房", "高级房", "大师房"];
-        var roomLevels = [1, 2, 3, 4];
         
-        for (var i = 0; i < roomButtons.length; i++) {
-            var btnNode = this.node.getChildByName(roomButtons[i]);
+        // 默认按钮名称映射到 room_type
+        var buttonNameMap = {
+            1: "btn_room_junior",   // 初级房
+            2: "btn_room_middle",   // 中级房
+            3: "btn_room_senior",   // 高级房
+            4: "btn_room_master"    // 大师房
+        };
+        
+        // 先隐藏所有房间按钮
+        for (var key in buttonNameMap) {
+            var btnNode = this.node.getChildByName(buttonNameMap[key]);
             if (btnNode) {
-                console.log("初始化房间按钮: " + roomButtons[i]);
+                btnNode.active = false;
+            }
+        }
+        
+        // 根据 API 返回的配置显示对应的房间按钮
+        for (var i = 0; i < roomConfigs.length; i++) {
+            var config = roomConfigs[i];
+            var roomType = config.room_type;
+            var buttonName = buttonNameMap[roomType];
+            
+            if (!buttonName) {
+                console.warn("未知的房间类型:", roomType);
+                continue;
+            }
+            
+            var btnNode = this.node.getChildByName(buttonName);
+            if (btnNode) {
+                // 显示该按钮
+                btnNode.active = true;
                 
-                // 获取或添加 Button 组件
+                console.log("初始化房间按钮: " + buttonName + ", 房间名: " + config.room_name + ", 入场豆子: " + config.entry_gold);
+                
+                // 保存配置到节点
+                btnNode.roomConfig = config;
+                
+                // 获取 Button 组件
                 var button = btnNode.getComponent(cc.Button);
                 if (button) {
                     // 配置 Button 组件
                     button.transition = cc.Button.Transition.SCALE;
                     button.duration = 0.1;
                     button.zoomScale = 1.15;
-                    
-                    console.log("Button 组件已存在，配置完成: " + roomButtons[i]);
                 }
                 
-                // 注册点击事件处理函数
-                (function(index, roomName, roomLevel, node) {
-                    // 使用 on 方法注册点击事件
+                // 注册点击事件处理函数 - 使用闭包保存配置
+                (function(config, node) {
+                    // 移除旧的事件监听
+                    node.off(cc.Node.EventType.TOUCH_END);
+                    node.off(cc.Node.EventType.MOUSE_UP);
+                    
+                    // 添加新的事件监听
                     node.on(cc.Node.EventType.TOUCH_END, function(event) {
-                        console.log("===== 点击了房间: " + roomName + " =====");
+                        console.log("===== 点击了房间: " + config.room_name + " =====");
                         event.stopPropagation();
-                        self._onRoomButtonClick(index, roomName, roomLevel);
+                        self._onRoomButtonClick(config);
                     });
                     
                     // 也监听鼠标点击事件（Web端）
                     node.on(cc.Node.EventType.MOUSE_UP, function(event) {
-                        console.log("===== 鼠标点击了房间: " + roomName + " =====");
+                        console.log("===== 鼠标点击了房间: " + config.room_name + " =====");
                         event.stopPropagation();
-                        self._onRoomButtonClick(index, roomName, roomLevel);
+                        self._onRoomButtonClick(config);
                     });
-                    
-                })(i, roomNames[i], roomLevels[i], btnNode);
+                })(config, btnNode);
             } else {
-                console.warn("未找到房间按钮: " + roomButtons[i]);
+                console.warn("未找到房间按钮节点: " + buttonName);
             }
         }
     },
     
-    // 房间按钮点击处理
-    _onRoomButtonClick: function(roomIndex, roomName, roomLevel) {
-        console.log("进入房间处理: " + roomName + " (索引: " + roomIndex + ", 等级: " + roomLevel + ")");
+    // 房间按钮点击处理 - 使用房间配置
+    _onRoomButtonClick: function(roomConfig) {
+        console.log("进入房间处理: " + roomConfig.room_name, roomConfig);
         
         var self = this;
+        var myglobal = window.myglobal;
+        
+        // 检查玩家金币是否足够
+        var playerGold = myglobal && myglobal.playerData ? myglobal.playerData.gobal_count : 0;
+        if (playerGold < roomConfig.entry_gold) {
+            this._showMessage("豆子不足，需要 " + this._formatGold(roomConfig.entry_gold) + " 豆子才能进入" + roomConfig.room_name);
+            return;
+        }
+        
+        // 检查金币是否超过上限
+        if (roomConfig.max_gold > 0 && playerGold > roomConfig.max_gold) {
+            this._showMessage("您的豆子超过上限，请前往更高级的房间");
+            return;
+        }
         
         // 显示提示
-        this._showMessage("正在进入" + roomName + "...");
+        this._showMessage("正在进入" + roomConfig.room_name + "...");
         
         // 保存房间信息
-        if (window.myglobal) {
-            window.myglobal.currentRoomLevel = roomLevel;
-            window.myglobal.currentRoomName = roomName;
+        if (myglobal) {
+            myglobal.currentRoomConfig = roomConfig;
+            myglobal.currentRoomLevel = roomConfig.room_type;
+            myglobal.currentRoomName = roomConfig.room_name;
         }
         
         // 检查 socket 连接
@@ -115,12 +255,12 @@ cc.Class({
             if (socket.request_enter_room) {
                 // 通过 socket 进入房间
                 socket.request_enter_room({
-                    room_level: roomLevel
+                    room_level: roomConfig.room_type
                 }, function(result, data) {
                     if (result === 0) {
                         console.log("进入房间成功:", data);
-                        if (window.myglobal) {
-                            window.myglobal.roomData = data;
+                        if (myglobal) {
+                            myglobal.roomData = data;
                         }
                         self._enterGameScene(data);
                     } else {
@@ -136,25 +276,34 @@ cc.Class({
         console.log("使用测试模式进入房间");
         
         var mockData = {
-            roomid: "ROOM_" + roomLevel,
+            roomid: "ROOM_" + roomConfig.room_type,
+            room_config: roomConfig,
             seatindex: 1,
             playerdata: [{
                 accountid: "player_1",
-                nick_name: window.myglobal ? window.myglobal.playerData.nickName : "测试玩家",
+                nick_name: myglobal ? myglobal.playerData.nickName : "测试玩家",
                 avatarUrl: "avatar_1",
-                goldcount: 1000,
+                goldcount: playerGold,
                 seatindex: 1
             }]
         };
         
-        if (window.myglobal) {
-            window.myglobal.roomData = mockData;
+        if (myglobal) {
+            myglobal.roomData = mockData;
         }
         
         // 延迟跳转
         this.scheduleOnce(function() {
             self._enterGameScene(mockData);
         }, 0.5);
+    },
+    
+    // 格式化金币显示
+    _formatGold: function(gold) {
+        if (gold >= 10000) {
+            return (gold / 10000).toFixed(1) + "万";
+        }
+        return gold.toString();
     },
     
     // 进入游戏场景

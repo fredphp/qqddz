@@ -18,6 +18,7 @@ type Handler struct {
         crypto       *crypto.AESCrypto
         agreement    *UserAgreementHandler
         auth         *AuthHandler
+        roomConfig   *RoomConfigHandler
         enableCrypto bool
 }
 
@@ -76,6 +77,12 @@ func NewHandler(cryptoKey string, enableCrypto bool, dbConfig *DBConfig) (*Handl
         // 创建认证处理器
         authHandler := NewAuthHandler()
 
+        // 创建房间配置处理器
+        roomConfigHandler, err := NewRoomConfigHandler(dbConfig)
+        if err != nil {
+                return nil, err
+        }
+
         // 启动验证码清理器
         StartCodeCleaner()
 
@@ -83,6 +90,7 @@ func NewHandler(cryptoKey string, enableCrypto bool, dbConfig *DBConfig) (*Handl
                 crypto:       aesCrypto,
                 agreement:    agreementHandler,
                 auth:         authHandler,
+                roomConfig:   roomConfigHandler,
                 enableCrypto: enableCrypto,
         }, nil
 }
@@ -248,7 +256,10 @@ func (h *Handler) Close() error {
                 }
         }
         if h.agreement != nil {
-                return h.agreement.Close()
+                h.agreement.Close()
+        }
+        if h.roomConfig != nil {
+                h.roomConfig.Close()
         }
         return nil
 }
