@@ -1,5 +1,8 @@
 // 使用全局变量，不使用 require
 
+// 脚本加载日志 - 确认脚本被正确加载
+console.log("📌 hallScene.js 脚本已加载");
+
 cc.Class({
     name: 'hallScene',
     extends: cc.Component, 
