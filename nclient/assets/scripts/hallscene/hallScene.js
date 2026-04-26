@@ -32,6 +32,22 @@ cc.Class({
        
        // 移除公告栏（如果存在）
        this._removeNoticeBoard();
+       
+       // 监听匹配成功事件
+       this._initMatchListener();
+    },
+    
+    // 初始化匹配监听
+    _initMatchListener: function() {
+        var self = this;
+        if (window.socketCtr) {
+            var socket = window.socketCtr();
+            if (socket.onRoomChangeState) {
+                socket.onRoomChangeState(function(data) {
+                    console.log("房间状态变化:", data);
+                });
+            }
+        }
     },
     
     // 隐藏不需要的按钮
@@ -54,42 +70,221 @@ cc.Class({
         var self = this;
         var roomButtons = ["btn_room_junior", "btn_room_middle", "btn_room_senior", "btn_room_master"];
         var roomNames = ["初级房", "中级房", "高级房", "大师房"];
+        var roomLevels = [1, 2, 3, 4]; // 房间等级
         
         for (var i = 0; i < roomButtons.length; i++) {
             var btnNode = this.node.getChildByName(roomButtons[i]);
             if (btnNode) {
-                // 确保按钮有 Button 组件，如果没有则添加
+                // 添加 Button 组件
                 var button = btnNode.getComponent(cc.Button);
                 if (!button) {
                     button = btnNode.addComponent(cc.Button);
-                    button.transition = cc.Button.Transition.SCALE;
-                    button.zoomScale = 0.95;
                 }
                 
-                // 添加点击事件
-                btnNode.off(cc.Node.EventType.TOUCH_END);
-                (function(index, roomName) {
-                    btnNode.on(cc.Node.EventType.TOUCH_END, function() {
-                        self._onRoomButtonClick(index, roomName);
-                    }, self);
-                })(i, roomNames[i]);
+                // 设置按钮过渡效果为缩放
+                button.transition = cc.Button.Transition.SCALE;
+                button.duration = 0.1;
+                button.zoomScale = 1.15;
                 
-                console.log("已初始化房间按钮: " + roomButtons[i]);
+                // 添加 BlockInputEvents 组件（如果需要）
+                var blockEvents = btnNode.getComponent(cc.BlockInputEvents);
+                if (!blockEvents) {
+                    btnNode.addComponent(cc.BlockInputEvents);
+                }
+                
+                // 使用闭包保存房间信息
+                (function(index, roomName, roomLevel) {
+                    // 注册点击事件
+                    btnNode.off(cc.Node.EventType.TOUCH_START);
+                    btnNode.off(cc.Node.EventType.TOUCH_END);
+                    btnNode.off(cc.Node.EventType.TOUCH_CANCEL);
+                    
+                    // 添加触摸开始效果
+                    btnNode.on(cc.Node.EventType.TOUCH_START, function(event) {
+                        console.log("触摸开始: " + roomName);
+                    }, self);
+                    
+                    // 添加触摸结束事件（点击）
+                    btnNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                        console.log("点击了: " + roomName);
+                        self._onRoomButtonClick(index, roomName, roomLevel);
+                    }, self);
+                    
+                })(i, roomNames[i], roomLevels[i]);
+                
+                console.log("已初始化房间按钮: " + roomButtons[i] + " 等级: " + roomLevels[i]);
+            } else {
+                console.warn("未找到房间按钮: " + roomButtons[i]);
             }
         }
     },
     
     // 房间按钮点击处理
-    _onRoomButtonClick: function(roomIndex, roomName) {
-        console.log("点击了房间: " + roomName + " (索引: " + roomIndex + ")");
+    _onRoomButtonClick: function(roomIndex, roomName, roomLevel) {
+        console.log("点击了房间: " + roomName + " (索引: " + roomIndex + ", 等级: " + roomLevel + ")");
         
-        // 显示提示（后续可以跳转到对应的游戏房间）
-        this._showMessage("即将进入" + roomName);
+        var self = this;
+        
+        // 显示加载提示
+        this._showLoading("正在进入" + roomName + "...");
+        
+        // 检查 socket 是否连接
+        if (!window.socketCtr) {
+            console.error("socketCtr 未定义");
+            this._hideLoading();
+            this._showMessage("网络未连接，请重新登录");
+            return;
+        }
+        
+        var socket = window.socketCtr();
+        
+        // 保存当前选择的房间等级
+        if (window.myglobal) {
+            window.myglobal.currentRoomLevel = roomLevel;
+            window.myglobal.currentRoomName = roomName;
+        }
+        
+        // 请求快速匹配进入房间
+        if (socket.request_enter_room) {
+            socket.request_enter_room({
+                room_level: roomLevel
+            }, function(result, data) {
+                self._hideLoading();
+                
+                if (result === 0) {
+                    console.log("进入房间成功:", data);
+                    
+                    // 保存房间信息
+                    if (window.myglobal) {
+                        window.myglobal.roomData = data;
+                    }
+                    
+                    // 跳转到游戏场景
+                    self._enterGameScene(data);
+                } else {
+                    console.error("进入房间失败:", result);
+                    self._showMessage("进入房间失败，请重试");
+                }
+            });
+        } else {
+            // 如果 socket 方法不存在，直接跳转到游戏场景（测试模式）
+            console.log("Socket 方法不存在，使用测试模式进入房间");
+            this._hideLoading();
+            
+            // 模拟房间数据
+            var mockData = {
+                roomid: "TEST_" + roomLevel,
+                seatindex: 1,
+                playerdata: [
+                    {
+                        accountid: "player1",
+                        nick_name: window.myglobal ? window.myglobal.playerData.nickName : "玩家1",
+                        avatarUrl: "avatar_1",
+                        goldcount: 1000,
+                        seatindex: 1
+                    }
+                ]
+            };
+            
+            if (window.myglobal) {
+                window.myglobal.roomData = mockData;
+            }
+            
+            this._enterGameScene(mockData);
+        }
+    },
+    
+    // 进入游戏场景
+    _enterGameScene: function(roomData) {
+        console.log("准备进入游戏场景, 房间数据:", roomData);
+        
+        // 显示进入提示
+        this._showMessage("正在进入游戏房间...");
+        
+        // 延迟一小段时间后跳转，让用户看到提示
+        this.scheduleOnce(function() {
+            cc.director.loadScene("gameScene", function(err) {
+                if (err) {
+                    console.error("加载游戏场景失败:", err);
+                    this._showMessage("加载游戏场景失败");
+                    return;
+                }
+                console.log("成功进入游戏场景");
+            });
+        }, 0.5);
+    },
+    
+    // 显示加载提示
+    _showLoading: function(message) {
+        console.log("显示加载: " + message);
+        // 可以在这里创建一个 loading 节点
+        var loadingNode = this.node.getChildByName("loading_node");
+        if (!loadingNode) {
+            loadingNode = new cc.Node("loading_node");
+            loadingNode.parent = this.node;
+            loadingNode.zIndex = 1000;
+            
+            // 添加背景
+            var bgNode = new cc.Node("bg");
+            bgNode.parent = loadingNode;
+            bgNode.color = cc.color(0, 0, 0, 180);
+            bgNode.width = 300;
+            bgNode.height = 100;
+            var bgSprite = bgNode.addComponent(cc.Sprite);
+            bgSprite.type = cc.Sprite.Type.SLICED;
+            
+            // 添加标签
+            var labelNode = new cc.Node("label");
+            labelNode.parent = loadingNode;
+            var label = labelNode.addComponent(cc.Label);
+            label.string = message;
+            label.fontSize = 24;
+            label.lineHeight = 30;
+        }
+    },
+    
+    // 隐藏加载提示
+    _hideLoading: function() {
+        var loadingNode = this.node.getChildByName("loading_node");
+        if (loadingNode) {
+            loadingNode.destroy();
+        }
     },
     
     // 显示消息提示
     _showMessage: function(message) {
-        console.log(message);
+        console.log("消息: " + message);
+        
+        // 创建提示节点
+        var tipNode = new cc.Node("tip_node");
+        tipNode.parent = this.node;
+        tipNode.zIndex = 999;
+        tipNode.y = 200;
+        
+        // 添加背景
+        var bgNode = new cc.Node("bg");
+        bgNode.parent = tipNode;
+        bgNode.color = cc.color(0, 0, 0, 200);
+        bgNode.width = 400;
+        bgNode.height = 60;
+        var bgSprite = bgNode.addComponent(cc.Sprite);
+        bgSprite.type = cc.Sprite.Type.SLICED;
+        
+        // 添加标签
+        var labelNode = new cc.Node("label");
+        labelNode.parent = tipNode;
+        var label = labelNode.addComponent(cc.Label);
+        label.string = message;
+        label.fontSize = 24;
+        label.lineHeight = 30;
+        label.node.color = cc.color(255, 255, 255);
+        
+        // 2秒后自动消失
+        this.scheduleOnce(function() {
+            if (tipNode) {
+                tipNode.destroy();
+            }
+        }, 2);
     },
     
     // 移除公告栏
