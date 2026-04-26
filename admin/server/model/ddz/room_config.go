@@ -72,7 +72,7 @@ func (DDZGameConfig) TableName() string {
 // 背景图编号常量
 const (
         BgImageNumMin = 2 // 最小背景图编号
-        BgImageNumMax = 5 // 最大背景图编号
+        BgImageNumMax = 6 // 最大背景图编号（支持至尊场）
 )
 
 // GetBgImageFileName 根据背景图编号获取文件名

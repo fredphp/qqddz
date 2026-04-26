@@ -234,9 +234,9 @@ func (h *RoomConfigHandler) getRoomConfigsFromGORM() ([]RoomConfigResponse, erro
 
         var configs []RoomConfigResponse
         for _, rc := range roomConfigs {
-                // 背景图编号默认使用房间类型（2-5）
+                // 背景图编号默认使用房间类型（2-6）
                 bgImageNum := int(rc.RoomType)
-                if bgImageNum < 2 || bgImageNum > 5 {
+                if bgImageNum < 2 || bgImageNum > 6 {
                         bgImageNum = 2 // 默认编号
                 }
                 
@@ -299,7 +299,7 @@ func (h *RoomConfigHandler) getRoomConfigsFromSQL() ([]RoomConfigResponse, error
                 config.EntryGold = config.MinGold
                 // 背景图编号默认使用房间类型
                 config.BgImageNum = int(config.RoomType)
-                if config.BgImageNum < 2 || config.BgImageNum > 5 {
+                if config.BgImageNum < 2 || config.BgImageNum > 6 {
                         config.BgImageNum = 2
                 }
                 configs = append(configs, config)
@@ -416,7 +416,7 @@ func (h *RoomConfigHandler) GetRoomConfigByType(w http.ResponseWriter, r *http.R
 
                 // 背景图编号
                 bgImageNum := int(rc.RoomType)
-                if bgImageNum < 2 || bgImageNum > 5 {
+                if bgImageNum < 2 || bgImageNum > 6 {
                         bgImageNum = 2
                 }
 
@@ -477,7 +477,7 @@ func (h *RoomConfigHandler) GetRoomConfigByType(w http.ResponseWriter, r *http.R
 
         config.EntryGold = config.MinGold
         config.BgImageNum = int(config.RoomType)
-        if config.BgImageNum < 2 || config.BgImageNum > 5 {
+        if config.BgImageNum < 2 || config.BgImageNum > 6 {
                 config.BgImageNum = 2
         }
 

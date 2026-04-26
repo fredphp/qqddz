@@ -385,13 +385,14 @@ cc.Class({
         var self = this;
         
         // 默认按钮名称映射到 room_type
-        // 场景中的4个按钮: btn_room_junior, btn_room_middle, btn_room_senior, btn_room_master
-        // room_type 2,3,4,5 分别对应这4个按钮
+        // 场景中的按钮: btn_room_junior, btn_room_middle, btn_room_senior, btn_room_master, btn_room_supreme
+        // 注意: btn_room_supreme 需要在 Cocos Creator 场景中手动添加
         var buttonNameMap = {
             2: "btn_room_junior",   // 初级房/新手场 (room_type=2)
             3: "btn_room_middle",   // 中级房 (room_type=3)
             4: "btn_room_senior",   // 高级房 (room_type=4)
-            5: "btn_room_master"    // 大师房/富豪场 (room_type=5)
+            5: "btn_room_master",   // 大师房 (room_type=5)
+            6: "btn_room_supreme"   // 至尊场 (room_type=6) - 需要在场景中添加此按钮
         };
         
         // 先隐藏所有房间按钮

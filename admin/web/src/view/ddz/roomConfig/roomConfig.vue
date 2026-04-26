@@ -31,6 +31,7 @@
             <el-option label="中级场" :value="3" />
             <el-option label="高级场" :value="4" />
             <el-option label="大师场" :value="5" />
+            <el-option label="至尊场" :value="6" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
@@ -142,6 +143,7 @@
                 <el-option label="中级场" :value="3" />
                 <el-option label="高级场" :value="4" />
                 <el-option label="大师场" :value="5" />
+                <el-option label="至尊场" :value="6" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -293,7 +295,8 @@ const getRoomTypeTag = (type) => {
     2: 'success',
     3: 'warning',
     4: 'danger',
-    5: 'info'
+    5: 'info',
+    6: ''
   }
   return tags[type] || ''
 }
@@ -303,7 +306,8 @@ const getRoomTypeName = (type) => {
     2: '初级场',
     3: '中级场',
     4: '高级场',
-    5: '大师场'
+    5: '大师场',
+    6: '至尊场'
   }
   return names[type] || '未知'
 }
