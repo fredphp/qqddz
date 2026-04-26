@@ -220,6 +220,12 @@ cc.Class({
             return;
         }
         
+        // 清除旧缓存，每次进入大厅都从服务器获取最新配置
+        if (window.HttpAPI.clearRoomConfigCache) {
+            window.HttpAPI.clearRoomConfigCache();
+            console.log("已清除房间配置缓存，将从服务器获取最新配置");
+        }
+        
         window.HttpAPI.getRoomConfigList(apiUrl, cryptoKey, function(err, configs) {
             if (err) {
                 console.warn("获取房间配置失败:", err);
