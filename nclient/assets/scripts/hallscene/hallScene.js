@@ -380,7 +380,7 @@ cc.Class({
         return 'UI/btn_happy_' + roomType;
     },
     
-    // 初始化房间选择按钮 - 根据配置动态显示
+    // 初始化房间选择按钮 - 根据配置动态显示并居中排列
     // 背景图匹配规则: room_type -> btn_happy_{room_type}.png
     _initRoomButtons: function(roomConfigs) {
         var self = this;
@@ -401,6 +401,9 @@ cc.Class({
                 btnNode.active = false;
             }
         }
+        
+        // 收集需要显示的按钮节点
+        var activeButtons = [];
         
         // 根据 API 返回的配置显示对应的房间按钮
         for (var i = 0; i < roomConfigs.length; i++) {
@@ -459,10 +462,47 @@ cc.Class({
                         self._onRoomButtonClick(config);
                     });
                 })(config, btnNode);
+                
+                // 添加到活跃按钮列表
+                activeButtons.push(btnNode);
             } else {
                 console.warn("未找到房间按钮节点: " + buttonName);
             }
         }
+        
+        // 根据按钮数量自动居中排列
+        this._centerRoomButtons(activeButtons);
+    },
+    
+    // 居中排列房间按钮
+    _centerRoomButtons: function(buttons) {
+        if (!buttons || buttons.length === 0) {
+            return;
+        }
+        
+        var buttonCount = buttons.length;
+        console.log("居中排列 " + buttonCount + " 个房间按钮");
+        
+        // 按钮尺寸和间距配置
+        var buttonWidth = 268;  // 按钮宽度
+        var buttonGap = 30;     // 按钮间距
+        var yPosition = -80;    // Y 坐标（保持原有位置）
+        
+        // 计算总宽度
+        var totalWidth = buttonCount * buttonWidth + (buttonCount - 1) * buttonGap;
+        
+        // 计算起始 X 坐标（居中）
+        var startX = -totalWidth / 2 + buttonWidth / 2;
+        
+        // 设置每个按钮的位置
+        for (var i = 0; i < buttonCount; i++) {
+            var btnNode = buttons[i];
+            var xPos = startX + i * (buttonWidth + buttonGap);
+            btnNode.setPosition(xPos, yPosition);
+            console.log("按钮 " + btnNode.name + " 位置: (" + xPos + ", " + yPosition + ")");
+        }
+        
+        console.log("✅ 房间按钮居中排列完成，总宽度: " + totalWidth + ", 起始X: " + startX);
     },
     
     // 根据房间类型加载按钮背景图
