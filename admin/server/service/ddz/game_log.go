@@ -189,8 +189,8 @@ func (s *DDZGameLogService) GetPlayerStatList(req ddzReq.DDZPlayerStatSearch) (l
         return []interface{}{}, 0, nil
 }
 
-// GetRoomConfigList 获取房间配置列表
-func (s *DDZGameLogService) GetRoomConfigList(req ddzReq.DDZRoomConfigSearch) (list interface{}, total int64, err error) {
+// GetRoomConfigList 获取游戏房间配置列表（ddz_room_config 表）
+func (s *DDZGameLogService) GetRoomConfigList(req ddzReq.DDZGameRoomConfigSearch) (list interface{}, total int64, err error) {
         db := GetDDZDB()
         limit := req.PageSize
         offset := req.PageSize * (req.Page - 1)
@@ -225,8 +225,8 @@ func (s *DDZGameLogService) GetRoomConfigList(req ddzReq.DDZRoomConfigSearch) (l
         return configList, total, nil
 }
 
-// CreateRoomConfig 创建房间配置
-func (s *DDZGameLogService) CreateRoomConfig(req ddzReq.DDZRoomConfigCreate) error {
+// CreateRoomConfig 创建游戏房间配置（ddz_room_config 表）
+func (s *DDZGameLogService) CreateRoomConfig(req ddzReq.DDZGameRoomConfigCreate) error {
         db := GetDDZDB()
         // 检查房间类型是否已存在
         var count int64
@@ -255,8 +255,8 @@ func (s *DDZGameLogService) CreateRoomConfig(req ddzReq.DDZRoomConfigCreate) err
         return db.Create(&config).Error
 }
 
-// UpdateRoomConfig 更新房间配置
-func (s *DDZGameLogService) UpdateRoomConfig(req ddzReq.DDZRoomConfigUpdate) error {
+// UpdateRoomConfig 更新游戏房间配置（ddz_room_config 表）
+func (s *DDZGameLogService) UpdateRoomConfig(req ddzReq.DDZGameRoomConfigUpdate) error {
         db := GetDDZDB()
         var config ddz.DDZRoomConfig
         err := db.First(&config, req.ID).Error
