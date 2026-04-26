@@ -51,13 +51,12 @@ cc.Class({
             return;
         }
         
-        // 标记是否已成功播放
-        this._musicPlayed = false;
+        // 初始化状态
+        this._musicPlaying = false;
+        this._currentMusicId = -1;
+        this._touchListenerAdded = false;
         
-        // 保存音频剪辑供后续使用
-        this._bgMusicClip = null;
-        
-        // 使用 cc.resources.load 加载音频（推荐方式）
+        // 使用 cc.resources.load 加载音频
         cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
             if (err) {
                 console.log("加载背景音乐失败:", err);
@@ -69,17 +68,14 @@ cc.Class({
             self._bgMusicClip = clip;
             
             try {
-                // 先停止所有音频
-                cc.audioEngine.stopAll();
-                
                 // 播放背景音乐
-                cc.audioEngine.play(clip, true, 1);
+                var audioId = cc.audioEngine.play(clip, true, 1);
                 
-                // 检查是否真的在播放
-                if (cc.audioEngine.isMusicPlaying()) {
-                    self._musicPlayed = true;
-                    console.log("✅ 大厅背景音乐播放成功");
-                    // 成功播放后移除触摸监听器（如果有的话）
+                if (audioId >= 0) {
+                    self._currentMusicId = audioId;
+                    self._musicPlaying = true;
+                    console.log("✅ 大厅背景音乐播放成功, audioId:", audioId);
+                    // 成功播放，确保监听器被移除
                     self._removeGlobalTouchForMusic();
                 } else {
                     console.log("⚠️ 背景音乐播放失败（可能被浏览器阻止），设置触摸监听");
@@ -94,34 +90,26 @@ cc.Class({
     
     // 通过触摸播放音乐
     _playMusicOnTouch: function() {
-        // 首先检查音频引擎是否实际上正在播放音乐
-        if (cc.audioEngine.isMusicPlaying && cc.audioEngine.isMusicPlaying()) {
-            // 音乐已经在播放，更新状态并移除监听器
-            this._musicPlayed = true;
-            console.log("✅ 音乐已在播放中，跳过重复播放");
-            this._removeGlobalTouchForMusic();
-            return;
-        }
-        
-        // 如果标记为已播放但没有实际播放（异常情况），重置标记
-        if (this._musicPlayed) {
-            this._musicPlayed = false;
-        }
-        
         var self = this;
+        
+        // 首先检查是否有正在播放的音乐（使用 audioId 检查）
+        if (this._currentMusicId >= 0) {
+            var state = cc.audioEngine.getState(this._currentMusicId);
+            if (state === cc.audioEngine.AudioState.PLAYING) {
+                console.log("✅ 音乐正在播放中，跳过");
+                this._removeGlobalTouchForMusic();
+                return;
+            }
+        }
         
         // 如果已经有音频剪辑，直接播放
         if (this._bgMusicClip) {
             try {
-                // 先停止所有音频
-                cc.audioEngine.stopAll();
-                
-                // 播放背景音乐
-                cc.audioEngine.play(this._bgMusicClip, true, 1);
-                
-                if (cc.audioEngine.isMusicPlaying()) {
-                    this._musicPlayed = true;
-                    console.log("✅ 触摸后背景音乐播放成功");
+                var audioId = cc.audioEngine.play(this._bgMusicClip, true, 1);
+                if (audioId >= 0) {
+                    this._currentMusicId = audioId;
+                    this._musicPlaying = true;
+                    console.log("✅ 触摸后背景音乐播放成功, audioId:", audioId);
                     this._removeGlobalTouchForMusic();
                 }
             } catch(e) {
@@ -137,19 +125,14 @@ cc.Class({
                 return;
             }
             
-            // 保存音频剪辑
             self._bgMusicClip = clip;
             
             try {
-                // 先停止所有音频
-                cc.audioEngine.stopAll();
-                
-                // 播放背景音乐
-                cc.audioEngine.play(clip, true, 1);
-                
-                if (cc.audioEngine.isMusicPlaying()) {
-                    self._musicPlayed = true;
-                    console.log("✅ 触摸后背景音乐播放成功");
+                var audioId = cc.audioEngine.play(clip, true, 1);
+                if (audioId >= 0) {
+                    self._currentMusicId = audioId;
+                    self._musicPlaying = true;
+                    console.log("✅ 触摸后背景音乐播放成功, audioId:", audioId);
                     self._removeGlobalTouchForMusic();
                 }
             } catch(e) {
@@ -160,20 +143,26 @@ cc.Class({
     
     // 设置全局触摸监听 - 用户点击任意位置触发音乐
     _setupGlobalTouchForMusic: function() {
+        // 防止重复添加监听器
+        if (this._touchListenerAdded) {
+            return;
+        }
+        
         var self = this;
+        this._touchListenerAdded = true;
         
         // Cocos Creator 层面的监听
-        this.node.on(cc.Node.EventType.TOUCH_START, function() {
+        this._cocosTouchHandler = function() {
             self._playMusicOnTouch();
-        }, this);
+        };
+        this.node.on(cc.Node.EventType.TOUCH_START, this._cocosTouchHandler, this);
         
-        // Web 浏览器层面的监听（处理首次点击）
+        // Web 浏览器层面的监听
         if (cc.sys.isBrowser) {
             this._browserTouchHandler = function() {
                 self._playMusicOnTouch();
             };
             
-            // 监听整个文档的点击事件
             document.addEventListener('touchstart', this._browserTouchHandler, true);
             document.addEventListener('mousedown', this._browserTouchHandler, true);
             document.addEventListener('click', this._browserTouchHandler, true);
@@ -184,6 +173,13 @@ cc.Class({
     
     // 移除全局触摸监听
     _removeGlobalTouchForMusic: function() {
+        // 移除 Cocos Creator 层面的监听
+        if (this._cocosTouchHandler) {
+            this.node.off(cc.Node.EventType.TOUCH_START, this._cocosTouchHandler, this);
+            this._cocosTouchHandler = null;
+        }
+        
+        // 移除浏览器层面的监听
         if (cc.sys.isBrowser && this._browserTouchHandler) {
             document.removeEventListener('touchstart', this._browserTouchHandler, true);
             document.removeEventListener('mousedown', this._browserTouchHandler, true);
@@ -191,6 +187,8 @@ cc.Class({
             this._browserTouchHandler = null;
             console.log("✅ 已移除全局触摸监听");
         }
+        
+        this._touchListenerAdded = false;
     },
     
     // 从 API 获取房间配置
