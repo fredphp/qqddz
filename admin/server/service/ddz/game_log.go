@@ -520,6 +520,12 @@ func (s *DDZGameLogService) toSmsCodeResponse(c ddz.DDZSmsCode) ddzRes.DDZSmsCod
                 isUsedText = "已使用"
         }
 
+        expireAt := c.ExpireAt.Format("2006-01-02 15:04:05")
+        usedAt := ""
+        if c.UsedAt != nil {
+                usedAt = c.UsedAt.Format("2006-01-02 15:04:05")
+        }
+
         return ddzRes.DDZSmsCodeResponse{
                 ID:         c.ID,
                 Phone:      c.Phone,
@@ -528,8 +534,8 @@ func (s *DDZGameLogService) toSmsCodeResponse(c ddz.DDZSmsCode) ddzRes.DDZSmsCod
                 TypeText:   typeText,
                 IsUsed:     c.IsUsed,
                 IsUsedText: isUsedText,
-                ExpireAt:   c.ExpireAt,
-                UsedAt:     c.UsedAt,
+                ExpireAt:   expireAt,
+                UsedAt:     usedAt,
                 IP:         c.IP,
                 CreatedAt:  c.CreatedAt.Format("2006-01-02 15:04:05"),
         }
