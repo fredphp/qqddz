@@ -760,6 +760,7 @@ cc.Class({
     
     // 销毁时清理
     onDestroy () {
-        this._removeGlobalTouchForMusic();
+        // 清理资源
+        console.log("hallScene onDestroy");
     }
 });

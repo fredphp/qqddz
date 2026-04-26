@@ -375,6 +375,22 @@ func (api *DDZGameLogApi) DeleteRoomConfig(c *gin.Context) {
         response.OkWithMessage("删除成功", c)
 }
 
+// RefreshRoomConfigCache 刷新房间配置缓存
+// @Tags     DDZ游戏房间配置
+// @Summary  刷新房间配置缓存
+// @Security ApiKeyAuth
+// @Produce  application/json
+// @Success  200  {object}  response.Response{msg=string}
+// @Router   /ddz/roomConfig/refresh-cache [post]
+func (api *DDZGameLogApi) RefreshRoomConfigCache(c *gin.Context) {
+        // 清除房间配置缓存（如果使用Redis）
+        if global.GVA_REDIS != nil {
+                // 删除房间配置缓存键
+                global.GVA_REDIS.Del(c.Request.Context(), "ddz:room_config:list")
+        }
+        response.OkWithMessage("缓存刷新成功", c)
+}
+
 // GetSmsCodeList 获取短信验证码列表
 // @Tags     DDZ短信记录
 // @Summary  获取短信验证码列表

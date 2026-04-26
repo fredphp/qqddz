@@ -20,6 +20,7 @@ func (r *DDZGameLogRouter) InitDDZGameLogRouter(Router *gin.RouterGroup) {
 		ddzGameLogRouter.POST("roomConfig/create", ddzGameLogApi.CreateRoomConfig)
 		ddzGameLogRouter.PUT("roomConfig/update", ddzGameLogApi.UpdateRoomConfig)
 		ddzGameLogRouter.DELETE("roomConfig/delete", ddzGameLogApi.DeleteRoomConfig)
+		ddzGameLogRouter.POST("roomConfig/refresh-cache", ddzGameLogApi.RefreshRoomConfigCache)
 		// 短信验证码
 		ddzGameLogRouter.DELETE("smsCode/delete", ddzGameLogApi.DeleteSmsCode)
 	}
