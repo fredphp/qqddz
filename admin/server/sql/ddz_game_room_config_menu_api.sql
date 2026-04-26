@@ -36,7 +36,9 @@ INSERT IGNORE INTO `sys_apis` (`created_at`, `updated_at`, `path`, `description`
 (NOW(), NOW(), '/ddz/roomConfig/list', '获取游戏房间配置列表', 'DDZ游戏房间配置', 'POST'),
 (NOW(), NOW(), '/ddz/roomConfig/create', '创建游戏房间配置', 'DDZ游戏房间配置', 'POST'),
 (NOW(), NOW(), '/ddz/roomConfig/update', '更新游戏房间配置', 'DDZ游戏房间配置', 'PUT'),
-(NOW(), NOW(), '/ddz/roomConfig/delete', '删除游戏房间配置', 'DDZ游戏房间配置', 'DELETE');
+(NOW(), NOW(), '/ddz/roomConfig/delete', '删除游戏房间配置', 'DDZ游戏房间配置', 'DELETE'),
+(NOW(), NOW(), '/ddz/roomConfig/refresh-cache', '刷新房间配置缓存', 'DDZ游戏房间配置', 'POST'),
+(NOW(), NOW(), '/ddz/roomConfig/bg-image-options', '获取背景图选项', 'DDZ游戏房间配置', 'GET');
 
 -- =============================================
 -- 三、为管理员角色(888)分配菜单权限 - 幂等设计
@@ -55,7 +57,9 @@ INSERT IGNORE INTO `casbin_rule` (`ptype`, `v0`, `v1`, `v2`) VALUES
 ('p', '888', '/ddz/roomConfig/list', 'POST'),
 ('p', '888', '/ddz/roomConfig/create', 'POST'),
 ('p', '888', '/ddz/roomConfig/update', 'PUT'),
-('p', '888', '/ddz/roomConfig/delete', 'DELETE');
+('p', '888', '/ddz/roomConfig/delete', 'DELETE'),
+('p', '888', '/ddz/roomConfig/refresh-cache', 'POST'),
+('p', '888', '/ddz/roomConfig/bg-image-options', 'GET');
 
 -- =============================================
 -- 五、插入默认房间配置数据到 ddz_game 数据库
