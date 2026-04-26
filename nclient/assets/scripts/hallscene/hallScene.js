@@ -138,11 +138,43 @@ cc.Class({
         // 隐藏不需要的按钮
         this._hideUnwantedButtons();
         
+        // 对齐背景角色图片
+        this._alignBackgroundCharacters();
+        
         // 从 API 获取房间配置
         this._fetchRoomConfigs();
         
         // 移除公告栏
         this._removeNoticeBoard();
+    },
+    
+    // 对齐背景角色图片（男孩和女孩）
+    _alignBackgroundCharacters: function() {
+        // 获取两个角色节点
+        var xiongmao1 = this.node.getChildByName("xiongmao1"); // 左侧角色
+        var xiongmao2 = this.node.getChildByName("xiongmao2"); // 右侧角色
+        
+        if (xiongmao1 && xiongmao2) {
+            // 获取画布宽度
+            var canvas = this.node.getComponent(cc.Canvas) || 
+                         cc.find('Canvas').getComponent(cc.Canvas);
+            var screenWidth = canvas ? canvas.designResolution.width : 1280;
+            
+            // 统一 Y 坐标（居中对齐）
+            var commonY = 90;
+            
+            // 计算 X 坐标（对称分布）
+            // 角色图片宽度约 390，两边留一定边距
+            var xOffset = screenWidth / 2 - 250; // 距离中心的偏移量
+            
+            // 左侧角色
+            xiongmao1.setPosition(-xOffset, commonY);
+            
+            // 右侧角色
+            xiongmao2.setPosition(xOffset, commonY);
+            
+            console.log("✅ 背景角色对齐完成: 左侧(" + (-xOffset) + ", " + commonY + "), 右侧(" + xOffset + ", " + commonY + ")");
+        }
     },
     
     // 加载用户头像
@@ -475,7 +507,7 @@ cc.Class({
         this._centerRoomButtons(activeButtons);
     },
     
-    // 居中排列房间按钮
+    // 居中排列房间按钮 - 根据数量自动调整宽度占比
     _centerRoomButtons: function(buttons) {
         if (!buttons || buttons.length === 0) {
             return;
@@ -484,26 +516,66 @@ cc.Class({
         var buttonCount = buttons.length;
         console.log("居中排列 " + buttonCount + " 个房间按钮");
         
-        // 按钮尺寸和间距配置
-        var buttonWidth = 268;  // 按钮宽度
-        var buttonGap = 30;     // 按钮间距
-        var yPosition = -80;    // Y 坐标（保持原有位置）
+        // 获取屏幕/画布宽度
+        var canvas = this.node.getComponent(cc.Canvas) || 
+                     cc.find('Canvas').getComponent(cc.Canvas);
+        var screenWidth = canvas ? canvas.designResolution.width : 1280;
         
-        // 计算总宽度
-        var totalWidth = buttonCount * buttonWidth + (buttonCount - 1) * buttonGap;
+        // 原始按钮尺寸
+        var originalButtonWidth = 268;
+        var originalButtonHeight = 140;
+        
+        // 计算每个按钮应该占据的宽度比例
+        // 4个按钮 = 25%, 3个 = 33.33%, 2个 = 50%, 1个 = 100%
+        var buttonWidthPercent = 1 / buttonCount;
+        
+        // 按钮之间的间距（相对屏幕宽度的比例）
+        var gapPercent = 0.02; // 2% 间距
+        var totalGapPercent = gapPercent * (buttonCount - 1);
+        
+        // 每个按钮实际占据的宽度（包含间距）
+        var buttonSlotWidth = screenWidth * buttonWidthPercent;
+        
+        // 实际按钮宽度（减去间距）
+        var actualButtonWidth = buttonSlotWidth - screenWidth * gapPercent;
+        
+        // 限制按钮最大和最小宽度
+        var maxButtonWidth = 280;
+        var minButtonWidth = 180;
+        actualButtonWidth = Math.min(maxButtonWidth, Math.max(minButtonWidth, actualButtonWidth));
+        
+        // 计算缩放比例
+        var scale = actualButtonWidth / originalButtonWidth;
+        
+        // Y 坐标
+        var yPosition = -80;
+        
+        // 计算总宽度（用于居中）
+        var totalWidth = buttonCount * actualButtonWidth + (buttonCount - 1) * screenWidth * gapPercent;
         
         // 计算起始 X 坐标（居中）
-        var startX = -totalWidth / 2 + buttonWidth / 2;
+        var startX = -totalWidth / 2 + actualButtonWidth / 2;
         
-        // 设置每个按钮的位置
+        console.log("屏幕宽度: " + screenWidth + 
+                   ", 按钮数量: " + buttonCount + 
+                   ", 按钮宽度: " + actualButtonWidth +
+                   ", 缩放比例: " + scale.toFixed(2));
+        
+        // 设置每个按钮的位置和缩放
         for (var i = 0; i < buttonCount; i++) {
             var btnNode = buttons[i];
-            var xPos = startX + i * (buttonWidth + buttonGap);
+            var xPos = startX + i * (actualButtonWidth + screenWidth * gapPercent);
+            
+            // 设置位置
             btnNode.setPosition(xPos, yPosition);
-            console.log("按钮 " + btnNode.name + " 位置: (" + xPos + ", " + yPosition + ")");
+            
+            // 设置缩放
+            btnNode.scale = scale;
+            
+            console.log("按钮 " + btnNode.name + " 位置: (" + xPos.toFixed(0) + ", " + yPosition + "), 缩放: " + scale.toFixed(2));
         }
         
-        console.log("✅ 房间按钮居中排列完成，总宽度: " + totalWidth + ", 起始X: " + startX);
+        console.log("✅ 房间按钮居中排列完成");
     },
     
     // 根据房间类型加载按钮背景图
