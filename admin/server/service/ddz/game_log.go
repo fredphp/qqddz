@@ -284,10 +284,12 @@ func (s *DDZGameLogService) UpdateRoomConfig(req ddzReq.DDZGameRoomConfigUpdate)
         updates["min_gold"] = req.MinGold
         updates["max_gold"] = req.MaxGold
 
-        // 更新背景图编号
-        if req.BgImageNum >= ddz.BgImageNumMin && req.BgImageNum <= ddz.BgImageNumMax {
-                updates["bg_image_num"] = req.BgImageNum
+        // 更新背景图编号 - 始终更新，如果值无效则使用默认值
+        bgImageNum := req.BgImageNum
+        if bgImageNum < ddz.BgImageNumMin || bgImageNum > ddz.BgImageNumMax {
+                bgImageNum = ddz.BgImageNumMin // 默认值 2
         }
+        updates["bg_image_num"] = bgImageNum
 
         updates["bot_enabled"] = req.BotEnabled
         updates["bot_count"] = req.BotCount
