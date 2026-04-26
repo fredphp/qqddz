@@ -1530,14 +1530,15 @@ cc.Class({
         dividerLine.color = new cc.Color(220, 220, 220);
 
         // ==================== 内容滚动区域 ====================
+        // 整体上移，增加底部空间
         var scrollNode = new cc.Node("scroll_view");
         scrollNode.parent = panel;
-        scrollNode.setContentSize(cc.size(850, 400));
-        scrollNode.setPosition(0, -30);
+        scrollNode.setContentSize(cc.size(820, 380));  // 调整宽度
+        scrollNode.setPosition(0, 0);  // 上移
         
         var viewNode = new cc.Node("view");
         viewNode.parent = scrollNode;
-        viewNode.setContentSize(cc.size(850, 400));
+        viewNode.setContentSize(cc.size(820, 380));  // 调整宽度
         viewNode.setPosition(0, 0);
         
         var mask = viewNode.addComponent(cc.Mask);
@@ -1547,34 +1548,35 @@ cc.Class({
         contentNode.parent = viewNode;
         contentNode.anchorX = 0;
         contentNode.anchorY = 1;
-        contentNode.setPosition(-425, 200);
-        contentNode.setContentSize(cc.size(850, 600));
+        contentNode.setPosition(-410, 190);  // 调整位置
+        contentNode.setContentSize(cc.size(820, 600));  // 调整宽度
         
         var richTextNode = new cc.Node("rich_text");
         richTextNode.parent = contentNode;
         richTextNode.anchorX = 0;
         richTextNode.anchorY = 1;
-        richTextNode.setPosition(20, -20);
+        richTextNode.setPosition(30, -15);  // 增加左边距，文字整体上移
         
         var richText = richTextNode.addComponent(cc.RichText);
-        richText.fontSize = 14;
-        richText.lineHeight = 24;
-        richText.maxWidth = 810;
+        richText.fontSize = 16;  // 字号加大：14 -> 16
+        richText.lineHeight = 26;  // 行高加大：24 -> 26
+        richText.maxWidth = 760;  // 调整宽度，确保左右边距
         
-        var agreementText = "<b>用户协议</b>\n\n" +
-            "欢迎使用本游戏！在使用前，请仔细阅读以下协议：\n\n" +
-            "<b>一、服务条款</b>\n" +
-            "1. 用户应遵守国家法律法规，文明游戏。\n" +
-            "2. 禁止使用外挂、作弊软件等破坏游戏公平性的行为。\n" +
-            "3. 用户账号安全由用户自行负责，请妥善保管账号密码。\n\n" +
-            "<b>二、隐私政策</b>\n" +
-            "1. 我们会收集必要的用户信息用于提供服务。\n" +
-            "2. 我们承诺保护用户隐私，不会向第三方泄露用户信息。\n" +
-            "3. 用户有权要求删除个人数据。\n\n" +
-            "<b>三、免责声明</b>\n" +
-            "1. 因不可抗力导致的服务中断，我们不承担责任。\n" +
-            "2. 用户因违规操作造成的损失，由用户自行承担。\n\n" +
-            "如有疑问，请联系客服。";
+        // 设置文字颜色为黑色
+        var agreementText = "<b><color=#000000>用户协议</color></b>\n\n" +
+            "<color=#000000>欢迎使用本游戏！在使用前，请仔细阅读以下协议：</color>\n\n" +
+            "<b><color=#000000>一、服务条款</color></b>\n" +
+            "<color=#000000>1. 用户应遵守国家法律法规，文明游戏。</color>\n" +
+            "<color=#000000>2. 禁止使用外挂、作弊软件等破坏游戏公平性的行为。</color>\n" +
+            "<color=#000000>3. 用户账号安全由用户自行负责，请妥善保管账号密码。</color>\n\n" +
+            "<b><color=#000000>二、隐私政策</color></b>\n" +
+            "<color=#000000>1. 我们会收集必要的用户信息用于提供服务。</color>\n" +
+            "<color=#000000>2. 我们承诺保护用户隐私，不会向第三方泄露用户信息。</color>\n" +
+            "<color=#000000>3. 用户有权要求删除个人数据。</color>\n\n" +
+            "<b><color=#000000>三、免责声明</color></b>\n" +
+            "<color=#000000>1. 因不可抗力导致的服务中断，我们不承担责任。</color>\n" +
+            "<color=#000000>2. 用户因违规操作造成的损失，由用户自行承担。</color>\n\n" +
+            "<color=#000000>如有疑问，请联系客服。</color>";
         
         richText.string = agreementText;
 
