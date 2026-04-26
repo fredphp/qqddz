@@ -94,9 +94,18 @@ cc.Class({
     
     // 通过触摸播放音乐
     _playMusicOnTouch: function() {
-        // 如果已经在播放，直接返回
-        if (this._musicPlayed) {
+        // 首先检查音频引擎是否实际上正在播放音乐
+        if (cc.audioEngine.isMusicPlaying && cc.audioEngine.isMusicPlaying()) {
+            // 音乐已经在播放，更新状态并移除监听器
+            this._musicPlayed = true;
+            console.log("✅ 音乐已在播放中，跳过重复播放");
+            this._removeGlobalTouchForMusic();
             return;
+        }
+        
+        // 如果标记为已播放但没有实际播放（异常情况），重置标记
+        if (this._musicPlayed) {
+            this._musicPlayed = false;
         }
         
         var self = this;
