@@ -429,16 +429,116 @@ cc.Class({
             return;
         }
 
-        if (window.isopen_sound) {
-            cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
-                if (!err) {
-                    try { cc.audioEngine.playMusic(clip, true); } catch(e) {}
-                }
-            });
-        }
+        // 初始化背景音乐 - 处理浏览器自动播放策略
+        this._initBackgroundMusic();
 
         if (myglobal.socket && myglobal.socket.initSocket) {
             myglobal.socket.initSocket();
+        }
+    },
+
+    // 初始化背景音乐 - 处理浏览器自动播放策略
+    _initBackgroundMusic: function() {
+        var self = this;
+        
+        // 音效开关检查
+        var isopen_sound = (typeof window.isopen_sound !== 'undefined') ? window.isopen_sound : 1;
+        if (!isopen_sound) {
+            console.log("音效已关闭");
+            return;
+        }
+        
+        // 标记是否已成功播放
+        this._musicPlayed = false;
+        this._bgMusicClip = null;
+        
+        // 预加载背景音乐
+        cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
+            if (err) {
+                console.error("加载背景音乐失败:", err);
+                return;
+            }
+            
+            self._bgMusicClip = clip;
+            console.log("✅ 登录背景音乐加载完成");
+            
+            // 尝试自动播放
+            self._tryPlayMusic();
+        });
+        
+        // 设置全局触摸监听 - 处理浏览器自动播放策略
+        this._setupGlobalTouchForMusic();
+    },
+    
+    // 尝试播放音乐
+    _tryPlayMusic: function() {
+        if (this._musicPlayed) {
+            return true;
+        }
+        
+        if (!this._bgMusicClip) {
+            return false;
+        }
+        
+        try {
+            // 先停止之前的音乐
+            cc.audioEngine.stopMusic();
+            
+            // 尝试播放
+            cc.audioEngine.playMusic(this._bgMusicClip, true);
+            
+            // 检查是否真的在播放
+            if (cc.audioEngine.isMusicPlaying()) {
+                this._musicPlayed = true;
+                console.log("✅ 登录背景音乐播放成功");
+                this._removeGlobalTouchForMusic();
+                return true;
+            } else {
+                console.log("⚠️ 登录背景音乐播放失败（可能被浏览器阻止）");
+                return false;
+            }
+        } catch(e) {
+            console.log("播放背景音乐异常:", e);
+            return false;
+        }
+    },
+    
+    // 设置全局触摸监听 - 用户点击任意位置触发音乐
+    _setupGlobalTouchForMusic: function() {
+        var self = this;
+        
+        // Cocos Creator 层面的监听
+        this.node.on(cc.Node.EventType.TOUCH_START, function() {
+            if (!self._musicPlayed) {
+                self._tryPlayMusic();
+            }
+        }, this);
+        
+        // Web 浏览器层面的监听（处理首次点击）
+        if (cc.sys.isBrowser) {
+            this._browserTouchHandler = function() {
+                if (!self._musicPlayed) {
+                    self._tryPlayMusic();
+                }
+            };
+            
+            // 监听整个文档的点击事件
+            document.addEventListener('touchstart', this._browserTouchHandler, true);
+            document.addEventListener('mousedown', this._browserTouchHandler, true);
+            document.addEventListener('click', this._browserTouchHandler, true);
+            
+            console.log("✅ 已设置全局触摸监听，等待用户交互后播放音乐");
+        }
+    },
+    
+    // 移除全局触摸监听
+    _removeGlobalTouchForMusic: function() {
+        if (cc.sys.isBrowser && this._browserTouchHandler) {
+            document.removeEventListener('touchstart', this._browserTouchHandler, true);
+            document.removeEventListener('mousedown', this._browserTouchHandler, true);
+            document.removeEventListener('click', this._browserTouchHandler, true);
+            this._browserTouchHandler = null;
+            console.log("✅ 已移除全局触摸监听");
         }
     },
 
@@ -1441,5 +1541,10 @@ cc.Class({
             this._userAgreementPopup.destroy();
             this._userAgreementPopup = null;
         }
+    },
+    
+    // 销毁时清理
+    onDestroy () {
+        this._removeGlobalTouchForMusic();
     }
 });
