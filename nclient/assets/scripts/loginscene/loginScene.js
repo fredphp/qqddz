@@ -451,7 +451,6 @@ cc.Class({
         
         // 初始化状态
         this._musicPlaying = false;
-        this._currentMusicId = -1;
         this._touchListenerAdded = false;
         
         // 使用 cc.resources.load 加载音频
@@ -466,19 +465,12 @@ cc.Class({
             self._bgMusicClip = clip;
             
             try {
-                // 播放背景音乐
-                var audioId = cc.audioEngine.play(clip, true, 1);
-                
-                if (audioId >= 0) {
-                    self._currentMusicId = audioId;
-                    self._musicPlaying = true;
-                    console.log("✅ 登录背景音乐播放成功, audioId:", audioId);
-                    // 成功播放，确保监听器被移除
-                    self._removeGlobalTouchForMusic();
-                } else {
-                    console.log("⚠️ 背景音乐播放失败（可能被浏览器阻止），设置触摸监听");
-                    self._setupGlobalTouchForMusic();
-                }
+                // 使用 playMusic 播放背景音乐（统一的背景音乐管理）
+                cc.audioEngine.playMusic(clip, true);
+                self._musicPlaying = true;
+                console.log("✅ 登录背景音乐播放成功");
+                // 成功播放，确保监听器被移除
+                self._removeGlobalTouchForMusic();
             } catch(e) {
                 console.log("播放背景音乐异常:", e);
                 self._setupGlobalTouchForMusic();
@@ -490,26 +482,20 @@ cc.Class({
     _playMusicOnTouch: function() {
         var self = this;
         
-        // 首先检查是否有正在播放的音乐（使用 audioId 检查）
-        if (this._currentMusicId >= 0) {
-            var state = cc.audioEngine.getState(this._currentMusicId);
-            if (state === cc.audioEngine.AudioState.PLAYING) {
-                console.log("✅ 音乐正在播放中，跳过");
-                this._removeGlobalTouchForMusic();
-                return;
-            }
+        // 首先检查是否有正在播放的音乐
+        if (cc.audioEngine.isMusicPlaying()) {
+            console.log("✅ 音乐正在播放中，跳过");
+            this._removeGlobalTouchForMusic();
+            return;
         }
         
         // 如果已经有音频剪辑，直接播放
         if (this._bgMusicClip) {
             try {
-                var audioId = cc.audioEngine.play(this._bgMusicClip, true, 1);
-                if (audioId >= 0) {
-                    this._currentMusicId = audioId;
-                    this._musicPlaying = true;
-                    console.log("✅ 触摸后背景音乐播放成功, audioId:", audioId);
-                    this._removeGlobalTouchForMusic();
-                }
+                cc.audioEngine.playMusic(this._bgMusicClip, true);
+                this._musicPlaying = true;
+                console.log("✅ 触摸后背景音乐播放成功");
+                this._removeGlobalTouchForMusic();
             } catch(e) {
                 console.log("触摸播放背景音乐异常:", e);
             }
@@ -526,13 +512,10 @@ cc.Class({
             self._bgMusicClip = clip;
             
             try {
-                var audioId = cc.audioEngine.play(clip, true, 1);
-                if (audioId >= 0) {
-                    self._currentMusicId = audioId;
-                    self._musicPlaying = true;
-                    console.log("✅ 触摸后背景音乐播放成功, audioId:", audioId);
-                    self._removeGlobalTouchForMusic();
-                }
+                cc.audioEngine.playMusic(clip, true);
+                self._musicPlaying = true;
+                console.log("✅ 触摸后背景音乐播放成功");
+                self._removeGlobalTouchForMusic();
             } catch(e) {
                 console.log("触摸播放背景音乐异常:", e);
             }

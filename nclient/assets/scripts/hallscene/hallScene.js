@@ -209,11 +209,10 @@ cc.Class({
         }
         
         try {
-            // 检查是否已有音乐在播放
-            if (cc.audioEngine.isMusicPlaying()) {
-                console.log("背景音乐已在播放中");
-                return;
-            }
+            // 先停止所有音频（包括登录界面的背景音乐）
+            cc.audioEngine.stopMusic();
+            cc.audioEngine.stopAllEffects();
+            console.log("✅ 已停止之前的背景音乐");
             
             // 加载并播放登录背景音乐（大厅继续使用登录音乐）
             cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
