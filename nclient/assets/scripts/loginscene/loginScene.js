@@ -246,10 +246,25 @@ cc.Class({
                         cc.director.loadScene("hallScene");
                     }, 0.5);
                 } else {
-                    console.log("⚠️ Token 验证失败:", message);
-                    // Token 无效，清除本地状态，显示登录界面
-                    if (myglobal.playerData) {
-                        myglobal.playerData.clearLocal();
+                    console.log("⚠️ Token 验证结果:", message);
+                    
+                    // 只有在明确 token 无效时才清除本地状态
+                    // 网络错误等情况保留本地状态，让用户可以继续使用
+                    if (message === "登录已过期" || message === "Token无效" || message === "无登录凭证") {
+                        console.log("Token 明确无效，清除本地状态");
+                        if (myglobal.playerData) {
+                            myglobal.playerData.clearLocal();
+                        }
+                    } else {
+                        // 网络错误等，仍然允许进入大厅（使用本地缓存）
+                        console.log("网络错误，使用本地缓存自动登录");
+                        self._showError("自动登录中...");
+                        self.scheduleOnce(function() {
+                            if (myglobal.socket && myglobal.socket.initSocket) {
+                                myglobal.socket.initSocket();
+                            }
+                            cc.director.loadScene("hallScene");
+                        }, 0.5);
                     }
                 }
             });
@@ -1266,6 +1281,7 @@ cc.Class({
                                     phone: phone,
                                     loginType: 1
                                 };
+                                console.log("登录数据:", loginData);
                                 window.myglobal.onLoginSuccess(loginData);
                             }
                             self.scheduleOnce(function() {
@@ -1295,15 +1311,16 @@ cc.Class({
                                     // 使用 myglobal.onLoginSuccess 保存登录状态
                                     if (window.myglobal) {
                                         var loginData = {
-                                            uniqueID: resp.data.player_id || "",
-                                            accountID: resp.data.account_id || "",
-                                            nickName: resp.data.nickname || "玩家",
-                                            avatarUrl: resp.data.avatar || "",
-                                            goldCount: resp.data.gold || 0,
+                                            uniqueID: resp.data.uniqueID || resp.data.player_id || "",
+                                            accountID: resp.data.accountID || resp.data.account_id || "",
+                                            nickName: resp.data.nickName || resp.data.nickname || "玩家",
+                                            avatarUrl: resp.data.avatarUrl || resp.data.avatar || "",
+                                            goldCount: resp.data.goldcount || resp.data.gold || 0,
                                             token: resp.data.token || "",
                                             phone: phone,
                                             loginType: 1
                                         };
+                                        console.log("登录数据:", loginData);
                                         window.myglobal.onLoginSuccess(loginData);
                                     }
                                     self.scheduleOnce(function() {

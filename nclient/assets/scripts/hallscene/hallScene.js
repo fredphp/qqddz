@@ -16,19 +16,97 @@ cc.Class({
     // LIFE-CYCLE CALLBACKS:
 
     onLoad () {
-        var myglobal = window.myglobal
-        if (!myglobal || !myglobal.playerData) {
-            console.error("myglobal 或 playerData 未定义")
-            return
-        }
-        this.nickname_label.string = myglobal.playerData.nickName
-        this.gobal_count.string = ":" + myglobal.playerData.gobal_count
+        console.log("=== hallScene onLoad ===");
         
+        // 等待 myglobal 初始化
+        if (!window.myglobal) {
+            console.warn("myglobal 未定义，等待初始化...");
+            this._waitForMyglobal();
+            return;
+        }
+        
+        this._initWithPlayerData();
+    },
+    
+    // 等待 myglobal 初始化
+    _waitForMyglobal: function() {
+        var self = this;
+        var attempts = 0;
+        var maxAttempts = 20;
+        
+        var check = function() {
+            attempts++;
+            console.log("等待 myglobal 初始化... (" + attempts + ")");
+            
+            if (window.myglobal && window.myglobal.playerData) {
+                console.log("✅ myglobal 已就绪");
+                self._initWithPlayerData();
+            } else if (attempts < maxAttempts) {
+                setTimeout(check, 100);
+            } else {
+                console.error("myglobal 初始化超时，返回登录页");
+                cc.director.loadScene("loginScene");
+            }
+        };
+        
+        setTimeout(check, 100);
+    },
+    
+    // 使用玩家数据初始化UI
+    _initWithPlayerData: function() {
+        var myglobal = window.myglobal;
+        
+        console.log("=== _initWithPlayerData ===");
+        console.log("myglobal:", !!myglobal);
+        console.log("playerData:", !!myglobal.playerData);
+        
+        if (!myglobal || !myglobal.playerData) {
+            console.error("myglobal 或 playerData 未定义");
+            cc.director.loadScene("loginScene");
+            return;
+        }
+        
+        var playerData = myglobal.playerData;
+        console.log("玩家数据:");
+        console.log("  - nickName:", playerData.nickName);
+        console.log("  - gobal_count:", playerData.gobal_count);
+        console.log("  - avatarUrl:", playerData.avatarUrl);
+        console.log("  - uniqueID:", playerData.uniqueID);
+        console.log("  - token:", playerData.token ? "有" : "无");
+        
+        // 检查是否已登录
+        if (!playerData.token) {
+            console.warn("无登录凭证，返回登录页");
+            cc.director.loadScene("loginScene");
+            return;
+        }
+        
+        // 设置昵称
+        if (this.nickname_label) {
+            var nickName = playerData.nickName || "游客";
+            this.nickname_label.string = nickName;
+            console.log("✅ 昵称已设置:", nickName);
+        } else {
+            console.warn("nickname_label 组件未绑定");
+        }
+        
+        // 设置金币/元宝数量
+        if (this.gobal_count) {
+            var goldCount = playerData.gobal_count || 0;
+            this.gobal_count.string = ":" + goldCount;
+            console.log("✅ 元宝已设置:", goldCount);
+        } else {
+            console.warn("gobal_count 组件未绑定");
+        }
+
+        // 加载用户头像
+        this._loadUserAvatar(playerData.avatarUrl);
+
         // 房间配置数据
         this.roomConfigs = [];
         
-        // 预加载背景音乐并尝试播放
-        this._initBackgroundMusic();
+        // 播放大厅背景音乐
+        this._playHallBackgroundMusic();
         
         // 隐藏不需要的按钮
         this._hideUnwantedButtons();
@@ -40,155 +118,92 @@ cc.Class({
         this._removeNoticeBoard();
     },
     
-    // 初始化背景音乐 - 处理浏览器自动播放策略
-    _initBackgroundMusic: function() {
+    // 加载用户头像
+    _loadUserAvatar: function(avatarUrl) {
         var self = this;
-        
-        // 音效开关检查
-        var isopen_sound = (typeof window.isopen_sound !== 'undefined') ? window.isopen_sound : 1;
+
+        if (!this.headimage) {
+            console.warn("headimage 组件未设置");
+            return;
+        }
+
+        // 如果没有头像URL，使用默认头像
+        if (!avatarUrl) {
+            this._loadDefaultAvatar();
+            return;
+        }
+
+        // 检查是否是网络URL
+        if (avatarUrl.indexOf('http://') === 0 || avatarUrl.indexOf('https://') === 0) {
+            // 从网络加载头像
+            cc.assetManager.loadRemote(avatarUrl, { ext: '.png' }, function(err, texture) {
+                if (err) {
+                    console.warn("加载网络头像失败，使用默认头像:", err);
+                    self._loadDefaultAvatar();
+                    return;
+                }
+                self.headimage.spriteFrame = new cc.SpriteFrame(texture);
+                console.log("网络头像加载成功");
+            });
+        } else {
+            // 本地资源路径
+            var localPath = 'UI/headimage/' + avatarUrl;
+            cc.resources.load(localPath, cc.SpriteFrame, function(err, spriteFrame) {
+                if (err) {
+                    console.warn("加载本地头像失败，使用默认头像:", err);
+                    self._loadDefaultAvatar();
+                    return;
+                }
+                self.headimage.spriteFrame = spriteFrame;
+                console.log("本地头像加载成功:", avatarUrl);
+            });
+        }
+    },
+
+    // 加载默认头像
+    _loadDefaultAvatar: function() {
+        var self = this;
+        cc.resources.load('UI/headimage/avatar_1', cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.error("加载默认头像失败:", err);
+                return;
+            }
+            self.headimage.spriteFrame = spriteFrame;
+            console.log("默认头像加载成功");
+        });
+    },
+
+    // 播放大厅背景音乐
+    _playHallBackgroundMusic: function() {
+        var isopen_sound = window.isopen_sound || 1;
         if (!isopen_sound) {
-            console.log("音效已关闭");
+            console.log("音效已关闭，不播放背景音乐");
             return;
         }
         
-        // 初始化状态
-        this._musicPlaying = false;
-        this._currentMusicId = -1;
-        this._touchListenerAdded = false;
-        
-        // 使用 cc.resources.load 加载音频
-        cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
-            if (err) {
-                console.log("加载背景音乐失败:", err);
-                self._setupGlobalTouchForMusic();
+        try {
+            // 检查是否已有音乐在播放
+            if (cc.audioEngine.isMusicPlaying()) {
+                console.log("背景音乐已在播放中");
                 return;
             }
             
-            // 保存音频剪辑
-            self._bgMusicClip = clip;
-            
-            try {
-                // 播放背景音乐
-                var audioId = cc.audioEngine.play(clip, true, 1);
-                
-                if (audioId >= 0) {
-                    self._currentMusicId = audioId;
-                    self._musicPlaying = true;
-                    console.log("✅ 大厅背景音乐播放成功, audioId:", audioId);
-                    // 成功播放，确保监听器被移除
-                    self._removeGlobalTouchForMusic();
+            // 加载并播放登录背景音乐（大厅继续使用登录音乐）
+            cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
+                if (!err && clip) {
+                    try {
+                        cc.audioEngine.playMusic(clip, true);
+                        console.log("✅ 大厅背景音乐开始播放");
+                    } catch(e) {
+                        console.log("播放背景音乐失败:", e);
+                    }
                 } else {
-                    console.log("⚠️ 背景音乐播放失败（可能被浏览器阻止），设置触摸监听");
-                    self._setupGlobalTouchForMusic();
+                    console.log("加载背景音乐失败:", err);
                 }
-            } catch(e) {
-                console.log("播放背景音乐异常:", e);
-                self._setupGlobalTouchForMusic();
-            }
-        });
-    },
-    
-    // 通过触摸播放音乐
-    _playMusicOnTouch: function() {
-        var self = this;
-        
-        // 首先检查是否有正在播放的音乐（使用 audioId 检查）
-        if (this._currentMusicId >= 0) {
-            var state = cc.audioEngine.getState(this._currentMusicId);
-            if (state === cc.audioEngine.AudioState.PLAYING) {
-                console.log("✅ 音乐正在播放中，跳过");
-                this._removeGlobalTouchForMusic();
-                return;
-            }
+            });
+        } catch(e) {
+            console.log("播放背景音乐异常:", e);
         }
-        
-        // 如果已经有音频剪辑，直接播放
-        if (this._bgMusicClip) {
-            try {
-                var audioId = cc.audioEngine.play(this._bgMusicClip, true, 1);
-                if (audioId >= 0) {
-                    this._currentMusicId = audioId;
-                    this._musicPlaying = true;
-                    console.log("✅ 触摸后背景音乐播放成功, audioId:", audioId);
-                    this._removeGlobalTouchForMusic();
-                }
-            } catch(e) {
-                console.log("触摸播放背景音乐异常:", e);
-            }
-            return;
-        }
-        
-        // 没有音频剪辑，需要加载
-        cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
-            if (err) {
-                console.log("触摸播放: 加载背景音乐失败:", err);
-                return;
-            }
-            
-            self._bgMusicClip = clip;
-            
-            try {
-                var audioId = cc.audioEngine.play(clip, true, 1);
-                if (audioId >= 0) {
-                    self._currentMusicId = audioId;
-                    self._musicPlaying = true;
-                    console.log("✅ 触摸后背景音乐播放成功, audioId:", audioId);
-                    self._removeGlobalTouchForMusic();
-                }
-            } catch(e) {
-                console.log("触摸播放背景音乐异常:", e);
-            }
-        });
-    },
-    
-    // 设置全局触摸监听 - 用户点击任意位置触发音乐
-    _setupGlobalTouchForMusic: function() {
-        // 防止重复添加监听器
-        if (this._touchListenerAdded) {
-            return;
-        }
-        
-        var self = this;
-        this._touchListenerAdded = true;
-        
-        // Cocos Creator 层面的监听
-        this._cocosTouchHandler = function() {
-            self._playMusicOnTouch();
-        };
-        this.node.on(cc.Node.EventType.TOUCH_START, this._cocosTouchHandler, this);
-        
-        // Web 浏览器层面的监听
-        if (cc.sys.isBrowser) {
-            this._browserTouchHandler = function() {
-                self._playMusicOnTouch();
-            };
-            
-            document.addEventListener('touchstart', this._browserTouchHandler, true);
-            document.addEventListener('mousedown', this._browserTouchHandler, true);
-            document.addEventListener('click', this._browserTouchHandler, true);
-            
-            console.log("✅ 已设置全局触摸监听，等待用户交互后播放音乐");
-        }
-    },
-    
-    // 移除全局触摸监听
-    _removeGlobalTouchForMusic: function() {
-        // 移除 Cocos Creator 层面的监听
-        if (this._cocosTouchHandler) {
-            this.node.off(cc.Node.EventType.TOUCH_START, this._cocosTouchHandler, this);
-            this._cocosTouchHandler = null;
-        }
-        
-        // 移除浏览器层面的监听
-        if (cc.sys.isBrowser && this._browserTouchHandler) {
-            document.removeEventListener('touchstart', this._browserTouchHandler, true);
-            document.removeEventListener('mousedown', this._browserTouchHandler, true);
-            document.removeEventListener('click', this._browserTouchHandler, true);
-            this._browserTouchHandler = null;
-            console.log("✅ 已移除全局触摸监听");
-        }
-        
-        this._touchListenerAdded = false;
     },
     
     // 从 API 获取房间配置
