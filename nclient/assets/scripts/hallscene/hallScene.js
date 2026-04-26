@@ -181,8 +181,6 @@ cc.Class({
         }
         
         tipNode = new cc.Node("room_tip");
-        tipNode.parent = this.node;
-        tipNode.zIndex = 1000;
         tipNode.y = 250;
         
         // 添加标签
@@ -190,7 +188,10 @@ cc.Class({
         label.string = message;
         label.fontSize = 28;
         label.lineHeight = 36;
-        label.node.color = cc.color(255, 255, 0);
+        tipNode.color = cc.color(255, 255, 0);
+        
+        // 最后设置父节点（避免在设置属性时触发渲染更新）
+        tipNode.parent = this.node;
         
         // 2秒后消失
         this.scheduleOnce(function() {
@@ -219,11 +220,14 @@ cc.Class({
     
     // 递归查找并隐藏包含特定文字的节点
     _hideNodesWithText: function(parentNode, searchText) {
-        if (!parentNode || !parentNode.children) return;
+        if (!parentNode) return;
         
         var children = parentNode.children;
+        if (!children || children.length === 0) return;
+        
         for (var i = 0; i < children.length; i++) {
             var child = children[i];
+            if (!child || !child.isValid) continue;
             
             var label = child.getComponent(cc.Label);
             if (label && label.string) {
@@ -234,6 +238,7 @@ cc.Class({
                 }
             }
             
+            // 递归检查子节点
             if (child.children && child.children.length > 0) {
                 this._hideNodesWithText(child, searchText);
             }
@@ -251,21 +256,18 @@ cc.Class({
                 if (this.creatroom_prefabs) {
                     var creator_Room = cc.instantiate(this.creatroom_prefabs);
                     creator_Room.parent = this.node;
-                    creator_Room.zIndex = 100;
                 }
                 break;
             case "join_room":
                 if (this.joinroom_prefabs) {
                     var join_Room = cc.instantiate(this.joinroom_prefabs);
                     join_Room.parent = this.node;
-                    join_Room.zIndex = 100;
                 }
                 break;
             case "user_agreement":
                 if (this.user_agreement_prefabs) {
                     var userAgreement_popup = cc.instantiate(this.user_agreement_prefabs);
                     userAgreement_popup.parent = this.node;
-                    userAgreement_popup.zIndex = 100;
                 }
                 break;
         }
