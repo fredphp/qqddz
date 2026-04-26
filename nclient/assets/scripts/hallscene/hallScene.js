@@ -466,6 +466,9 @@ cc.Class({
                 // 根据房间类型加载背景图
                 self._loadRoomButtonBg(btnNode, roomType);
                 
+                // 添加或更新最低豆子显示
+                self._updateMinGoldLabel(btnNode, config);
+                
                 // 获取 Button 组件
                 var button = btnNode.getComponent(cc.Button);
                 if (button) {
@@ -625,6 +628,53 @@ cc.Class({
             sprite.spriteFrame = spriteFrame;
             console.log("使用默认背景图: btn_happy_2.png");
         });
+    },
+    
+    // 添加或更新最低豆子显示Label
+    _updateMinGoldLabel: function(btnNode, config) {
+        // 查找或创建豆子显示节点
+        var goldLabelNode = btnNode.getChildByName("min_gold_label");
+        
+        if (!goldLabelNode) {
+            // 创建新的Label节点
+            goldLabelNode = new cc.Node("min_gold_label");
+            
+            // 添加Label组件
+            var label = goldLabelNode.addComponent(cc.Label);
+            label.fontSize = 22;
+            label.lineHeight = 26;
+            label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+            label.verticalAlign = cc.Label.VerticalAlign.CENTER;
+            
+            // 设置锚点为中心
+            goldLabelNode.anchorX = 0.5;
+            goldLabelNode.anchorY = 0.5;
+            
+            // 添加Outline组件增加可读性
+            var outline = goldLabelNode.addComponent(cc.LabelOutline);
+            outline.color = cc.color(0, 0, 0, 180);
+            outline.width = 2;
+            
+            // 设置父节点
+            goldLabelNode.parent = btnNode;
+        }
+        
+        // 获取Label组件
+        var label = goldLabelNode.getComponent(cc.Label);
+        
+        // 设置豆子数量文本
+        var minGold = config.entry_gold || config.min_gold || 0;
+        var goldText = this._formatGold(minGold);
+        label.string = "最低 " + goldText + " 豆";
+        
+        // 设置颜色（金黄色）
+        goldLabelNode.color = cc.color(255, 215, 0);
+        
+        // 设置位置（在按钮底部）
+        // 按钮高度375，Label放在底部位置
+        goldLabelNode.setPosition(0, -140);
+        
+        console.log("✅ 房间按钮最低豆子Label已更新: " + config.room_name + " - 最低 " + goldText + " 豆");
     },
     
     // 房间按钮点击处理 - 使用房间配置
