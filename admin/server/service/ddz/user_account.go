@@ -276,13 +276,13 @@ func (s *DDZUserAccountService) toUserAccountResponse(a ddz.DDZUserAccount) ddzR
 
         var lastLoginAt, tokenExpireAt, refreshTokenExpireAt string
         if a.LastLoginAt != nil {
-                lastLoginAt = *a.LastLoginAt
+                lastLoginAt = a.LastLoginAt.Format("2006-01-02 15:04:05")
         }
         if a.TokenExpireAt != nil {
-                tokenExpireAt = *a.TokenExpireAt
+                tokenExpireAt = a.TokenExpireAt.Format("2006-01-02 15:04:05")
         }
         if a.RefreshTokenExpireAt != nil {
-                refreshTokenExpireAt = *a.RefreshTokenExpireAt
+                refreshTokenExpireAt = a.RefreshTokenExpireAt.Format("2006-01-02 15:04:05")
         }
 
         return ddzRes.DDZUserAccountResponse{
