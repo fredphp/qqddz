@@ -1,6 +1,6 @@
 {
   "ver": "2.3.7",
-  "uuid": "btn-confirm-uuid-001",
+  "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567970",
   "importer": "image",
   "type": "sprite",
   "wrapMode": "clamp",
@@ -14,9 +14,9 @@
   "subMetas": {
     "btn_confirm": {
       "ver": "1.0.6",
-      "uuid": "btn-confirm-texture-uuid-001",
+      "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567971",
       "importer": "texture",
-      "rawTextureUuid": "btn-confirm-uuid-001",
+      "rawTextureUuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567970",
       "trimType": "auto",
       "trimThreshold": 1,
       "rotated": false,
