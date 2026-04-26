@@ -226,6 +226,83 @@
         }
         
         console.log("🔐 开始验证Token...");
+        console.log("🔐 Token:", this.playerData.token ? "存在(长度:" + this.playerData.token.length + ")" : "无");
+        console.log("🔐 PlayerID:", this.playerData.uniqueID);
+        
+        // 使用 HttpAPI 发送请求（支持自动解密）
+        var HttpAPI = window.HttpAPI;
+        if (!HttpAPI) {
+            console.log("⚠️ HttpAPI未加载，使用原生XMLHttpRequest");
+            this._verifyTokenWithXHR(callback);
+            return;
+        }
+        
+        var cryptoKey = defines.cryptoKey || "";
+        console.log("🔐 使用加密密钥:", cryptoKey ? "已配置(" + cryptoKey.length + "字符)" : "未配置");
+        
+        // 使用 HttpAPI.post 发送请求（会自动解密响应）
+        HttpAPI.post(
+            defines.apiUrl + '/api/v1/auth/verify-token',
+            {
+                token: this.playerData.token,
+                player_id: this.playerData.uniqueID
+            },
+            cryptoKey,
+            function(err, resp) {
+                if (err) {
+                    console.log("❌ Token验证请求失败:", err);
+                    // 请求失败，使用本地缓存
+                    callback(true, "使用本地缓存");
+                    return;
+                }
+                
+                console.log("🔐 Token验证响应(已解密):", resp);
+                
+                // resp 已经是解密后的数据
+                if (resp && resp.code === 0 && resp.data) {
+                    if (resp.data.valid) {
+                        // Token 有效，更新用户信息
+                        console.log("✅ Token验证有效");
+                        if (resp.data.player) {
+                            self.playerData.updateFromLogin(resp.data.player);
+                        }
+                        callback(true, "Token有效");
+                    } else {
+                        // Token 明确无效，需要重新登录
+                        console.log("❌ Token无效:", resp.data.message);
+                        self.playerData.clearLocal();
+                        callback(false, resp.data.message || "Token无效");
+                    }
+                } else {
+                    // API返回错误
+                    console.log("❌ API返回错误:", resp ? resp.message : "未知错误");
+                    // 检查是否是解密后的直接数据
+                    if (resp && resp.valid !== undefined) {
+                        if (resp.valid) {
+                            console.log("✅ Token验证有效(直接返回)");
+                            if (resp.player) {
+                                self.playerData.updateFromLogin(resp.player);
+                            }
+                            callback(true, "Token有效");
+                        } else {
+                            console.log("❌ Token无效(直接返回):", resp.message);
+                            self.playerData.clearLocal();
+                            callback(false, resp.message || "Token无效");
+                        }
+                    } else {
+                        // 其他情况，使用本地缓存继续
+                        console.log("⚠️ 响应格式不明确，使用本地缓存");
+                        callback(true, "使用本地缓存");
+                    }
+                }
+            }
+        );
+    };
+    
+    // 使用原生 XMLHttpRequest 验证 Token（降级方案）
+    myglobal._verifyTokenWithXHR = function(callback) {
+        var self = this;
+        var defines = window.defines;
         
         var xhr = new XMLHttpRequest();
         xhr.open('POST', defines.apiUrl + '/api/v1/auth/verify-token', true);
@@ -237,44 +314,44 @@
                 if (xhr.status >= 200 && xhr.status < 300) {
                     try {
                         var resp = JSON.parse(xhr.responseText);
-                        console.log("🔐 Token验证响应:", resp);
+                        console.log("🔐 Token验证响应(XHR):", resp);
+                        
+                        // 检查是否是加密响应
+                        if (resp.data && resp.timestamp && typeof resp.data === 'string') {
+                            // 加密响应，无法解密，使用本地缓存
+                            console.log("⚠️ 收到加密响应但无法解密，使用本地缓存");
+                            callback(true, "使用本地缓存");
+                            return;
+                        }
                         
                         if (resp.code === 0 && resp.data) {
                             if (resp.data.valid) {
-                                // Token 有效，更新用户信息
                                 console.log("✅ Token验证有效");
                                 if (resp.data.player) {
                                     self.playerData.updateFromLogin(resp.data.player);
                                 }
                                 callback(true, "Token有效");
                             } else {
-                                // Token 明确无效，需要重新登录
                                 console.log("❌ Token无效:", resp.data.message);
                                 self.playerData.clearLocal();
                                 callback(false, resp.data.message || "Token无效");
                             }
                         } else {
-                            // API返回错误
                             console.log("❌ API返回错误:", resp.message);
-                            self.playerData.clearLocal();
-                            callback(false, resp.message || "验证失败");
+                            callback(true, "使用本地缓存");
                         }
                     } catch (e) {
-                        // 解析失败，可能是服务器返回了非JSON
                         console.log("⚠️ 解析响应失败，使用本地缓存:", e);
                         callback(true, "使用本地缓存");
                     }
                 } else if (xhr.status === 404) {
-                    // API不存在（旧版本服务器），使用本地缓存
                     console.log("⚠️ verify-token API不存在(404)，使用本地缓存");
                     callback(true, "使用本地缓存");
                 } else if (xhr.status === 401 || xhr.status === 403) {
-                    // 未授权或禁止访问，token无效
                     console.log("❌ Token无效(HTTP " + xhr.status + ")");
                     self.playerData.clearLocal();
                     callback(false, "Token无效或已过期");
                 } else {
-                    // 其他HTTP错误，使用本地缓存（可能是服务器临时故障）
                     console.log("⚠️ HTTP错误(" + xhr.status + ")，使用本地缓存");
                     callback(true, "使用本地缓存");
                 }
@@ -282,13 +359,11 @@
         };
         
         xhr.onerror = function() {
-            // 网络错误，使用本地缓存
             console.log("⚠️ 网络错误，使用本地缓存");
             callback(true, "使用本地缓存");
         };
         
         xhr.ontimeout = function() {
-            // 请求超时，使用本地缓存
             console.log("⚠️ 请求超时，使用本地缓存");
             callback(true, "使用本地缓存");
         };
