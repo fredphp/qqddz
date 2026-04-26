@@ -1530,11 +1530,18 @@ cc.Class({
         dividerLine.color = new cc.Color(220, 220, 220);
 
         // ==================== 内容滚动区域 ====================
-        // 整体上移，增加底部空间
+        // 整体上移，增加底部空间，添加滚动功能
         var scrollNode = new cc.Node("scroll_view");
         scrollNode.parent = panel;
         scrollNode.setContentSize(cc.size(820, 380));  // 调整宽度
         scrollNode.setPosition(0, 0);  // 上移
+        
+        // 添加 ScrollView 组件实现滚动功能
+        var scrollView = scrollNode.addComponent(cc.ScrollView);
+        scrollView.horizontal = false;  // 禁用水平滚动
+        scrollView.vertical = true;     // 启用垂直滚动
+        scrollView.inertia = true;      // 滚动惯性
+        scrollView.elastic = true;      // 弹性效果
         
         var viewNode = new cc.Node("view");
         viewNode.parent = scrollNode;
@@ -1546,16 +1553,19 @@ cc.Class({
         
         var contentNode = new cc.Node("content");
         contentNode.parent = viewNode;
-        contentNode.anchorX = 0;
+        contentNode.anchorX = 0.5;
         contentNode.anchorY = 1;
-        contentNode.setPosition(-410, 190);  // 调整位置
-        contentNode.setContentSize(cc.size(820, 600));  // 调整宽度
+        contentNode.setPosition(0, 190);  // 居中对齐
+        contentNode.setContentSize(cc.size(820, 800));  // 增加高度以容纳所有内容
+        
+        // 设置 ScrollView 的 content 属性
+        scrollView.content = contentNode;
         
         var richTextNode = new cc.Node("rich_text");
         richTextNode.parent = contentNode;
         richTextNode.anchorX = 0;
         richTextNode.anchorY = 1;
-        richTextNode.setPosition(30, -15);  // 增加左边距，文字整体上移
+        richTextNode.setPosition(-385, -15);  // 增加左边距，文字整体上移
         
         var richText = richTextNode.addComponent(cc.RichText);
         richText.fontSize = 16;  // 字号加大：14 -> 16
@@ -1579,6 +1589,9 @@ cc.Class({
             "<color=#000000>如有疑问，请联系客服。</color>";
         
         richText.string = agreementText;
+        
+        // 滚动到顶部
+        scrollView.scrollToTop(0);
 
         this._userAgreementPopup = popup;
     },
