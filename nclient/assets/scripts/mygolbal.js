@@ -212,6 +212,7 @@
         var self = this;
         
         if (!this.playerData || !this.playerData.token) {
+            console.log("❌ 无登录凭证");
             callback(false, "无登录凭证");
             return;
         }
@@ -219,10 +220,12 @@
         var defines = window.defines;
         if (!defines || !defines.apiUrl) {
             // 无API配置，使用本地缓存登录
-            console.log("无API配置，使用本地缓存登录");
+            console.log("⚠️ 无API配置，使用本地缓存登录");
             callback(true, "无API配置，使用本地缓存");
             return;
         }
+        
+        console.log("🔐 开始验证Token...");
         
         var xhr = new XMLHttpRequest();
         xhr.open('POST', defines.apiUrl + '/api/v1/auth/verify-token', true);
@@ -234,29 +237,45 @@
                 if (xhr.status >= 200 && xhr.status < 300) {
                     try {
                         var resp = JSON.parse(xhr.responseText);
-                        if (resp.code === 0 && resp.data && resp.data.valid) {
-                            // Token 有效，更新用户信息
-                            if (resp.data.player) {
-                                self.playerData.updateFromLogin(resp.data.player);
+                        console.log("🔐 Token验证响应:", resp);
+                        
+                        if (resp.code === 0 && resp.data) {
+                            if (resp.data.valid) {
+                                // Token 有效，更新用户信息
+                                console.log("✅ Token验证有效");
+                                if (resp.data.player) {
+                                    self.playerData.updateFromLogin(resp.data.player);
+                                }
+                                callback(true, "Token有效");
+                            } else {
+                                // Token 明确无效，需要重新登录
+                                console.log("❌ Token无效:", resp.data.message);
+                                self.playerData.clearLocal();
+                                callback(false, resp.data.message || "Token无效");
                             }
-                            callback(true, "Token有效");
                         } else {
-                            // Token 无效（明确返回无效），使用本地缓存
-                            console.log("API返回Token无效，使用本地缓存继续");
-                            callback(true, "使用本地缓存");
+                            // API返回错误
+                            console.log("❌ API返回错误:", resp.message);
+                            self.playerData.clearLocal();
+                            callback(false, resp.message || "验证失败");
                         }
                     } catch (e) {
-                        // 解析失败，使用本地缓存
-                        console.log("解析响应失败，使用本地缓存继续");
+                        // 解析失败，可能是服务器返回了非JSON
+                        console.log("⚠️ 解析响应失败，使用本地缓存:", e);
                         callback(true, "使用本地缓存");
                     }
                 } else if (xhr.status === 404) {
                     // API不存在（旧版本服务器），使用本地缓存
-                    console.log("verify-token API不存在(404)，使用本地缓存继续");
+                    console.log("⚠️ verify-token API不存在(404)，使用本地缓存");
                     callback(true, "使用本地缓存");
+                } else if (xhr.status === 401 || xhr.status === 403) {
+                    // 未授权或禁止访问，token无效
+                    console.log("❌ Token无效(HTTP " + xhr.status + ")");
+                    self.playerData.clearLocal();
+                    callback(false, "Token无效或已过期");
                 } else {
-                    // 其他HTTP错误，使用本地缓存
-                    console.log("HTTP错误(" + xhr.status + ")，使用本地缓存继续");
+                    // 其他HTTP错误，使用本地缓存（可能是服务器临时故障）
+                    console.log("⚠️ HTTP错误(" + xhr.status + ")，使用本地缓存");
                     callback(true, "使用本地缓存");
                 }
             }
@@ -264,13 +283,13 @@
         
         xhr.onerror = function() {
             // 网络错误，使用本地缓存
-            console.log("网络错误，使用本地缓存继续");
+            console.log("⚠️ 网络错误，使用本地缓存");
             callback(true, "使用本地缓存");
         };
         
         xhr.ontimeout = function() {
             // 请求超时，使用本地缓存
-            console.log("请求超时，使用本地缓存继续");
+            console.log("⚠️ 请求超时，使用本地缓存");
             callback(true, "使用本地缓存");
         };
         
