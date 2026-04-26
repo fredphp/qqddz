@@ -54,27 +54,34 @@ cc.Class({
         // 标记是否已成功播放
         this._musicPlayed = false;
         
-        // 使用 cc.url.raw 方式播放（与游戏场景一致）
-        try {
-            // 先停止所有音频
-            cc.audioEngine.stopAll();
-            
-            // 尝试播放背景音乐
-            var audioUrl = cc.url.raw("resources/sound/login_bg.ogg");
-            cc.audioEngine.play(audioUrl, true);
-            
-            // 检查是否真的在播放
-            if (cc.audioEngine.isMusicPlaying()) {
-                this._musicPlayed = true;
-                console.log("✅ 大厅背景音乐播放成功");
-            } else {
-                console.log("⚠️ 背景音乐播放失败（可能被浏览器阻止），设置触摸监听");
-                this._setupGlobalTouchForMusic();
+        // 先停止所有音频
+        cc.audioEngine.stopAll();
+        
+        // 使用 cc.resources.load 加载音频（推荐方式）
+        cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
+            if (err) {
+                console.log("加载背景音乐失败:", err);
+                self._setupGlobalTouchForMusic();
+                return;
             }
-        } catch(e) {
-            console.log("播放背景音乐异常:", e);
-            this._setupGlobalTouchForMusic();
-        }
+            
+            try {
+                // 播放背景音乐
+                cc.audioEngine.play(clip, true, 1);
+                
+                // 检查是否真的在播放
+                if (cc.audioEngine.isMusicPlaying()) {
+                    self._musicPlayed = true;
+                    console.log("✅ 大厅背景音乐播放成功");
+                } else {
+                    console.log("⚠️ 背景音乐播放失败（可能被浏览器阻止），设置触摸监听");
+                    self._setupGlobalTouchForMusic();
+                }
+            } catch(e) {
+                console.log("播放背景音乐异常:", e);
+                self._setupGlobalTouchForMusic();
+            }
+        });
     },
     
     // 通过触摸播放音乐
@@ -83,19 +90,29 @@ cc.Class({
             return;
         }
         
-        try {
-            cc.audioEngine.stopAll();
-            var audioUrl = cc.url.raw("resources/sound/login_bg.ogg");
-            cc.audioEngine.play(audioUrl, true);
-            
-            if (cc.audioEngine.isMusicPlaying()) {
-                this._musicPlayed = true;
-                console.log("✅ 触摸后背景音乐播放成功");
-                this._removeGlobalTouchForMusic();
+        var self = this;
+        
+        cc.audioEngine.stopAll();
+        
+        // 使用 cc.resources.load 加载音频
+        cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
+            if (err) {
+                console.log("触摸播放: 加载背景音乐失败:", err);
+                return;
             }
-        } catch(e) {
-            console.log("触摸播放背景音乐异常:", e);
-        }
+            
+            try {
+                cc.audioEngine.play(clip, true, 1);
+                
+                if (cc.audioEngine.isMusicPlaying()) {
+                    self._musicPlayed = true;
+                    console.log("✅ 触摸后背景音乐播放成功");
+                    self._removeGlobalTouchForMusic();
+                }
+            } catch(e) {
+                console.log("触摸播放背景音乐异常:", e);
+            }
+        });
     },
     
     // 设置全局触摸监听 - 用户点击任意位置触发音乐
