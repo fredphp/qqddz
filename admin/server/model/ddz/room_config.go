@@ -71,7 +71,7 @@ func (DDZGameConfig) TableName() string {
 
 // 背景图编号常量
 const (
-        BgImageNumMin = 1 // 最小背景图编号
+        BgImageNumMin = 2 // 最小背景图编号
         BgImageNumMax = 5 // 最大背景图编号
 )
 
