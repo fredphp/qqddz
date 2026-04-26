@@ -4,8 +4,8 @@
 console.log("📌 hallScene.js 脚本已加载");
 
 cc.Class({
-    name: 'hallScene',
-    extends: cc.Component, 
+    extends: cc.Component,
+    name: 'hallScene', 
 
     properties: {
         nickname_label: cc.Label,
@@ -57,6 +57,7 @@ cc.Class({
     
     // 使用玩家数据初始化UI
     _initWithPlayerData: function() {
+        var self = this;
         var myglobal = window.myglobal;
         
         console.log("=== _initWithPlayerData ===");
@@ -83,6 +84,29 @@ cc.Class({
             cc.director.loadScene("loginScene");
             return;
         }
+        
+        // 验证 token 是否有效
+        console.log("🔐 开始验证 Token...");
+        myglobal.verifyToken(function(valid, message) {
+            console.log("🔐 Token 验证结果: valid=" + valid + ", message=" + message);
+            
+            if (!valid) {
+                console.warn("Token 无效，返回登录页");
+                cc.director.loadScene("loginScene");
+                return;
+            }
+            
+            // Token 有效，初始化 UI
+            self._initUIAfterAuth();
+        });
+    },
+    
+    // Token 验证成功后初始化 UI
+    _initUIAfterAuth: function() {
+        var myglobal = window.myglobal;
+        var playerData = myglobal.playerData;
+        
+        console.log("=== _initUIAfterAuth ===");
         
         // 设置昵称
         if (this.nickname_label) {

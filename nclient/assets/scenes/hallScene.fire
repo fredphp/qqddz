@@ -1856,8 +1856,8 @@
     "target": {
       "__id__": 2
     },
-    "component": "",
-    "_componentId": "d2b3c4d5-e6f7-8901-abcd-ef1234567921",
+    "component": "hallScene",
+    "_componentId": "",
     "handler": "onButtonClick",
     "customEventData": "create_room"
   },
@@ -2029,8 +2029,8 @@
     "target": {
       "__id__": 2
     },
-    "component": "",
-    "_componentId": "d2b3c4d5-e6f7-8901-abcd-ef1234567921",
+    "component": "hallScene",
+    "_componentId": "",
     "handler": "onButtonClick",
     "customEventData": "join_room"
   },
@@ -2776,7 +2776,7 @@
     "_originalHeight": 0
   },
   {
-    "__type__": "d2b3c4d5-e6f7-8901-abcd-ef1234567921",
+    "__type__": "hallScene",
     "_name": "",
     "_objFlags": 0,
     "node": {
