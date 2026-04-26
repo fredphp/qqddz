@@ -39,7 +39,8 @@
         }
         
         if (missing.length > 0) {
-            console.error("缺少依赖:", missing.join(', '));
+            // 使用 console.log 而不是 console.error，避免显示错误（依赖可能正在加载中）
+            console.log("等待依赖加载:", missing.join(', '));
             return false;
         }
         return true;
@@ -88,7 +89,7 @@
     myglobal.autoInit = function() {
         var self = this;
         var attempts = 0;
-        var maxAttempts = 10;
+        var maxAttempts = 20;  // 增加重试次数
         
         var tryInit = function() {
             attempts++;
@@ -100,12 +101,12 @@
                 // 延迟重试
                 setTimeout(tryInit, 100);
             } else {
-                console.error("myglobal 自动初始化失败，已达到最大重试次数");
+                console.error("myglobal 自动初始化失败，请检查依赖脚本是否正确加载");
             }
         };
         
         // 延迟执行，确保所有插件脚本都已加载
-        setTimeout(tryInit, 50);
+        setTimeout(tryInit, 100);
     };
     
     // ==================== 登录状态管理 ====================
