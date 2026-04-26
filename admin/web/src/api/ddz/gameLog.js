@@ -107,6 +107,22 @@ export const deleteRoomConfig = (data) => {
   })
 }
 
+// 刷新房间配置缓存
+export const refreshRoomConfigCache = () => {
+  return service({
+    url: '/ddz/roomConfig/refresh-cache',
+    method: 'post'
+  })
+}
+
+// 获取背景图选项
+export const getBgImageOptions = () => {
+  return service({
+    url: '/ddz/roomConfig/bg-image-options',
+    method: 'get'
+  })
+}
+
 // ==================== 短信验证码 ====================
 
 // 获取短信验证码列表

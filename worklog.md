@@ -1,6 +1,49 @@
 # 项目工作日志
 
 ---
+Task ID: 1
+Agent: Main Agent
+Task: 实现房间配置管理系统，背景图通过编号本地匹配
+
+Work Log:
+- 初始化Next.js 16项目环境
+- 创建Prisma数据库模型（GameRoomConfig和MenuRoomConfig）
+- 实现背景图编号映射逻辑（BACKGROUND_IMAGES配置表）
+- 创建游戏房间配置API（/api/room-configs）
+- 创建菜单房间配置API（/api/menu-room-configs）
+- 创建前端房间配置管理页面
+- 实现背景图编号匹配功能（使用渐变色代替实际图片）
+
+Stage Summary:
+- 已完成房间配置管理系统的核心功能
+- 背景图不再通过API返回URL，而是根据bgImageNum编号在前端本地匹配
+- API只返回房间配置数据和背景图编号
+- 前端使用getBackgroundByNum函数根据编号获取背景图配置
+- 页面包含两个标签页：游戏房间配置和菜单房间配置
+- 底部展示背景图编号映射表说明
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: 更新背景图匹配规则为 btn_happy_{编号}.png 格式
+
+Work Log:
+- 更新背景图命名规则: btn_happy_{编号}.png
+- 当前支持的房间编号: 2, 3, 4, 5
+- 编号2 -> btn_happy_2.png (中级房)
+- 编号3 -> btn_happy_3.png (高级房)
+- 编号4 -> btn_happy_4.png (专家房)
+- 编号5 -> btn_happy_5.png (大师房)
+- 更新前端页面显示背景图文件名
+- 更新API初始化数据使用编号2-5
+
+Stage Summary:
+- 背景图匹配规则已更新为 btn_happy_{编号}.png
+- API返回的bgImageNum字段用于前端匹配背景图文件
+- 前端通过getBackgroundByNum函数获取背景图URL和配置
+- 页面显示背景图文件名和编号映射关系
+
+---
 Task ID: 3
 Agent: Main Agent
 Task: 修改nclient客户端，根据房间编号动态加载背景图
@@ -33,3 +76,95 @@ Stage Summary:
 - 背景图匹配规则: room_type -> btn_happy_{room_type}.png
 - API不需要返回背景图URL，只返回room_type编号
 - 前端使用cc.resources.load从本地资源加载图片
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: 添加Redis缓存、字段更新和admin后台背景图展示
+
+Work Log:
+
+## 1. Admin后台修改
+
+### Model更新 (admin/server/model/ddz/room_config.go)
+- DDZRoomConfig 和 DDZRoomConfigs 模型添加 bgImageNum 字段
+- 背景图编号范围: 2-5
+- 添加辅助方法 GetBgImageFileName 和 GetBgImagePath
+
+### Request更新 (admin/server/model/ddz/request/config.go)
+- DDZRoomConfigCreate 和 DDZRoomConfigUpdate 添加 bgImageNum 字段
+- DDZGameRoomConfigCreate 和 DDZGameRoomConfigUpdate 添加 bgImageNum 字段
+
+### Service更新 (admin/server/service/ddz/config.go)
+- 添加Redis缓存支持
+- 缓存键: ddz:room_config:list
+- 缓存时长: 24小时
+- CreateRoomConfig、UpdateRoomConfig、DeleteRoomConfig 后自动刷新缓存
+- 新增 RefreshRoomConfigCache 方法
+- 新增 GetRoomConfigListForAPI 方法（带缓存）
+- 新增 GetBgImageOptions 方法
+
+### API更新 (admin/server/api/v1/ddz/config.go)
+- 新增 RefreshRoomConfigCache 接口
+- 新增 GetBgImageOptions 接口
+
+### Router更新 (admin/server/router/ddz/config.go)
+- 添加 POST /room/refresh-cache 路由
+- 添加 GET /room/bg-image-options 路由
+
+### 前端API更新 (admin/web/src/api/ddz/gameLog.js)
+- 新增 refreshRoomConfigCache 接口
+- 新增 getBgImageOptions 接口
+
+### 前端页面更新 (admin/web/src/view/ddz/roomConfig/roomConfig.vue)
+- 添加背景图配置提示说明（Alert组件）
+- 表格添加背景图预览列
+- 编辑表单添加背景图编号选择器和预览
+- 添加刷新缓存按钮
+- 背景图编号选择时显示预览效果
+
+## 2. Server端API修改
+
+### room_config.go更新 (server/internal/api/room_config.go)
+- 添加Redis缓存支持（与admin共享缓存键）
+- API响应添加 bg_image_num 字段
+- Redis缓存键: ddz:room_config:list
+- 支持本地内存缓存 + Redis二级缓存
+- 新增 cacheToRedis 方法
+- ClearCache 方法同时清除Redis缓存
+
+Stage Summary:
+- Admin后台和Server端API都支持Redis缓存
+- 数据修改后自动刷新缓存
+- 前端页面展示背景图预览和配置说明
+- API响应包含bg_image_num字段供客户端使用
+- 完整的缓存刷新机制：本地缓存 + Redis缓存
+
+## 背景图配置说明
+
+### 后台管理配置
+1. 在房间配置页面选择背景图编号（2-5）
+2. 保存后自动刷新Redis缓存
+3. 可手动点击"刷新缓存"按钮
+
+### 客户端配置
+1. 将背景图文件放置在 nclient/assets/resources/UI/ 目录
+2. 文件命名格式: btn_happy_{编号}.png
+3. 例如: btn_happy_2.png, btn_happy_3.png, btn_happy_4.png, btn_happy_5.png
+
+### API响应格式
+```json
+{
+  "id": 1,
+  "room_name": "中级房",
+  "room_type": 2,
+  "bg_image_num": 2,
+  ...
+}
+```
+
+### 客户端匹配逻辑
+API返回 bg_image_num，客户端根据此编号加载对应资源：
+- bg_image_num = 2 -> 加载 UI/btn_happy_2
+- bg_image_num = 3 -> 加载 UI/btn_happy_3
+- 以此类推...

@@ -1,13 +1,13 @@
 package ddz
 
 import (
-        "github.com/flipped-aurora/gin-vue-admin/server/global"
-        "github.com/flipped-aurora/gin-vue-admin/server/model/common/response"
-        ddzReq "github.com/flipped-aurora/gin-vue-admin/server/model/ddz/request"
-        "github.com/flipped-aurora/gin-vue-admin/server/service"
-        "github.com/flipped-aurora/gin-vue-admin/server/utils"
-        "github.com/gin-gonic/gin"
-        "go.uber.org/zap"
+	"github.com/flipped-aurora/gin-vue-admin/server/global"
+	"github.com/flipped-aurora/gin-vue-admin/server/model/common/response"
+	ddzReq "github.com/flipped-aurora/gin-vue-admin/server/model/ddz/request"
+	"github.com/flipped-aurora/gin-vue-admin/server/service"
+	"github.com/flipped-aurora/gin-vue-admin/server/utils"
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type DDZConfigApi struct{}
@@ -24,31 +24,31 @@ var ddzConfigService = service.ServiceGroupApp.DDZServiceGroup.DDZConfigService
 // @Success  200   {object}  response.Response{data=response.PageResult,msg=string}  "分页获取房间配置列表"
 // @Router   /ddz/config/room/list [post]
 func (api *DDZConfigApi) GetRoomConfigList(c *gin.Context) {
-        var req ddzReq.DDZRoomConfigSearch
-        err := c.ShouldBindJSON(&req)
-        if err != nil {
-                response.FailWithMessage(err.Error(), c)
-                return
-        }
-        err = utils.Verify(req.PageInfo, utils.PageInfoVerify)
-        if err != nil {
-                response.FailWithMessage(err.Error(), c)
-                return
-        }
+	var req ddzReq.DDZRoomConfigSearch
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		response.FailWithMessage(err.Error(), c)
+		return
+	}
+	err = utils.Verify(req.PageInfo, utils.PageInfoVerify)
+	if err != nil {
+		response.FailWithMessage(err.Error(), c)
+		return
+	}
 
-        list, total, err := ddzConfigService.GetRoomConfigList(req)
-        if err != nil {
-                global.GVA_LOG.Error("获取房间配置列表失败!", zap.Error(err))
-                response.FailWithMessage("获取房间配置列表失败", c)
-                return
-        }
+	list, total, err := ddzConfigService.GetRoomConfigList(req)
+	if err != nil {
+		global.GVA_LOG.Error("获取房间配置列表失败!", zap.Error(err))
+		response.FailWithMessage("获取房间配置列表失败", c)
+		return
+	}
 
-        response.OkWithDetailed(response.PageResult{
-                List:     list,
-                Total:    total,
-                Page:     req.Page,
-                PageSize: req.PageSize,
-        }, "获取成功", c)
+	response.OkWithDetailed(response.PageResult{
+		List:     list,
+		Total:    total,
+		Page:     req.Page,
+		PageSize: req.PageSize,
+	}, "获取成功", c)
 }
 
 // CreateRoomConfig 创建菜单房间配置（ddz_room_configs 表）
@@ -61,21 +61,21 @@ func (api *DDZConfigApi) GetRoomConfigList(c *gin.Context) {
 // @Success  200   {object}  response.Response{msg=string}  "创建房间配置"
 // @Router   /ddz/config/room/create [post]
 func (api *DDZConfigApi) CreateRoomConfig(c *gin.Context) {
-        var req ddzReq.DDZRoomConfigCreate
-        err := c.ShouldBindJSON(&req)
-        if err != nil {
-                response.FailWithMessage(err.Error(), c)
-                return
-        }
+	var req ddzReq.DDZRoomConfigCreate
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		response.FailWithMessage(err.Error(), c)
+		return
+	}
 
-        err = ddzConfigService.CreateRoomConfig(req)
-        if err != nil {
-                global.GVA_LOG.Error("创建房间配置失败!", zap.Error(err))
-                response.FailWithMessage("创建房间配置失败: "+err.Error(), c)
-                return
-        }
+	err = ddzConfigService.CreateRoomConfig(req)
+	if err != nil {
+		global.GVA_LOG.Error("创建房间配置失败!", zap.Error(err))
+		response.FailWithMessage("创建房间配置失败: "+err.Error(), c)
+		return
+	}
 
-        response.OkWithMessage("创建成功", c)
+	response.OkWithMessage("创建成功", c)
 }
 
 // UpdateRoomConfig 更新菜单房间配置（ddz_room_configs 表）
@@ -88,21 +88,21 @@ func (api *DDZConfigApi) CreateRoomConfig(c *gin.Context) {
 // @Success  200   {object}  response.Response{msg=string}  "更新房间配置"
 // @Router   /ddz/config/room/update [put]
 func (api *DDZConfigApi) UpdateRoomConfig(c *gin.Context) {
-        var req ddzReq.DDZRoomConfigUpdate
-        err := c.ShouldBindJSON(&req)
-        if err != nil {
-                response.FailWithMessage(err.Error(), c)
-                return
-        }
+	var req ddzReq.DDZRoomConfigUpdate
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		response.FailWithMessage(err.Error(), c)
+		return
+	}
 
-        err = ddzConfigService.UpdateRoomConfig(req)
-        if err != nil {
-                global.GVA_LOG.Error("更新房间配置失败!", zap.Error(err))
-                response.FailWithMessage("更新房间配置失败: "+err.Error(), c)
-                return
-        }
+	err = ddzConfigService.UpdateRoomConfig(req)
+	if err != nil {
+		global.GVA_LOG.Error("更新房间配置失败!", zap.Error(err))
+		response.FailWithMessage("更新房间配置失败: "+err.Error(), c)
+		return
+	}
 
-        response.OkWithMessage("更新成功", c)
+	response.OkWithMessage("更新成功", c)
 }
 
 // DeleteRoomConfig 删除菜单房间配置（ddz_room_configs 表）
@@ -115,23 +115,52 @@ func (api *DDZConfigApi) UpdateRoomConfig(c *gin.Context) {
 // @Success  200  {object}  response.Response{msg=string}  "删除房间配置"
 // @Router   /ddz/config/room/delete [delete]
 func (api *DDZConfigApi) DeleteRoomConfig(c *gin.Context) {
-        var req struct {
-                ID uint `json:"id" binding:"required"`
-        }
-        err := c.ShouldBindJSON(&req)
-        if err != nil {
-                response.FailWithMessage(err.Error(), c)
-                return
-        }
+	var req struct {
+		ID uint `json:"id" binding:"required"`
+	}
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		response.FailWithMessage(err.Error(), c)
+		return
+	}
 
-        err = ddzConfigService.DeleteRoomConfig(req.ID)
-        if err != nil {
-                global.GVA_LOG.Error("删除房间配置失败!", zap.Error(err))
-                response.FailWithMessage("删除房间配置失败", c)
-                return
-        }
+	err = ddzConfigService.DeleteRoomConfig(req.ID)
+	if err != nil {
+		global.GVA_LOG.Error("删除房间配置失败!", zap.Error(err))
+		response.FailWithMessage("删除房间配置失败", c)
+		return
+	}
 
-        response.OkWithMessage("删除成功", c)
+	response.OkWithMessage("删除成功", c)
+}
+
+// RefreshRoomConfigCache 刷新房间配置缓存
+// @Tags     DDZ菜单房间配置
+// @Summary  手动刷新房间配置缓存
+// @Security ApiKeyAuth
+// @Produce  application/json
+// @Success  200  {object}  response.Response{msg=string}  "刷新缓存"
+// @Router   /ddz/config/room/refresh-cache [post]
+func (api *DDZConfigApi) RefreshRoomConfigCache(c *gin.Context) {
+	err := ddzConfigService.RefreshRoomConfigCache()
+	if err != nil {
+		global.GVA_LOG.Error("刷新房间配置缓存失败!", zap.Error(err))
+		response.FailWithMessage("刷新缓存失败", c)
+		return
+	}
+	response.OkWithMessage("缓存刷新成功", c)
+}
+
+// GetBgImageOptions 获取背景图选项列表
+// @Tags     DDZ菜单房间配置
+// @Summary  获取可用的背景图选项
+// @Security ApiKeyAuth
+// @Produce  application/json
+// @Success  200  {object}  response.Response{data=[]map[string]interface{}}  "背景图选项"
+// @Router   /ddz/config/room/bg-image-options [get]
+func (api *DDZConfigApi) GetBgImageOptions(c *gin.Context) {
+	options := ddzConfigService.GetBgImageOptions()
+	response.OkWithDetailed(options, "获取成功", c)
 }
 
 // GetGameConfigList
@@ -144,31 +173,31 @@ func (api *DDZConfigApi) DeleteRoomConfig(c *gin.Context) {
 // @Success  200   {object}  response.Response{data=response.PageResult,msg=string}  "分页获取游戏配置列表"
 // @Router   /ddz/config/game/list [post]
 func (api *DDZConfigApi) GetGameConfigList(c *gin.Context) {
-        var req ddzReq.DDZGameConfigSearch
-        err := c.ShouldBindJSON(&req)
-        if err != nil {
-                response.FailWithMessage(err.Error(), c)
-                return
-        }
-        err = utils.Verify(req.PageInfo, utils.PageInfoVerify)
-        if err != nil {
-                response.FailWithMessage(err.Error(), c)
-                return
-        }
+	var req ddzReq.DDZGameConfigSearch
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		response.FailWithMessage(err.Error(), c)
+		return
+	}
+	err = utils.Verify(req.PageInfo, utils.PageInfoVerify)
+	if err != nil {
+		response.FailWithMessage(err.Error(), c)
+		return
+	}
 
-        list, total, err := ddzConfigService.GetGameConfigList(req)
-        if err != nil {
-                global.GVA_LOG.Error("获取游戏配置列表失败!", zap.Error(err))
-                response.FailWithMessage("获取游戏配置列表失败", c)
-                return
-        }
+	list, total, err := ddzConfigService.GetGameConfigList(req)
+	if err != nil {
+		global.GVA_LOG.Error("获取游戏配置列表失败!", zap.Error(err))
+		response.FailWithMessage("获取游戏配置列表失败", c)
+		return
+	}
 
-        response.OkWithDetailed(response.PageResult{
-                List:     list,
-                Total:    total,
-                Page:     req.Page,
-                PageSize: req.PageSize,
-        }, "获取成功", c)
+	response.OkWithDetailed(response.PageResult{
+		List:     list,
+		Total:    total,
+		Page:     req.Page,
+		PageSize: req.PageSize,
+	}, "获取成功", c)
 }
 
 // UpdateGameConfig
@@ -181,19 +210,19 @@ func (api *DDZConfigApi) GetGameConfigList(c *gin.Context) {
 // @Success  200   {object}  response.Response{msg=string}  "更新游戏配置"
 // @Router   /ddz/config/game/update [put]
 func (api *DDZConfigApi) UpdateGameConfig(c *gin.Context) {
-        var req ddzReq.DDZGameConfigUpdate
-        err := c.ShouldBindJSON(&req)
-        if err != nil {
-                response.FailWithMessage(err.Error(), c)
-                return
-        }
+	var req ddzReq.DDZGameConfigUpdate
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		response.FailWithMessage(err.Error(), c)
+		return
+	}
 
-        err = ddzConfigService.UpdateGameConfig(req)
-        if err != nil {
-                global.GVA_LOG.Error("更新游戏配置失败!", zap.Error(err))
-                response.FailWithMessage("更新游戏配置失败: "+err.Error(), c)
-                return
-        }
+	err = ddzConfigService.UpdateGameConfig(req)
+	if err != nil {
+		global.GVA_LOG.Error("更新游戏配置失败!", zap.Error(err))
+		response.FailWithMessage("更新游戏配置失败: "+err.Error(), c)
+		return
+	}
 
-        response.OkWithMessage("更新成功", c)
+	response.OkWithMessage("更新成功", c)
 }

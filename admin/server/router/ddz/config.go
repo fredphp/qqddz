@@ -14,13 +14,15 @@ func (r *DDZConfigRouter) InitDDZConfigRouter(Router *gin.RouterGroup) {
 
 	ddzConfigApi := v1.ApiGroupApp.DDZApiGroup.DDZConfigApi
 	{
-		ddzConfigRouter.POST("room/create", ddzConfigApi.CreateRoomConfig)   // 创建房间配置
-		ddzConfigRouter.PUT("room/update", ddzConfigApi.UpdateRoomConfig)    // 更新房间配置
-		ddzConfigRouter.DELETE("room/delete", ddzConfigApi.DeleteRoomConfig) // 删除房间配置
-		ddzConfigRouter.PUT("game/update", ddzConfigApi.UpdateGameConfig)    // 更新游戏配置
+		ddzConfigRouter.POST("room/create", ddzConfigApi.CreateRoomConfig)             // 创建房间配置
+		ddzConfigRouter.PUT("room/update", ddzConfigApi.UpdateRoomConfig)              // 更新房间配置
+		ddzConfigRouter.DELETE("room/delete", ddzConfigApi.DeleteRoomConfig)           // 删除房间配置
+		ddzConfigRouter.POST("room/refresh-cache", ddzConfigApi.RefreshRoomConfigCache) // 刷新房间配置缓存
+		ddzConfigRouter.PUT("game/update", ddzConfigApi.UpdateGameConfig)              // 更新游戏配置
 	}
 	{
-		ddzConfigRouterWithoutRecord.POST("room/list", ddzConfigApi.GetRoomConfigList)   // 分页获取房间配置列表
-		ddzConfigRouterWithoutRecord.POST("game/list", ddzConfigApi.GetGameConfigList)   // 分页获取游戏配置列表
+		ddzConfigRouterWithoutRecord.POST("room/list", ddzConfigApi.GetRoomConfigList)         // 分页获取房间配置列表
+		ddzConfigRouterWithoutRecord.GET("room/bg-image-options", ddzConfigApi.GetBgImageOptions) // 获取背景图选项
+		ddzConfigRouterWithoutRecord.POST("game/list", ddzConfigApi.GetGameConfigList)         // 分页获取游戏配置列表
 	}
 }
