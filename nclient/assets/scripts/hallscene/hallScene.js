@@ -386,8 +386,9 @@ cc.Class({
         var self = this;
         
         // 默认按钮名称映射到 room_type
-        // 支持的房间类型: 2, 3, 4, 5
+        // 支持的房间类型: 1, 2, 3, 4, 5
         var buttonNameMap = {
+            1: "btn_room_junior",  // 新手场
             2: "btn_room_middle",   // 中级房
             3: "btn_room_senior",   // 高级房
             4: "btn_room_master",   // 大师房
@@ -412,7 +413,7 @@ cc.Class({
             var buttonName = buttonNameMap[roomType];
             
             if (!buttonName) {
-                console.warn("未知的房间类型:", roomType, "支持的类型: 2, 3, 4, 5");
+                console.warn("未知的房间类型:", roomType, "支持的类型: 1, 2, 3, 4, 5");
                 continue;
             }
             

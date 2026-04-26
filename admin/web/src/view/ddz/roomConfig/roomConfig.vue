@@ -153,7 +153,7 @@
         <el-form-item label="背景图编号" prop="bgImageNum">
           <div class="flex items-center gap-4">
             <el-select v-model="formData.bgImageNum" placeholder="选择背景图编号" style="width: 200px">
-              <el-option v-for="num in [2, 3, 4, 5]" :key="num" :label="`btn_happy_${num}.png`" :value="num">
+              <el-option v-for="num in [1, 2, 3, 4, 5]" :key="num" :label="`btn_happy_${num}.png`" :value="num">
                 <div class="flex items-center gap-2">
                   <div
                     class="w-8 h-6 rounded overflow-hidden"
