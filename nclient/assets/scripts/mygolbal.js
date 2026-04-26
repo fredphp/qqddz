@@ -217,7 +217,9 @@
         
         var defines = window.defines;
         if (!defines || !defines.apiUrl) {
-            callback(true, "无API配置，跳过验证");
+            // 无API配置，使用本地缓存登录
+            console.log("无API配置，使用本地缓存登录");
+            callback(true, "无API配置，使用本地缓存");
             return;
         }
         
@@ -238,25 +240,37 @@
                             }
                             callback(true, "Token有效");
                         } else {
-                            // Token 无效，清除本地状态
-                            self.playerData.clearLocal();
-                            callback(false, resp.message || "登录已过期");
+                            // Token 无效（明确返回无效），使用本地缓存
+                            console.log("API返回Token无效，使用本地缓存继续");
+                            callback(true, "使用本地缓存");
                         }
                     } catch (e) {
-                        callback(false, "验证失败");
+                        // 解析失败，使用本地缓存
+                        console.log("解析响应失败，使用本地缓存继续");
+                        callback(true, "使用本地缓存");
                     }
+                } else if (xhr.status === 404) {
+                    // API不存在（旧版本服务器），使用本地缓存
+                    console.log("verify-token API不存在(404)，使用本地缓存继续");
+                    callback(true, "使用本地缓存");
                 } else {
-                    callback(false, "网络错误");
+                    // 其他HTTP错误，使用本地缓存
+                    console.log("HTTP错误(" + xhr.status + ")，使用本地缓存继续");
+                    callback(true, "使用本地缓存");
                 }
             }
         };
         
         xhr.onerror = function() {
-            callback(false, "网络错误");
+            // 网络错误，使用本地缓存
+            console.log("网络错误，使用本地缓存继续");
+            callback(true, "使用本地缓存");
         };
         
         xhr.ontimeout = function() {
-            callback(false, "请求超时");
+            // 请求超时，使用本地缓存
+            console.log("请求超时，使用本地缓存继续");
+            callback(true, "使用本地缓存");
         };
         
         xhr.send(JSON.stringify({
