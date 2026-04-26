@@ -27,6 +27,9 @@ cc.Class({
         // 房间配置数据
         this.roomConfigs = [];
         
+        // 播放大厅背景音乐
+        this._playHallBackgroundMusic();
+        
         // 隐藏不需要的按钮
         this._hideUnwantedButtons();
         
@@ -35,6 +38,39 @@ cc.Class({
         
         // 移除公告栏
         this._removeNoticeBoard();
+    },
+    
+    // 播放大厅背景音乐
+    _playHallBackgroundMusic: function() {
+        var isopen_sound = window.isopen_sound || 1;
+        if (!isopen_sound) {
+            console.log("音效已关闭，不播放背景音乐");
+            return;
+        }
+        
+        try {
+            // 检查是否已有音乐在播放
+            if (cc.audioEngine.isMusicPlaying()) {
+                console.log("背景音乐已在播放中");
+                return;
+            }
+            
+            // 加载并播放登录背景音乐（大厅继续使用登录音乐）
+            cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
+                if (!err && clip) {
+                    try {
+                        cc.audioEngine.playMusic(clip, true);
+                        console.log("✅ 大厅背景音乐开始播放");
+                    } catch(e) {
+                        console.log("播放背景音乐失败:", e);
+                    }
+                } else {
+                    console.log("加载背景音乐失败:", err);
+                }
+            });
+        } catch(e) {
+            console.log("播放背景音乐异常:", e);
+        }
     },
     
     // 从 API 获取房间配置
