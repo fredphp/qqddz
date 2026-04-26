@@ -196,6 +196,9 @@ func (s *DDZGameLogService) GetRoomConfigList(req ddzReq.DDZRoomConfigSearch) (l
         offset := req.PageSize * (req.Page - 1)
         query := db.Model(&ddz.DDZRoomConfig{})
 
+        if req.RoomName != "" {
+                query = query.Where("room_name LIKE ?", "%"+req.RoomName+"%")
+        }
         if req.RoomType != nil {
                 query = query.Where("room_type = ?", *req.RoomType)
         }
@@ -209,7 +212,7 @@ func (s *DDZGameLogService) GetRoomConfigList(req ddzReq.DDZRoomConfigSearch) (l
         }
 
         var configs []ddz.DDZRoomConfig
-        err = query.Limit(limit).Offset(offset).Order("sort asc, id asc").Find(&configs).Error
+        err = query.Limit(limit).Offset(offset).Order("sort_order asc, id asc").Find(&configs).Error
         if err != nil {
                 return nil, 0, err
         }
@@ -227,27 +230,26 @@ func (s *DDZGameLogService) CreateRoomConfig(req ddzReq.DDZRoomConfigCreate) err
         db := GetDDZDB()
         // 检查房间类型是否已存在
         var count int64
-        db.Model(&ddz.DDZRoomConfig{}).Where("room_type = ? AND room_level = ?", req.RoomType, req.RoomLevel).Count(&count)
+        db.Model(&ddz.DDZRoomConfig{}).Where("room_type = ?", req.RoomType).Count(&count)
         if count > 0 {
-                return errors.New("该房间类型和等级已存在")
+                return errors.New("该房间类型已存在")
         }
 
         config := ddz.DDZRoomConfig{
-                Name:        req.Name,
-                RoomType:    req.RoomType,
-                RoomLevel:   req.RoomLevel,
-                BaseScore:   req.BaseScore,
-                MinCoins:    req.MinCoins,
-                MaxCoins:    req.MaxCoins,
-                ServiceFee:  req.ServiceFee,
-                MaxMultiple: req.MaxMultiple,
-                Timeout:     req.Timeout,
-                AllowSpring: req.AllowSpring,
-                AllowBomb:   req.AllowBomb,
-                AllowRocket: req.AllowRocket,
-                Status:      req.Status,
-                Sort:        req.Sort,
-                Description: req.Description,
+                RoomName:       req.RoomName,
+                RoomType:       req.RoomType,
+                BaseScore:      req.BaseScore,
+                Multiplier:     req.Multiplier,
+                MinGold:        req.MinGold,
+                MaxGold:        req.MaxGold,
+                BotEnabled:     req.BotEnabled,
+                BotCount:       req.BotCount,
+                FeeRate:        req.FeeRate,
+                MaxRound:       req.MaxRound,
+                TimeoutSeconds: req.TimeoutSeconds,
+                Status:         req.Status,
+                SortOrder:      req.SortOrder,
+                Description:    req.Description,
         }
 
         return db.Create(&config).Error
@@ -263,26 +265,28 @@ func (s *DDZGameLogService) UpdateRoomConfig(req ddzReq.DDZRoomConfigUpdate) err
         }
 
         updates := map[string]interface{}{}
-        if req.Name != "" {
-                updates["name"] = req.Name
+        if req.RoomName != "" {
+                updates["room_name"] = req.RoomName
         }
         if req.BaseScore > 0 {
                 updates["base_score"] = req.BaseScore
         }
-        updates["min_coins"] = req.MinCoins
-        updates["max_coins"] = req.MaxCoins
-        updates["service_fee"] = req.ServiceFee
-        if req.MaxMultiple > 0 {
-                updates["max_multiple"] = req.MaxMultiple
+        if req.Multiplier > 0 {
+                updates["multiplier"] = req.Multiplier
         }
-        if req.Timeout > 0 {
-                updates["timeout"] = req.Timeout
+        updates["min_gold"] = req.MinGold
+        updates["max_gold"] = req.MaxGold
+        updates["bot_enabled"] = req.BotEnabled
+        updates["bot_count"] = req.BotCount
+        updates["fee_rate"] = req.FeeRate
+        if req.MaxRound > 0 {
+                updates["max_round"] = req.MaxRound
         }
-        updates["allow_spring"] = req.AllowSpring
-        updates["allow_bomb"] = req.AllowBomb
-        updates["allow_rocket"] = req.AllowRocket
+        if req.TimeoutSeconds > 0 {
+                updates["timeout_seconds"] = req.TimeoutSeconds
+        }
         updates["status"] = req.Status
-        updates["sort"] = req.Sort
+        updates["sort_order"] = req.SortOrder
         updates["description"] = req.Description
 
         return db.Model(&config).Updates(updates).Error
@@ -411,42 +415,42 @@ func (s *DDZGameLogService) toPlayRecordResponse(r ddz.DDZGamePlayRecord) ddzRes
 }
 
 func (s *DDZGameLogService) toRoomConfigResponse(c ddz.DDZRoomConfig) ddzRes.DDZRoomConfigResponse {
-        roomTypeName := "普通场"
+        roomTypeName := "初级房"
         switch c.RoomType {
         case 2:
-                roomTypeName = "高级场"
+                roomTypeName = "中级房"
         case 3:
-                roomTypeName = "富豪场"
+                roomTypeName = "高级房"
         case 4:
-                roomTypeName = "至尊场"
+                roomTypeName = "大师房"
         }
 
-        statusText := "禁用"
+        statusText := "关闭"
         if c.Status == 1 {
-                statusText = "启用"
+                statusText = "开启"
         }
 
         return ddzRes.DDZRoomConfigResponse{
-                ID:           c.ID,
-                Name:         c.Name,
-                RoomType:     c.RoomType,
-                RoomTypeName: roomTypeName,
-                RoomLevel:    c.RoomLevel,
-                BaseScore:    c.BaseScore,
-                MinCoins:     c.MinCoins,
-                MaxCoins:     c.MaxCoins,
-                ServiceFee:   c.ServiceFee,
-                MaxMultiple:  c.MaxMultiple,
-                Timeout:      c.Timeout,
-                AllowSpring:  c.AllowSpring,
-                AllowBomb:    c.AllowBomb,
-                AllowRocket:  c.AllowRocket,
-                Status:       c.Status,
-                StatusText:   statusText,
-                Sort:         c.Sort,
-                Description:  c.Description,
-                CreatedAt:    c.CreatedAt.Format("2006-01-02 15:04:05"),
-                UpdatedAt:    c.UpdatedAt.Format("2006-01-02 15:04:05"),
+                ID:             c.ID,
+                RoomName:       c.RoomName,
+                RoomType:       c.RoomType,
+                RoomTypeName:   roomTypeName,
+                BaseScore:      c.BaseScore,
+                Multiplier:     c.Multiplier,
+                MinGold:        c.MinGold,
+                MaxGold:        c.MaxGold,
+                EntryGold:      c.MinGold, // 入场金币 = 最低入场金币
+                BotEnabled:     c.BotEnabled,
+                BotCount:       c.BotCount,
+                FeeRate:        c.FeeRate,
+                MaxRound:       c.MaxRound,
+                TimeoutSeconds: c.TimeoutSeconds,
+                Status:         c.Status,
+                StatusText:     statusText,
+                SortOrder:      c.SortOrder,
+                Description:    c.Description,
+                CreatedAt:      c.CreatedAt.Format("2006-01-02 15:04:05"),
+                UpdatedAt:      c.UpdatedAt.Format("2006-01-02 15:04:05"),
         }
 }
 

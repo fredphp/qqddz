@@ -5,6 +5,14 @@
         <el-form-item label="房间名称">
           <el-input v-model="searchInfo.roomName" placeholder="房间名称" />
         </el-form-item>
+        <el-form-item label="房间类型">
+          <el-select v-model="searchInfo.roomType" placeholder="房间类型" clearable>
+            <el-option label="初级房" :value="1" />
+            <el-option label="中级房" :value="2" />
+            <el-option label="高级房" :value="3" />
+            <el-option label="大师房" :value="4" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="searchInfo.status" placeholder="状态" clearable>
             <el-option label="开启" :value="1" />
@@ -24,13 +32,23 @@
       <el-table :data="tableData" row-key="ID">
         <el-table-column align="center" label="ID" min-width="60" prop="ID" />
         <el-table-column align="center" label="房间名称" min-width="100" prop="roomName" />
-        <el-table-column align="center" label="房间类型" min-width="80" prop="roomType" />
+        <el-table-column align="center" label="房间类型" min-width="80">
+          <template #default="scope">
+            <el-tag :type="getRoomTypeTag(scope.row.roomType)">
+              {{ scope.row.roomTypeName }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column align="center" label="底分" min-width="60" prop="baseScore" />
         <el-table-column align="center" label="倍数" min-width="60" prop="multiplier" />
-        <el-table-column align="center" label="最低金币" min-width="100" prop="minGold" />
+        <el-table-column align="center" label="最低金币" min-width="100">
+          <template #default="scope">
+            {{ formatGold(scope.row.minGold) }}
+          </template>
+        </el-table-column>
         <el-table-column align="center" label="最高金币" min-width="100">
           <template #default="scope">
-            {{ scope.row.maxGold || '无限制' }}
+            {{ scope.row.maxGold > 0 ? formatGold(scope.row.maxGold) : '无限制' }}
           </template>
         </el-table-column>
         <el-table-column align="center" label="机器人" min-width="80">
@@ -77,7 +95,12 @@
           <el-input v-model="formData.roomName" placeholder="请输入房间名称" />
         </el-form-item>
         <el-form-item label="房间类型" prop="roomType" required>
-          <el-input-number v-model="formData.roomType" :min="1" :max="10" />
+          <el-select v-model="formData.roomType" placeholder="请选择房间类型">
+            <el-option label="初级房" :value="1" />
+            <el-option label="中级房" :value="2" />
+            <el-option label="高级房" :value="3" />
+            <el-option label="大师房" :value="4" />
+          </el-select>
         </el-form-item>
         <el-form-item label="底分" prop="baseScore" required>
           <el-input-number v-model="formData.baseScore" :min="1" />
@@ -86,19 +109,25 @@
           <el-input-number v-model="formData.multiplier" :min="1" />
         </el-form-item>
         <el-form-item label="最低金币" prop="minGold" required>
-          <el-input-number v-model="formData.minGold" :min="0" />
+          <el-input-number v-model="formData.minGold" :min="0" :step="1000" />
         </el-form-item>
         <el-form-item label="最高金币" prop="maxGold">
-          <el-input-number v-model="formData.maxGold" :min="0" placeholder="0表示无限制" />
+          <el-input-number v-model="formData.maxGold" :min="0" :step="1000" placeholder="0表示无限制" />
         </el-form-item>
         <el-form-item label="允许机器人" prop="botEnabled">
-          <el-switch v-model="formData.botEnabled" />
+          <el-switch v-model="formData.botEnabled" :active-value="1" :inactive-value="0" />
         </el-form-item>
         <el-form-item v-if="formData.botEnabled" label="机器人数量" prop="botCount">
           <el-input-number v-model="formData.botCount" :min="0" :max="10" />
         </el-form-item>
+        <el-form-item label="超时时间(秒)" prop="timeoutSeconds">
+          <el-input-number v-model="formData.timeoutSeconds" :min="10" :max="120" />
+        </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-switch v-model="formData.status" :active-value="1" :inactive-value="0" />
+        </el-form-item>
+        <el-form-item label="排序" prop="sortOrder">
+          <el-input-number v-model="formData.sortOrder" :min="0" />
         </el-form-item>
         <el-form-item label="描述" prop="description">
           <el-input v-model="formData.description" type="textarea" rows="2" placeholder="请输入描述" />
@@ -123,6 +152,7 @@ defineOptions({
 
 const searchInfo = ref({
   roomName: '',
+  roomType: null,
   status: null
 })
 
@@ -142,11 +172,32 @@ const formData = ref({
   multiplier: 1,
   minGold: 1000,
   maxGold: 0,
-  botEnabled: true,
+  botEnabled: 1,
   botCount: 5,
+  feeRate: 0,
+  maxRound: 20,
+  timeoutSeconds: 30,
   status: 1,
+  sortOrder: 0,
   description: ''
 })
+
+const getRoomTypeTag = (type) => {
+  const tags = {
+    1: '',
+    2: 'success',
+    3: 'warning',
+    4: 'danger'
+  }
+  return tags[type] || ''
+}
+
+const formatGold = (gold) => {
+  if (gold >= 10000) {
+    return (gold / 10000).toFixed(1) + '万'
+  }
+  return gold.toLocaleString()
+}
 
 const onSubmit = () => {
   page.value = 1
@@ -156,6 +207,7 @@ const onSubmit = () => {
 const onReset = () => {
   searchInfo.value = {
     roomName: '',
+    roomType: null,
     status: null
   }
   getTableData()
@@ -196,9 +248,13 @@ const openDialog = (type, row = null) => {
       multiplier: 1,
       minGold: 1000,
       maxGold: 0,
-      botEnabled: true,
+      botEnabled: 1,
       botCount: 5,
+      feeRate: 0,
+      maxRound: 20,
+      timeoutSeconds: 30,
       status: 1,
+      sortOrder: 0,
       description: ''
     }
   }
