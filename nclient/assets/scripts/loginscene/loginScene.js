@@ -451,8 +451,8 @@ cc.Class({
         // 标记是否已成功播放
         this._musicPlayed = false;
         
-        // 先停止所有音频
-        cc.audioEngine.stopAll();
+        // 保存音频剪辑供后续使用
+        this._bgMusicClip = null;
         
         // 使用 cc.resources.load 加载音频（推荐方式）
         cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
@@ -462,7 +462,13 @@ cc.Class({
                 return;
             }
             
+            // 保存音频剪辑
+            self._bgMusicClip = clip;
+            
             try {
+                // 先停止所有音频
+                cc.audioEngine.stopAll();
+                
                 // 播放背景音乐
                 cc.audioEngine.play(clip, true, 1);
                 
@@ -470,6 +476,8 @@ cc.Class({
                 if (cc.audioEngine.isMusicPlaying()) {
                     self._musicPlayed = true;
                     console.log("✅ 登录背景音乐播放成功");
+                    // 成功播放后移除触摸监听器（如果有的话）
+                    self._removeGlobalTouchForMusic();
                 } else {
                     console.log("⚠️ 背景音乐播放失败（可能被浏览器阻止），设置触摸监听");
                     self._setupGlobalTouchForMusic();
@@ -483,22 +491,48 @@ cc.Class({
     
     // 通过触摸播放音乐
     _playMusicOnTouch: function() {
+        // 如果已经在播放，直接返回
         if (this._musicPlayed) {
             return;
         }
         
         var self = this;
         
-        cc.audioEngine.stopAll();
+        // 如果已经有音频剪辑，直接播放
+        if (this._bgMusicClip) {
+            try {
+                // 先停止所有音频
+                cc.audioEngine.stopAll();
+                
+                // 播放背景音乐
+                cc.audioEngine.play(this._bgMusicClip, true, 1);
+                
+                if (cc.audioEngine.isMusicPlaying()) {
+                    this._musicPlayed = true;
+                    console.log("✅ 触摸后背景音乐播放成功");
+                    this._removeGlobalTouchForMusic();
+                }
+            } catch(e) {
+                console.log("触摸播放背景音乐异常:", e);
+            }
+            return;
+        }
         
-        // 使用 cc.resources.load 加载音频
+        // 没有音频剪辑，需要加载
         cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
             if (err) {
                 console.log("触摸播放: 加载背景音乐失败:", err);
                 return;
             }
             
+            // 保存音频剪辑
+            self._bgMusicClip = clip;
+            
             try {
+                // 先停止所有音频
+                cc.audioEngine.stopAll();
+                
+                // 播放背景音乐
                 cc.audioEngine.play(clip, true, 1);
                 
                 if (cc.audioEngine.isMusicPlaying()) {
