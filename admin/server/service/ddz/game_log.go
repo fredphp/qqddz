@@ -235,6 +235,12 @@ func (s *DDZGameLogService) CreateRoomConfig(req ddzReq.DDZGameRoomConfigCreate)
                 return errors.New("该房间类型已存在")
         }
 
+        // 设置默认背景图编号
+        bgImageNum := req.BgImageNum
+        if bgImageNum < ddz.BgImageNumMin || bgImageNum > ddz.BgImageNumMax {
+                bgImageNum = ddz.BgImageNumMin // 默认使用编号2
+        }
+
         config := ddz.DDZRoomConfig{
                 RoomName:       req.RoomName,
                 RoomType:       req.RoomType,
@@ -242,6 +248,7 @@ func (s *DDZGameLogService) CreateRoomConfig(req ddzReq.DDZGameRoomConfigCreate)
                 Multiplier:     req.Multiplier,
                 MinGold:        req.MinGold,
                 MaxGold:        req.MaxGold,
+                BgImageNum:     bgImageNum,
                 BotEnabled:     req.BotEnabled,
                 BotCount:       req.BotCount,
                 FeeRate:        req.FeeRate,
@@ -276,6 +283,12 @@ func (s *DDZGameLogService) UpdateRoomConfig(req ddzReq.DDZGameRoomConfigUpdate)
         }
         updates["min_gold"] = req.MinGold
         updates["max_gold"] = req.MaxGold
+
+        // 更新背景图编号
+        if req.BgImageNum >= ddz.BgImageNumMin && req.BgImageNum <= ddz.BgImageNumMax {
+                updates["bg_image_num"] = req.BgImageNum
+        }
+
         updates["bot_enabled"] = req.BotEnabled
         updates["bot_count"] = req.BotCount
         updates["fee_rate"] = req.FeeRate
@@ -432,6 +445,12 @@ func (s *DDZGameLogService) toRoomConfigResponse(c ddz.DDZRoomConfig) ddzRes.DDZ
                 statusText = "开启"
         }
 
+        // 设置默认背景图编号
+        bgImageNum := c.BgImageNum
+        if bgImageNum < ddz.BgImageNumMin || bgImageNum > ddz.BgImageNumMax {
+                bgImageNum = ddz.BgImageNumMin
+        }
+
         return ddzRes.DDZRoomConfigResponse{
                 ID:             c.ID,
                 RoomName:       c.RoomName,
@@ -442,6 +461,7 @@ func (s *DDZGameLogService) toRoomConfigResponse(c ddz.DDZRoomConfig) ddzRes.DDZ
                 MinGold:        c.MinGold,
                 MaxGold:        c.MaxGold,
                 EntryGold:      c.MinGold, // 入场金币 = 最低入场金币
+                BgImageNum:     bgImageNum,
                 BotEnabled:     c.BotEnabled,
                 BotCount:       c.BotCount,
                 FeeRate:        c.FeeRate,

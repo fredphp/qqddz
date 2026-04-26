@@ -61,14 +61,18 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column align="center" label="背景图" min-width="120">
+        <el-table-column align="center" label="背景图" min-width="150">
           <template #default="scope">
             <div class="flex items-center gap-2">
               <div
-                class="w-16 h-10 rounded border border-gray-300 flex items-center justify-center text-xs font-bold text-white"
-                :style="{ background: getBgGradient(scope.row.bgImageNum) }"
+                class="w-16 h-10 rounded border border-gray-300 overflow-hidden"
               >
-                {{ scope.row.bgImageNum || 2 }}
+                <img 
+                  :src="getBgImageUrl(scope.row.bgImageNum || 2)" 
+                  :alt="'btn_happy_' + (scope.row.bgImageNum || 2) + '.png'"
+                  class="w-full h-full object-cover"
+                  @error="(e) => e.target.style.display = 'none'"
+                />
               </div>
               <span class="text-xs text-gray-500">btn_happy_{{ scope.row.bgImageNum || 2 }}.png</span>
             </div>
@@ -152,22 +156,32 @@
               <el-option v-for="num in [2, 3, 4, 5]" :key="num" :label="`btn_happy_${num}.png`" :value="num">
                 <div class="flex items-center gap-2">
                   <div
-                    class="w-8 h-6 rounded"
-                    :style="{ background: getBgGradient(num) }"
-                  ></div>
+                    class="w-8 h-6 rounded overflow-hidden"
+                  >
+                    <img 
+                      :src="getBgImageUrl(num)" 
+                      :alt="'btn_happy_' + num + '.png'"
+                      class="w-full h-full object-cover"
+                      @error="(e) => e.target.style.display = 'none'"
+                    />
+                  </div>
                   <span>编号 {{ num }} (btn_happy_{{ num }}.png)</span>
                 </div>
               </el-option>
             </el-select>
             <div
-              class="w-24 h-14 rounded border border-gray-300 flex items-center justify-center text-white font-bold"
-              :style="{ background: getBgGradient(formData.bgImageNum) }"
+              class="w-24 h-14 rounded border border-gray-300 overflow-hidden"
             >
-              预览 {{ formData.bgImageNum }}
+              <img 
+                :src="getBgImageUrl(formData.bgImageNum || 2)" 
+                :alt="'btn_happy_' + (formData.bgImageNum || 2) + '.png'"
+                class="w-full h-full object-cover"
+                @error="(e) => e.target.style.display = 'none'"
+              />
             </div>
           </div>
           <div class="text-xs text-gray-500 mt-1">
-            提示：选择编号后，客户端需要有对应的 btn_happy_{{ formData.bgImageNum }}.png 文件
+            提示：选择编号后，客户端需要有对应的 btn_happy_{{ formData.bgImageNum || 2 }}.png 文件
           </div>
         </el-form-item>
 
@@ -307,6 +321,11 @@ const getBgGradient = (num) => {
     5: 'linear-gradient(135deg, #ef4444, #dc2626)'   // 红色 - 至尊场
   }
   return gradients[num] || 'linear-gradient(135deg, #6b7280, #4b5563)'
+}
+
+// 获取背景图URL
+const getBgImageUrl = (num) => {
+  return `/images/room/btn_happy_${num}.png`
 }
 
 const formatGold = (gold) => {

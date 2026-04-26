@@ -88,6 +88,7 @@ type DDZRoomConfigResponse struct {
         MinGold        int64   `json:"minGold"`
         MaxGold        int64   `json:"maxGold"`
         EntryGold      int64   `json:"entryGold"` // 入场金币 = minGold
+        BgImageNum     int     `json:"bgImageNum"`  // 背景图编号
         BotEnabled     int     `json:"botEnabled"`
         BotCount       int     `json:"botCount"`
         FeeRate        float64 `json:"feeRate"`
