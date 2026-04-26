@@ -8,17 +8,13 @@ import (
         "net/http"
         "time"
 
-        "github.com/palemoky/fight-the-landlord/internal/cache"
         "github.com/palemoky/fight-the-landlord/internal/game/database"
 
         _ "github.com/go-sql-driver/mysql"
 )
 
-// 缓存键
+// Redis缓存键（与admin后台系统保持一致，使用同一套缓存）
 const (
-        CacheKeyRoomConfigList   = "room_config:list"
-        CacheKeyRoomConfigPrefix = "room_config:type:"
-        // Redis缓存键（与admin系统保持一致）
         RedisCacheKeyRoomConfigList = "ddz:room_config:list"
 )
 
@@ -40,9 +36,8 @@ type RoomConfigResponse struct {
 
 // RoomConfigHandler 房间配置处理器
 type RoomConfigHandler struct {
-        db       *sql.DB
-        cache    *cache.Cache
-        redis    RedisClient // Redis客户端接口
+        db    *sql.DB
+        redis RedisClient // Redis客户端接口（共享缓存）
 }
 
 // RedisClient Redis客户端接口
@@ -56,8 +51,7 @@ type RedisClient interface {
 func NewRoomConfigHandler(config *DBConfig) (*RoomConfigHandler, error) {
         if config == nil {
                 return &RoomConfigHandler{
-                        db:    nil,
-                        cache: cache.GetCache(),
+                        db: nil,
                 }, nil
         }
 
@@ -67,8 +61,7 @@ func NewRoomConfigHandler(config *DBConfig) (*RoomConfigHandler, error) {
         if err != nil {
                 log.Printf("⚠️ 连接数据库失败，使用无数据库模式: %v", err)
                 return &RoomConfigHandler{
-                        db:    nil,
-                        cache: cache.GetCache(),
+                        db: nil,
                 }, nil
         }
 
@@ -77,8 +70,7 @@ func NewRoomConfigHandler(config *DBConfig) (*RoomConfigHandler, error) {
                 log.Printf("⚠️ 数据库连接测试失败，使用无数据库模式: %v", err)
                 db.Close()
                 return &RoomConfigHandler{
-                        db:    nil,
-                        cache: cache.GetCache(),
+                        db: nil,
                 }, nil
         }
 
@@ -88,8 +80,7 @@ func NewRoomConfigHandler(config *DBConfig) (*RoomConfigHandler, error) {
         db.SetConnMaxLifetime(time.Hour)
 
         return &RoomConfigHandler{
-                db:    db,
-                cache: cache.GetCache(),
+                db: db,
         }, nil
 }
 
@@ -132,12 +123,8 @@ func (h *RoomConfigHandler) Close() error {
         return nil
 }
 
-// ClearCache 清除房间配置相关缓存
+// ClearCache 清除房间配置相关缓存（只需要清除Redis共享缓存）
 func (h *RoomConfigHandler) ClearCache() {
-        h.cache.Delete(CacheKeyRoomConfigList)
-        h.cache.DeleteByPrefix(CacheKeyRoomConfigPrefix)
-        
-        // 同时清除Redis缓存
         if h.redis != nil {
                 ctx := context.Background()
                 h.redis.Del(ctx, RedisCacheKeyRoomConfigList)
@@ -145,83 +132,68 @@ func (h *RoomConfigHandler) ClearCache() {
         }
 }
 
-// GetActiveRoomConfigs 获取所有启用的房间配置（带缓存）
+// GetActiveRoomConfigs 获取所有启用的房间配置（使用Redis共享缓存）
 func (h *RoomConfigHandler) GetActiveRoomConfigs(w http.ResponseWriter, r *http.Request) {
-        // 1. 尝试从Redis获取缓存
+        // 1. 尝试从Redis共享缓存获取（与admin后台共用）
         if h.redis != nil {
                 ctx := context.Background()
                 cached, err := h.redis.Get(ctx, RedisCacheKeyRoomConfigList)
                 if err == nil && cached != "" {
                         var configs []RoomConfigResponse
                         if jsonErr := json.Unmarshal([]byte(cached), &configs); jsonErr == nil {
+                                log.Println("✅ 从Redis共享缓存获取房间配置")
                                 writeJSONSuccess(w, configs)
                                 return
                         }
                 }
         }
-        
-        // 2. 尝试从本地缓存获取
-        if value, exists := h.cache.Get(CacheKeyRoomConfigList); exists {
-                if configs, ok := value.([]RoomConfigResponse); ok {
-                        writeJSONSuccess(w, configs)
+
+        // 2. Redis缓存未命中，从数据库查询
+        configs, err := h.getRoomConfigsFromDB()
+        if err != nil {
+                log.Printf("⚠️ 获取房间配置失败: %v", err)
+                // 如果数据库失败，返回默认数据
+                if h.db == nil && !database.GetInstance().IsConnected() {
+                        defaultConfigs := h.getDefaultRoomConfigs()
+                        writeJSONSuccess(w, defaultConfigs)
                         return
                 }
-        }
-
-        // 3. 优先使用 GORM 数据库实例
-        if database.GetInstance().IsConnected() {
-                configs, err := h.getRoomConfigsFromGORM()
-                if err != nil {
-                        log.Printf("⚠️ 从GORM获取房间配置失败: %v", err)
-                        // 如果 GORM 失败，尝试使用原始 SQL
-                        if h.db != nil {
-                                configs, err = h.getRoomConfigsFromSQL()
-                                if err != nil {
-                                        writeJSONError(w, http.StatusInternalServerError, "查询失败: "+err.Error())
-                                        return
-                                }
-                        } else {
-                                writeJSONError(w, http.StatusInternalServerError, "查询失败: "+err.Error())
-                                return
-                        }
-                }
-                // 缓存结果（永不过期，只有后台管理更新时才刷新）
-                h.cache.Set(CacheKeyRoomConfigList, configs, 0)
-                h.cacheToRedis(configs)
-                writeJSONSuccess(w, configs)
-                return
-        }
-
-        // 4. 使用原始 SQL 连接
-        if h.db == nil {
-                // 没有数据库时返回默认数据
-                defaultConfigs := h.getDefaultRoomConfigs()
-                writeJSONSuccess(w, defaultConfigs)
-                return
-        }
-
-        configs, err := h.getRoomConfigsFromSQL()
-        if err != nil {
                 writeJSONError(w, http.StatusInternalServerError, "查询失败: "+err.Error())
                 return
         }
 
-        // 缓存结果（永不过期，只有后台管理更新时才刷新）
-        h.cache.Set(CacheKeyRoomConfigList, configs, 0)
+        // 3. 写入Redis共享缓存（供后续请求和admin后台共用）
         h.cacheToRedis(configs)
 
         writeJSONSuccess(w, configs)
 }
 
-// cacheToRedis 缓存到Redis
+// getRoomConfigsFromDB 从数据库获取房间配置
+func (h *RoomConfigHandler) getRoomConfigsFromDB() ([]RoomConfigResponse, error) {
+        // 优先使用 GORM 数据库实例
+        if database.GetInstance().IsConnected() {
+                return h.getRoomConfigsFromGORM()
+        }
+
+        // 使用原始 SQL 连接
+        if h.db != nil {
+                return h.getRoomConfigsFromSQL()
+        }
+
+        return nil, nil
+}
+
+// cacheToRedis 缓存到Redis共享缓存
 func (h *RoomConfigHandler) cacheToRedis(configs []RoomConfigResponse) {
         if h.redis == nil || len(configs) == 0 {
                 return
         }
-        
+
         ctx := context.Background()
         if data, err := json.Marshal(configs); err == nil {
+                // 缓存24小时，admin后台刷新时会清除
                 h.redis.Set(ctx, RedisCacheKeyRoomConfigList, string(data), 24*time.Hour)
+                log.Println("✅ 房间配置已缓存到Redis")
         }
 }
 
@@ -374,7 +346,7 @@ func (h *RoomConfigHandler) getDefaultRoomConfigs() []RoomConfigResponse {
         }
 }
 
-// GetRoomConfigByType 根据类型获取房间配置（带缓存）
+// GetRoomConfigByType 根据类型获取房间配置（从Redis共享缓存列表中查找）
 func (h *RoomConfigHandler) GetRoomConfigByType(w http.ResponseWriter, r *http.Request) {
         roomType := r.URL.Query().Get("room_type")
         if roomType == "" {
@@ -382,28 +354,33 @@ func (h *RoomConfigHandler) GetRoomConfigByType(w http.ResponseWriter, r *http.R
                 return
         }
 
-        cacheKey := CacheKeyRoomConfigPrefix + roomType
-
-        // 尝试从缓存获取
-        if value, exists := h.cache.Get(cacheKey); exists {
-                if config, ok := value.(*RoomConfigResponse); ok {
-                        writeJSONSuccess(w, config)
-                        return
+        // 解析房间类型
+        var roomTypeUint uint8
+        for _, c := range roomType {
+                if c >= '0' && c <= '9' {
+                        roomTypeUint = roomTypeUint*10 + uint8(c-'0')
                 }
         }
 
-        // 优先使用 GORM
-        if database.GetInstance().IsConnected() {
-                var roomTypeUint uint8
-                for i, c := range roomType {
-                        if c >= '0' && c <= '9' {
-                                roomTypeUint = roomTypeUint*10 + uint8(c-'0')
-                                if i > 0 {
-                                        break
+        // 1. 尝试从Redis共享缓存列表中查找
+        if h.redis != nil {
+                ctx := context.Background()
+                cached, err := h.redis.Get(ctx, RedisCacheKeyRoomConfigList)
+                if err == nil && cached != "" {
+                        var configs []RoomConfigResponse
+                        if jsonErr := json.Unmarshal([]byte(cached), &configs); jsonErr == nil {
+                                for i := range configs {
+                                        if configs[i].RoomType == roomTypeUint {
+                                                writeJSONSuccess(w, &configs[i])
+                                                return
+                                        }
                                 }
                         }
                 }
+        }
 
+        // 2. Redis缓存未命中，从数据库查询
+        if database.GetInstance().IsConnected() {
                 rc, err := database.GetRoomConfigByType(roomTypeUint)
                 if err != nil {
                         if err == sql.ErrNoRows {
@@ -435,20 +412,18 @@ func (h *RoomConfigHandler) GetRoomConfigByType(w http.ResponseWriter, r *http.R
                         SortOrder:   rc.SortOrder,
                 }
 
-                // 缓存结果
-                h.cache.Set(cacheKey, config, 0)
                 writeJSONSuccess(w, config)
                 return
         }
 
-        // 使用原始 SQL
+        // 3. 使用原始 SQL
         if h.db == nil {
                 writeJSONError(w, http.StatusServiceUnavailable, "数据库未配置")
                 return
         }
 
         var config RoomConfigResponse
-        query := `SELECT id, room_name, room_type, base_score, multiplier, min_gold, max_gold, 
+        query := `SELECT id, room_name, room_type, base_score, multiplier, min_gold, max_gold,
                   description, status, sort_order
                   FROM ddz_room_config
                   WHERE room_type = ? AND status = 1 AND deleted_at IS NULL`
@@ -480,9 +455,6 @@ func (h *RoomConfigHandler) GetRoomConfigByType(w http.ResponseWriter, r *http.R
         if config.BgImageNum < 2 || config.BgImageNum > 6 {
                 config.BgImageNum = 2
         }
-
-        // 缓存结果
-        h.cache.Set(cacheKey, &config, 0)
 
         writeJSONSuccess(w, config)
 }
