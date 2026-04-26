@@ -798,14 +798,14 @@
     "_opacity": 255,
     "_color": {
       "__type__": "cc.Color",
-      "r": 50,
-      "g": 50,
-      "b": 50,
+      "r": 0,
+      "g": 0,
+      "b": 0,
       "a": 255
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 710,
+      "width": 680,
       "height": 800
     },
     "_anchorPoint": {
@@ -843,8 +843,8 @@
     "_useOriginalSize": false,
     "_string": "正在加载用户协议...",
     "_N$string": "正在加载用户协议...",
-    "_fontSize": 22,
-    "_lineHeight": 32,
+    "_fontSize": 24,
+    "_lineHeight": 36,
     "_enableWrapText": true,
     "_N$file": null,
     "_isSystemFontUsed": true,

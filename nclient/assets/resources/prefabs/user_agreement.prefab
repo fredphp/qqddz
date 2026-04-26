@@ -661,8 +661,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 750,
-      "height": 320
+      "width": 720,
+      "height": 300
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -683,7 +683,7 @@
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
-      "array": [0, 20, 0, 0, 0, 0, 1, 1, 1, 1]
+      "array": [0, 40, 0, 0, 0, 0, 1, 1, 1, 1]
     }
   },
   {
@@ -739,8 +739,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 750,
-      "height": 320
+      "width": 720,
+      "height": 300
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -798,14 +798,14 @@
     "_opacity": 255,
     "_color": {
       "__type__": "cc.Color",
-      "r": 50,
-      "g": 50,
-      "b": 50,
+      "r": 0,
+      "g": 0,
+      "b": 0,
       "a": 255
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 710,
+      "width": 680,
       "height": 800
     },
     "_anchorPoint": {
@@ -843,8 +843,8 @@
     "_useOriginalSize": false,
     "_string": "正在加载用户协议...",
     "_N$string": "正在加载用户协议...",
-    "_fontSize": 22,
-    "_lineHeight": 32,
+    "_fontSize": 24,
+    "_lineHeight": 36,
     "_enableWrapText": true,
     "_N$file": null,
     "_isSystemFontUsed": true,
@@ -928,7 +928,7 @@
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
-      "array": [0, 20, 0, 0, 0, 0, 1, 1, 1, 1]
+      "array": [0, 40, 0, 0, 0, 0, 1, 1, 1, 1]
     }
   },
   {
@@ -1005,7 +1005,7 @@
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
-      "array": [0, -140, 0, 0, 0, 0, 1, 1, 1, 1]
+      "array": [0, -120, 0, 0, 0, 0, 1, 1, 1, 1]
     }
   },
   {
@@ -1163,7 +1163,7 @@
     "_trs": {
       "__type__": "TypedArray",
       "ctor": "Float64Array",
-      "array": [0, -200, 0, 0, 0, 0, 1, 1, 1, 1]
+      "array": [0, -180, 0, 0, 0, 0, 1, 1, 1, 1]
     }
   },
   {

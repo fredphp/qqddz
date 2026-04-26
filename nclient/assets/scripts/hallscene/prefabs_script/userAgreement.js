@@ -207,10 +207,13 @@ cc.Class({
         if (!this._isValid || !this.node) return;
         
         if (this.content_label) {
-            // 设置左对齐
+            // 设置左对齐，文字颜色为黑色
             this.content_label.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
             this.content_label.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
-            this.content_label.wrapWidth = 710;
+            this.content_label.wrapWidth = 680;  // 调整宽度以增加左右边距
+            
+            // 确保文字颜色为黑色
+            this.content_label.node.color = cc.color(0, 0, 0, 255);
             
             var contentNode = this.content_label.node;
             
@@ -221,7 +224,7 @@ cc.Class({
                 
                 var labelHeight = contentNode.height;
                 var minHeight = 400;
-                var newHeight = Math.max(labelHeight + 40, minHeight);
+                var newHeight = Math.max(labelHeight + 60, minHeight);  // 增加底部空间
                 contentNode.height = newHeight;
                 
                 // 重置滚动位置到顶部

@@ -138,7 +138,10 @@ cc.Class({
             // 确保自动换行
             this.content_label.enableWrapText = true;
             this.content_label.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
-            this.content_label.wrapWidth = 810;
+            this.content_label.wrapWidth = 680;  // 调整宽度以增加左右边距
+            
+            // 确保文字颜色为黑色
+            this.content_label.node.color = cc.color(0, 0, 0, 255);
             
             // 获取 content 节点
             var contentNode = this.content_label.node;
@@ -170,7 +173,7 @@ cc.Class({
             
             // 确保 content 高度至少大于视口高度
             var minHeight = 400;
-            var newHeight = Math.max(labelHeight + 40, minHeight);
+            var newHeight = Math.max(labelHeight + 60, minHeight);  // 增加底部空间
             
             contentNode.height = newHeight;
             
