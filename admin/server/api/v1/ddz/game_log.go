@@ -383,11 +383,19 @@ func (api *DDZGameLogApi) DeleteRoomConfig(c *gin.Context) {
 // @Success  200  {object}  response.Response{msg=string}
 // @Router   /ddz/roomConfig/refresh-cache [post]
 func (api *DDZGameLogApi) RefreshRoomConfigCache(c *gin.Context) {
-        // 清除房间配置缓存（如果使用Redis）
+        // 1. 清除Redis缓存（如果使用Redis）
         if global.GVA_REDIS != nil {
                 // 删除房间配置缓存键
                 global.GVA_REDIS.Del(c.Request.Context(), "ddz:room_config:list")
         }
+
+        // 2. 调用游戏服务器的刷新缓存接口（清除游戏服务器的本地缓存）
+        if err := utils.RefreshRoomConfigCache(); err != nil {
+                global.GVA_LOG.Error("调用游戏服务器刷新缓存失败", zap.Error(err))
+                response.FailWithMessage("刷新游戏服务器缓存失败: "+err.Error(), c)
+                return
+        }
+
         response.OkWithMessage("缓存刷新成功", c)
 }
 
