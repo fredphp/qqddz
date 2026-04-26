@@ -456,16 +456,16 @@ func (s *DDZGameLogService) toPlayRecordResponse(r ddz.DDZGamePlayRecord) ddzRes
 }
 
 func (s *DDZGameLogService) toRoomConfigResponse(c ddz.DDZRoomConfig) ddzRes.DDZRoomConfigResponse {
-        roomTypeName := "新手场"
+        roomTypeName := "未知"
         switch c.RoomType {
         case 2:
-                roomTypeName = "普通场"
+                roomTypeName = "初级场"
         case 3:
-                roomTypeName = "高级场"
+                roomTypeName = "中级场"
         case 4:
-                roomTypeName = "富豪场"
+                roomTypeName = "高级场"
         case 5:
-                roomTypeName = "至尊场"
+                roomTypeName = "大师场"
         }
 
         statusText := "关闭"
