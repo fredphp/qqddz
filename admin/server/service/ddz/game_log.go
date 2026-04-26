@@ -272,15 +272,28 @@ func (s *DDZGameLogService) UpdateRoomConfig(req ddzReq.DDZGameRoomConfigUpdate)
         }
 
         updates := map[string]interface{}{}
+
+        // 房间名称
         if req.RoomName != "" {
                 updates["room_name"] = req.RoomName
         }
+
+        // 房间类型 - 始终更新
+        if req.RoomType > 0 {
+                updates["room_type"] = req.RoomType
+        }
+
+        // 底分
         if req.BaseScore > 0 {
                 updates["base_score"] = req.BaseScore
         }
+
+        // 倍数
         if req.Multiplier > 0 {
                 updates["multiplier"] = req.Multiplier
         }
+
+        // 金币范围
         updates["min_gold"] = req.MinGold
         updates["max_gold"] = req.MaxGold
 
@@ -291,17 +304,30 @@ func (s *DDZGameLogService) UpdateRoomConfig(req ddzReq.DDZGameRoomConfigUpdate)
         }
         updates["bg_image_num"] = bgImageNum
 
+        // 机器人配置
         updates["bot_enabled"] = req.BotEnabled
         updates["bot_count"] = req.BotCount
+
+        // 手续费率
         updates["fee_rate"] = req.FeeRate
+
+        // 最大回合数
         if req.MaxRound > 0 {
                 updates["max_round"] = req.MaxRound
         }
+
+        // 超时时间
         if req.TimeoutSeconds > 0 {
                 updates["timeout_seconds"] = req.TimeoutSeconds
         }
+
+        // 状态
         updates["status"] = req.Status
+
+        // 排序
         updates["sort_order"] = req.SortOrder
+
+        // 描述
         updates["description"] = req.Description
 
         return db.Model(&config).Updates(updates).Error

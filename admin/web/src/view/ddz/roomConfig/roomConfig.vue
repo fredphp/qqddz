@@ -27,11 +27,10 @@
         </el-form-item>
         <el-form-item label="房间类型">
           <el-select v-model="searchInfo.roomType" placeholder="房间类型" clearable>
-            <el-option label="新手场" :value="1" />
-            <el-option label="普通场" :value="2" />
-            <el-option label="高级场" :value="3" />
-            <el-option label="富豪场" :value="4" />
-            <el-option label="至尊场" :value="5" />
+            <el-option label="初级场" :value="2" />
+            <el-option label="中级场" :value="3" />
+            <el-option label="高级场" :value="4" />
+            <el-option label="大师场" :value="5" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
@@ -139,11 +138,10 @@
           <el-col :span="12">
             <el-form-item label="房间类型" prop="roomType" required>
               <el-select v-model="formData.roomType" placeholder="请选择房间类型" style="width: 100%">
-                <el-option label="新手场" :value="1" />
-                <el-option label="普通场" :value="2" />
-                <el-option label="高级场" :value="3" />
-                <el-option label="富豪场" :value="4" />
-                <el-option label="至尊场" :value="5" />
+                <el-option label="初级场" :value="2" />
+                <el-option label="中级场" :value="3" />
+                <el-option label="高级场" :value="4" />
+                <el-option label="大师场" :value="5" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -274,7 +272,7 @@ const formRef = ref(null)
 const formData = ref({
   ID: 0,
   roomName: '',
-  roomType: 1,
+  roomType: 2,
   baseScore: 1,
   multiplier: 1,
   minGold: 1000,
@@ -292,7 +290,6 @@ const formData = ref({
 
 const getRoomTypeTag = (type) => {
   const tags = {
-    1: '',
     2: 'success',
     3: 'warning',
     4: 'danger',
@@ -303,11 +300,10 @@ const getRoomTypeTag = (type) => {
 
 const getRoomTypeName = (type) => {
   const names = {
-    1: '新手场',
-    2: '普通场',
-    3: '高级场',
-    4: '富豪场',
-    5: '至尊场'
+    2: '初级场',
+    3: '中级场',
+    4: '高级场',
+    5: '大师场'
   }
   return names[type] || '未知'
 }
@@ -383,7 +379,7 @@ const openDialog = (type, row = null) => {
     formData.value = {
       ID: 0,
       roomName: '',
-      roomType: 1,
+      roomType: 2,
       baseScore: 1,
       multiplier: 1,
       minGold: 1000,
