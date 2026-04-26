@@ -212,38 +212,68 @@ cc.Class({
         var apiUrl = window.defines ? window.defines.apiUrl : '';
         var cryptoKey = window.defines ? window.defines.cryptoKey : '';
         
-        console.log("获取房间配置 - API URL:", apiUrl);
+        console.log("========== _fetchRoomConfigs 开始 ==========");
+        console.log("window.defines:", window.defines ? "存在" : "不存在");
+        console.log("window.HttpAPI:", window.HttpAPI ? "存在" : "不存在");
+        console.log("apiUrl:", apiUrl);
+        console.log("cryptoKey:", cryptoKey ? "已配置" : "未配置");
         
-        if (!apiUrl || !window.HttpAPI) {
-            console.warn("API URL 未配置或 HttpAPI 未加载，使用默认房间配置");
+        if (!apiUrl) {
+            console.warn("API URL 未配置，使用默认房间配置");
             self._initRoomButtons(self._getDefaultRoomConfigs());
             return;
         }
         
-        // 清除旧缓存，每次进入大厅都从服务器获取最新配置
-        if (window.HttpAPI.clearRoomConfigCache) {
-            window.HttpAPI.clearRoomConfigCache();
-            console.log("已清除房间配置缓存，将从服务器获取最新配置");
+        if (!window.HttpAPI) {
+            console.warn("HttpAPI 未加载，使用默认房间配置");
+            self._initRoomButtons(self._getDefaultRoomConfigs());
+            return;
         }
         
-        window.HttpAPI.getRoomConfigList(apiUrl, cryptoKey, function(err, configs) {
-            if (err) {
-                console.warn("获取房间配置失败:", err);
-                // 使用默认配置
-                self._initRoomButtons(self._getDefaultRoomConfigs());
-                return;
+        // 强制清除所有缓存，确保每次都从服务器获取最新配置
+        console.log("开始清除房间配置缓存...");
+        HttpAPI._roomConfigCache = null;
+        try {
+            localStorage.removeItem('room_config_cache');
+            console.log("✅ localStorage 缓存已清除");
+        } catch (e) {
+            console.log("清除 localStorage 失败:", e);
+        }
+        
+        // 构建完整的 API URL
+        var fullUrl = apiUrl + '/api/v1/room/config/list';
+        console.log("🚀 准备请求房间配置 API:", fullUrl);
+        
+        // 直接使用 HttpAPI.get 发送请求，不使用缓存
+        HttpAPI.get(
+            fullUrl,
+            cryptoKey,
+            function(err, result) {
+                if (err) {
+                    console.warn("❌ 获取房间配置失败:", err);
+                    self._initRoomButtons(self._getDefaultRoomConfigs());
+                    return;
+                }
+                
+                console.log("✅ 房间配置 API 响应:", result);
+                
+                var configs = null;
+                if (result && result.code === 0 && result.data) {
+                    configs = result.data;
+                } else if (result && Array.isArray(result)) {
+                    configs = result;
+                }
+                
+                if (configs && configs.length > 0) {
+                    console.log("✅ 获取到 " + configs.length + " 个房间配置");
+                    self.roomConfigs = configs;
+                    self._initRoomButtons(configs);
+                } else {
+                    console.warn("⚠️ 房间配置为空，使用默认配置");
+                    self._initRoomButtons(self._getDefaultRoomConfigs());
+                }
             }
-            
-            console.log("获取到房间配置:", configs);
-            
-            if (configs && configs.length > 0) {
-                self.roomConfigs = configs;
-                self._initRoomButtons(configs);
-            } else {
-                console.warn("房间配置为空，使用默认配置");
-                self._initRoomButtons(self._getDefaultRoomConfigs());
-            }
-        });
+        );
     },
     
     // 获取默认房间配置
