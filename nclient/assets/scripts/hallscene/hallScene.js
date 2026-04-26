@@ -244,19 +244,6 @@ cc.Class({
     _getDefaultRoomConfigs: function() {
         return [
             {
-                id: 1,
-                room_name: "初级房",
-                room_type: 1,
-                base_score: 1,
-                multiplier: 1,
-                min_gold: 1000,
-                max_gold: 50000,
-                entry_gold: 1000,
-                description: "适合新手玩家",
-                status: 1,
-                sort_order: 1
-            },
-            {
                 id: 2,
                 room_name: "中级房",
                 room_type: 2,
@@ -265,9 +252,9 @@ cc.Class({
                 min_gold: 50000,
                 max_gold: 200000,
                 entry_gold: 50000,
-                description: "适合有一定经验的玩家",
+                description: "底分2,适合有一定经验的玩家",
                 status: 1,
-                sort_order: 2
+                sort_order: 1
             },
             {
                 id: 3,
@@ -278,9 +265,9 @@ cc.Class({
                 min_gold: 200000,
                 max_gold: 1000000,
                 entry_gold: 200000,
-                description: "高手对决",
+                description: "底分5,倍数2,高手对决",
                 status: 1,
-                sort_order: 3
+                sort_order: 2
             },
             {
                 id: 4,
@@ -291,7 +278,20 @@ cc.Class({
                 min_gold: 1000000,
                 max_gold: 5000000,
                 entry_gold: 1000000,
-                description: "大师专属",
+                description: "底分10,倍数3,大师专属",
+                status: 1,
+                sort_order: 3
+            },
+            {
+                id: 5,
+                room_name: "至尊房",
+                room_type: 5,
+                base_score: 20,
+                multiplier: 5,
+                min_gold: 5000000,
+                max_gold: 0,
+                entry_gold: 5000000,
+                description: "底分20,倍数5,至尊玩家专属",
                 status: 1,
                 sort_order: 4
             }
@@ -311,16 +311,24 @@ cc.Class({
         }
     },
     
+    // 根据房间类型获取背景图资源路径
+    // 规则: room_type 对应 btn_happy_{room_type}.png
+    _getRoomBgImagePath: function(roomType) {
+        return 'UI/btn_happy_' + roomType;
+    },
+    
     // 初始化房间选择按钮 - 根据配置动态显示
+    // 背景图匹配规则: room_type -> btn_happy_{room_type}.png
     _initRoomButtons: function(roomConfigs) {
         var self = this;
         
         // 默认按钮名称映射到 room_type
+        // 支持的房间类型: 2, 3, 4, 5
         var buttonNameMap = {
-            1: "btn_room_junior",   // 初级房
             2: "btn_room_middle",   // 中级房
             3: "btn_room_senior",   // 高级房
-            4: "btn_room_master"    // 大师房
+            4: "btn_room_master",   // 大师房
+            5: "btn_room_vip"       // 至尊房/VIP房
         };
         
         // 先隐藏所有房间按钮
@@ -338,7 +346,7 @@ cc.Class({
             var buttonName = buttonNameMap[roomType];
             
             if (!buttonName) {
-                console.warn("未知的房间类型:", roomType);
+                console.warn("未知的房间类型:", roomType, "支持的类型: 2, 3, 4, 5");
                 continue;
             }
             
@@ -347,10 +355,17 @@ cc.Class({
                 // 显示该按钮
                 btnNode.active = true;
                 
-                console.log("初始化房间按钮: " + buttonName + ", 房间名: " + config.room_name + ", 入场豆子: " + config.entry_gold);
+                console.log("初始化房间按钮: " + buttonName + 
+                           ", 房间名: " + config.room_name + 
+                           ", 房间类型: " + roomType +
+                           ", 入场豆子: " + config.entry_gold +
+                           ", 背景图: btn_happy_" + roomType + ".png");
                 
                 // 保存配置到节点
                 btnNode.roomConfig = config;
+                
+                // 根据房间类型加载背景图
+                self._loadRoomButtonBg(btnNode, roomType);
                 
                 // 获取 Button 组件
                 var button = btnNode.getComponent(cc.Button);
@@ -385,6 +400,55 @@ cc.Class({
                 console.warn("未找到房间按钮节点: " + buttonName);
             }
         }
+    },
+    
+    // 根据房间类型加载按钮背景图
+    // 背景图命名规则: btn_happy_{room_type}.png
+    // 例如: room_type=2 -> btn_happy_2.png
+    _loadRoomButtonBg: function(btnNode, roomType) {
+        var self = this;
+        
+        // 获取背景图资源路径
+        var bgImagePath = this._getRoomBgImagePath(roomType);
+        
+        console.log("加载房间按钮背景图: " + bgImagePath + " (房间类型: " + roomType + ")");
+        
+        // 加载 SpriteFrame
+        cc.resources.load(bgImagePath, cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.warn("加载房间背景图失败: " + bgImagePath, err);
+                // 尝试加载默认背景图
+                self._loadDefaultRoomButtonBg(btnNode);
+                return;
+            }
+            
+            // 获取 Sprite 组件
+            var sprite = btnNode.getComponent(cc.Sprite);
+            if (sprite) {
+                sprite.spriteFrame = spriteFrame;
+                console.log("✅ 房间按钮背景图加载成功: btn_happy_" + roomType + ".png");
+            } else {
+                console.warn("房间按钮节点没有 Sprite 组件:", btnNode.name);
+            }
+        });
+    },
+    
+    // 加载默认房间按钮背景图
+    _loadDefaultRoomButtonBg: function(btnNode) {
+        var sprite = btnNode.getComponent(cc.Sprite);
+        if (!sprite) {
+            return;
+        }
+        
+        // 尝试加载一个默认背景
+        cc.resources.load('UI/btn_happy_2', cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.warn("加载默认背景图也失败:", err);
+                return;
+            }
+            sprite.spriteFrame = spriteFrame;
+            console.log("使用默认背景图: btn_happy_2.png");
+        });
     },
     
     // 房间按钮点击处理 - 使用房间配置
