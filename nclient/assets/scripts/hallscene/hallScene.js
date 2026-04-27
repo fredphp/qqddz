@@ -373,7 +373,7 @@ cc.Class({
     },
     
     // ============================================================
-    // 布局渲染：响应式布局，适配不同屏幕尺寸
+    // 布局渲染：精确控制卡片位置和间距
     // ============================================================
     _renderRoomLayout: function(leftRooms, rightRooms) {
         var self = this;
@@ -385,68 +385,55 @@ cc.Class({
         if (oldRightPanel) oldRightPanel.destroy();
         
         // ============================================================
-        // 获取画布尺寸（实际可见区域）
+        // 获取画布尺寸
         // ============================================================
         var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
         var screenWidth = canvas ? canvas.designResolution.width : 1280;
         var screenHeight = canvas ? canvas.designResolution.height : 720;
         
-        // 获取实际可见区域（考虑设备屏幕比例）
         var visibleSize = cc.view.getVisibleSize();
         var visibleWidth = visibleSize.width;
         var visibleHeight = visibleSize.height;
         
-        console.log("===== 响应式布局 =====");
+        console.log("===== 精确布局 =====");
         console.log("设计分辨率: " + screenWidth + "x" + screenHeight);
         console.log("可见区域: " + visibleWidth.toFixed(0) + "x" + visibleHeight.toFixed(0));
         
         // ============================================================
-        // 响应式参数：根据屏幕宽度调整
+        // 关键参数：卡片尺寸和间距
         // ============================================================
-        var isSmallScreen = visibleWidth < 800;  // 小屏幕判断
+        var cardWidth = 280;      // 卡片宽度
+        var cardHeight = 180;     // 卡片高度
+        var gapX = 10;            // 卡片之间的水平间距
+        var gapY = 10;            // 卡片之间的垂直间距
+        var topMargin = 15;       // 距离顶部的边距
         
-        var spacingX = 10;       // 水平间距（卡片之间）
-        var spacingY = 10;       // 垂直间距（行之间）
-        var topMargin = 15;      // 顶部边距
+        // 判断屏幕大小
+        var isSmallScreen = visibleWidth < 800;
+        var cardScale = isSmallScreen ? 0.85 : 1;
         
-        // 根据屏幕大小调整容器宽度和卡片缩放
-        var panelWidth;
-        var cardScale = 1;
+        // 实际卡片尺寸（考虑缩放）
+        var actualCardWidth = cardWidth * cardScale;
+        var actualCardHeight = cardHeight * cardScale;
         
-        // 假设单个卡片宽度约为 280px
-        var cardWidth = 280;
+        // 容器宽度：刚好容纳两列卡片 + 间距
+        var panelWidth = actualCardWidth * 2 + gapX;
+        var panelHeight = visibleHeight * 0.7;
         
-        if (isSmallScreen) {
-            // 小屏幕：单列布局，卡片居中
-            panelWidth = cardWidth * cardScale + 20;  // 容器宽度刚好容纳一个卡片
-            cardScale = 0.85;  // 卡片稍微缩小
-        } else {
-            // 大屏幕：双列布局
-            // 容器宽度 = 两个卡片宽度 + 间距
-            panelWidth = cardWidth * 2 + spacingX;  // = 570，刚好容纳两个卡片
-        }
-        
-        // 计算容器高度
-        var maxRows = Math.ceil(Math.max(leftRooms.length, rightRooms.length) / 2);
-        var panelHeight = maxRows * 180 * cardScale + (maxRows - 1) * spacingY + 50;
-        panelHeight = Math.max(panelHeight, visibleHeight * 0.6);
-        
-        console.log("屏幕类型: " + (isSmallScreen ? "小屏幕(单列)" : "大屏幕(双列)"));
+        console.log("卡片尺寸: " + actualCardWidth.toFixed(0) + "x" + actualCardHeight.toFixed(0));
+        console.log("间距: gapX=" + gapX + ", gapY=" + gapY);
         console.log("容器宽度: " + panelWidth.toFixed(0));
-        console.log("卡片缩放: " + cardScale);
         
         // ============================================================
-        // 容器位置计算
+        // 容器位置
         // ============================================================
-        var panelY = screenHeight / 2 - topMargin;  // 距离顶部15px
+        var panelY = screenHeight / 2 - topMargin;
         
         var leftPanelX, rightPanelX;
         if (isSmallScreen) {
-            // 小屏幕：两个区域上下排列，居中显示
             leftPanelX = 0;
             rightPanelX = 0;
         } else {
-            // 大屏幕：两个区域左右并排
             var containerGap = 10;  // 两个区域之间的间距
             leftPanelX = -panelWidth / 2 - containerGap / 2;
             rightPanelX = panelWidth / 2 + containerGap / 2;
@@ -455,128 +442,87 @@ cc.Class({
         // ============================================================
         // 创建左侧容器（竞技场）
         // ============================================================
-        var leftPanel = this._createPanelWithLayout("LeftArea", panelWidth, panelHeight, spacingX, spacingY, isSmallScreen);
+        var leftPanel = new cc.Node("LeftArea");
+        leftPanel.setContentSize(panelWidth, panelHeight);
         leftPanel.setPosition(leftPanelX, panelY);
+        leftPanel.anchorX = 0.5;
         leftPanel.anchorY = 1;
         leftPanel.parent = this.node;
         
-        // 添加卡片到左侧容器
-        this._addCardsToPanel(leftPanel, leftRooms, cardScale);
+        // 精确放置卡片
+        this._placeCardsPrecisely(leftPanel, leftRooms, actualCardWidth, actualCardHeight, gapX, gapY, cardScale);
         
         // ============================================================
         // 创建右侧容器（普通场）
         // ============================================================
-        var rightPanelY = isSmallScreen ? panelY - panelHeight - 20 : panelY;  // 小屏幕时向下偏移
-        var rightPanel = this._createPanelWithLayout("RightArea", panelWidth, panelHeight, spacingX, spacingY, isSmallScreen);
+        var rightPanelY = isSmallScreen ? panelY - panelHeight - 20 : panelY;
+        var rightPanel = new cc.Node("RightArea");
+        rightPanel.setContentSize(panelWidth, panelHeight);
         rightPanel.setPosition(rightPanelX, rightPanelY);
+        rightPanel.anchorX = 0.5;
         rightPanel.anchorY = 1;
         rightPanel.parent = this.node;
         
-        // 添加卡片到右侧容器
-        this._addCardsToPanel(rightPanel, rightRooms, cardScale);
+        // 精确放置卡片
+        this._placeCardsPrecisely(rightPanel, rightRooms, actualCardWidth, actualCardHeight, gapX, gapY, cardScale);
         
         console.log("========================================");
-        console.log("✅ 响应式布局完成");
+        console.log("✅ 精确布局完成");
         console.log("========================================");
     },
     
     // ============================================================
-    // 创建带 Layout 组件的容器
+    // 精确放置卡片：手动计算位置，确保间距正确
     // ============================================================
-    _createPanelWithLayout: function(name, width, height, spacingX, spacingY, isSmallScreen) {
-        var panel = new cc.Node(name);
-        panel.setContentSize(width, height);
-        panel.anchorX = 0.5;
-        panel.anchorY = 1;
+    _placeCardsPrecisely: function(panel, rooms, cardWidth, cardHeight, gapX, gapY, cardScale) {
+        // 计算起始位置（从容器的左上角开始）
+        // startX = 容器中心 - 容器宽度/2 + 卡片宽度/2 = 第一个卡片的中心X
+        var startX = -panel.width / 2 + cardWidth / 2;
+        var startY = panel.height / 2 - cardHeight / 2;
         
-        // 添加 Layout 组件
-        var layout = panel.addComponent(cc.Layout);
+        console.log("放置卡片: startX=" + startX.toFixed(0) + ", startY=" + startY.toFixed(0));
+        console.log("卡片尺寸: " + cardWidth.toFixed(0) + "x" + cardHeight.toFixed(0));
         
-        // Layout 参数
-        layout.type = cc.Layout.Type.GRID;
-        layout.startAxis = cc.Layout.AxisDirection.HORIZONTAL;
-        layout.horizontalDirection = cc.Layout.HorizontalDirection.LEFT_TO_RIGHT;
-        layout.verticalDirection = cc.Layout.VerticalDirection.TOP_TO_BOTTOM;
-        
-        // 间距设置
-        layout.spacingX = spacingX;
-        layout.spacingY = spacingY;
-        
-        // 小屏幕时单列，大屏幕时双列
-        // 注意：CC 2.4 没有直接的列数设置，但可以通过容器宽度控制
-        // 小屏幕时容器宽度只能容纳一个卡片，自然变成单列
-        
-        // Resize Mode: CONTAINER
-        layout.resizeMode = cc.Layout.ResizeMode.CONTAINER;
-        
-        // padding 设为 0
-        layout.paddingLeft = 0;
-        layout.paddingRight = 0;
-        layout.paddingTop = 0;
-        layout.paddingBottom = 0;
-        
-        console.log("Layout 创建: " + name + ", width=" + width.toFixed(0) + ", isSmallScreen=" + isSmallScreen);
-        
-        return panel;
-    },
-    
-    // 添加卡片到容器
-    _addCardsToPanel: function(panel, rooms, cardScale) {
         for (var i = 0; i < rooms.length; i++) {
             var room = rooms[i];
             
+            // 计算行列索引（固定2列）
+            var col = i % 2;  // 0 或 1
+            var row = Math.floor(i / 2);
+            
+            // 计算精确位置
+            var x = startX + col * (cardWidth + gapX);
+            var y = startY - row * (cardHeight + gapY);
+            
             // 准备卡片节点
-            this._prepareCardNodeResponsive(room.node, cardScale);
+            this._prepareCardNodePrecise(room.node, cardScale);
             
             // 添加到容器
             room.node.parent = panel;
+            
+            // 设置精确位置
+            room.node.setPosition(x, y);
+            
+            console.log("  [" + i + "] " + room.roomName + " 位置: (" + x.toFixed(0) + ", " + y.toFixed(0) + ")");
         }
         
-        console.log("添加完成: " + rooms.length + " 个卡片, scale=" + cardScale);
+        console.log("放置完成: " + rooms.length + " 个卡片");
     },
     
-    // ============================================================
-    // _renderCardsInGrid 方法已移除
-    // 现在使用 Layout 组件自动排列，不需要手动 setPosition
-    // ============================================================
-
-    
-    // 准备卡片节点（确保尺寸正确，不被拉伸）
-    _prepareCardNode: function(node, width, height) {
-        // 禁用 Widget 组件（防止自动拉伸）
+    // 准备卡片节点（精确控制）
+    _prepareCardNodePrecise: function(node, cardScale) {
+        // 禁用 Widget
         var widget = node.getComponent(cc.Widget);
         if (widget) {
             widget.enabled = false;
         }
         
-        // 固定尺寸
-        node.setContentSize(width, height);
-        
-        // 锚点设为中心
+        // 设置锚点为中心
         node.anchorX = 0.5;
         node.anchorY = 0.5;
         
-        // 保持原比例，不缩放
-        node.scale = 1;
-    },
-    
-    // 准备卡片节点（保持原始尺寸，不拉伸）
-    _prepareCardNodeNoResize: function(node) {
-        // 禁用 Widget 组件（防止自动拉伸）
-        var widget = node.getComponent(cc.Widget);
-        if (widget) {
-            widget.enabled = false;
-        }
-        
-        // 保持原始尺寸，不强制设置
-        // node.setContentSize() 不调用，让卡片保持原始尺寸
-        
-        // 锚点设为中心
-        node.anchorX = 0.5;
-        node.anchorY = 0.5;
-        
-        // 保持原比例，不缩放
-        node.scale = 1;
+        // 应用缩放
+        node.scale = cardScale;
     },
     
     // 准备卡片节点（响应式，支持缩放）
