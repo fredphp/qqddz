@@ -388,15 +388,15 @@ cc.Class({
         // 参数设置 - 优化布局，防止重叠
         // ============================================================
         var cardWidth = 200;       // 卡片宽度
-        var cardHeight = 140;      // 卡片高度（实际高度）
+        var cardHeight = 140;      // 卡片高度
         var gapX = 20;             // 卡片水平间距
-        var gapY = 30;             // 卡片垂直间距（增大防止重叠）
+        var gapY = 50;             // 卡片垂直间距（增大防止重叠）
         
         // 容器尺寸
         var panelWidth = 440;      // 容器宽度
-        var titleHeight = 50;      // 标题区域高度
-        var topPadding = 30;       // 顶部内边距
-        var bottomPadding = 30;    // 底部内边距
+        var titleHeight = 40;      // 标题区域高度（减小）
+        var topPadding = 20;       // 顶部内边距（减小）
+        var bottomPadding = 20;    // 底部内边距
         
         // 计算容器高度
         var leftRows = Math.ceil(leftRooms.length / 2) || 1;
@@ -410,9 +410,9 @@ cc.Class({
         var screenHeight = canvas ? canvas.designResolution.height : 720;
         var screenWidth = canvas ? canvas.designResolution.width : 1280;
         
-        // 容器位置
+        // 容器位置 - 向上移动
         var edgeMargin = 60;       // 距离屏幕边缘的距离
-        var verticalOffset = 30;   // 垂直偏移（向下）
+        var verticalOffset = -80;  // 垂直偏移（向上移动）
         
         console.log("===== 布局调试 =====");
         console.log("竞技场: " + leftRooms.length + "个, 普通场: " + rightRooms.length + "个");
@@ -431,7 +431,7 @@ cc.Class({
         leftPanel.parent = this.node;
         
         // 添加区域标题
-        this._addAreaTitle(leftPanel, "竞技场", 0, panelHeight / 2 - 25);
+        this._addAreaTitle(leftPanel, "竞技场", 0, panelHeight / 2 - 20);
         
         // 放置竞技场卡片 - 从标题下方开始
         var startY = panelHeight / 2 - titleHeight - topPadding - cardHeight / 2;
@@ -469,7 +469,7 @@ cc.Class({
         rightPanel.parent = this.node;
         
         // 添加区域标题
-        this._addAreaTitle(rightPanel, "普通场", 0, panelHeight / 2 - 25);
+        this._addAreaTitle(rightPanel, "普通场", 0, panelHeight / 2 - 20);
         
         // 放置普通场卡片 - 从标题下方开始
         startY = panelHeight / 2 - titleHeight - topPadding - cardHeight / 2;
@@ -713,13 +713,45 @@ cc.Class({
     },
     
     _removeNoticeBoard: function() {
-        var noticeNames = ["notice", "gonggao", "公告", "notice_board", "dingbuuibantoumingdi", "xiongmao3"];
+        var noticeNames = ["notice", "gonggao", "公告", "notice_board", "dingbuuibantoumingdi", "xiongmao3", "title", "Title", "标签"];
         for (var i = 0; i < noticeNames.length; i++) {
             var node = this.node.getChildByName(noticeNames[i]);
             if (node) node.active = false;
         }
         this._hideNodesWithText(this.node, "游戏公告");
         this._hideNodesWithText(this.node, "娱乐休闲");
+        // 隐藏背景上的区域标签文字（不隐藏动态创建的 AreaTitle）
+        this._hideBackgroundLabels();
+    },
+    
+    _hideBackgroundLabels: function() {
+        // 隐藏背景上原有的标签节点
+        var labelsToHide = ["竞技场", "普通场", "初级场", "中级场", "高级场", "选择房间", "房间选择"];
+        for (var i = 0; i < labelsToHide.length; i++) {
+            var nodes = this._findNodesByName(this.node, labelsToHide[i]);
+            for (var j = 0; j < nodes.length; j++) {
+                // 只隐藏非 AreaTitle 的节点
+                if (nodes[j].name !== "AreaTitle") {
+                    nodes[j].active = false;
+                }
+            }
+        }
+    },
+    
+    _findNodesByName: function(parentNode, name) {
+        var result = [];
+        if (!parentNode || !parentNode.children) return result;
+        
+        for (var i = 0; i < parentNode.children.length; i++) {
+            var child = parentNode.children[i];
+            if (child.name === name) {
+                result.push(child);
+            }
+            // 递归查找子节点
+            var subResults = this._findNodesByName(child, name);
+            result = result.concat(subResults);
+        }
+        return result;
     },
     
     _adjustGoldElementsPosition: function() {
