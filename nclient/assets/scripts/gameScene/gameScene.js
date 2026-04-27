@@ -314,14 +314,53 @@ cc.Class({
     },
 
     addPlayerNode(player_data) {
-        var playernode_inst = cc.instantiate(this.player_node_prefabs)
-        playernode_inst.parent = this.node
-        this.playerNodeList.push(playernode_inst)
+        console.log("addPlayerNode called with:", JSON.stringify(player_data));
+        
+        // 检查 player_node_prefabs 是否存在
+        if (!this.player_node_prefabs) {
+            console.error("player_node_prefabs 未绑定！请在 Cocos Creator 编辑器中绑定 player_node_prefabs 属性");
+            return;
+        }
+        
+        // 检查 players_seat_pos 是否存在
+        if (!this.players_seat_pos) {
+            console.error("players_seat_pos 未绑定！请在 Cocos Creator 编辑器中绑定 players_seat_pos 属性");
+            return;
+        }
+        
+        var playernode_inst = cc.instantiate(this.player_node_prefabs);
+        if (!playernode_inst) {
+            console.error("无法实例化 player_node_prefabs");
+            return;
+        }
+        
+        playernode_inst.parent = this.node;
+        this.playerNodeList.push(playernode_inst);
 
-        var index = this.playerdata_list_pos[player_data.seatindex]
-        console.log("index " + player_data.seatindex + " " + index)
-        playernode_inst.position = this.players_seat_pos.children[index].position
-        playernode_inst.getComponent("player_node").init_data(player_data, index)
+        var index = this.playerdata_list_pos[player_data.seatindex];
+        console.log("index " + player_data.seatindex + " " + index);
+        
+        // 检查 index 和座位位置是否存在
+        if (index === undefined || index === null) {
+            console.error("无效的座位索引:", player_data.seatindex);
+            return;
+        }
+        
+        if (!this.players_seat_pos.children[index]) {
+            console.error("座位节点不存在，index:", index);
+            return;
+        }
+        
+        playernode_inst.position = this.players_seat_pos.children[index].position;
+        
+        // 获取 player_node 组件并初始化
+        var playerNodeScript = playernode_inst.getComponent("player_node");
+        if (!playerNodeScript) {
+            console.error("无法获取 player_node 组件");
+            return;
+        }
+        
+        playerNodeScript.init_data(player_data, index);
     },
 
     start() {
@@ -337,11 +376,30 @@ cc.Class({
 
     getUserOutCardPosByAccount(accountid) {
         console.log("getUserOutCardPosByAccount accountid:" + accountid)
+        
+        // 安全检查
+        if (!this.playerNodeList || !this.players_seat_pos) {
+            console.error("playerNodeList 或 players_seat_pos 未初始化");
+            return null;
+        }
+        
         for (var i = 0; i < this.playerNodeList.length; i++) {
             var node = this.playerNodeList[i]
             if (node) {
                 var node_script = node.getComponent("player_node")
-                if (node_script.accountid === accountid) {
+                if (node_script && node_script.accountid === accountid) {
+                    // 检查 seat_index 是否有效
+                    if (node_script.seat_index === undefined || node_script.seat_index === null) {
+                        console.error("无效的 seat_index");
+                        return null;
+                    }
+                    
+                    // 检查座位节点是否存在
+                    if (!this.players_seat_pos.children || !this.players_seat_pos.children[node_script.seat_index]) {
+                        console.error("座位节点不存在，seat_index:", node_script.seat_index);
+                        return null;
+                    }
+                    
                     var seat_node = this.players_seat_pos.children[node_script.seat_index]
                     var index_name = "cardsoutzone" + node_script.seat_index
                     var out_card_node = seat_node.getChildByName(index_name)

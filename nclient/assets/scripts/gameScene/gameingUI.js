@@ -75,17 +75,40 @@ cc.Class({
         myglobal.socket.onOtherPlayerChuCard(function(data){
             console.log("onOtherPlayerChuCard"+JSON.stringify(data))
             var accountid = data.accountid
+            
+            // 安全检查
+            if (!this.node || !this.node.parent) {
+                console.error("节点或父节点不存在")
+                return
+            }
+            
             var gameScene_script = this.node.parent.getComponent("gameScene")
+            if (!gameScene_script) {
+                console.error("无法获取 gameScene 组件")
+                return
+            }
+            
             var outCard_node = gameScene_script.getUserOutCardPosByAccount(accountid)
             if(outCard_node==null){
+                return
+            }
+
+            // 检查 card_prefab 是否存在
+            if (!this.card_prefab) {
+                console.error("card_prefab 未绑定")
                 return
             }
 
             var node_cards = []
             for(var i=0;i<data.cards.length;i++){
                 var card = cc.instantiate(this.card_prefab)
-                card.getComponent("card").showCards(data.cards[i],myglobal.playerData.accountID)
-                node_cards.push(card)
+                if (card) {
+                    var cardScript = card.getComponent("card")
+                    if (cardScript) {
+                        cardScript.showCards(data.cards[i],myglobal.playerData.accountID)
+                    }
+                    node_cards.push(card)
+                }
             }
             this.appendOtherCardsToOutZone(outCard_node,node_cards,0)
         }.bind(this))
