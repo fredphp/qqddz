@@ -385,13 +385,13 @@ cc.Class({
         if (oldRightPanel) oldRightPanel.destroy();
         
         // ============================================================
-        // 布局参数（紧凑排列）
+        // 布局参数（紧凑排列，强制限制容器宽度）
         // ============================================================
-        var cardWidth = 280;     // 卡片宽度
-        var cardHeight = 340;    // 卡片高度
+        var cardWidth = 260;     // 卡片宽度
+        var cardHeight = 300;    // 卡片高度
         var gapX = 10;           // 水平间距（紧凑）
         var gapY = 10;           // 垂直间距（紧凑）
-        var padding = 5;         // 边距（最小化）
+        var padding = 10;        // 边距
         var topMargin = 50;      // 顶部边距
         
         // 获取画布尺寸
@@ -399,13 +399,22 @@ cc.Class({
         var screenWidth = canvas ? canvas.designResolution.width : 1280;
         var screenHeight = canvas ? canvas.designResolution.height : 720;
         
-        // 计算容器宽度（刚好容纳2个卡片，不留多余空间）
-        var panelWidth = cardWidth * 2 + gapX + padding * 2;
-        var panelHeight = screenHeight * 0.65;
+        // ============================================================
+        // 核心：强制限制容器宽度，刚好容纳2个卡片
+        // 公式：容器宽度 = 2 * 卡片宽度 + 间距 + 左右padding
+        // ============================================================
+        var panelWidth = cardWidth * 2 + gapX + padding * 2;  // = 260*2 + 10 + 20 = 550
+        var panelHeight = screenHeight * 0.6;
         
-        // 容器位置：左侧靠左边缘，右侧靠右边缘
-        var leftPanelX = -screenWidth / 2 + panelWidth / 2 + 10;  // 紧贴左边缘
-        var rightPanelX = screenWidth / 2 - panelWidth / 2 - 10;  // 紧贴右边缘
+        console.log("===== 布局计算 =====");
+        console.log("卡片尺寸: " + cardWidth + " x " + cardHeight);
+        console.log("容器宽度: " + panelWidth + " (刚好容纳2个卡片)");
+        console.log("间距: gapX=" + gapX + ", gapY=" + gapY);
+        
+        // 容器位置：左区域靠左，右区域靠右，中间留出间距
+        var containerGap = 100;  // 两个区域之间的间距
+        var leftPanelX = -panelWidth / 2 - containerGap / 2;  // 左区域在中间偏左
+        var rightPanelX = panelWidth / 2 + containerGap / 2;  // 右区域在中间偏右
         // 上移容器：使第一排距离顶部约50px
         var panelY = screenHeight / 2 - topMargin - panelHeight / 2;
         
@@ -444,21 +453,26 @@ cc.Class({
     },
     
     // ============================================================
-    // 手动计算位置渲染卡片（固定2列网格）
+    // 渲染卡片：从左上角开始，紧凑排列，固定2列
     // ============================================================
     _renderCardsInGrid: function(panel, rooms, cardWidth, cardHeight, gapX, gapY, padding) {
-        // 起始位置（从容器的左上角开始，已删除标题）
-        var startX = -panel.width / 2 + padding + cardWidth / 2;
-        var startY = panel.height / 2 - padding - cardHeight / 2; // 无标题，直接从顶部开始
+        // 起始位置：从容器的左上角开始
+        // 关键：使用 cardWidth/2 作为锚点偏移，确保卡片左对齐
+        var startX = -panel.width / 2 + padding + cardWidth / 2;  // 左边缘 + padding
+        var startY = panel.height / 2 - padding - cardHeight / 2; // 上边缘 - padding
+        
+        console.log("卡片起始位置: startX=" + startX + ", startY=" + startY);
+        console.log("卡片尺寸: " + cardWidth + "x" + cardHeight);
+        console.log("容器尺寸: " + panel.width + "x" + panel.height);
         
         for (var i = 0; i < rooms.length; i++) {
             var room = rooms[i];
             
-            // 计算行列索引
-            var col = i % 2;  // 0 或 1（第1列或第2列）
-            var row = Math.floor(i / 2);  // 行号
+            // 计算行列索引（固定2列）
+            var col = i % 2;  // 0 或 1
+            var row = Math.floor(i / 2);
             
-            // 计算位置
+            // 计算位置：从左到右，从上到下
             var x = startX + col * (cardWidth + gapX);
             var y = startY - row * (cardHeight + gapY);
             
@@ -468,11 +482,13 @@ cc.Class({
             // 设置父节点
             room.node.parent = panel;
             
-            // 设置位置（手动定位）
+            // 设置位置
             room.node.setPosition(x, y);
             
-            console.log("  [" + i + "] " + room.roomName + " -> (" + col + "," + row + ") pos(" + x.toFixed(0) + "," + y.toFixed(0) + ")");
+            console.log("  [" + i + "] " + room.roomName + " 列" + col + " 行" + row + " pos(" + x.toFixed(0) + "," + y.toFixed(0) + ")");
         }
+        
+        console.log("渲染完成: " + rooms.length + " 个卡片");
     },
     
     // 准备卡片节点（确保尺寸正确，不被拉伸）
