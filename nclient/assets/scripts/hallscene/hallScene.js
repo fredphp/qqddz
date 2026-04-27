@@ -129,7 +129,15 @@ cc.Class({
             // 设置位置 - 上移到图片框中
             var labelNode = this.gobal_count.node;
             if (labelNode) {
-                labelNode.y = 80;  // 进一步上移位置
+                // 禁用 Widget 组件，避免其覆盖位置设置
+                var widget = labelNode.getComponent(cc.Widget);
+                if (widget) {
+                    widget.enabled = false;
+                    console.log("✅ 已禁用金币Label的Widget组件");
+                }
+                
+                // 设置位置 - 上移
+                labelNode.y = 80;
                 console.log("✅ 金币Label位置已调整: y=80, fontSize=64");
             }
             
