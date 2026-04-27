@@ -481,9 +481,8 @@ cc.Class({
         layout.spacingX = spacingX;  // = 10
         layout.spacingY = spacingY;  // = 10
         
-        // 【四、对齐方式】
-        layout.horizontalAlign = cc.Layout.HorizontalAlign.LEFT;   // 左对齐
-        layout.verticalAlign = cc.Layout.VerticalAlign.TOP;        // 顶部对齐
+        // 注意：Cocos Creator 2.4 没有 horizontalAlign/verticalAlign 属性
+        // 对齐方式通过 horizontalDirection 和 verticalDirection 控制
         
         // 设置格子大小（让 Layout 知道每个卡片的尺寸）
         layout.cellSize = cc.size(cardWidth, cardHeight);
@@ -491,12 +490,14 @@ cc.Class({
         // Resize Mode: CONTAINER（容器根据内容调整）
         layout.resizeMode = cc.Layout.ResizeMode.CONTAINER;
         
-        // 添加背景色用于调试（可选）
-        // var bg = panel.addComponent(cc.Sprite);
-        // bg.color = cc.color(50, 50, 50, 100);
+        // 设置 padding 为 0，确保卡片贴边
+        layout.paddingLeft = 0;
+        layout.paddingRight = 0;
+        layout.paddingTop = 0;
+        layout.paddingBottom = 0;
         
         console.log("Layout 参数: type=GRID, startAxis=HORIZONTAL, cellSize=" + cardWidth + "x" + cardHeight);
-        console.log("Layout 对齐: horizontalAlign=LEFT, verticalAlign=TOP");
+        console.log("Layout 方向: LEFT_TO_RIGHT, TOP_TO_BOTTOM (等同于左上角对齐)");
         console.log("Layout 间距: spacingX=" + spacingX + ", spacingY=" + spacingY);
         
         return panel;
