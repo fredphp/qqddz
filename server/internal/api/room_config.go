@@ -20,18 +20,19 @@ const (
 
 // RoomConfigResponse 房间配置响应（用于API返回）
 type RoomConfigResponse struct {
-        ID          uint64 `json:"id"`
-        RoomName    string `json:"room_name"`
-        RoomType    uint8  `json:"room_type"`
-        BaseScore   int    `json:"base_score"`
-        Multiplier  int    `json:"multiplier"`
-        MinGold     int64  `json:"min_gold"`
-        MaxGold     int64  `json:"max_gold"`
-        EntryGold   int64  `json:"entry_gold"` // 进入房间需要的豆子/金币
-        BgImageNum  int    `json:"bg_image_num"` // 背景图编号（前端根据此编号匹配 btn_happy_{编号}.png）
-        Description string `json:"description"`
-        Status      uint8  `json:"status"`
-        SortOrder   int    `json:"sort_order"`
+        ID           uint64 `json:"id"`
+        RoomName     string `json:"room_name"`
+        RoomType     uint8  `json:"room_type"`
+        RoomCategory uint8  `json:"room_category"` // 房间分类: 1-普通场, 2-竞技场
+        BaseScore    int    `json:"base_score"`
+        Multiplier   int    `json:"multiplier"`
+        MinGold      int64  `json:"min_gold"`
+        MaxGold      int64  `json:"max_gold"`
+        EntryGold    int64  `json:"entry_gold"`    // 进入房间需要的豆子/金币
+        BgImageNum   int    `json:"bg_image_num"`  // 背景图编号（前端根据此编号匹配 btn_happy_{编号}.png）
+        Description  string `json:"description"`
+        Status       uint8  `json:"status"`
+        SortOrder    int    `json:"sort_order"`
 }
 
 // RoomConfigHandler 房间配置处理器
@@ -206,25 +207,35 @@ func (h *RoomConfigHandler) getRoomConfigsFromGORM() ([]RoomConfigResponse, erro
 
         var configs []RoomConfigResponse
         for _, rc := range roomConfigs {
-                // 背景图编号默认使用房间类型（2-6）
-                bgImageNum := int(rc.RoomType)
+                // 背景图编号优先使用数据库配置，否则使用房间类型
+                bgImageNum := int(rc.BgImageNum)
                 if bgImageNum < 2 || bgImageNum > 6 {
-                        bgImageNum = 2 // 默认编号
+                        bgImageNum = int(rc.RoomType)
+                        if bgImageNum < 2 || bgImageNum > 6 {
+                                bgImageNum = 2 // 默认编号
+                        }
                 }
-                
+
+                // 房间分类，默认为普通场
+                roomCategory := rc.RoomCategory
+                if roomCategory == 0 {
+                        roomCategory = 1 // 默认普通场
+                }
+
                 configs = append(configs, RoomConfigResponse{
-                        ID:          rc.ID,
-                        RoomName:    rc.RoomName,
-                        RoomType:    rc.RoomType,
-                        BaseScore:   rc.BaseScore,
-                        Multiplier:  rc.Multiplier,
-                        MinGold:     rc.MinGold,
-                        MaxGold:     rc.MaxGold,
-                        EntryGold:   rc.MinGold, // 入场豆子等于最低入场金币
-                        BgImageNum:  bgImageNum, // 背景图编号
-                        Description: rc.Description,
-                        Status:      rc.Status,
-                        SortOrder:   rc.SortOrder,
+                        ID:           rc.ID,
+                        RoomName:     rc.RoomName,
+                        RoomType:     rc.RoomType,
+                        RoomCategory: roomCategory,
+                        BaseScore:    rc.BaseScore,
+                        Multiplier:   rc.Multiplier,
+                        MinGold:      rc.MinGold,
+                        MaxGold:      rc.MaxGold,
+                        EntryGold:    rc.MinGold, // 入场豆子等于最低入场金币
+                        BgImageNum:   bgImageNum, // 背景图编号
+                        Description:  rc.Description,
+                        Status:       rc.Status,
+                        SortOrder:    rc.SortOrder,
                 })
         }
 
@@ -237,8 +248,8 @@ func (h *RoomConfigHandler) getRoomConfigsFromGORM() ([]RoomConfigResponse, erro
 
 // getRoomConfigsFromSQL 从原始 SQL 获取房间配置
 func (h *RoomConfigHandler) getRoomConfigsFromSQL() ([]RoomConfigResponse, error) {
-        query := `SELECT id, room_name, room_type, base_score, multiplier, min_gold, max_gold, 
-                  description, status, sort_order
+        query := `SELECT id, room_name, room_type, room_category, base_score, multiplier, min_gold, max_gold,
+                  bg_image_num, description, status, sort_order
                   FROM ddz_room_config
                   WHERE status = 1 AND deleted_at IS NULL
                   ORDER BY sort_order ASC`
@@ -252,14 +263,17 @@ func (h *RoomConfigHandler) getRoomConfigsFromSQL() ([]RoomConfigResponse, error
         var configs []RoomConfigResponse
         for rows.Next() {
                 var config RoomConfigResponse
+                var bgImageNum uint8
                 err := rows.Scan(
                         &config.ID,
                         &config.RoomName,
                         &config.RoomType,
+                        &config.RoomCategory,
                         &config.BaseScore,
                         &config.Multiplier,
                         &config.MinGold,
                         &config.MaxGold,
+                        &bgImageNum,
                         &config.Description,
                         &config.Status,
                         &config.SortOrder,
@@ -269,10 +283,17 @@ func (h *RoomConfigHandler) getRoomConfigsFromSQL() ([]RoomConfigResponse, error
                 }
                 // 入场豆子等于最低入场金币
                 config.EntryGold = config.MinGold
-                // 背景图编号默认使用房间类型
-                config.BgImageNum = int(config.RoomType)
+                // 背景图编号
+                config.BgImageNum = int(bgImageNum)
                 if config.BgImageNum < 2 || config.BgImageNum > 6 {
-                        config.BgImageNum = 2
+                        config.BgImageNum = int(config.RoomType)
+                        if config.BgImageNum < 2 || config.BgImageNum > 6 {
+                                config.BgImageNum = 2
+                        }
+                }
+                // 房间分类默认值
+                if config.RoomCategory == 0 {
+                        config.RoomCategory = 1
                 }
                 configs = append(configs, config)
         }
@@ -392,24 +413,34 @@ func (h *RoomConfigHandler) GetRoomConfigByType(w http.ResponseWriter, r *http.R
                 }
 
                 // 背景图编号
-                bgImageNum := int(rc.RoomType)
+                bgImageNum := int(rc.BgImageNum)
                 if bgImageNum < 2 || bgImageNum > 6 {
-                        bgImageNum = 2
+                        bgImageNum = int(rc.RoomType)
+                        if bgImageNum < 2 || bgImageNum > 6 {
+                                bgImageNum = 2
+                        }
+                }
+
+                // 房间分类
+                roomCategory := rc.RoomCategory
+                if roomCategory == 0 {
+                        roomCategory = 1
                 }
 
                 config := &RoomConfigResponse{
-                        ID:          rc.ID,
-                        RoomName:    rc.RoomName,
-                        RoomType:    rc.RoomType,
-                        BaseScore:   rc.BaseScore,
-                        Multiplier:  rc.Multiplier,
-                        MinGold:     rc.MinGold,
-                        MaxGold:     rc.MaxGold,
-                        EntryGold:   rc.MinGold,
-                        BgImageNum:  bgImageNum,
-                        Description: rc.Description,
-                        Status:      rc.Status,
-                        SortOrder:   rc.SortOrder,
+                        ID:           rc.ID,
+                        RoomName:     rc.RoomName,
+                        RoomType:     rc.RoomType,
+                        RoomCategory: roomCategory,
+                        BaseScore:    rc.BaseScore,
+                        Multiplier:   rc.Multiplier,
+                        MinGold:      rc.MinGold,
+                        MaxGold:      rc.MaxGold,
+                        EntryGold:    rc.MinGold,
+                        BgImageNum:   bgImageNum,
+                        Description:  rc.Description,
+                        Status:       rc.Status,
+                        SortOrder:    rc.SortOrder,
                 }
 
                 writeJSONSuccess(w, config)
@@ -423,8 +454,9 @@ func (h *RoomConfigHandler) GetRoomConfigByType(w http.ResponseWriter, r *http.R
         }
 
         var config RoomConfigResponse
-        query := `SELECT id, room_name, room_type, base_score, multiplier, min_gold, max_gold,
-                  description, status, sort_order
+        var bgImageNum uint8
+        query := `SELECT id, room_name, room_type, room_category, base_score, multiplier, min_gold, max_gold,
+                  bg_image_num, description, status, sort_order
                   FROM ddz_room_config
                   WHERE room_type = ? AND status = 1 AND deleted_at IS NULL`
 
@@ -432,10 +464,12 @@ func (h *RoomConfigHandler) GetRoomConfigByType(w http.ResponseWriter, r *http.R
                 &config.ID,
                 &config.RoomName,
                 &config.RoomType,
+                &config.RoomCategory,
                 &config.BaseScore,
                 &config.Multiplier,
                 &config.MinGold,
                 &config.MaxGold,
+                &bgImageNum,
                 &config.Description,
                 &config.Status,
                 &config.SortOrder,
@@ -451,9 +485,15 @@ func (h *RoomConfigHandler) GetRoomConfigByType(w http.ResponseWriter, r *http.R
         }
 
         config.EntryGold = config.MinGold
-        config.BgImageNum = int(config.RoomType)
+        config.BgImageNum = int(bgImageNum)
         if config.BgImageNum < 2 || config.BgImageNum > 6 {
-                config.BgImageNum = 2
+                config.BgImageNum = int(config.RoomType)
+                if config.BgImageNum < 2 || config.BgImageNum > 6 {
+                        config.BgImageNum = 2
+                }
+        }
+        if config.RoomCategory == 0 {
+                config.RoomCategory = 1
         }
 
         writeJSONSuccess(w, config)

@@ -41,10 +41,12 @@ type RoomConfig struct {
         ID             uint64         `gorm:"primaryKey;autoIncrement;comment:配置ID" json:"id"`
         RoomName       string         `gorm:"type:varchar(64);not null;comment:房间名称" json:"room_name"`
         RoomType       uint8          `gorm:"type:tinyint;uniqueIndex;not null;default:1;comment:房间类型:1-普通场,2-高级场,3-富豪场,4-至尊场" json:"room_type"`
+        RoomCategory   uint8          `gorm:"type:tinyint;not null;default:1;index;comment:房间分类:1-普通场,2-竞技场" json:"room_category"`
         BaseScore      int            `gorm:"type:int;not null;default:1;comment:底分" json:"base_score"`
         Multiplier     int            `gorm:"type:int;not null;default:1;comment:初始倍数" json:"multiplier"`
         MinGold        int64          `gorm:"type:bigint;not null;default:0;comment:最低入场金币" json:"min_gold"`
         MaxGold        int64          `gorm:"type:bigint;not null;default:0;comment:最高入场金币(0表示无限制)" json:"max_gold"`
+        BgImageNum     uint8          `gorm:"type:tinyint;not null;default:2;comment:背景图编号" json:"bg_image_num"`
         BotEnabled     uint8          `gorm:"type:tinyint;not null;default:1;comment:是否允许机器人:0-否,1-是" json:"bot_enabled"`
         BotCount       int            `gorm:"type:int;not null;default:0;comment:房间机器人数量" json:"bot_count"`
         FeeRate        float64        `gorm:"type:decimal(5,4);not null;default:0;comment:手续费率" json:"fee_rate"`
