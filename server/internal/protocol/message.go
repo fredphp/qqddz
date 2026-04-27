@@ -57,6 +57,9 @@ const (
         MsgPlayerReady  MessageType = "player_ready"  // 玩家准备
         MsgMatchFound   MessageType = "match_found"   // 匹配成功
 
+        // 房间列表实时推送
+        MsgRoomListUpdate MessageType = "room_list_update" // 房间列表实时更新
+
         // 游戏流程
         MsgGameStart   MessageType = "game_start"   // 游戏开始
         MsgDealCards   MessageType = "deal_cards"   // 发牌

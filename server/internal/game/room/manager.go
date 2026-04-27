@@ -56,6 +56,15 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface) (*Room, error) {
                 }()
         }
 
+        // 广播房间列表更新 - 新房间
+        if rm.onRoomListUpdate != nil {
+                rm.onRoomListUpdate("add", &RoomListItem{
+                        RoomCode:    code,
+                        PlayerCount: 1,
+                        MaxPlayers:  3,
+                })
+        }
+
         log.Printf("🏠 房间 %s 已创建，玩家 %s", code, client.GetName())
 
         return room, nil
@@ -93,6 +102,8 @@ func (rm *RoomManager) JoinRoom(client types.ClientInterface, code string) (*Roo
         room.PlayerOrder = append(room.PlayerOrder, client.GetID())
         client.SetRoom(code)
 
+        playerCount := len(room.Players)
+
         log.Printf("👤 玩家 %s 加入房间 %s", client.GetName(), code)
 
         // 通知房间内其他玩家
@@ -103,7 +114,6 @@ func (rm *RoomManager) JoinRoom(client types.ClientInterface, code string) (*Roo
         // 保存到 Redis
         if rm.redisStore != nil && rm.redisStore.IsReady() {
                 ctx := context.Background()
-                playerCount := len(room.Players)
                 // 保存房间详情
                 go func() { _ = rm.redisStore.SaveRoom(ctx, room.Code, room.ToRoomData()) }()
                 // 更新可加入房间列表（如果满了就从列表移除）
@@ -119,6 +129,21 @@ func (rm *RoomManager) JoinRoom(client types.ClientInterface, code string) (*Roo
                                 })
                         }
                 }()
+        }
+
+        // 广播房间列表更新
+        if rm.onRoomListUpdate != nil {
+                if playerCount >= 3 {
+                        // 房间满人，从列表移除
+                        rm.onRoomListUpdate("remove", &RoomListItem{RoomCode: code})
+                } else {
+                        // 更新房间人数
+                        rm.onRoomListUpdate("update", &RoomListItem{
+                                RoomCode:    code,
+                                PlayerCount: playerCount,
+                                MaxPlayers:  3,
+                        })
+                }
         }
 
         return room, nil
@@ -179,21 +204,35 @@ func (rm *RoomManager) LeaveRoom(client types.ClientInterface) {
                                 _ = rm.redisStore.RemoveFromAvailableRooms(ctx, roomCode)
                         }()
                 }
+                // 广播房间列表更新 - 房间解散
+                if rm.onRoomListUpdate != nil {
+                        rm.onRoomListUpdate("remove", &RoomListItem{RoomCode: roomCode})
+                }
                 log.Printf("🏠 房间 %s 已解散", roomCode)
-        } else if rm.redisStore != nil && rm.redisStore.IsReady() {
-                ctx := context.Background()
+        } else {
                 playerCount := len(room.Players)
-                // 保存房间详情
-                go func() { _ = rm.redisStore.SaveRoom(ctx, room.Code, room.ToRoomData()) }()
-                // 更新可加入房间列表
-                go func() {
-                        _ = rm.redisStore.UpdateAvailableRoom(ctx, &storage.RoomListItemData{
+                if rm.redisStore != nil && rm.redisStore.IsReady() {
+                        ctx := context.Background()
+                        // 保存房间详情
+                        go func() { _ = rm.redisStore.SaveRoom(ctx, room.Code, room.ToRoomData()) }()
+                        // 更新可加入房间列表
+                        go func() {
+                                _ = rm.redisStore.UpdateAvailableRoom(ctx, &storage.RoomListItemData{
+                                        RoomCode:    roomCode,
+                                        PlayerCount: playerCount,
+                                        MaxPlayers:  3,
+                                        CreatedAt:   room.CreatedAt.Unix(),
+                                })
+                        }()
+                }
+                // 广播房间列表更新 - 更新房间人数
+                if rm.onRoomListUpdate != nil {
+                        rm.onRoomListUpdate("update", &RoomListItem{
                                 RoomCode:    roomCode,
                                 PlayerCount: playerCount,
                                 MaxPlayers:  3,
-                                CreatedAt:   room.CreatedAt.Unix(),
                         })
-                }()
+                }
         }
 }
 
@@ -247,6 +286,11 @@ func (rm *RoomManager) SetPlayerReady(client types.ClientInterface, ready bool) 
                                 // 游戏开始，从可加入房间列表移除
                                 _ = rm.redisStore.RemoveFromAvailableRooms(ctx, roomCode)
                         }()
+                }
+
+                // 广播房间列表更新 - 游戏开始，移除房间
+                if rm.onRoomListUpdate != nil {
+                        rm.onRoomListUpdate("remove", &RoomListItem{RoomCode: roomCode})
                 }
         }
 

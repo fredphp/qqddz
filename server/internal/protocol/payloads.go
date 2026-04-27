@@ -250,6 +250,21 @@ type RoomListItem struct {
         MaxPlayers  int    `json:"max_players"`
 }
 
+// RoomListUpdatePayload 房间列表实时更新推送
+type RoomListUpdatePayload struct {
+        ActionType   string       `json:"action_type"`    // add/update/remove
+        Room         *RoomListItem `json:"room,omitempty"` // 房间信息（add/update时）
+        RoomCode     string       `json:"room_code,omitempty"` // 房间号（remove时）
+        Reason       string       `json:"reason,omitempty"`    // 原因说明
+}
+
+// 房间列表更新动作类型
+const (
+        RoomActionAdd    = "add"    // 新房间
+        RoomActionUpdate = "update" // 更新房间信息
+        RoomActionRemove = "remove" // 移除房间
+)
+
 // ChatPayload 聊天消息
 type ChatPayload struct {
         SenderID   string `json:"sender_id,omitempty"`   // 发送者 ID (服务端填充)
