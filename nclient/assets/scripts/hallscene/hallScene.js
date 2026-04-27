@@ -385,51 +385,56 @@ cc.Class({
         if (oldRightPanel) oldRightPanel.destroy();
         
         // ============================================================
-        // 参数设置 - 优化布局
+        // 参数设置 - 优化布局，防止重叠
         // ============================================================
-        var cardWidth = 190;       // 卡片宽度
-        var cardHeight = 120;      // 卡片高度
-        var gapX = 15;             // 卡片水平间距
-        var gapY = 15;             // 卡片垂直间距
+        var cardWidth = 200;       // 卡片宽度
+        var cardHeight = 140;      // 卡片高度（实际高度）
+        var gapX = 20;             // 卡片水平间距
+        var gapY = 30;             // 卡片垂直间距（增大防止重叠）
         
         // 容器尺寸
-        var panelWidth = 420;      // 容器宽度（两卡片 + 间距 + 边距）
-        var titleHeight = 40;      // 标题区域高度
+        var panelWidth = 440;      // 容器宽度
+        var titleHeight = 50;      // 标题区域高度
+        var topPadding = 30;       // 顶部内边距
+        var bottomPadding = 30;    // 底部内边距
         
         // 计算容器高度
         var leftRows = Math.ceil(leftRooms.length / 2) || 1;
         var rightRows = Math.ceil(rightRooms.length / 2) || 1;
-        var contentHeight = Math.max(leftRows, rightRows) * cardHeight + (Math.max(leftRows, rightRows) - 1) * gapY;
-        var panelHeight = contentHeight + titleHeight + 60;  // 标题 + 内容 + 边距
+        var maxRows = Math.max(leftRows, rightRows);
+        var contentHeight = maxRows * cardHeight + (maxRows - 1) * gapY;
+        var panelHeight = titleHeight + topPadding + contentHeight + bottomPadding;
         
         // 画布尺寸
         var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
         var screenHeight = canvas ? canvas.designResolution.height : 720;
         var screenWidth = canvas ? canvas.designResolution.width : 1280;
         
-        // 容器居中偏移（左右容器在屏幕两侧居中）
-        var edgeMargin = 50;       // 距离屏幕边缘的距离
+        // 容器位置
+        var edgeMargin = 60;       // 距离屏幕边缘的距离
+        var verticalOffset = 30;   // 垂直偏移（向下）
         
         console.log("===== 布局调试 =====");
         console.log("竞技场: " + leftRooms.length + "个, 普通场: " + rightRooms.length + "个");
         console.log("卡片: " + cardWidth + "x" + cardHeight + ", 间距: " + gapX + "/" + gapY);
-        console.log("容器: " + panelWidth + "x" + panelHeight);
+        console.log("容器: " + panelWidth + "x" + panelHeight + ", 行数: " + maxRows);
         
         // ============================================================
-        // 左容器（竞技场）- 居中偏左
+        // 左容器（竞技场）
         // ============================================================
         var leftPanel = new cc.Node("LeftArea");
         leftPanel.setContentSize(panelWidth, panelHeight);
         leftPanel.anchorX = 0.5;
         leftPanel.anchorY = 0.5;
         leftPanel.x = -screenWidth / 2 + edgeMargin + panelWidth / 2;
-        leftPanel.y = -20;  // 整体下移一点
+        leftPanel.y = -verticalOffset;
         leftPanel.parent = this.node;
         
         // 添加区域标题
-        this._addAreaTitle(leftPanel, "🏆 竞技场", 0, panelHeight / 2 - 20);
+        this._addAreaTitle(leftPanel, "竞技场", 0, panelHeight / 2 - 25);
         
-        // 放置竞技场卡片
+        // 放置竞技场卡片 - 从标题下方开始
+        var startY = panelHeight / 2 - titleHeight - topPadding - cardHeight / 2;
         for (var i = 0; i < leftRooms.length; i++) {
             var room = leftRooms[i];
             var col = i % 2;
@@ -444,28 +449,30 @@ cc.Class({
             room.node.active = true;
             room.node.parent = leftPanel;
             
-            // 卡片居中排列
+            // 卡片水平居中排列
             var totalWidth = 2 * cardWidth + gapX;
             var startX = -totalWidth / 2 + cardWidth / 2;
             room.node.x = startX + col * (cardWidth + gapX);
-            room.node.y = panelHeight / 2 - titleHeight - cardHeight / 2 - 20 - row * (cardHeight + gapY);
+            // 卡片垂直位置：从顶部向下排列
+            room.node.y = startY - row * (cardHeight + gapY);
         }
         
         // ============================================================
-        // 右容器（普通场）- 居中偏右
+        // 右容器（普通场）
         // ============================================================
         var rightPanel = new cc.Node("RightArea");
         rightPanel.setContentSize(panelWidth, panelHeight);
         rightPanel.anchorX = 0.5;
         rightPanel.anchorY = 0.5;
         rightPanel.x = screenWidth / 2 - edgeMargin - panelWidth / 2;
-        rightPanel.y = -20;  // 整体下移一点
+        rightPanel.y = -verticalOffset;
         rightPanel.parent = this.node;
         
         // 添加区域标题
-        this._addAreaTitle(rightPanel, "🎮 普通场", 0, panelHeight / 2 - 20);
+        this._addAreaTitle(rightPanel, "普通场", 0, panelHeight / 2 - 25);
         
-        // 放置普通场卡片
+        // 放置普通场卡片 - 从标题下方开始
+        startY = panelHeight / 2 - titleHeight - topPadding - cardHeight / 2;
         for (var i = 0; i < rightRooms.length; i++) {
             var room = rightRooms[i];
             var col = i % 2;
@@ -480,11 +487,12 @@ cc.Class({
             room.node.active = true;
             room.node.parent = rightPanel;
             
-            // 卡片居中排列
+            // 卡片水平居中排列
             var totalWidth = 2 * cardWidth + gapX;
             var startX = -totalWidth / 2 + cardWidth / 2;
             room.node.x = startX + col * (cardWidth + gapX);
-            room.node.y = panelHeight / 2 - titleHeight - cardHeight / 2 - 20 - row * (cardHeight + gapY);
+            // 卡片垂直位置：从顶部向下排列
+            room.node.y = startY - row * (cardHeight + gapY);
         }
         
         console.log("✅ 布局完成");
@@ -499,8 +507,8 @@ cc.Class({
         
         var label = titleNode.addComponent(cc.Label);
         label.string = titleText;
-        label.fontSize = 24;
-        label.lineHeight = 32;
+        label.fontSize = 28;
+        label.lineHeight = 36;
         label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         
         titleNode.color = cc.color(255, 215, 0);
