@@ -390,7 +390,7 @@ cc.Class({
         var cardWidth = 200;      // 卡片宽度（适配450px容器）
         var cardHeight = 130;     // 卡片高度
         var gapX = 20;            // 卡片水平间距
-        var gapY = 20;            // 卡片垂直间距（margin-top效果）
+        var gapY = 50;            // 卡片垂直间距（增加间距防止重叠）
         
         // 容器尺寸
         var panelWidth = 450;     // 容器宽度改为450px
@@ -398,7 +398,7 @@ cc.Class({
         // 计算容器高度（根据卡片数量）- 增加额外空间
         var leftRows = Math.ceil(leftRooms.length / 2) || 1;
         var rightRows = Math.ceil(rightRooms.length / 2) || 1;
-        var panelHeight = Math.max(leftRows, rightRows) * cardHeight + (Math.max(leftRows, rightRows) - 1) * gapY + 170;  // 容器高度（增加20px）
+        var panelHeight = Math.max(leftRows, rightRows) * cardHeight + (Math.max(leftRows, rightRows) - 1) * gapY + 170;  // 容器高度
         
         // 画布尺寸
         var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
@@ -447,7 +447,7 @@ cc.Class({
             // 两卡片总宽度 = 200*2 + 20 = 420，两边各留15px边距
             room.node.x = 15 + cardWidth / 2 + col * (cardWidth + gapX);
             // 卡片Y位置：从顶部开始，每行间隔 gapY
-            room.node.y = panelHeight / 2 - cardHeight / 2 - row * (cardHeight + gapY) - 40;
+            room.node.y = panelHeight / 2 - cardHeight / 2 - row * (cardHeight + gapY);
             
             // 添加卡片边框（调试用）
             this._addDebugBorder(room.node, cc.color(0, 255, 0, 100));  // 绿色边框
@@ -491,7 +491,7 @@ cc.Class({
             // 两卡片总宽度 = 200*2 + 20 = 420，两边各留15px边距
             room.node.x = 15 + cardWidth / 2 + col * (cardWidth + gapX);
             // 卡片Y位置：从顶部开始，每行间隔 gapY
-            room.node.y = panelHeight / 2 - cardHeight / 2 - row * (cardHeight + gapY) - 40;
+            room.node.y = panelHeight / 2 - cardHeight / 2 - row * (cardHeight + gapY);
             
             // 添加卡片边框（调试用）
             this._addDebugBorder(room.node, cc.color(255, 255, 0, 100));  // 黄色边框
