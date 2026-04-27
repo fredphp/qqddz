@@ -387,19 +387,18 @@ cc.Class({
         // ============================================================
         // 参数设置
         // ============================================================
-        var cardWidth = 180;      // 卡片宽度（适配400px容器）
+        var cardWidth = 200;      // 卡片宽度（适配450px容器）
         var cardHeight = 130;     // 卡片高度
         var gapX = 20;            // 卡片水平间距
         var gapY = 20;            // 卡片垂直间距（margin-top效果）
-        var containerGap = 60;    // 左右两个容器的间距
         
         // 容器尺寸
-        var panelWidth = 400;     // 容器宽度改为400px
+        var panelWidth = 450;     // 容器宽度改为450px
         
         // 计算容器高度（根据卡片数量）- 增加额外空间
         var leftRows = Math.ceil(leftRooms.length / 2) || 1;
         var rightRows = Math.ceil(rightRooms.length / 2) || 1;
-        var panelHeight = Math.max(leftRows, rightRows) * cardHeight + (Math.max(leftRows, rightRows) - 1) * gapY + 100;  // 增加高度
+        var panelHeight = Math.max(leftRows, rightRows) * cardHeight + (Math.max(leftRows, rightRows) - 1) * gapY + 100;
         
         // 画布尺寸
         var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
@@ -420,12 +419,12 @@ cc.Class({
         leftPanel.anchorX = 0;    // 左侧锚点，往左靠
         leftPanel.anchorY = 0.5;  // 中心锚点
         
-        // 位置：左容器从屏幕中心开始，往左延伸
+        // 位置：左容器从屏幕中心开始，往左延伸，整体向上移动
         leftPanel.x = -screenWidth / 2 + 30;  // 距离左边30px
-        leftPanel.y = 0;  // 屏幕中心垂直位置
+        leftPanel.y = 50;  // 向上移动50px
         
         // 添加容器边框（调试用）
-        this._addDebugBorder(leftPanel, cc.color(255, 0, 0, 100));  // 红色边框
+        this._addDebugBorder(leftPanel, cc.color(255, 0, 0));  // 红色边框
         
         leftPanel.parent = this.node;
         console.log("左容器位置: (" + leftPanel.x + ", " + leftPanel.y + ")");
@@ -444,9 +443,9 @@ cc.Class({
             
             room.node.active = true;
             room.node.parent = leftPanel;
-            // 卡片X位置：在400px容器中，锚点为0（左对齐）
-            // 两卡片总宽度 = 180*2 + 20 = 380，两边各留10px边距
-            room.node.x = 10 + cardWidth / 2 + col * (cardWidth + gapX);
+            // 卡片X位置：在450px容器中，锚点为0（左对齐）
+            // 两卡片总宽度 = 200*2 + 20 = 420，两边各留15px边距
+            room.node.x = 15 + cardWidth / 2 + col * (cardWidth + gapX);
             // 卡片Y位置：从顶部开始，每行间隔 gapY
             room.node.y = panelHeight / 2 - cardHeight / 2 - row * (cardHeight + gapY) - 40;
             
@@ -461,15 +460,15 @@ cc.Class({
         // ============================================================
         var rightPanel = new cc.Node("RightArea");
         rightPanel.setContentSize(panelWidth, panelHeight);
-        rightPanel.anchorX = 1;    // 右侧锚点，往右靠
+        rightPanel.anchorX = 0;    // 左侧锚点（方便计算）
         rightPanel.anchorY = 0.5;  // 中心锚点
         
-        // 位置：右容器从屏幕中心开始，往右延伸
-        rightPanel.x = screenWidth / 2 - 30;  // 距离右边30px
-        rightPanel.y = 0;  // 屏幕中心垂直位置
+        // 位置：右容器在屏幕右边
+        rightPanel.x = screenWidth / 2 - 30 - panelWidth;  // 距离右边30px
+        rightPanel.y = 50;  // 向上移动50px
         
         // 添加容器边框（调试用）
-        this._addDebugBorder(rightPanel, cc.color(0, 0, 255, 100));  // 蓝色边框
+        this._addDebugBorder(rightPanel, cc.color(0, 0, 255));  // 蓝色边框
         
         rightPanel.parent = this.node;
         console.log("右容器位置: (" + rightPanel.x + ", " + rightPanel.y + ")");
@@ -488,9 +487,9 @@ cc.Class({
             
             room.node.active = true;
             room.node.parent = rightPanel;
-            // 卡片X位置：在400px容器中，锚点为1（右对齐）
-            // 两卡片总宽度 = 180*2 + 20 = 380，两边各留10px边距
-            room.node.x = panelWidth - 10 - cardWidth / 2 - (1 - col) * (cardWidth + gapX);
+            // 卡片X位置：在450px容器中，锚点为0（左对齐，和左容器一致）
+            // 两卡片总宽度 = 200*2 + 20 = 420，两边各留15px边距
+            room.node.x = 15 + cardWidth / 2 + col * (cardWidth + gapX);
             // 卡片Y位置：从顶部开始，每行间隔 gapY
             room.node.y = panelHeight / 2 - cardHeight / 2 - row * (cardHeight + gapY) - 40;
             
@@ -503,7 +502,7 @@ cc.Class({
         console.log("✅ 布局完成");
     },
     
-    // 添加调试边框
+    // 添加调试边框（使用 opacity 而不是 color alpha）
     _addDebugBorder: function(node, color) {
         var sprite = node.getComponent(cc.Sprite);
         if (!sprite) {
@@ -512,7 +511,9 @@ cc.Class({
         sprite.type = cc.Sprite.Type.SLICED;
         sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         sprite.spriteFrame = this._createBorderSpriteFrame();
-        node.color = color;
+        // 使用 opacity 设置透明度，避免警告
+        node.color = cc.color(color.r, color.g, color.b);  // 不包含 alpha
+        node.opacity = 80;  // 使用 opacity 设置透明度
     },
     
     // 创建边框 SpriteFrame
