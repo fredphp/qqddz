@@ -397,6 +397,13 @@
         // 记录最后活动时间
         this._lastActivityTime = Date.now();
         
+        // 标记正在初始化连接，给WebSocket连接时间
+        this._isInitializing = true;
+        this._initTimeout = setTimeout(function() {
+            self._isInitializing = false;
+            console.log("✅ 初始化缓冲期结束，开始正常监测");
+        }, 10000); // 10秒缓冲时间
+        
         // 监听用户活动（Web端）
         if (typeof window !== 'undefined') {
             // 监听用户交互
@@ -432,9 +439,20 @@
             this._socketStateListener = function(state, oldState) {
                 console.log("🔌 WebSocket 状态变化: " + oldState + " -> " + state);
                 if (state === "connected") {
+                    // 连接成功，结束初始化状态
+                    self._isInitializing = false;
+                    if (self._initTimeout) {
+                        clearTimeout(self._initTimeout);
+                        self._initTimeout = null;
+                    }
                     self._setOnlineStatus(true);
                 } else if (state === "disconnected") {
-                    self._setOnlineStatus(false);
+                    // 只有在非初始化状态下才判定离线
+                    if (!self._isInitializing) {
+                        self._setOnlineStatus(false);
+                    } else {
+                        console.log("⏳ 初始化缓冲期，忽略 disconnected 状态");
+                    }
                 }
             };
             this.socket.addStateListener(this._socketStateListener);
@@ -460,6 +478,13 @@
     
     // 停止在线状态监测
     myglobal.stopOnlineMonitoring = function() {
+        // 清理初始化超时
+        if (this._initTimeout) {
+            clearTimeout(this._initTimeout);
+            this._initTimeout = null;
+        }
+        this._isInitializing = false;
+        
         if (this._connectionCheckInterval) {
             clearInterval(this._connectionCheckInterval);
             this._connectionCheckInterval = null;
@@ -490,6 +515,12 @@
     
     // 检查在线状态
     myglobal._checkOnlineStatus = function() {
+        // 初始化期间不检查
+        if (this._isInitializing) {
+            console.log("⏳ 初始化缓冲期，跳过在线状态检查");
+            return;
+        }
+        
         // 检查 WebSocket 连接状态
         var isWebSocketConnected = this.socket && this.socket.isConnected && this.socket.isConnected();
         
@@ -553,7 +584,12 @@
         if (typeof listener === 'function') {
             this._onlineStatusListeners.push(listener);
             // 立即通知当前状态
-            listener(this._isOnline);
+            // 但在初始化期间，始终报告为在线（避免误报）
+            if (this._isInitializing) {
+                listener(true);  // 初始化期间报告在线
+            } else {
+                listener(this._isOnline);
+            }
         }
     };
     

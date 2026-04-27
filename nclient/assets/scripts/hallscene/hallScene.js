@@ -148,8 +148,11 @@ cc.Class({
         var self = this;
         this._onlineStatusHandler = function(isOnline) {
             console.log("大厅场景：在线状态变化 -> " + (isOnline ? "在线" : "离线"));
-            if (!isOnline) {
+            // 只有在非初始化状态下才显示离线提示
+            if (!isOnline && !myglobal._isInitializing) {
                 self._showOfflineMessage();
+            } else if (!isOnline && myglobal._isInitializing) {
+                console.log("⏳ 初始化缓冲期，不显示离线提示");
             }
         };
         
