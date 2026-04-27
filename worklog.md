@@ -384,3 +384,48 @@ Stage Summary:
 - 行距紧凑不松散
 - 列距紧凑成整体网格
 - 提交：867d9ab
+
+---
+Task ID: 12
+Agent: Main Agent
+Task: 缩小卡片间距，实现紧凑排列
+
+Work Log:
+1. 缩小卡片间距：gapX/gapY: 20 → 10
+2. 减少左右留白：padding: 15 → 5
+3. 容器位置调整：leftPanelX/rightPanelX 偏移: 20 → 10
+
+Stage Summary:
+- 间距缩小为10px
+- 提交：6b9b46e
+
+---
+Task ID: 13
+Agent: Main Agent
+Task: 强制限制容器宽度，解决卡片分散问题
+
+Work Log:
+1. 问题根因分析：
+   - 容器宽度过大 → 卡片被分散
+   - 两个容器分别在屏幕左右两端 → 中间空隙太大
+   - 卡片在大容器里被均匀分布
+
+2. 强制限制容器宽度：
+   - panelWidth = cardWidth * 2 + gapX + padding * 2
+   - = 260 * 2 + 10 + 20 = 550px
+   - 刚好容纳2个卡片，不留多余空间
+
+3. 调整容器位置：
+   - 左右两个容器居中排列，中间留100px间距
+   - leftPanelX = -panelWidth/2 - containerGap/2
+   - rightPanelX = panelWidth/2 + containerGap/2
+
+4. 卡片尺寸调整：
+   - cardWidth: 280 → 260
+   - cardHeight: 340 → 300
+
+Stage Summary:
+- 容器宽度刚好容纳2个卡片
+- 卡片紧凑排列，不分散
+- 左右两个区域居中对称
+- 提交：b2d9ad5
