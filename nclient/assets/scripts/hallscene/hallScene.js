@@ -122,7 +122,8 @@ cc.Class({
             this._startOnlineMonitoring();  // 启动在线状态监测
             this._fetchRoomConfigs();
             this._removeNoticeBoard();
-            this._createEnterRoomButton();  // 创建加入房间按钮
+            // 注释掉：大厅不需要加入房间按钮，该功能在房间列表场景中使用
+            // this._createEnterRoomButton();  // 创建加入房间按钮
             
             console.log("=== _initUIAfterAuth 完成 ===");
         } catch (e) {
