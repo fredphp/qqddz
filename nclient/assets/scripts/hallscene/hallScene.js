@@ -121,10 +121,25 @@ cc.Class({
         if (this.gobal_count) {
             var goldCount = playerData.gobal_count || 0;
             this.gobal_count.string = ":" + goldCount;
+            
+            // 设置更大的字体
+            this.gobal_count.fontSize = 48;
+            this.gobal_count.lineHeight = 56;
+            
+            // 设置位置 - 上移到图片框中
+            var labelNode = this.gobal_count.node;
+            if (labelNode) {
+                labelNode.y = 50;  // 上移位置
+                console.log("✅ 金币Label位置已调整: y=50");
+            }
+            
             console.log("✅ 元宝已设置:", goldCount);
         } else {
             console.warn("gobal_count 组件未绑定");
         }
+        
+        // 调整金币图标和框的位置
+        this._adjustGoldElementsPosition();
 
         // 加载用户头像
         this._loadUserAvatar(playerData.avatarUrl);
@@ -957,6 +972,30 @@ cc.Class({
         this._hideNodesWithText(this.node, "娱乐休闲");
         this._hideNodesWithText(this.node, "自觉远离");
         this._hideNodesWithText(this.node, "赌博");
+    },
+    
+    // 调整金币相关元素位置
+    _adjustGoldElementsPosition: function() {
+        // 查找 player_node 节点
+        var playerNode = this.node.getChildByName("player_node");
+        if (!playerNode) {
+            console.warn("未找到 player_node 节点");
+            return;
+        }
+        
+        // 调整 yuanbaoIcon 位置
+        var yuanbaoIcon = playerNode.getChildByName("yuanbaoIcon");
+        if (yuanbaoIcon) {
+            yuanbaoIcon.y = 50;
+            console.log("✅ 元宝图标位置已调整: y=50");
+        }
+        
+        // 调整 gold_frame 位置
+        var goldFrame = playerNode.getChildByName("gold_frame");
+        if (goldFrame) {
+            goldFrame.y = 50;
+            console.log("✅ 金币框位置已调整: y=50");
+        }
     },
     
     // 递归查找并隐藏包含特定文字的节点
