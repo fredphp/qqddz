@@ -122,6 +122,7 @@ cc.Class({
             this._startOnlineMonitoring();  // 启动在线状态监测
             this._fetchRoomConfigs();
             this._removeNoticeBoard();
+            this._createEnterRoomButton();  // 创建加入房间按钮
             
             console.log("=== _initUIAfterAuth 完成 ===");
         } catch (e) {
@@ -3120,6 +3121,333 @@ cc.Class({
             }
             this._hideNodesWithText(child, searchText);
         }
+    },
+    
+    // ============================================================
+    // 创建加入房间按钮（使用 btn_enter_room.png）
+    // ============================================================
+    _createEnterRoomButton: function() {
+        var self = this;
+        
+        console.log("=== 创建加入房间按钮 ===");
+        
+        // 移除旧的按钮
+        var oldBtn = this.node.getChildByName("EnterRoomButton");
+        if (oldBtn) oldBtn.destroy();
+        
+        // 获取画布尺寸
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
+        var screenHeight = canvas ? canvas.designResolution.height : 720;
+        var screenWidth = canvas ? canvas.designResolution.width : 1280;
+        
+        // 创建按钮节点
+        var btnNode = new cc.Node("EnterRoomButton");
+        btnNode.setContentSize(cc.size(200, 80));
+        btnNode.anchorX = 0.5;
+        btnNode.anchorY = 0.5;
+        
+        // 放在右上角区域
+        btnNode.x = screenWidth / 2 - 120;
+        btnNode.y = screenHeight / 2 - 150;
+        btnNode.zIndex = 1000;
+        btnNode.parent = this.node;
+        
+        // 加载按钮图片
+        var sprite = btnNode.addComponent(cc.Sprite);
+        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        
+        cc.resources.load('UI/btn_enter_room', cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.warn("加载 btn_enter_room 失败，使用备用样式");
+                self._createEnterRoomButtonFallback(btnNode);
+                return;
+            }
+            sprite.spriteFrame = spriteFrame;
+            console.log("✅ 加入房间按钮图片加载成功");
+        });
+        
+        // 添加按钮组件
+        var button = btnNode.addComponent(cc.Button);
+        button.transition = cc.Button.Transition.SCALE;
+        button.duration = 0.1;
+        button.zoomScale = 1.1;
+        
+        // 添加点击事件
+        btnNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            console.log("点击加入房间按钮");
+            self._showEnterRoomPopup();
+        }, this);
+        
+        console.log("✅ 加入房间按钮创建完成");
+    },
+    
+    // 备用按钮样式
+    _createEnterRoomButtonFallback: function(btnNode) {
+        var sprite = btnNode.getComponent(cc.Sprite);
+        if (!sprite) {
+            sprite = btnNode.addComponent(cc.Sprite);
+        }
+        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        
+        // 绘制按钮背景
+        var graphics = btnNode.addComponent(cc.Graphics);
+        graphics.fillColor = cc.color(255, 152, 0);  // 橙色
+        graphics.roundRect(-100, -40, 200, 80, 10);
+        graphics.fill();
+        graphics.strokeColor = cc.color(255, 193, 7);  // 金色边框
+        graphics.lineWidth = 3;
+        graphics.roundRect(-100, -40, 200, 80, 10);
+        graphics.stroke();
+        
+        // 添加文字
+        var labelNode = new cc.Node("Label");
+        var label = labelNode.addComponent(cc.Label);
+        label.string = "加入房间";
+        label.fontSize = 28;
+        label.lineHeight = 36;
+        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        labelNode.color = cc.color(255, 255, 255);
+        labelNode.parent = btnNode;
+    },
+    
+    // ============================================================
+    // 显示加入房间弹窗
+    // ============================================================
+    _showEnterRoomPopup: function() {
+        var self = this;
+        
+        console.log("=== 显示加入房间弹窗 ===");
+        
+        // 移除旧的弹窗
+        var oldPopup = this.node.getChildByName("EnterRoomPopup");
+        if (oldPopup) oldPopup.destroy();
+        
+        // 获取画布尺寸
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
+        var screenHeight = canvas ? canvas.designResolution.height : 720;
+        var screenWidth = canvas ? canvas.designResolution.width : 1280;
+        
+        // 创建弹窗容器
+        var popup = new cc.Node("EnterRoomPopup");
+        popup.setContentSize(cc.size(screenWidth, screenHeight));
+        popup.anchorX = 0.5;
+        popup.anchorY = 0.5;
+        popup.x = 0;
+        popup.y = 0;
+        popup.zIndex = 2000;
+        popup.parent = this.node;
+        
+        // 添加 BlockInputEvents 组件阻止底层点击
+        popup.addComponent(cc.BlockInputEvents);
+        
+        // ===== 半透明背景遮罩 =====
+        var bgMask = new cc.Node("BgMask");
+        bgMask.setContentSize(cc.size(screenWidth, screenHeight));
+        var bgSprite = bgMask.addComponent(cc.Sprite);
+        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        bgMask.color = cc.color(0, 0, 0);
+        bgMask.opacity = 150;
+        bgMask.parent = popup;
+        
+        // 点击遮罩关闭
+        bgMask.on(cc.Node.EventType.TOUCH_END, function() {
+            popup.destroy();
+        }, this);
+        
+        // ===== 弹窗面板 =====
+        var panelWidth = 450;
+        var panelHeight = 320;
+        var panel = new cc.Node("Panel");
+        panel.setContentSize(cc.size(panelWidth, panelHeight));
+        panel.parent = popup;
+        
+        // 绿色边框
+        var border = new cc.Node("Border");
+        border.setContentSize(cc.size(panelWidth, panelHeight));
+        var borderGfx = border.addComponent(cc.Graphics);
+        borderGfx.fillColor = cc.color(76, 175, 80);  // 绿色
+        borderGfx.roundRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 12);
+        borderGfx.fill();
+        border.parent = panel;
+        
+        // 米黄色内容背景
+        var content = new cc.Node("Content");
+        content.setContentSize(cc.size(panelWidth - 8, panelHeight - 8));
+        var contentGfx = content.addComponent(cc.Graphics);
+        contentGfx.fillColor = cc.color(255, 248, 232);  // 米黄色
+        contentGfx.roundRect(-(panelWidth - 8)/2, -(panelHeight - 8)/2, panelWidth - 8, panelHeight - 8, 10);
+        contentGfx.fill();
+        content.parent = panel;
+        
+        // ===== 标题栏 =====
+        var titleBarHeight = 50;
+        var titleBar = new cc.Node("TitleBar");
+        titleBar.setContentSize(cc.size(panelWidth - 8, titleBarHeight));
+        titleBar.y = panelHeight/2 - titleBarHeight/2 - 4;
+        var titleGfx = titleBar.addComponent(cc.Graphics);
+        titleGfx.fillColor = cc.color(255, 193, 7);  // 黄色
+        titleGfx.roundRect(-(panelWidth - 8)/2, -titleBarHeight/2, panelWidth - 8, titleBarHeight, [10, 10, 0, 0]);
+        titleGfx.fill();
+        titleBar.parent = panel;
+        
+        // 标题文字
+        var titleNode = new cc.Node("Title");
+        var titleLabel = titleNode.addComponent(cc.Label);
+        titleLabel.string = "加入房间";
+        titleLabel.fontSize = 24;
+        titleLabel.lineHeight = 36;
+        titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        titleNode.color = cc.color(255, 255, 255);
+        titleNode.parent = titleBar;
+        
+        // ===== 关闭按钮 =====
+        var closeBtn = new cc.Node("CloseBtn");
+        closeBtn.setContentSize(cc.size(36, 36));
+        closeBtn.x = panelWidth/2 - 26;
+        closeBtn.y = panelHeight/2 - 26;
+        var closeGfx = closeBtn.addComponent(cc.Graphics);
+        closeGfx.fillColor = cc.color(255, 193, 7);
+        closeGfx.circle(0, 0, 18);
+        closeGfx.fill();
+        closeBtn.parent = panel;
+        
+        var closeX = new cc.Node("X");
+        var closeLabel = closeX.addComponent(cc.Label);
+        closeLabel.string = "×";
+        closeLabel.fontSize = 28;
+        closeLabel.lineHeight = 36;
+        closeLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        closeX.color = cc.color(139, 110, 99);
+        closeX.parent = closeBtn;
+        
+        closeBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            popup.destroy();
+        }, this);
+        
+        // ===== 房间号输入框 =====
+        var inputWidth = 320;
+        var inputHeight = 50;
+        var inputY = 40;
+        
+        var inputBg = new cc.Node("InputBg");
+        inputBg.setContentSize(cc.size(inputWidth, inputHeight));
+        inputBg.y = inputY;
+        var inputGfx = inputBg.addComponent(cc.Graphics);
+        inputGfx.fillColor = cc.color(255, 255, 255);
+        inputGfx.roundRect(-inputWidth/2, -inputHeight/2, inputWidth, inputHeight, 6);
+        inputGfx.fill();
+        inputGfx.strokeColor = cc.color(200, 200, 200);
+        inputGfx.lineWidth = 2;
+        inputGfx.roundRect(-inputWidth/2, -inputHeight/2, inputWidth, inputHeight, 6);
+        inputGfx.stroke();
+        inputBg.parent = panel;
+        
+        // 输入框
+        var inputNode = new cc.Node("RoomIdInput");
+        inputNode.setContentSize(cc.size(inputWidth - 20, inputHeight - 4));
+        var editBox = inputNode.addComponent(cc.EditBox);
+        editBox.placeholder = "请输入房间号";
+        editBox.fontSize = 20;
+        editBox.placeholderFontSize = 16;
+        editBox.fontColor = cc.color(0, 0, 0);
+        editBox.placeholderFontColor = cc.color(150, 150, 150);
+        editBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
+        editBox.inputMode = cc.EditBox.InputMode.NUMERIC;
+        editBox.maxLength = 10;
+        editBox.backgroundColor = cc.color(255, 255, 255, 0);
+        inputNode.parent = inputBg;
+        
+        // ===== 提示文字 =====
+        var tipNode = new cc.Node("Tip");
+        tipNode.y = -20;
+        var tipLabel = tipNode.addComponent(cc.Label);
+        tipLabel.string = "请输入6位数字房间号";
+        tipLabel.fontSize = 14;
+        tipLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        tipNode.color = cc.color(150, 150, 150);
+        tipNode.parent = panel;
+        
+        // ===== 确认加入按钮 =====
+        var confirmBtn = new cc.Node("ConfirmBtn");
+        confirmBtn.setContentSize(cc.size(200, 50));
+        confirmBtn.y = -90;
+        var confirmGfx = confirmBtn.addComponent(cc.Graphics);
+        confirmGfx.fillColor = cc.color(76, 175, 80);  // 绿色
+        confirmGfx.roundRect(-100, -25, 200, 50, 8);
+        confirmGfx.fill();
+        confirmBtn.parent = panel;
+        
+        var confirmLabel = new cc.Node("Label");
+        var confirmLabelComp = confirmLabel.addComponent(cc.Label);
+        confirmLabelComp.string = "确认加入";
+        confirmLabelComp.fontSize = 22;
+        confirmLabelComp.lineHeight = 32;
+        confirmLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        confirmLabel.color = cc.color(255, 255, 255);
+        confirmLabel.parent = confirmBtn;
+        
+        var confirmBtnComp = confirmBtn.addComponent(cc.Button);
+        confirmBtnComp.transition = cc.Button.Transition.SCALE;
+        confirmBtnComp.zoomScale = 0.95;
+        
+        // 确认按钮点击事件
+        confirmBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            var roomId = editBox.string;
+            console.log("确认加入房间, 房间号:", roomId);
+            
+            if (!roomId || roomId.length === 0) {
+                self._showMessage("请输入房间号");
+                return;
+            }
+            
+            // 发送加入房间请求
+            self._joinRoomById(roomId, popup);
+        }, this);
+        
+        console.log("✅ 加入房间弹窗创建完成");
+    },
+    
+    // ============================================================
+    // 通过房间号加入房间
+    // ============================================================
+    _joinRoomById: function(roomId, popup) {
+        var self = this;
+        var myglobal = window.myglobal;
+        
+        if (!myglobal || !myglobal.socket) {
+            this._showMessage("网络未连接，请稍后重试");
+            return;
+        }
+        
+        console.log("发送加入房间请求, 房间号:", roomId);
+        this._showMessage("正在加入房间...");
+        
+        // 发送加入房间请求
+        myglobal.socket.request_joinRoom({
+            roomId: roomId
+        }, function(err, result) {
+            if (err !== 0) {
+                self._showMessage("加入房间失败: " + (result || "房间不存在"));
+                return;
+            }
+            
+            console.log("✅ 加入房间成功:", result);
+            self._showMessage("加入成功！");
+            
+            // 关闭弹窗
+            if (popup) popup.destroy();
+            
+            // 跳转到游戏场景
+            if (result && result.roomId) {
+                myglobal.currentRoomId = result.roomId;
+            }
+            
+            // 延迟跳转
+            self.scheduleOnce(function() {
+                cc.director.loadScene("gameScene");
+            }, 0.5);
+        });
     },
     
     // 场景销毁时清理资源
