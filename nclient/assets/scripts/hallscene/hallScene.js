@@ -410,9 +410,9 @@ cc.Class({
         var screenHeight = canvas ? canvas.designResolution.height : 720;
         var screenWidth = canvas ? canvas.designResolution.width : 1280;
         
-        // 容器位置 - 向上移动
+        // 容器位置 - 增大与顶部的距离
         var edgeMargin = 60;       // 距离屏幕边缘的距离
-        var verticalOffset = -80;  // 垂直偏移（向上移动）
+        var verticalOffset = 50;   // 垂直偏移（向下移动，增大与顶部距离）
         
         console.log("===== 布局调试 =====");
         console.log("竞技场: " + leftRooms.length + "个, 普通场: " + rightRooms.length + "个");
