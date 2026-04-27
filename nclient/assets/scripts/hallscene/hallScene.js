@@ -116,7 +116,7 @@ cc.Class({
             this._loadUserAvatar(playerData.avatarUrl);
             this.roomConfigs = [];
             this._playHallBackgroundMusic();
-            this._hideUnwantedButtons();
+            this._adjustBottomButtons();
             this._hideBackgroundCharacters();
             this._fetchRoomConfigs();
             this._removeNoticeBoard();
@@ -132,6 +132,80 @@ cc.Class({
         var xiongmao2 = this.node.getChildByName("xiongmao2");
         if (xiongmao1) xiongmao1.active = false;
         if (xiongmao2) xiongmao2.active = false;
+    },
+    
+    // 调整底部按钮 - 调小并靠右排列
+    _adjustBottomButtons: function() {
+        var self = this;
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
+        var screenHeight = canvas ? canvas.designResolution.height : 720;
+        var screenWidth = canvas ? canvas.designResolution.width : 1280;
+        
+        // 底部按钮名称列表
+        var buttonNames = [
+            "btn_create_room",
+            "btn_join_room", 
+            "btn_user_agreement",
+            "user_agreement",
+            "btn_setting",
+            "btn_help"
+        ];
+        
+        // 收集存在的按钮
+        var buttons = [];
+        for (var i = 0; i < buttonNames.length; i++) {
+            var btn = this.node.getChildByName(buttonNames[i]);
+            if (btn && btn.active !== false) {
+                buttons.push(btn);
+            }
+        }
+        
+        // 如果没找到，尝试查找其他可能的按钮
+        if (buttons.length === 0) {
+            var allChildren = this.node.children;
+            for (var i = 0; i < allChildren.length; i++) {
+                var child = allChildren[i];
+                if (child.name && child.name.toLowerCase().indexOf('btn') >= 0) {
+                    // 检查是否在底部区域
+                    if (child.y < 0) {
+                        buttons.push(child);
+                    }
+                }
+            }
+        }
+        
+        console.log("找到底部按钮数量: " + buttons.length);
+        
+        // 调整每个按钮
+        var btnWidth = 120;   // 按钮宽度
+        var btnHeight = 50;   // 按钮高度
+        var btnGap = 15;      // 按钮间距
+        var rightMargin = 30; // 右边距
+        var bottomMargin = 30; // 底边距
+        
+        for (var i = 0; i < buttons.length; i++) {
+            var btn = buttons[i];
+            
+            // 禁用 Widget 组件
+            var widget = btn.getComponent(cc.Widget);
+            if (widget) widget.enabled = false;
+            
+            // 缩小按钮
+            btn.scale = 0.7;
+            
+            // 设置锚点
+            btn.anchorX = 1;  // 右锚点
+            btn.anchorY = 0;  // 底锚点
+            
+            // 计算位置 - 从右往左排列
+            var xPos = screenWidth / 2 - rightMargin - i * (btnWidth * 0.7 + btnGap);
+            var yPos = -screenHeight / 2 + bottomMargin;
+            
+            btn.x = xPos;
+            btn.y = yPos;
+            
+            console.log("按钮 " + btn.name + " 位置: (" + btn.x + ", " + btn.y + ")");
+        }
     },
     
     _loadUserAvatar: function(avatarUrl) {
