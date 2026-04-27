@@ -169,9 +169,7 @@
             </el-form-item>
           </el-col>
         </el-row>
-        
-        <el-row :gutter="20">
-        
+
         <!-- 背景图配置 -->
         <el-form-item label="背景图编号" prop="bgImageNum">
           <div class="flex items-center gap-4">
