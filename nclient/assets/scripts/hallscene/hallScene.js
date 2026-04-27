@@ -1504,7 +1504,7 @@ cc.Class({
     },
     
     // ============================================================
-    // 显示创建房间弹窗
+    // 显示创建房间弹窗（精美游戏风格）
     // ============================================================
     _showCreateRoomDialog: function(parentNode, roomConfig, playerGold) {
         var self = this;
@@ -1531,7 +1531,7 @@ cc.Class({
         var mask = new cc.Node("Mask");
         mask.setPosition(0, 0);
         var maskG = mask.addComponent(cc.Graphics);
-        maskG.fillColor = cc.color(0, 0, 0, 180);
+        maskG.fillColor = cc.color(0, 0, 0, 200);
         maskG.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight);
         maskG.fill();
         mask.parent = dialog;
@@ -1542,134 +1542,232 @@ cc.Class({
             dialog.destroy();
         });
         
-        // 弹窗主体
-        var dialogWidth = 420;
-        var dialogHeight = 380;
+        // 弹窗主体 - 更宽更美观
+        var dialogWidth = 480;
+        var dialogHeight = 450;
         var dialogBg = new cc.Node("DialogBg");
         dialogBg.setContentSize(cc.size(dialogWidth, dialogHeight));
         dialogBg.setPosition(0, 0);
         
         var dbg = dialogBg.addComponent(cc.Graphics);
-        dbg.fillColor = cc.color(35, 30, 50, 250);
-        dbg.roundRect(-dialogWidth/2, -dialogHeight/2, dialogWidth, dialogHeight, 12);
+        // 外层发光边框效果
+        dbg.fillColor = cc.color(25, 20, 40, 255);
+        dbg.roundRect(-dialogWidth/2, -dialogHeight/2, dialogWidth, dialogHeight, 16);
         dbg.fill();
-        dbg.strokeColor = cc.color(180, 140, 60, 200);
-        dbg.lineWidth = 3;
-        dbg.roundRect(-dialogWidth/2, -dialogHeight/2, dialogWidth, dialogHeight, 12);
+        dbg.strokeColor = cc.color(255, 200, 80, 255);
+        dbg.lineWidth = 4;
+        dbg.roundRect(-dialogWidth/2, -dialogHeight/2, dialogWidth, dialogHeight, 16);
+        dbg.stroke();
+        // 内层边框
+        dbg.strokeColor = cc.color(180, 130, 50, 200);
+        dbg.lineWidth = 2;
+        dbg.roundRect(-dialogWidth/2 + 6, -dialogHeight/2 + 6, dialogWidth - 12, dialogHeight - 12, 12);
         dbg.stroke();
         dialogBg.parent = dialog;
         
-        // 标题
+        // 角落装饰
+        var cornerSize = 35;
+        var corners = [
+            { x: -dialogWidth/2 + 20, y: dialogHeight/2 - 20, rot: 0 },
+            { x: dialogWidth/2 - 20, y: dialogHeight/2 - 20, rot: 90 },
+            { x: dialogWidth/2 - 20, y: -dialogHeight/2 + 20, rot: 180 },
+            { x: -dialogWidth/2 + 20, y: -dialogHeight/2 + 20, rot: 270 }
+        ];
+        
+        for (var i = 0; i < corners.length; i++) {
+            var corner = corners[i];
+            var cornerNode = new cc.Node("Corner" + i);
+            cornerNode.setPosition(corner.x, corner.y);
+            cornerNode.rotation = corner.rot;
+            
+            var cg = cornerNode.addComponent(cc.Graphics);
+            cg.strokeColor = cc.color(255, 215, 0, 230);
+            cg.lineWidth = 3;
+            cg.moveTo(0, 0);
+            cg.lineTo(25, 0);
+            cg.lineTo(25, 10);
+            cg.moveTo(0, 0);
+            cg.lineTo(0, 25);
+            cg.lineTo(10, 25);
+            cg.stroke();
+            cornerNode.parent = dialog;
+        }
+        
+        // 扑克牌装饰 - 左上角
+        var pokerLeft = new cc.Node("PokerLeft");
+        pokerLeft.setPosition(-dialogWidth/2 + 60, dialogHeight/2 - 70);
+        var pl = pokerLeft.addComponent(cc.Label);
+        pl.string = "♠";
+        pl.fontSize = 36;
+        pokerLeft.color = cc.color(100, 100, 120);
+        pokerLeft.rotation = -15;
+        pokerLeft.parent = dialog;
+        
+        // 扑克牌装饰 - 右上角
+        var pokerRight = new cc.Node("PokerRight");
+        pokerRight.setPosition(dialogWidth/2 - 60, dialogHeight/2 - 70);
+        var pr = pokerRight.addComponent(cc.Label);
+        pr.string = "♥";
+        pr.fontSize = 36;
+        pokerRight.color = cc.color(180, 80, 80);
+        pokerRight.rotation = 15;
+        pokerRight.parent = dialog;
+        
+        // 标题区域背景
         var titleBg = new cc.Node("TitleBg");
-        titleBg.setPosition(0, dialogHeight/2 - 35);
+        titleBg.setPosition(0, dialogHeight/2 - 50);
         var tbg = titleBg.addComponent(cc.Graphics);
-        tbg.fillColor = cc.color(45, 40, 60, 250);
-        tbg.roundRect(-dialogWidth/2 + 10, -25, dialogWidth - 20, 50, 8);
+        tbg.fillColor = cc.color(45, 35, 60, 250);
+        tbg.roundRect(-dialogWidth/2 + 20, -30, dialogWidth - 40, 60, 8);
         tbg.fill();
+        tbg.strokeColor = cc.color(200, 160, 60, 180);
+        tbg.lineWidth = 2;
+        tbg.roundRect(-dialogWidth/2 + 20, -30, dialogWidth - 40, 60, 8);
+        tbg.stroke();
         titleBg.parent = dialog;
         
+        // 标题文字
         var titleText = new cc.Node("TitleText");
-        titleText.setPosition(0, dialogHeight/2 - 35);
+        titleText.setPosition(0, dialogHeight/2 - 45);
         titleText.anchorX = 0.5;
         titleText.anchorY = 0.5;
         var ttl = titleText.addComponent(cc.Label);
-        ttl.string = "创建房间";
-        ttl.fontSize = 24;
+        ttl.string = "✦ 创建房间 ✦";
+        ttl.fontSize = 28;
         ttl.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         titleText.color = cc.color(255, 220, 100);
         
         var titleOutline = titleText.addComponent(cc.LabelOutline);
-        titleOutline.color = cc.color(80, 50, 0);
-        titleOutline.width = 2;
+        titleOutline.color = cc.color(120, 70, 0);
+        titleOutline.width = 3;
         titleText.parent = dialog;
         
-        // 房间类型显示
+        // 房间类型卡片
+        var roomTypeBg = new cc.Node("RoomTypeBg");
+        roomTypeBg.setPosition(0, dialogHeight/2 - 100);
+        var rtbg = roomTypeBg.addComponent(cc.Graphics);
+        rtbg.fillColor = cc.color(60, 50, 80, 200);
+        rtbg.roundRect(-100, -18, 200, 36, 18);
+        rtbg.fill();
+        rtbg.strokeColor = cc.color(150, 120, 80, 150);
+        rtbg.lineWidth = 1;
+        rtbg.roundRect(-100, -18, 200, 36, 18);
+        rtbg.stroke();
+        roomTypeBg.parent = dialog;
+        
         var roomTypeText = new cc.Node("RoomType");
-        roomTypeText.setPosition(0, dialogHeight/2 - 75);
+        roomTypeText.setPosition(0, dialogHeight/2 - 100);
         roomTypeText.anchorX = 0.5;
         roomTypeText.anchorY = 0.5;
         var rtl = roomTypeText.addComponent(cc.Label);
-        rtl.string = "房间类型：" + (roomConfig.room_name || "初级房");
-        rtl.fontSize = 16;
+        rtl.string = "【" + (roomConfig.room_name || "初级房") + "】";
+        rtl.fontSize = 18;
         rtl.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        roomTypeText.color = cc.color(180, 160, 120);
+        roomTypeText.color = cc.color(255, 215, 0);
         roomTypeText.parent = dialog;
         
-        // 房间名称标签
+        // 房间信息区域背景
+        var infoBg = new cc.Node("InfoBg");
+        infoBg.setPosition(0, 0);
+        var ibg = infoBg.addComponent(cc.Graphics);
+        ibg.fillColor = cc.color(35, 28, 50, 230);
+        ibg.roundRect(-dialogWidth/2 + 25, -80, dialogWidth - 50, 180, 10);
+        ibg.fill();
+        ibg.strokeColor = cc.color(100, 80, 60, 150);
+        ibg.lineWidth = 1;
+        ibg.roundRect(-dialogWidth/2 + 25, -80, dialogWidth - 50, 180, 10);
+        ibg.stroke();
+        infoBg.parent = dialog;
+        
+        // 房间名称区域
         var nameLabel = new cc.Node("NameLabel");
-        nameLabel.setPosition(-dialogWidth/2 + 70, dialogHeight/2 - 115);
+        nameLabel.setPosition(-dialogWidth/2 + 90, 55);
         nameLabel.anchorX = 0.5;
         nameLabel.anchorY = 0.5;
         var nll = nameLabel.addComponent(cc.Label);
         nll.string = "房间名称";
-        nll.fontSize = 14;
-        nameLabel.color = cc.color(200, 180, 140);
+        nll.fontSize = 16;
+        nameLabel.color = cc.color(220, 200, 150);
+        
+        var nameOutline = nameLabel.addComponent(cc.LabelOutline);
+        nameOutline.color = cc.color(0, 0, 0, 150);
+        nameOutline.width = 1;
         nameLabel.parent = dialog;
         
-        // 房间名称输入框
-        var nameInput = this._createDialogInput("自定义房间名（可选）", 60, dialogHeight/2 - 115, 260, 32, "RoomNameInput");
+        // 房间名称输入框 - 更大更美观
+        var nameInput = this._createBeautifulInput("自定义房间名（可选）", 50, 10, 280, 38, "RoomNameInput");
         nameInput.parent = dialog;
         
-        // 密码设置标签
+        // 密码区域
         var pwdLabel = new cc.Node("PwdLabel");
-        pwdLabel.setPosition(-dialogWidth/2 + 70, dialogHeight/2 - 165);
+        pwdLabel.setPosition(-dialogWidth/2 + 90, -35);
         pwdLabel.anchorX = 0.5;
         pwdLabel.anchorY = 0.5;
         var pl = pwdLabel.addComponent(cc.Label);
         pl.string = "房间密码";
-        pl.fontSize = 14;
-        pwdLabel.color = cc.color(200, 180, 140);
+        pl.fontSize = 16;
+        pwdLabel.color = cc.color(220, 200, 150);
+        
+        var pwdOutline = pwdLabel.addComponent(cc.LabelOutline);
+        pwdOutline.color = cc.color(0, 0, 0, 150);
+        pwdOutline.width = 1;
         pwdLabel.parent = dialog;
         
         // 密码输入框
-        var pwdInput = this._createDialogInput("设置密码（可选）", 60, dialogHeight/2 - 165, 200, 32, "PwdInput");
+        var pwdInput = this._createBeautifulInput("设置密码（可选，留空为公开房间）", 50, -35, 280, 38, "PwdInput");
         pwdInput.parent = dialog;
         
-        // 无密码提示
-        var noPwdTip = new cc.Node("NoPwdTip");
-        noPwdTip.setPosition(110, dialogHeight/2 - 165);
-        noPwdTip.anchorX = 0.5;
-        noPwdTip.anchorY = 0.5;
-        var npt = noPwdTip.addComponent(cc.Label);
-        npt.string = "留空即无密码";
-        npt.fontSize = 12;
-        noPwdTip.color = cc.color(120, 110, 100);
-        noPwdTip.parent = dialog;
+        // 密码说明
+        var pwdTipBg = new cc.Node("PwdTipBg");
+        pwdTipBg.setPosition(0, -75);
+        var ptbg = pwdTipBg.addComponent(cc.Graphics);
+        ptbg.fillColor = cc.color(50, 40, 65, 200);
+        ptbg.roundRect(-120, -10, 240, 20, 5);
+        ptbg.fill();
+        pwdTipBg.parent = dialog;
         
-        // 分隔线
-        var divider = new cc.Node("Divider");
-        divider.setPosition(0, dialogHeight/2 - 210);
-        var dg = divider.addComponent(cc.Graphics);
-        dg.strokeColor = cc.color(80, 70, 60, 150);
-        dg.lineWidth = 1;
-        dg.moveTo(-dialogWidth/2 + 30, 0);
-        dg.lineTo(dialogWidth/2 - 30, 0);
-        dg.stroke();
-        divider.parent = dialog;
+        var pwdTip = new cc.Node("PwdTip");
+        pwdTip.setPosition(0, -75);
+        pwdTip.anchorX = 0.5;
+        pwdTip.anchorY = 0.5;
+        var pt = pwdTip.addComponent(cc.Label);
+        pt.string = "💡 公开房间任何人可直接加入";
+        pt.fontSize = 12;
+        pt.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        pwdTip.color = cc.color(160, 150, 130);
+        pwdTip.parent = dialog;
         
-        // 邀请分享提示
+        // 分享提示区域
+        var shareBg = new cc.Node("ShareBg");
+        shareBg.setPosition(0, -115);
+        var sbg = shareBg.addComponent(cc.Graphics);
+        sbg.fillColor = cc.color(55, 45, 70, 200);
+        sbg.roundRect(-dialogWidth/2 + 30, -15, dialogWidth - 60, 30, 6);
+        sbg.fill();
+        shareBg.parent = dialog;
+        
         var shareTip = new cc.Node("ShareTip");
-        shareTip.setPosition(0, dialogHeight/2 - 240);
+        shareTip.setPosition(0, -115);
         shareTip.anchorX = 0.5;
         shareTip.anchorY = 0.5;
         var stl = shareTip.addComponent(cc.Label);
-        stl.string = "创建后可分享邀请好友加入";
-        stl.fontSize = 13;
+        stl.string = "🎁 创建后可分享邀请链接给好友";
+        stl.fontSize = 14;
         stl.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        shareTip.color = cc.color(140, 130, 120);
+        shareTip.color = cc.color(180, 170, 140);
         shareTip.parent = dialog;
         
         // 按钮区域
-        var btnY = -dialogHeight/2 + 50;
+        var btnY = -dialogHeight/2 + 55;
         
-        // 取消按钮
-        var cancelBtn = this._createButtonNode("取消", cc.color(80, 75, 90), -90, btnY, 90, 36, function() {
+        // 取消按钮 - 更有质感
+        var cancelBtn = this._createBeautifulButton("取 消", cc.color(80, 70, 90), cc.color(100, 90, 100), -100, btnY, 110, 42, function() {
             dialog.destroy();
         });
         cancelBtn.parent = dialog;
         
-        // 创建按钮
-        var createBtn = this._createButtonNode("创建房间", cc.color(40, 130, 70), 90, btnY, 120, 40, function() {
+        // 创建房间按钮 - 主色调绿色带渐变效果
+        var createBtn = this._createBeautifulButton("立即创建", cc.color(40, 120, 60), cc.color(60, 160, 80), 100, btnY, 140, 46, function() {
             // 获取输入内容
             var nameInputNode = dialog.getChildByName("RoomNameInput");
             var namePlaceholder = nameInputNode ? nameInputNode.getChildByName("Placeholder") : null;
@@ -1684,7 +1782,7 @@ cc.Class({
             if (myglobal) {
                 myglobal.createRoomInfo = {
                     roomName: roomName && roomName !== "自定义房间名（可选）" ? roomName : roomConfig.room_name,
-                    password: password && password !== "设置密码（可选）" ? password : "",
+                    password: password && password !== "设置密码（可选，留空为公开房间）" ? password : "",
                     roomConfig: roomConfig
                 };
             }
@@ -1701,6 +1799,133 @@ cc.Class({
             self._createRoom(roomConfig, playerGold);
         }, true);
         createBtn.parent = dialog;
+    },
+    
+    // 创建精美输入框
+    _createBeautifulInput: function(placeholder, x, y, width, height, nodeName) {
+        var inputNode = new cc.Node(nodeName || "BeautifulInput");
+        inputNode.setContentSize(cc.size(width, height));
+        inputNode.setPosition(x, y);
+        inputNode.anchorX = 0.5;
+        inputNode.anchorY = 0.5;
+        
+        // 输入框背景
+        var bgNode = new cc.Node("InputBg");
+        bgNode.setPosition(0, 0);
+        bgNode.anchorX = 0.5;
+        bgNode.anchorY = 0.5;
+        
+        var bg = bgNode.addComponent(cc.Graphics);
+        // 内部填充
+        bg.fillColor = cc.color(55, 45, 70, 255);
+        bg.roundRect(-width/2, -height/2, width, height, 6);
+        bg.fill();
+        // 边框
+        bg.strokeColor = cc.color(150, 120, 80, 200);
+        bg.lineWidth = 2;
+        bg.roundRect(-width/2, -height/2, width, height, 6);
+        bg.stroke();
+        // 内部高光
+        bg.strokeColor = cc.color(80, 70, 100, 100);
+        bg.lineWidth = 1;
+        bg.roundRect(-width/2 + 3, -height/2 + 3, width - 6, height - 6, 4);
+        bg.stroke();
+        bgNode.parent = inputNode;
+        
+        // placeholder文字
+        var placeholderNode = new cc.Node("Placeholder");
+        placeholderNode.setPosition(0, 0);
+        placeholderNode.anchorX = 0.5;
+        placeholderNode.anchorY = 0.5;
+        placeholderNode.width = width - 20;
+        placeholderNode.height = height;
+        
+        var label = placeholderNode.addComponent(cc.Label);
+        label.string = placeholder;
+        label.fontSize = 14;
+        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        label.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        placeholderNode.color = cc.color(140, 130, 120);
+        placeholderNode.parent = inputNode;
+        
+        return inputNode;
+    },
+    
+    // 创建精美按钮
+    _createBeautifulButton: function(text, bgColor, borderColor, x, y, width, height, callback, isPrimary) {
+        var btn = new cc.Node("BeautifulBtn_" + text);
+        btn.setContentSize(cc.size(width, height));
+        btn.setPosition(x, y);
+        btn.anchorX = 0.5;
+        btn.anchorY = 0.5;
+        
+        // 按钮背景节点
+        var bgNode = new cc.Node("BgNode");
+        bgNode.setPosition(0, 0);
+        bgNode.anchorX = 0.5;
+        bgNode.anchorY = 0.5;
+        
+        var bg = bgNode.addComponent(cc.Graphics);
+        
+        // 绘制按钮背景
+        bg.fillColor = bgColor;
+        bg.roundRect(-width/2, -height/2, width, height, 8);
+        bg.fill();
+        
+        // 外边框
+        bg.strokeColor = borderColor;
+        bg.lineWidth = 2;
+        bg.roundRect(-width/2, -height/2, width, height, 8);
+        bg.stroke();
+        
+        // 主按钮高光效果
+        if (isPrimary) {
+            // 顶部高光
+            bg.fillColor = cc.color(255, 255, 255, 40);
+            bg.roundRect(-width/2 + 3, 3, width - 6, height/2 - 3, 5);
+            bg.fill();
+            // 底部阴影
+            bg.fillColor = cc.color(0, 0, 0, 30);
+            bg.roundRect(-width/2 + 3, -height/2 + 3, width - 6, height/3, 3);
+            bg.fill();
+        }
+        bgNode.parent = btn;
+        
+        // 按钮文字节点
+        var textNode = new cc.Node("TextNode");
+        textNode.setPosition(0, 0);
+        textNode.anchorX = 0.5;
+        textNode.anchorY = 0.5;
+        textNode.width = width;
+        textNode.height = height;
+        
+        var label = textNode.addComponent(cc.Label);
+        label.string = text;
+        label.fontSize = Math.floor(height * 0.4);
+        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        label.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        textNode.color = cc.color(255, 255, 255);
+        
+        var outline = textNode.addComponent(cc.LabelOutline);
+        outline.color = cc.color(0, 0, 0, 150);
+        outline.width = 2;
+        textNode.parent = btn;
+        
+        // 触摸事件
+        btn.on(cc.Node.EventType.TOUCH_START, function(event) {
+            event.stopPropagation();
+            btn.scale = 0.95;
+        });
+        btn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            btn.scale = 1;
+            if (callback) callback();
+        });
+        btn.on(cc.Node.EventType.TOUCH_CANCEL, function(event) {
+            btn.scale = 1;
+        });
+        
+        return btn;
     },
     
     // 创建弹窗输入框
@@ -1878,7 +2103,7 @@ cc.Class({
         }, 2);
     },
     
-    // 获取并渲染房间列表（用于全屏场景）
+    // 获取并渲染房间列表（用于全屏场景）- 只显示真实房间
     _fetchAndRenderRoomListForScene: function(container, loadingLabel, roomConfig, playerGold, sceneNode) {
         var self = this;
         var myglobal = window.myglobal;
@@ -1940,44 +2165,38 @@ cc.Class({
         // 保存监听器引用，用于后续取消注册
         sceneNode._roomListUpdateHandler = roomListUpdateHandler;
         
-        // 如果WebSocket未连接，使用模拟房间列表
+        // 如果WebSocket未连接，显示空列表
         if (!socket || !isConnected || !isWebSocketOpen) {
-            console.log("WebSocket未连接，使用模拟房间列表");
+            console.log("WebSocket未连接，无法获取真实房间列表");
             
             this.scheduleOnce(function() {
                 if (loadingLabel && loadingLabel.isValid) {
                     loadingLabel.active = false;
                 }
-                var mockRooms = self._generateMockRoomsForScene();
-                // 过滤：只显示人数少于3人的房间
-                currentRooms = mockRooms.filter(function(room) {
-                    return room.player_count > 0 && room.player_count < 3;
-                });
-                self._renderRoomListInScene(container, currentRooms, roomConfig, playerGold, sceneNode);
+                // 显示空列表提示
+                self._renderRoomListInScene(container, [], roomConfig, playerGold, sceneNode);
             }, 0.5);
             return;
         }
         
         // 设置超时
         var timeoutId = setTimeout(function() {
-            console.log("获取房间列表超时，使用模拟数据");
+            console.log("获取房间列表超时");
             if (loadingLabel && loadingLabel.isValid) {
                 loadingLabel.active = false;
             }
-            var mockRooms = self._generateMockRoomsForScene();
-            currentRooms = mockRooms.filter(function(room) {
-                return room.player_count > 0 && room.player_count < 3;
-            });
-            self._renderRoomListInScene(container, currentRooms, roomConfig, playerGold, sceneNode);
-        }, 3000);
+            // 显示空列表提示
+            self._renderRoomListInScene(container, [], roomConfig, playerGold, sceneNode);
+        }, 5000);
         
         socket.getRoomList(function(result, rooms) {
             clearTimeout(timeoutId);
             
+            if (loadingLabel && loadingLabel.isValid) {
+                loadingLabel.active = false;
+            }
+            
             if (result === 0 && rooms && rooms.length > 0) {
-                if (loadingLabel && loadingLabel.isValid) {
-                    loadingLabel.active = false;
-                }
                 // 存储房间列表用于实时更新
                 currentRooms = rooms;
                 // 过滤：只显示人数少于3人的房间
@@ -1987,44 +2206,14 @@ cc.Class({
                 });
                 self._renderRoomListInScene(container, filteredRooms, roomConfig, playerGold, sceneNode);
             } else {
-                if (loadingLabel && loadingLabel.isValid) {
-                    loadingLabel.active = false;
-                }
-                var mockRooms = self._generateMockRoomsForScene();
-                currentRooms = mockRooms.filter(function(room) {
-                    return room.player_count > 0 && room.player_count < 3;
-                });
-                self._renderRoomListInScene(container, currentRooms, roomConfig, playerGold, sceneNode);
+                // 没有房间或请求失败，显示空列表
+                console.log("没有获取到房间列表或房间列表为空");
+                self._renderRoomListInScene(container, [], roomConfig, playerGold, sceneNode);
             }
         });
     },
     
-    // 生成模拟房间列表（用于全屏场景）
-    _generateMockRoomsForScene: function() {
-        var mockRooms = [];
-        var roomCount = Math.floor(Math.random() * 5) + 3; // 3-7个模拟房间
-        
-        var myglobal = window.myglobal;
-        var baseScore = myglobal && myglobal.currentRoomConfig ? 
-            (myglobal.currentRoomConfig.base_score || 1) : 1;
-        
-        for (var i = 0; i < roomCount; i++) {
-            var roomCode = "" + (100001 + Math.floor(Math.random() * 899999));
-            var playerCount = Math.floor(Math.random() * 2) + 1; // 1-2人（确保少于3人）
-            
-            mockRooms.push({
-                room_code: roomCode,
-                room_code_display: roomCode.substring(0, 3) + " " + roomCode.substring(3),
-                player_count: playerCount,
-                max_players: 3,
-                base_score: baseScore,
-                status: playerCount >= 3 ? "游戏中" : "等待中"
-            });
-        }
-        
-        console.log("生成模拟房间: " + JSON.stringify(mockRooms));
-        return mockRooms;
-    },
+
     
     // 渲染房间列表（简洁清晰的列表设计）
     _renderRoomListInScene: function(container, rooms, roomConfig, playerGold, sceneNode) {
@@ -2422,7 +2611,7 @@ cc.Class({
         return btn;
     },
     
-    // 获取房间列表
+    // 获取房间列表 - 只显示真实房间
     _fetchRoomList: function(container, loadingLabel) {
         var self = this;
         var myglobal = window.myglobal;
@@ -2434,73 +2623,79 @@ cc.Class({
         
         console.log("获取房间列表 - WebSocket状态: isConnected=" + isConnected + ", isWebSocketOpen=" + isWebSocketOpen);
         
-        // 如果WebSocket未连接，使用模拟房间列表
+        // 如果WebSocket未连接，显示空列表
         if (!socket || !isConnected || !isWebSocketOpen) {
-            console.log("WebSocket未连接，使用模拟房间列表");
-            loadingLabel.getComponent(cc.Label).string = "使用模拟房间列表";
+            console.log("WebSocket未连接，无法获取真实房间列表");
+            loadingLabel.getComponent(cc.Label).string = "未连接服务器";
             
-            // 延迟显示模拟房间，让用户看到提示
             this.scheduleOnce(function() {
-                loadingLabel.destroy();
-                var mockRooms = self._generateMockRooms();
-                self._renderRoomList(container, mockRooms);
+                if (loadingLabel && loadingLabel.isValid) {
+                    loadingLabel.destroy();
+                }
+                // 显示空列表提示
+                self._renderRoomList(container, []);
             }, 0.5);
             return;
         }
         
-        // 设置超时，如果3秒内没有响应，使用模拟数据
+        // 设置超时
         var timeoutId = setTimeout(function() {
-            console.log("获取房间列表超时，使用模拟数据");
+            console.log("获取房间列表超时");
             if (loadingLabel && loadingLabel.isValid) {
                 loadingLabel.destroy();
-                var mockRooms = self._generateMockRooms();
-                self._renderRoomList(container, mockRooms);
             }
-        }, 3000);
+            // 显示空列表提示
+            self._renderRoomList(container, []);
+        }, 5000);
         
         socket.getRoomList(function(result, rooms) {
             clearTimeout(timeoutId);
             
+            if (loadingLabel && loadingLabel.isValid) {
+                loadingLabel.destroy();
+            }
+            
             if (result === 0 && rooms && rooms.length > 0) {
-                if (loadingLabel && loadingLabel.isValid) {
-                    loadingLabel.destroy();
-                }
                 self._renderRoomList(container, rooms);
             } else {
-                // 服务端返回空列表或失败，使用模拟数据
-                console.log("服务端返回空列表，使用模拟数据");
-                if (loadingLabel && loadingLabel.isValid) {
-                    loadingLabel.destroy();
-                }
-                var mockRooms = self._generateMockRooms();
-                self._renderRoomList(container, mockRooms);
+                // 服务端返回空列表或失败，显示空列表
+                console.log("服务端返回空列表或请求失败");
+                self._renderRoomList(container, []);
             }
         });
     },
     
-    // 生成模拟房间列表
-    _generateMockRooms: function() {
-        var mockRooms = [];
-        var roomCount = Math.floor(Math.random() * 3) + 1; // 1-3个模拟房间
-        
-        for (var i = 0; i < roomCount; i++) {
-            var roomCode = "ROOM" + (100000 + Math.floor(Math.random() * 900000));
-            var playerCount = Math.floor(Math.random() * 2) + 1; // 1-2人
-            
-            mockRooms.push({
-                room_code: roomCode,
-                player_count: playerCount,
-                max_players: 3
-            });
-        }
-        
-        console.log("生成模拟房间: " + JSON.stringify(mockRooms));
-        return mockRooms;
-    },
-    
-    // 渲染房间列表
+    // 渲染房间列表 - 只显示真实房间
     _renderRoomList: function(container, rooms) {
         var self = this;
+        
+        // 如果没有房间，显示空列表提示
+        if (!rooms || rooms.length === 0) {
+            var emptyNode = new cc.Node("EmptyTip");
+            emptyNode.y = 0;
+            
+            var emptyBg = emptyNode.addComponent(cc.Graphics);
+            emptyBg.fillColor = cc.color(35, 30, 50, 200);
+            emptyBg.roundRect(-150, -25, 300, 50, 8);
+            emptyBg.fill();
+            emptyBg.strokeColor = cc.color(100, 80, 50, 150);
+            emptyBg.lineWidth = 1;
+            emptyBg.roundRect(-150, -25, 300, 50, 8);
+            emptyBg.stroke();
+            
+            var emptyLabel = new cc.Node("Label");
+            emptyLabel.anchorX = 0.5;
+            emptyLabel.anchorY = 0.5;
+            var el = emptyLabel.addComponent(cc.Label);
+            el.string = "暂无房间，请创建或刷新";
+            el.fontSize = 16;
+            el.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+            emptyLabel.color = cc.color(180, 160, 120);
+            emptyLabel.parent = emptyNode;
+            
+            emptyNode.parent = container;
+            return;
+        }
         
         for (var i = 0; i < rooms.length && i < 5; i++) {
             var room = rooms[i];
