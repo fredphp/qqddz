@@ -769,36 +769,82 @@ cc.Class({
         var oldDialog = this.node.getChildByName("RoomListDialog");
         if (oldDialog) oldDialog.destroy();
         
-        // 创建弹窗背景
+        // 移除旧的提示
+        var oldTip = this.node.getChildByName("room_tip");
+        if (oldTip) oldTip.destroy();
+        
+        // 获取画布尺寸
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
+        var screenHeight = canvas ? canvas.designResolution.height : 720;
+        var screenWidth = canvas ? canvas.designResolution.width : 1280;
+        
+        // 创建弹窗容器
         var dialog = new cc.Node("RoomListDialog");
-        dialog.setContentSize(cc.size(600, 400));
+        dialog.setContentSize(cc.size(650, 450));
         dialog.anchorX = 0.5;
         dialog.anchorY = 0.5;
         dialog.x = 0;
-        dialog.y = 0;
+        dialog.y = 50;  // 稍微上移
+        dialog.zIndex = 1000;  // 确保在最上层
         dialog.parent = this.node;
         
-        // 添加半透明背景
-        var bgSprite = dialog.addComponent(cc.Sprite);
-        bgSprite.type = cc.Sprite.Type.SLICED;
-        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        dialog.color = cc.color(40, 40, 60);
-        dialog.opacity = 240;
+        // 添加背景遮罩（半透明黑色）
+        var mask = new cc.Node("Mask");
+        mask.setContentSize(cc.size(screenWidth, screenHeight));
+        mask.anchorX = 0.5;
+        mask.anchorY = 0.5;
+        mask.x = 0;
+        mask.y = -50;
+        var maskGraphics = mask.addComponent(cc.Graphics);
+        maskGraphics.fillColor = cc.color(0, 0, 0, 180);
+        maskGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight);
+        maskGraphics.fill();
+        mask.parent = dialog;
+        
+        // 点击遮罩关闭弹窗
+        mask.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            dialog.destroy();
+        });
+        
+        // 添加弹窗背景（白色圆角矩形）
+        var bgNode = new cc.Node("BgNode");
+        bgNode.setContentSize(cc.size(620, 420));
+        var bgGraphics = bgNode.addComponent(cc.Graphics);
+        bgGraphics.fillColor = cc.color(45, 45, 65, 255);
+        bgGraphics.roundRect(-310, -210, 620, 420, 15);
+        bgGraphics.fill();
+        bgGraphics.strokeColor = cc.color(100, 100, 140, 255);
+        bgGraphics.lineWidth = 3;
+        bgGraphics.roundRect(-310, -210, 620, 420, 15);
+        bgGraphics.stroke();
+        bgNode.parent = dialog;
         
         // 标题
         var titleNode = new cc.Node("Title");
-        titleNode.y = 160;
+        titleNode.y = 170;
         var titleLabel = titleNode.addComponent(cc.Label);
-        titleLabel.string = roomConfig.room_name + " - 选择房间";
-        titleLabel.fontSize = 32;
-        titleLabel.lineHeight = 40;
+        titleLabel.string = "【" + roomConfig.room_name + "】";
+        titleLabel.fontSize = 36;
+        titleLabel.lineHeight = 44;
+        titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         titleNode.color = cc.color(255, 215, 0);
         titleNode.parent = dialog;
         
+        // 副标题
+        var subTitleNode = new cc.Node("SubTitle");
+        subTitleNode.y = 130;
+        var subTitleLabel = subTitleNode.addComponent(cc.Label);
+        subTitleLabel.string = "选择游戏方式";
+        subTitleLabel.fontSize = 24;
+        subTitleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        subTitleNode.color = cc.color(180, 180, 200);
+        subTitleNode.parent = dialog;
+        
         // 房间列表容器
         var listContainer = new cc.Node("ListContainer");
-        listContainer.setContentSize(cc.size(560, 180));
-        listContainer.y = 30;
+        listContainer.setContentSize(cc.size(580, 120));
+        listContainer.y = 50;
         listContainer.parent = dialog;
         
         // 加载中的提示
@@ -806,100 +852,129 @@ cc.Class({
         loadingLabel.y = 0;
         var loading = loadingLabel.addComponent(cc.Label);
         loading.string = "正在获取房间列表...";
-        loading.fontSize = 24;
-        loadingLabel.color = cc.color(200, 200, 200);
+        loading.fontSize = 22;
+        loading.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        loadingLabel.color = cc.color(150, 150, 170);
         loadingLabel.parent = listContainer;
         
-        // 按钮容器
+        // 按钮容器 - 放在中间显眼位置
         var btnContainer = new cc.Node("BtnContainer");
-        btnContainer.y = -130;
+        btnContainer.y = -60;
         btnContainer.parent = dialog;
         
-        // 快速匹配按钮
-        var quickMatchBtn = this._createButton("快速匹配", cc.color(76, 175, 80), -180, function() {
+        // 快速匹配按钮（绿色，最大）
+        var quickMatchBtn = this._createButton("🎮 快速匹配", cc.color(46, 125, 50), -200, function() {
             console.log("点击快速匹配");
             dialog.destroy();
             self._quickMatch(roomConfig, playerGold);
-        });
+        }, 180, 55);
         quickMatchBtn.parent = btnContainer;
         
-        // 创建房间按钮
-        var createRoomBtn = this._createButton("创建房间", cc.color(33, 150, 243), 0, function() {
+        // 创建房间按钮（蓝色）
+        var createRoomBtn = this._createButton("🏠 创建房间", cc.color(21, 101, 192), 0, function() {
             console.log("点击创建房间");
             dialog.destroy();
             self._createRoom(roomConfig, playerGold);
-        });
+        }, 180, 55);
         createRoomBtn.parent = btnContainer;
         
-        // 关闭按钮
-        var closeBtn = this._createButton("关闭", cc.color(158, 158, 158), 180, function() {
+        // 关闭按钮（灰色）
+        var closeBtn = this._createButton("✖ 关闭", cc.color(120, 120, 120), 200, function() {
             dialog.destroy();
-        });
+        }, 100, 45);
         closeBtn.parent = btnContainer;
         
         // 输入房间号区域
         var inputContainer = new cc.Node("InputContainer");
-        inputContainer.y = -70;
+        inputContainer.y = -140;
         inputContainer.parent = dialog;
         
         var inputLabel = new cc.Node("InputLabel");
-        inputLabel.x = -200;
+        inputLabel.x = -250;
         var inputLabelComp = inputLabel.addComponent(cc.Label);
         inputLabelComp.string = "房间号:";
         inputLabelComp.fontSize = 22;
         inputLabel.color = cc.color(200, 200, 200);
         inputLabel.parent = inputContainer;
         
-        // 房间号输入框（用Label模拟）
-        var roomCodeInput = new cc.Node("RoomCodeInput");
-        roomCodeInput.setContentSize(cc.size(150, 35));
-        roomCodeInput.x = -80;
-        roomCodeInput.parent = inputContainer;
+        // 房间号输入框背景
+        var inputBgNode = new cc.Node("InputBg");
+        inputBgNode.setContentSize(cc.size(180, 40));
+        inputBgNode.x = -110;
+        var inputBg = inputBgNode.addComponent(cc.Graphics);
+        inputBg.fillColor = cc.color(60, 60, 80, 255);
+        inputBg.roundRect(-90, -20, 180, 40, 5);
+        inputBg.fill();
+        inputBgNode.parent = inputContainer;
         
-        var inputBg = roomCodeInput.addComponent(cc.Sprite);
-        inputBg.color = cc.color(60, 60, 80);
-        
-        var inputText = roomCodeInput.addComponent(cc.Label);
-        inputText.string = "点击输入";
-        inputText.fontSize = 20;
+        var inputText = inputBgNode.addComponent(cc.Label);
+        inputText.string = "点击输入房间号";
+        inputText.fontSize = 18;
         inputText.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        inputText.verticalAlign = cc.Label.VerticalAlign.CENTER;
         
         // 加入房间按钮
-        var joinBtn = this._createButton("加入", cc.color(255, 152, 0), 80, function() {
+        var joinBtn = this._createButton("➤ 加入", cc.color(230, 126, 34), 100, function() {
             var roomCode = inputText.string;
-            if (roomCode && roomCode !== "点击输入") {
+            if (roomCode && roomCode !== "点击输入房间号") {
                 console.log("加入房间:", roomCode);
                 dialog.destroy();
                 self._joinRoom(roomCode, roomConfig, playerGold);
             } else {
-                self._showMessage("请输入房间号");
+                self._showMessageCenter("请输入房间号");
             }
-        });
+        }, 90, 40);
         joinBtn.parent = inputContainer;
+        
+        // 底部提示
+        var tipNode = new cc.Node("Tip");
+        tipNode.y = -185;
+        var tipLabel = tipNode.addComponent(cc.Label);
+        tipLabel.string = "提示：快速匹配将自动为您分配房间";
+        tipLabel.fontSize = 16;
+        tipLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        tipNode.color = cc.color(120, 120, 140);
+        tipNode.parent = dialog;
         
         // 获取房间列表
         this._fetchRoomList(listContainer, loadingLabel);
     },
     
-    // 创建按钮
-    _createButton: function(text, color, x, callback) {
+    // 创建按钮 - 改进版本
+    _createButton: function(text, color, x, callback, width, height) {
+        width = width || 140;
+        height = height || 50;
+        
         var btn = new cc.Node(text + "Btn");
-        btn.setContentSize(cc.size(120, 45));
+        btn.setContentSize(cc.size(width, height));
         btn.x = x;
         
-        var sprite = btn.addComponent(cc.Sprite);
-        sprite.type = cc.Sprite.Type.SLICED;
-        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        btn.color = color;
+        // 按钮背景
+        var bg = btn.addComponent(cc.Graphics);
+        bg.fillColor = color;
+        bg.roundRect(-width/2, -height/2, width, height, 8);
+        bg.fill();
         
+        // 按钮文字
         var label = btn.addComponent(cc.Label);
         label.string = text;
-        label.fontSize = 22;
+        label.fontSize = 20;
         label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        label.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        btn.color = cc.color(255, 255, 255);
         
+        // 触摸效果
+        btn.on(cc.Node.EventType.TOUCH_START, function(event) {
+            event.stopPropagation();
+            btn.scale = 0.95;
+        });
         btn.on(cc.Node.EventType.TOUCH_END, function(event) {
             event.stopPropagation();
+            btn.scale = 1;
             if (callback) callback();
+        });
+        btn.on(cc.Node.EventType.TOUCH_CANCEL, function(event) {
+            btn.scale = 1;
         });
         
         return btn;
@@ -975,7 +1050,7 @@ cc.Class({
         var myglobal = window.myglobal;
         var socket = myglobal && myglobal.socket ? myglobal.socket : null;
         
-        this._showMessage("正在快速匹配...");
+        this._showMessageCenter("正在快速匹配...");
         
         if (socket && socket.request_enter_room) {
             socket.request_enter_room({ room_level: roomConfig.room_type }, function(result, data) {
@@ -983,11 +1058,13 @@ cc.Class({
                     if (myglobal) myglobal.roomData = data;
                     self._enterGameScene(data);
                 } else {
+                    self._showMessageCenter("匹配失败，创建新房间");
                     self._enterGameSceneWithMockData(roomConfig, playerGold);
                 }
             });
             
             this._enterRoomTimeout = setTimeout(function() {
+                self._showMessageCenter("匹配超时，创建新房间");
                 self._enterGameSceneWithMockData(roomConfig, playerGold);
             }, 5000);
         } else {
@@ -1001,7 +1078,7 @@ cc.Class({
         var myglobal = window.myglobal;
         var socket = myglobal && myglobal.socket ? myglobal.socket : null;
         
-        this._showMessage("正在创建房间...");
+        this._showMessageCenter("正在创建房间...");
         
         if (socket && socket.createRoom) {
             socket.createRoom(function(result, data) {
@@ -1023,7 +1100,7 @@ cc.Class({
                     myglobal.roomData = roomData;
                     self._enterGameScene(roomData);
                 } else {
-                    self._showMessage("创建房间失败，使用模拟数据");
+                    self._showMessageCenter("创建失败，使用模拟房间");
                     self._enterGameSceneWithMockData(roomConfig, playerGold);
                 }
             });
@@ -1038,7 +1115,7 @@ cc.Class({
         var myglobal = window.myglobal;
         var socket = myglobal && myglobal.socket ? myglobal.socket : null;
         
-        this._showMessage("正在加入房间 " + roomCode + "...");
+        this._showMessageCenter("正在加入房间 " + roomCode + "...");
         
         if (socket && socket.joinRoom) {
             socket.joinRoom(roomCode, function(result, data) {
@@ -1062,11 +1139,11 @@ cc.Class({
                     myglobal.roomData = roomData;
                     self._enterGameScene(roomData);
                 } else {
-                    self._showMessage("加入房间失败");
+                    self._showMessageCenter("加入房间失败");
                 }
             });
         } else {
-            this._showMessage("无法连接服务器");
+            this._showMessageCenter("无法连接服务器");
         }
     },
     
@@ -1173,6 +1250,45 @@ cc.Class({
         
         tipNode.parent = this.node;
         
+        this.scheduleOnce(function() {
+            if (tipNode && tipNode.isValid) tipNode.destroy();
+        }, 2);
+    },
+    
+    // 在屏幕中央显示提示信息（更显眼）
+    _showMessageCenter: function(message) {
+        var tipNode = this.node.getChildByName("center_tip");
+        if (tipNode) tipNode.destroy();
+        
+        // 获取画布尺寸
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
+        var screenHeight = canvas ? canvas.designResolution.height : 720;
+        var screenWidth = canvas ? canvas.designResolution.width : 1280;
+        
+        // 创建提示容器
+        tipNode = new cc.Node("center_tip");
+        tipNode.zIndex = 2000;
+        tipNode.parent = this.node;
+        
+        // 添加半透明背景
+        var bgNode = new cc.Node("Bg");
+        var bg = bgNode.addComponent(cc.Graphics);
+        bg.fillColor = cc.color(0, 0, 0, 200);
+        bg.roundRect(-200, -30, 400, 60, 10);
+        bg.fill();
+        bgNode.parent = tipNode;
+        
+        // 添加文字
+        var labelNode = new cc.Node("Label");
+        var label = labelNode.addComponent(cc.Label);
+        label.string = message;
+        label.fontSize = 26;
+        label.lineHeight = 36;
+        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        labelNode.color = cc.color(255, 255, 255);
+        labelNode.parent = tipNode;
+        
+        // 2秒后自动消失
         this.scheduleOnce(function() {
             if (tipNode && tipNode.isValid) tipNode.destroy();
         }, 2);
