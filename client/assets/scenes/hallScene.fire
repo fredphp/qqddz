@@ -2303,7 +2303,7 @@
       "ctor": "Float64Array",
       "array": [
         331,
-        38,
+        65,
         0,
         0,
         0,
@@ -2483,7 +2483,7 @@
       "ctor": "Float64Array",
       "array": [
         401,
-        40,
+        65,
         0,
         0,
         0,
@@ -2506,8 +2506,8 @@
     "_useOriginalSize": false,
     "_string": "7548",
     "_N$string": "7548",
-    "_fontSize": 30,
-    "_lineHeight": 40,
+    "_fontSize": 48,
+    "_lineHeight": 56,
     "_enableWrapText": true,
     "_N$file": null,
     "_isSystemFontUsed": true,
