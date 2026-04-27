@@ -201,8 +201,21 @@ cc.Class({
                     self._loadDefaultAvatar();
                     return;
                 }
-                self.headimage.spriteFrame = new cc.SpriteFrame(texture);
-                console.log("网络头像加载成功");
+                
+                // 验证 texture 是否有效
+                if (!texture) {
+                    console.warn("网络头像 texture 为空");
+                    self._loadDefaultAvatar();
+                    return;
+                }
+                
+                try {
+                    self.headimage.spriteFrame = new cc.SpriteFrame(texture);
+                    console.log("网络头像加载成功");
+                } catch (e) {
+                    console.error("创建头像 SpriteFrame 失败:", e);
+                    self._loadDefaultAvatar();
+                }
             });
         } else {
             // 本地资源路径
@@ -213,8 +226,21 @@ cc.Class({
                     self._loadDefaultAvatar();
                     return;
                 }
-                self.headimage.spriteFrame = spriteFrame;
-                console.log("本地头像加载成功:", avatarUrl);
+                
+                // 验证 spriteFrame 是否有效
+                if (!spriteFrame || !(spriteFrame instanceof cc.SpriteFrame)) {
+                    console.warn("本地头像 spriteFrame 无效");
+                    self._loadDefaultAvatar();
+                    return;
+                }
+                
+                try {
+                    self.headimage.spriteFrame = spriteFrame;
+                    console.log("本地头像加载成功:", avatarUrl);
+                } catch (e) {
+                    console.error("设置头像 spriteFrame 失败:", e);
+                    self._loadDefaultAvatar();
+                }
             });
         }
     },
@@ -227,8 +253,19 @@ cc.Class({
                 console.error("加载默认头像失败:", err);
                 return;
             }
-            self.headimage.spriteFrame = spriteFrame;
-            console.log("默认头像加载成功");
+            
+            // 验证 spriteFrame 是否有效
+            if (!spriteFrame || !(spriteFrame instanceof cc.SpriteFrame)) {
+                console.error("默认头像 spriteFrame 无效");
+                return;
+            }
+            
+            try {
+                self.headimage.spriteFrame = spriteFrame;
+                console.log("默认头像加载成功");
+            } catch (e) {
+                console.error("设置默认头像 spriteFrame 失败:", e);
+            }
         });
     },
 
@@ -592,6 +629,13 @@ cc.Class({
         
         console.log("加载房间按钮背景图: " + bgImagePath + " (房间类型: " + roomType + ")");
         
+        // 获取 Sprite 组件
+        var sprite = btnNode.getComponent(cc.Sprite);
+        if (!sprite) {
+            console.warn("房间按钮节点没有 Sprite 组件:", btnNode.name);
+            return;
+        }
+        
         // 加载 SpriteFrame
         cc.resources.load(bgImagePath, cc.SpriteFrame, function(err, spriteFrame) {
             if (err) {
@@ -601,13 +645,26 @@ cc.Class({
                 return;
             }
             
-            // 获取 Sprite 组件
-            var sprite = btnNode.getComponent(cc.Sprite);
-            if (sprite) {
+            // 验证 spriteFrame 是否有效
+            if (!spriteFrame) {
+                console.warn("加载的 spriteFrame 为空: " + bgImagePath);
+                self._loadDefaultRoomButtonBg(btnNode);
+                return;
+            }
+            
+            // 检查是否是有效的 SpriteFrame
+            if (!(spriteFrame instanceof cc.SpriteFrame)) {
+                console.warn("加载的资源不是 SpriteFrame: " + bgImagePath, spriteFrame);
+                self._loadDefaultRoomButtonBg(btnNode);
+                return;
+            }
+            
+            try {
                 sprite.spriteFrame = spriteFrame;
                 console.log("✅ 房间按钮背景图加载成功: btn_happy_" + roomType + ".png");
-            } else {
-                console.warn("房间按钮节点没有 Sprite 组件:", btnNode.name);
+            } catch (e) {
+                console.error("设置 spriteFrame 失败:", e);
+                self._loadDefaultRoomButtonBg(btnNode);
             }
         });
     },
@@ -625,8 +682,19 @@ cc.Class({
                 console.warn("加载默认背景图也失败:", err);
                 return;
             }
-            sprite.spriteFrame = spriteFrame;
-            console.log("使用默认背景图: btn_happy_2.png");
+            
+            // 验证 spriteFrame 是否有效
+            if (!spriteFrame || !(spriteFrame instanceof cc.SpriteFrame)) {
+                console.warn("默认背景图资源无效");
+                return;
+            }
+            
+            try {
+                sprite.spriteFrame = spriteFrame;
+                console.log("使用默认背景图: btn_happy_2.png");
+            } catch (e) {
+                console.error("设置默认 spriteFrame 失败:", e);
+            }
         });
     },
     
