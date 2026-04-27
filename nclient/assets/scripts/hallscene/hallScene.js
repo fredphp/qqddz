@@ -1328,6 +1328,56 @@ cc.Class({
         
         console.log("获取房间列表 - WebSocket状态: isConnected=" + isConnected + ", isWebSocketOpen=" + isWebSocketOpen);
         
+        // 存储当前房间列表，用于实时更新
+        var currentRooms = [];
+        
+        // 设置实时房间列表更新监听器
+        var roomListUpdateHandler = function(data) {
+            console.log("收到房间列表实时更新:", JSON.stringify(data));
+            
+            var actionType = data.action_type;
+            var roomCode = data.room_code;
+            var room = data.room;
+            
+            if (actionType === "add" && room) {
+                // 添加新房间
+                var exists = currentRooms.some(function(r) {
+                    return (r.room_code || r.roomCode) === (room.room_code || room.roomCode);
+                });
+                if (!exists) {
+                    currentRooms.push(room);
+                }
+            } else if (actionType === "update" && room) {
+                // 更新房间信息
+                for (var i = 0; i < currentRooms.length; i++) {
+                    if ((currentRooms[i].room_code || currentRooms[i].roomCode) === (room.room_code || room.roomCode)) {
+                        currentRooms[i] = room;
+                        break;
+                    }
+                }
+            } else if (actionType === "remove") {
+                // 移除房间
+                currentRooms = currentRooms.filter(function(r) {
+                    return (r.room_code || r.roomCode) !== roomCode;
+                });
+            }
+            
+            // 重新渲染房间列表
+            var filteredRooms = currentRooms.filter(function(r) {
+                var count = r.player_count || r.playerCount || 0;
+                return count > 0 && count < 3;
+            });
+            self._renderRoomListInScene(container, filteredRooms, roomConfig, playerGold, sceneNode);
+        };
+        
+        // 注册监听器
+        if (socket && socket.onRoomListUpdate) {
+            socket.onRoomListUpdate(roomListUpdateHandler);
+        }
+        
+        // 保存监听器引用，用于后续取消注册
+        sceneNode._roomListUpdateHandler = roomListUpdateHandler;
+        
         // 如果WebSocket未连接，使用模拟房间列表
         if (!socket || !isConnected || !isWebSocketOpen) {
             console.log("WebSocket未连接，使用模拟房间列表");
@@ -1338,10 +1388,10 @@ cc.Class({
                 }
                 var mockRooms = self._generateMockRoomsForScene();
                 // 过滤：只显示人数少于3人的房间
-                var filteredRooms = mockRooms.filter(function(room) {
+                currentRooms = mockRooms.filter(function(room) {
                     return room.player_count > 0 && room.player_count < 3;
                 });
-                self._renderRoomListInScene(container, filteredRooms, roomConfig, playerGold, sceneNode);
+                self._renderRoomListInScene(container, currentRooms, roomConfig, playerGold, sceneNode);
             }, 0.5);
             return;
         }
@@ -1353,10 +1403,10 @@ cc.Class({
                 loadingLabel.active = false;
             }
             var mockRooms = self._generateMockRoomsForScene();
-            var filteredRooms = mockRooms.filter(function(room) {
+            currentRooms = mockRooms.filter(function(room) {
                 return room.player_count > 0 && room.player_count < 3;
             });
-            self._renderRoomListInScene(container, filteredRooms, roomConfig, playerGold, sceneNode);
+            self._renderRoomListInScene(container, currentRooms, roomConfig, playerGold, sceneNode);
         }, 3000);
         
         socket.getRoomList(function(result, rooms) {
@@ -1366,6 +1416,8 @@ cc.Class({
                 if (loadingLabel && loadingLabel.isValid) {
                     loadingLabel.active = false;
                 }
+                // 存储房间列表用于实时更新
+                currentRooms = rooms;
                 // 过滤：只显示人数少于3人的房间
                 var filteredRooms = rooms.filter(function(room) {
                     var count = room.player_count || room.playerCount || 0;
@@ -1377,10 +1429,10 @@ cc.Class({
                     loadingLabel.active = false;
                 }
                 var mockRooms = self._generateMockRoomsForScene();
-                var filteredRooms = mockRooms.filter(function(room) {
+                currentRooms = mockRooms.filter(function(room) {
                     return room.player_count > 0 && room.player_count < 3;
                 });
-                self._renderRoomListInScene(container, filteredRooms, roomConfig, playerGold, sceneNode);
+                self._renderRoomListInScene(container, currentRooms, roomConfig, playerGold, sceneNode);
             }
         });
     },

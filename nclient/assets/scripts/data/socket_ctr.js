@@ -83,10 +83,11 @@ window.socketCtr = function(){
         ERROR: "error",
         FORCE_LOGOUT: "force_logout", // 强制下线
         ROOM_LIST_RESULT: "room_list_result",  // 房间列表结果
+        ROOM_LIST_UPDATE: "room_list_update",  // 房间列表实时更新
         
-        // 心跳消息
-        HEARTBEAT: "heartbeat",
-        HEARTBEAT_ACK: "heartbeat_ack",
+        // 心跳消息（与Go后端一致）
+        PING: "ping",
+        PONG: "pong",
     }
 
     // 发送消息
@@ -97,7 +98,7 @@ window.socketCtr = function(){
         }
         var msg = {
             type: type,
-            data: data || {},
+            payload: data || {},
             callIndex: callindex || null
         }
         console.log("发送消息:", JSON.stringify(msg))
@@ -119,7 +120,7 @@ window.socketCtr = function(){
         if (!evt) return
         
         var type = msgData.type
-        var data = msgData.data || {}
+        var data = msgData.payload || msgData.data || {}  // 兼容 payload 和 data 字段
         var callIndex = msgData.callIndex
         
         // 处理回调
@@ -177,6 +178,11 @@ window.socketCtr = function(){
             case MessageType.ROOM_LIST_RESULT:
                 console.log("收到房间列表:", JSON.stringify(data))
                 evt.fire("room_list_result", data)
+                break
+                
+            case MessageType.ROOM_LIST_UPDATE:
+                console.log("收到房间列表更新:", JSON.stringify(data))
+                evt.fire("room_list_update", data)
                 break
                 
             case MessageType.GAME_START:
@@ -246,7 +252,7 @@ window.socketCtr = function(){
                 _handleForceLogout(data)
                 break
                 
-            case MessageType.HEARTBEAT_ACK:
+            case MessageType.PONG:
                 // 收到心跳响应
                 _onHeartbeatAck(data)
                 break
@@ -497,6 +503,18 @@ window.socketCtr = function(){
         if (evt) evt.on("room_list_result", callback)
     }
     
+    // 监听房间列表实时更新
+    that.onRoomListUpdate = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("room_list_update", callback)
+    }
+    
+    // 取消监听房间列表实时更新
+    that.offRoomListUpdate = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.off("room_list_update", callback)
+    }
+    
     // 监听房间创建结果
     that.onRoomCreated = function(callback){
         var evt = _getEvent()
@@ -713,17 +731,16 @@ window.socketCtr = function(){
         }
         
         var msg = {
-            type: MessageType.HEARTBEAT,
-            data: {
-                timestamp: Date.now(),
-                player_id: _playerId
+            type: MessageType.PING,
+            payload: {
+                timestamp: Date.now()
             }
         }
         
         try {
             _socket.send(JSON.stringify(msg))
             _lastHeartbeatTime = Date.now()
-            console.log("💓 发送心跳")
+            console.log("💓 发送心跳 ping")
             
             // 设置心跳超时
             _setHeartbeatTimeout()
@@ -767,15 +784,17 @@ window.socketCtr = function(){
         
         _missedHeartbeats = 0
         
-        var latency = Date.now() - _lastHeartbeatTime
-        console.log("💓 心跳响应，延迟: " + latency + "ms")
+        // data 是 payload，包含 client_timestamp 和 server_timestamp
+        var clientTimestamp = data.client_timestamp || data.clientTimestamp || _lastHeartbeatTime
+        var latency = Date.now() - clientTimestamp
+        console.log("💓 收到心跳 pong，延迟: " + latency + "ms")
         
         // 触发心跳成功事件
         var evt = _getEvent()
         if (evt) {
             evt.fire("heartbeat_success", {
                 latency: latency,
-                serverTime: data.server_time || Date.now()
+                serverTime: data.server_timestamp || data.serverTimestamp || Date.now()
             })
         }
     }
