@@ -609,9 +609,9 @@ cc.Class({
         this._layoutRoomsByCategory(arenaRooms, normalRooms);
     },
     
-    // 按分类布局房间按钮
-    // 左侧60%：竞技场（2x2网格）
-    // 右侧40%：普通场（横向排列）
+    // 按分类布局房间按钮 - 使用 GridLayout 自动排版
+    // 左侧60%：竞技场（2列网格）
+    // 右侧40%：普通场（2列网格）
     _layoutRoomsByCategory: function(arenaRooms, normalRooms) {
         var self = this;
         
@@ -625,76 +625,107 @@ cc.Class({
         // ========== 布局参数 ==========
         var buttonWidth = 220;    // 按钮宽度
         var buttonHeight = 160;   // 按钮高度
-        var hGap = 30;            // 水平间距
-        var vGap = 20;            // 垂直间距
-        var yPosition = -100;     // Y坐标基准
+        var cellSize = cc.size(buttonWidth, buttonHeight);
+        var gapX = 20;            // 水平间距
+        var gapY = 20;            // 垂直间距
         
         // 区域划分
         var leftPanelWidth = screenWidth * 0.6;   // 左侧60%
         var rightPanelWidth = screenWidth * 0.4;  // 右侧40%
+        var panelHeight = 400;
         
-        // ========== 左侧：竞技场（2x2网格布局）==========
-        var arenaCount = arenaRooms.length;
-        if (arenaCount > 0) {
-            // 左侧区域中心点
-            var leftCenterX = -screenWidth / 2 + leftPanelWidth / 2;
-            
-            // 2x2网格布局计算
-            var cols = 2;  // 固定2列
-            var rows = Math.ceil(arenaCount / cols);
-            
-            // 计算网格总尺寸
-            var gridWidth = cols * buttonWidth + (cols - 1) * hGap;
-            var gridHeight = rows * buttonHeight + (rows - 1) * vGap;
-            
-            // 网格起始点（居中）
-            var startX = leftCenterX - gridWidth / 2 + buttonWidth / 2;
-            var startY = yPosition + (rows - 1) * (buttonHeight + vGap) / 2;
-            
-            console.log("🎮 竞技场布局: " + arenaCount + "个, " + rows + "行" + cols + "列");
-            console.log("   网格起始: (" + startX.toFixed(0) + ", " + startY.toFixed(0) + ")");
-            
-            for (var i = 0; i < arenaCount; i++) {
-                var room = arenaRooms[i];
-                var col = i % cols;
-                var row = Math.floor(i / cols);
-                
-                var xPos = startX + col * (buttonWidth + hGap);
-                var yPos = startY - row * (buttonHeight + vGap);
-                
-                room.node.setPosition(xPos, yPos);
-                room.node.scale = 1;
-                
-                console.log("   [" + room.roomName + "] 位置: (" + xPos.toFixed(0) + ", " + yPos.toFixed(0) + ")");
-            }
+        // ========== 清理旧的容器节点 ==========
+        var oldLeftPanel = this.node.getChildByName("LeftPanel");
+        var oldRightPanel = this.node.getChildByName("RightPanel");
+        if (oldLeftPanel) oldLeftPanel.destroy();
+        if (oldRightPanel) oldRightPanel.destroy();
+        
+        // ========== 创建左侧容器（竞技场）==========
+        var leftPanel = this._createPanelWithGrid(
+            "LeftPanel",
+            -screenWidth / 2 + leftPanelWidth / 2,  // 左侧中心X
+            0,                                        // Y坐标
+            leftPanelWidth,
+            panelHeight,
+            cellSize,
+            gapX,
+            gapY,
+            2  // 固定2列
+        );
+        leftPanel.parent = this.node;
+        
+        // 将竞技场房间添加到左侧容器
+        for (var i = 0; i < arenaRooms.length; i++) {
+            var room = arenaRooms[i];
+            room.node.parent = leftPanel;  // 添加到容器，GridLayout 自动排列
+            room.node.setPosition(0, 0);    // 重置位置
+            room.node.scale = 1;
+            console.log("🎮 竞技场房间: " + room.roomName);
         }
         
-        // ========== 右侧：普通场（横向排列）==========
-        var normalCount = normalRooms.length;
-        if (normalCount > 0) {
-            // 右侧区域中心点
-            var rightCenterX = screenWidth / 2 - rightPanelWidth / 2;
-            
-            // 横向排列计算
-            var totalWidth = normalCount * buttonWidth + (normalCount - 1) * hGap;
-            var startX = rightCenterX - totalWidth / 2 + buttonWidth / 2;
-            
-            console.log("🎰 普通场布局: " + normalCount + "个, 横向排列");
-            console.log("   起始X: " + startX.toFixed(0));
-            
-            for (var i = 0; i < normalCount; i++) {
-                var room = normalRooms[i];
-                var xPos = startX + i * (buttonWidth + hGap);
-                var yPos = yPosition;
-                
-                room.node.setPosition(xPos, yPos);
-                room.node.scale = 1;
-                
-                console.log("   [" + room.roomName + "] 位置: (" + xPos.toFixed(0) + ", " + yPos.toFixed(0) + ")");
-            }
+        console.log("✅ 竞技场容器: " + arenaRooms.length + " 个房间, GridLayout 自动排列");
+        
+        // ========== 创建右侧容器（普通场）==========
+        var rightPanel = this._createPanelWithGrid(
+            "RightPanel",
+            screenWidth / 2 - rightPanelWidth / 2,   // 右侧中心X
+            0,                                        // Y坐标
+            rightPanelWidth,
+            panelHeight,
+            cellSize,
+            gapX,
+            gapY,
+            2  // 固定2列
+        );
+        rightPanel.parent = this.node;
+        
+        // 将普通场房间添加到右侧容器
+        for (var i = 0; i < normalRooms.length; i++) {
+            var room = normalRooms[i];
+            room.node.parent = rightPanel;  // 添加到容器，GridLayout 自动排列
+            room.node.setPosition(0, 0);     // 重置位置
+            room.node.scale = 1;
+            console.log("🎰 普通场房间: " + room.roomName);
         }
         
-        console.log("✅ 房间布局完成: 竞技场左侧60%, 普通场右侧40%");
+        console.log("✅ 普通场容器: " + normalRooms.length + " 个房间, GridLayout 自动排列");
+        console.log("✅ 房间布局完成: 竞技场左侧60%, 普通场右侧40%, GridLayout自动排列");
+    },
+    
+    // 创建带 GridLayout 的面板容器
+    _createPanelWithGrid: function(panelName, x, y, width, height, cellSize, gapX, gapY, cols) {
+        // 创建容器节点
+        var panel = new cc.Node(panelName);
+        panel.setContentSize(width, height);
+        panel.setPosition(x, y);
+        
+        // 添加 Layout 组件 - 使用 GridLayout
+        var layout = panel.addComponent(cc.Layout);
+        layout.type = cc.Layout.Type.GRID;
+        layout.resizeMode = cc.Layout.ResizeMode.NONE;
+        layout.cellSize = cellSize;
+        layout.startAxis = cc.Layout.AxisDirection.HORIZONTAL;  // 水平方向开始
+        layout.horizontalDirection = cc.Layout.HorizontalDirection.LEFT_TO_RIGHT;
+        layout.verticalDirection = cc.Layout.VerticalDirection.TOP_TO_BOTTOM;
+        layout.constraint = cc.Layout.Constraint.FIXED_COLUMN;  // 固定列数
+        layout.constraintNum = cols;  // 2列
+        layout.spacingX = gapX;
+        layout.spacingY = gapY;
+        layout.paddingTop = 20;
+        layout.paddingBottom = 20;
+        layout.paddingLeft = 20;
+        layout.paddingRight = 20;
+        
+        // 设置锚点为中心
+        panel.anchorX = 0.5;
+        panel.anchorY = 0.5;
+        
+        console.log("📦 创建容器: " + panelName + 
+                   ", 尺寸: " + width + "x" + height + 
+                   ", 格子: " + cellSize.width + "x" + cellSize.height +
+                   ", 列数: " + cols);
+        
+        return panel;
     },
     
     // 根据房间类型加载按钮背景图
