@@ -1054,8 +1054,8 @@ cc.Class({
     
     // 创建顶部标题区域
     _createRoomListHeader: function(parentNode, screenWidth, screenHeight, roomConfig) {
-        var headerY = screenHeight/2 - 60;
-        var headerHeight = 70;
+        var headerY = screenHeight/2 - 55;
+        var headerHeight = 80;  // 增加标题栏高度
         
         // 标题背景
         var headerBg = new cc.Node("HeaderBg");
@@ -1090,16 +1090,16 @@ cc.Class({
         rd.fill();
         rightDeco.parent = parentNode;
         
-        // 房间名称
+        // 房间名称 - 位于标题栏上半部分
         var titleText = new cc.Node("TitleText");
-        titleText.setPosition(0, headerY + 8);
+        titleText.setPosition(0, headerY + 12);  // 上移到标题栏上半部分
         titleText.anchorX = 0.5;
         titleText.anchorY = 0.5;
         
         var titleLabel = titleText.addComponent(cc.Label);
         titleLabel.string = roomConfig.room_name || "游戏房间";
-        titleLabel.fontSize = 32;
-        titleLabel.lineHeight = 40;
+        titleLabel.fontSize = 28;  // 调整字体大小
+        titleLabel.lineHeight = 36;
         titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         titleText.color = cc.color(255, 220, 100);
         
@@ -1108,17 +1108,17 @@ cc.Class({
         titleOutline.width = 2;
         titleText.parent = parentNode;
         
-        // 副标题
+        // 副标题 - 位于标题栏下半部分，与标题分开
         var subText = new cc.Node("SubText");
-        subText.setPosition(0, headerY - 18);
+        subText.setPosition(0, headerY - 14);  // 下移到标题栏下半部分
         subText.anchorX = 0.5;
         subText.anchorY = 0.5;
         
         var subLabel = subText.addComponent(cc.Label);
         subLabel.string = "底分 " + (roomConfig.base_score || 1) + "  ·  倍率 " + (roomConfig.multiplier || 1) + "x";
-        subLabel.fontSize = 16;
+        subLabel.fontSize = 18;  // 增大字体
         subLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        subText.color = cc.color(180, 160, 120);
+        subText.color = cc.color(200, 180, 140);
         subText.parent = parentNode;
     },
     
@@ -1126,9 +1126,9 @@ cc.Class({
     _createRoomListActions: function(parentNode, screenWidth, screenHeight, roomConfig, playerGold) {
         var self = this;
         
-        // 操作栏背景
-        var actionBarY = screenHeight/2 - 115;
-        var actionBarHeight = 50;
+        // 操作栏背景 - 增加高度以容纳更大的元素
+        var actionBarY = screenHeight/2 - 125;
+        var actionBarHeight = 65;  // 增加高度
         
         var actionBarBg = new cc.Node("ActionBarBg");
         actionBarBg.setPosition(0, actionBarY);
@@ -1139,27 +1139,27 @@ cc.Class({
         actionBarBg.parent = parentNode;
         
         // ===== 左侧：房间号输入和加入按钮 =====
-        var leftX = -screenWidth/2 + 150;
+        var leftX = -screenWidth/2 + 200;  // 调整位置
         
-        // 输入框
+        // 输入框 - 增加宽度
         var roomCodeInput = this._createSimpleInputBox(
             "输入房间号",
             leftX, actionBarY,
-            140, 36
+            180, 44  // 增加尺寸
         );
         roomCodeInput.parent = parentNode;
         
-        // 加入房间按钮
+        // 加入房间按钮 - 增加宽度
         var joinBtn = this._createActionButton(
             "加入房间",
             cc.color(76, 175, 80),  // 绿色
-            leftX + 110, actionBarY,
-            90, 36,
+            leftX + 160, actionBarY,
+            110, 44,  // 增加尺寸
             function() {
                 var input = parentNode.getChildByName("RoomCodeInput");
-                var textNode = input ? input.getChildByName("Text") : null;
-                var code = textNode ? textNode.getComponent(cc.Label).string : "";
-                if (code && code !== "输入房间号" && code.length > 0) {
+                var editBox = input ? input.getComponent(cc.EditBox) : null;
+                var code = editBox ? editBox.string : "";
+                if (code && code.length > 0) {
                     self._joinRoom(code, roomConfig, playerGold);
                 } else {
                     self._showTipInScene(parentNode, "请输入房间号");
@@ -1169,26 +1169,26 @@ cc.Class({
         joinBtn.parent = parentNode;
         
         // ===== 右侧：创建房间和快速开始按钮 =====
-        var rightX = screenWidth/2 - 150;
+        var rightX = screenWidth/2 - 170;
         
-        // 创建房间按钮
+        // 创建房间按钮 - 增加宽度
         var createBtn = this._createActionButton(
             "创建房间",
             cc.color(255, 152, 0),  // 橙色
-            rightX - 70, actionBarY,
-            100, 36,
+            rightX - 85, actionBarY,
+            120, 44,  // 增加尺寸
             function() {
                 self._showCreateRoomDialog(parentNode, roomConfig, playerGold);
             }
         );
         createBtn.parent = parentNode;
         
-        // 快速开始按钮
+        // 快速开始按钮 - 增加宽度
         var quickBtn = this._createActionButton(
             "快速开始",
             cc.color(33, 150, 243),  // 蓝色
-            rightX + 60, actionBarY,
-            100, 36,
+            rightX + 85, actionBarY,
+            120, 44,  // 增加尺寸
             function() {
                 var scene = parentNode.getChildByName("RoomListScene") || parentNode;
                 if (scene.destroy) scene.destroy();
@@ -1198,7 +1198,7 @@ cc.Class({
         quickBtn.parent = parentNode;
     },
     
-    // 创建简单的输入框
+    // 创建简单的输入框 - 使用 EditBox 组件
     _createSimpleInputBox: function(placeholder, x, y, width, height) {
         var inputNode = new cc.Node("RoomCodeInput");
         inputNode.setContentSize(cc.size(width, height));
@@ -1209,49 +1209,47 @@ cc.Class({
         // 背景
         var bg = inputNode.addComponent(cc.Graphics);
         bg.fillColor = cc.color(45, 40, 60, 255);
-        bg.roundRect(-width/2, -height/2, width, height, 4);
+        bg.roundRect(-width/2, -height/2, width, height, 6);
         bg.fill();
-        bg.strokeColor = cc.color(100, 90, 70, 200);
-        bg.lineWidth = 1;
-        bg.roundRect(-width/2, -height/2, width, height, 4);
+        bg.strokeColor = cc.color(120, 100, 70, 220);
+        bg.lineWidth = 2;
+        bg.roundRect(-width/2, -height/2, width, height, 6);
         bg.stroke();
         
-        // placeholder/输入文字
-        var textNode = new cc.Node("Text");
-        textNode.anchorX = 0.5;
-        textNode.anchorY = 0.5;
-        var label = textNode.addComponent(cc.Label);
-        label.string = placeholder;
-        label.fontSize = 14;
-        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        textNode.color = cc.color(130, 120, 110);
-        textNode.parent = inputNode;
+        // 使用 EditBox 组件实现真正的输入框
+        var editBox = inputNode.addComponent(cc.EditBox);
+        editBox.string = "";
+        editBox.placeholder = placeholder;
+        editBox.fontSize = 18;
+        editBox.fontColor = cc.color(255, 255, 255);
+        editBox.placeholderFontSize = 16;
+        editBox.placeholderFontColor = cc.color(130, 120, 110);
+        editBox.maxLength = 20;
+        editBox.inputMode = cc.EditBox.InputMode.NUMERIC;
+        editBox.returnType = cc.EditBox.KeyboardReturnType.DONE;
+        editBox.lineHeight = height - 8;
         
-        // 存储输入值
-        inputNode.inputValue = "";
+        // 添加内边距效果（通过调整背景）
+        editBox.node.on('editing-did-begin', function() {
+            bg.clear();
+            bg.fillColor = cc.color(55, 50, 75, 255);
+            bg.roundRect(-width/2, -height/2, width, height, 6);
+            bg.fill();
+            bg.strokeColor = cc.color(180, 150, 80, 255);
+            bg.lineWidth = 2;
+            bg.roundRect(-width/2, -height/2, width, height, 6);
+            bg.stroke();
+        });
         
-        // 点击输入
-        inputNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-            event.stopPropagation();
-            try {
-                var input = "";
-                if (typeof window !== 'undefined' && window.prompt) {
-                    input = window.prompt("请输入房间号", inputNode.inputValue) || "";
-                }
-                if (input) {
-                    inputNode.inputValue = input;
-                    label.string = input;
-                    textNode.color = cc.color(255, 255, 255);
-                } else if (inputNode.inputValue) {
-                    label.string = inputNode.inputValue;
-                    textNode.color = cc.color(255, 255, 255);
-                } else {
-                    label.string = placeholder;
-                    textNode.color = cc.color(130, 120, 110);
-                }
-            } catch (e) {
-                console.log("prompt 不可用");
-            }
+        editBox.node.on('editing-did-end', function() {
+            bg.clear();
+            bg.fillColor = cc.color(45, 40, 60, 255);
+            bg.roundRect(-width/2, -height/2, width, height, 6);
+            bg.fill();
+            bg.strokeColor = cc.color(120, 100, 70, 220);
+            bg.lineWidth = 2;
+            bg.roundRect(-width/2, -height/2, width, height, 6);
+            bg.stroke();
         });
         
         return inputNode;
@@ -1265,21 +1263,31 @@ cc.Class({
         btn.anchorX = 0.5;
         btn.anchorY = 0.5;
         
-        // 背景
+        // 背景 - 增加圆角
         var bg = btn.addComponent(cc.Graphics);
         bg.fillColor = bgColor;
-        bg.roundRect(-width/2, -height/2, width, height, 4);
+        bg.roundRect(-width/2, -height/2, width, height, 8);
+        bg.fill();
+        // 添加高光效果
+        bg.fillColor = cc.color(255, 255, 255, 40);
+        bg.roundRect(-width/2 + 2, 2, width - 4, height/2 - 2, 6);
         bg.fill();
         
-        // 文字
+        // 文字 - 增大字体
         var textNode = new cc.Node("Text");
         textNode.anchorX = 0.5;
         textNode.anchorY = 0.5;
         var label = textNode.addComponent(cc.Label);
         label.string = text;
-        label.fontSize = 14;
+        label.fontSize = 18;  // 增大字体
         label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        label.verticalAlign = cc.Label.VerticalAlign.CENTER;
         textNode.color = cc.color(255, 255, 255);
+        
+        // 添加文字描边
+        var outline = textNode.addComponent(cc.LabelOutline);
+        outline.color = cc.color(0, 0, 0, 150);
+        outline.width = 1;
         textNode.parent = btn;
         
         // 触摸效果
@@ -1303,9 +1311,9 @@ cc.Class({
     _createRoomListContent: function(parentNode, screenWidth, screenHeight, roomConfig, playerGold) {
         var self = this;
         
-        // 列表区域位置和尺寸
-        var listY = -20;
-        var listHeight = screenHeight - 260;
+        // 列表区域位置和尺寸 - 调整以适应新的操作栏高度
+        var listY = -30;  // 调整位置
+        var listHeight = screenHeight - 280;  // 调整高度
         var listWidth = screenWidth - 60;
         
         // 列表背景
@@ -1331,11 +1339,11 @@ cc.Class({
         headerBg.setPosition(0, headerY);
         var hbg = headerBg.addComponent(cc.Graphics);
         hbg.fillColor = cc.color(40, 35, 55, 255);
-        hbg.roundRect(-listWidth/2 + 5, -18, listWidth - 10, 36, 4);
+        hbg.roundRect(-listWidth/2 + 5, -20, listWidth - 10, 40, 4);
         hbg.fill();
         headerBg.parent = parentNode;
         
-        // 表头文字
+        // 表头文字 - 增大字体
         var colWidth = listWidth / 5;
         var headers = ["房间号", "人数", "底分", "状态", "操作"];
         for (var i = 0; i < headers.length; i++) {
@@ -1347,16 +1355,21 @@ cc.Class({
             
             var hl = hNode.addComponent(cc.Label);
             hl.string = headers[i];
-            hl.fontSize = 14;
+            hl.fontSize = 16;  // 增大字体
             hl.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            hNode.color = cc.color(220, 180, 100);
+            hNode.color = cc.color(240, 200, 120);
+            
+            // 添加描边
+            var outline = hNode.addComponent(cc.LabelOutline);
+            outline.color = cc.color(60, 50, 40);
+            outline.width = 1;
             hNode.parent = parentNode;
         }
         
         // ===== 房间列表容器 =====
         var roomContainer = new cc.Node("RoomListContainer");
-        roomContainer.setContentSize(cc.size(listWidth - 20, listHeight - 60));
-        roomContainer.y = listY - 15;
+        roomContainer.setContentSize(cc.size(listWidth - 20, listHeight - 70));
+        roomContainer.y = listY - 20;
         roomContainer.parent = parentNode;
         
         // 加载提示
@@ -1365,9 +1378,9 @@ cc.Class({
         loadingNode.anchorY = 0.5;
         var ll = loadingNode.addComponent(cc.Label);
         ll.string = "正在加载房间列表...";
-        ll.fontSize = 16;
+        ll.fontSize = 18;  // 增大字体
         ll.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        loadingNode.color = cc.color(150, 140, 130);
+        loadingNode.color = cc.color(160, 150, 140);
         loadingNode.parent = roomContainer;
         
         // 获取房间列表
@@ -1377,23 +1390,23 @@ cc.Class({
     // 创建底部信息栏 - 简洁设计
     _createRoomListFooter: function(parentNode, screenWidth, screenHeight, playerGold, roomConfig) {
         var self = this;
-        var footerY = -screenHeight/2 + 40;
+        var footerY = -screenHeight/2 + 50;  // 调整位置
         
         // 底部背景
         var footerBg = new cc.Node("FooterBg");
         footerBg.setPosition(0, footerY);
         var fg = footerBg.addComponent(cc.Graphics);
         fg.fillColor = cc.color(28, 25, 42, 240);
-        fg.roundRect(-screenWidth/2 + 30, -20, screenWidth - 60, 40, 6);
+        fg.roundRect(-screenWidth/2 + 30, -25, screenWidth - 60, 50, 6);
         fg.fill();
         footerBg.parent = parentNode;
         
-        // 返回按钮
+        // 返回按钮 - 增大尺寸
         var backBtn = this._createActionButton(
             "返回大厅",
             cc.color(90, 85, 100),
-            -screenWidth/2 + 110, footerY,
-            90, 32,
+            -screenWidth/2 + 120, footerY,
+            110, 40,  // 增加尺寸
             function() {
                 var scene = parentNode.getChildByName("RoomListScene") || parentNode;
                 if (scene.destroy) scene.destroy();
@@ -1423,12 +1436,12 @@ cc.Class({
         goldText.color = cc.color(230, 190, 80);
         goldText.parent = parentNode;
         
-        // 刷新按钮
+        // 刷新按钮 - 增大尺寸
         var refreshBtn = this._createActionButton(
             "刷新列表",
             cc.color(60, 130, 180),
-            screenWidth/2 - 85, footerY,
-            80, 32,
+            screenWidth/2 - 100, footerY,
+            100, 40,  // 增加尺寸
             function() {
                 var container = parentNode.getChildByName("RoomListContainer");
                 if (!container) return;
@@ -1753,8 +1766,8 @@ cc.Class({
         });
         
         // ===== 弹窗主体 =====
-        var dialogWidth = 420;
-        var dialogHeight = 380;
+        var dialogWidth = 480;  // 增加宽度
+        var dialogHeight = 420;  // 增加高度
         
         // 弹窗背景
         var dialogBg = new cc.Node("DialogBg");
@@ -1850,21 +1863,21 @@ cc.Class({
         
         // ===== 房间名称输入 =====
         var nameLabel = new cc.Node("NameLabel");
-        nameLabel.x = -dialogWidth/2 + 70;
+        nameLabel.x = -dialogWidth/2 + 30;
         nameLabel.y = dialogHeight/2 - 130;
         nameLabel.anchorX = 0;
         nameLabel.anchorY = 0.5;
         var nll = nameLabel.addComponent(cc.Label);
-        nll.string = "房间名称";
-        nll.fontSize = 16;
-        nameLabel.color = cc.color(200, 190, 170);
+        nll.string = "房间名称:";
+        nll.fontSize = 18;  // 增大字体
+        nameLabel.color = cc.color(220, 210, 190);
         nameLabel.parent = dialog;
         
         var nameInputData = { value: "" };
-        var nameInputBtn = this._createInputDialogInput(
-            "点击输入房间名称（可选）",
-            0, dialogHeight/2 - 165,
-            dialogWidth - 60, 40,
+        var nameInputBtn = this._createEditBoxInput(
+            "输入房间名称（可选）",
+            40, dialogHeight/2 - 165,
+            dialogWidth - 80, 48,  // 增加尺寸
             "NameInput",
             nameInputData
         );
@@ -1872,21 +1885,21 @@ cc.Class({
         
         // ===== 房间密码输入 =====
         var pwdLabel = new cc.Node("PwdLabel");
-        pwdLabel.x = -dialogWidth/2 + 70;
-        pwdLabel.y = dialogHeight/2 - 215;
+        pwdLabel.x = -dialogWidth/2 + 30;
+        pwdLabel.y = dialogHeight/2 - 235;
         pwdLabel.anchorX = 0;
         pwdLabel.anchorY = 0.5;
         var pll = pwdLabel.addComponent(cc.Label);
-        pll.string = "房间密码";
-        pll.fontSize = 16;
-        pwdLabel.color = cc.color(200, 190, 170);
+        pll.string = "房间密码:";
+        pll.fontSize = 18;  // 增大字体
+        pwdLabel.color = cc.color(220, 210, 190);
         pwdLabel.parent = dialog;
         
         var pwdInputData = { value: "" };
-        var pwdInputBtn = this._createInputDialogInput(
-            "点击设置密码（可选）",
-            0, dialogHeight/2 - 250,
-            dialogWidth - 60, 40,
+        var pwdInputBtn = this._createEditBoxInput(
+            "设置密码（可选）",
+            40, dialogHeight/2 - 270,
+            dialogWidth - 80, 48,  // 增加尺寸
             "PwdInput",
             pwdInputData
         );
@@ -1894,25 +1907,25 @@ cc.Class({
         
         // ===== 提示文字 =====
         var tipNode = new cc.Node("Tip");
-        tipNode.y = -dialogHeight/2 + 90;
+        tipNode.y = -dialogHeight/2 + 100;
         tipNode.anchorX = 0.5;
         tipNode.anchorY = 0.5;
         var tipLabel = tipNode.addComponent(cc.Label);
         tipLabel.string = "留空密码则创建公开房间，任何人可直接加入";
-        tipLabel.fontSize = 12;
+        tipLabel.fontSize = 14;  // 增大字体
         tipLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        tipNode.color = cc.color(150, 140, 130);
+        tipNode.color = cc.color(160, 150, 140);
         tipNode.parent = dialog;
         
         // ===== 按钮区域 =====
-        var btnY = -dialogHeight/2 + 45;
+        var btnY = -dialogHeight/2 + 50;
         
         // 取消按钮
         var cancelBtn = this._createDialogButton(
             "取消",
             cc.color(80, 75, 95),
-            -75, btnY,
-            120, 44,
+            -90, btnY,
+            130, 48,  // 增加尺寸
             function() {
                 dialog.destroy();
             }
@@ -1923,12 +1936,17 @@ cc.Class({
         var createBtn = this._createDialogButton(
             "创建房间",
             cc.color(255, 152, 0),  // 橙色
-            75, btnY,
-            140, 44,
+            90, btnY,
+            150, 48,  // 增加尺寸
             function() {
-                // 获取输入内容
-                var roomName = nameInputData.value || roomConfig.room_name || "我的房间";
-                var password = pwdInputData.value || "";
+                // 获取输入内容 - 从 EditBox 获取
+                var nameInput = dialog.getChildByName("NameInput");
+                var pwdInput = dialog.getChildByName("PwdInput");
+                var nameEditBox = nameInput ? nameInput.getComponent(cc.EditBox) : null;
+                var pwdEditBox = pwdInput ? pwdInput.getComponent(cc.EditBox) : null;
+                
+                var roomName = (nameEditBox && nameEditBox.string) || roomConfig.room_name || "我的房间";
+                var password = (pwdEditBox && pwdEditBox.string) || "";
                 
                 // 保存房间信息
                 var myglobal = window.myglobal;
@@ -1953,6 +1971,70 @@ cc.Class({
             }
         );
         createBtn.parent = dialog;
+    },
+    
+    // 创建使用 EditBox 的输入框（用于弹窗内）
+    _createEditBoxInput: function(placeholder, x, y, width, height, nodeName, dataRef) {
+        var inputNode = new cc.Node(nodeName);
+        inputNode.setContentSize(cc.size(width, height));
+        inputNode.setPosition(x, y);
+        inputNode.anchorX = 0;
+        inputNode.anchorY = 0.5;
+        
+        // 背景
+        var bg = inputNode.addComponent(cc.Graphics);
+        bg.fillColor = cc.color(50, 45, 65, 255);
+        bg.roundRect(0, -height/2, width, height, 8);
+        bg.fill();
+        bg.strokeColor = cc.color(120, 100, 70, 220);
+        bg.lineWidth = 2;
+        bg.roundRect(0, -height/2, width, height, 8);
+        bg.stroke();
+        
+        // 使用 EditBox 组件
+        var editBox = inputNode.addComponent(cc.EditBox);
+        editBox.string = "";
+        editBox.placeholder = placeholder;
+        editBox.fontSize = 18;
+        editBox.fontColor = cc.color(255, 255, 255);
+        editBox.placeholderFontSize = 16;
+        editBox.placeholderFontColor = cc.color(130, 120, 110);
+        editBox.maxLength = 30;
+        editBox.inputMode = cc.EditBox.InputMode.ANY;
+        editBox.returnType = cc.EditBox.KeyboardReturnType.DONE;
+        editBox.lineHeight = height - 10;
+        
+        // 输入事件
+        editBox.node.on('text-changed', function(editbox) {
+            if (dataRef) {
+                dataRef.value = editbox.string;
+            }
+        });
+        
+        // 焦点事件 - 更新背景样式
+        editBox.node.on('editing-did-begin', function() {
+            bg.clear();
+            bg.fillColor = cc.color(60, 55, 80, 255);
+            bg.roundRect(0, -height/2, width, height, 8);
+            bg.fill();
+            bg.strokeColor = cc.color(255, 180, 80, 255);
+            bg.lineWidth = 2;
+            bg.roundRect(0, -height/2, width, height, 8);
+            bg.stroke();
+        });
+        
+        editBox.node.on('editing-did-end', function() {
+            bg.clear();
+            bg.fillColor = cc.color(50, 45, 65, 255);
+            bg.roundRect(0, -height/2, width, height, 8);
+            bg.fill();
+            bg.strokeColor = cc.color(120, 100, 70, 220);
+            bg.lineWidth = 2;
+            bg.roundRect(0, -height/2, width, height, 8);
+            bg.stroke();
+        });
+        
+        return inputNode;
     },
     
     // 创建弹窗内可点击的输入框
@@ -2519,7 +2601,7 @@ cc.Class({
         
         var containerWidth = container.width;
         var colWidth = containerWidth / 5;
-        var itemHeight = 40;
+        var itemHeight = 50;  // 增加列表项高度
         var startY = container.height/2 - 15;
         
         // 空列表处理
@@ -2529,9 +2611,9 @@ cc.Class({
             emptyNode.anchorY = 0.5;
             var el = emptyNode.addComponent(cc.Label);
             el.string = "暂无可加入的房间";
-            el.fontSize = 16;
+            el.fontSize = 18;  // 增大字体
             el.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            emptyNode.color = cc.color(150, 140, 130);
+            emptyNode.color = cc.color(160, 150, 140);
             emptyNode.parent = container;
             return;
         }
@@ -2548,69 +2630,69 @@ cc.Class({
             
             var ig = itemBg.addComponent(cc.Graphics);
             ig.fillColor = i % 2 === 0 ? cc.color(35, 30, 50, 220) : cc.color(30, 28, 45, 220);
-            ig.roundRect(-(containerWidth - 5)/2, -(itemHeight - 4)/2, containerWidth - 5, itemHeight - 4, 3);
+            ig.roundRect(-(containerWidth - 5)/2, -(itemHeight - 4)/2, containerWidth - 5, itemHeight - 4, 4);
             ig.fill();
             itemBg.parent = container;
             
             var playerCount = room.player_count || room.playerCount || 0;
             var roomCode = room.room_code || room.roomCode || "未知";
             
-            // 房间号
+            // 房间号 - 增大字体
             var codeText = new cc.Node("CodeText");
             codeText.x = -containerWidth/2 + colWidth * 0.5;
             codeText.anchorX = 0.5;
             codeText.anchorY = 0.5;
             var cl = codeText.addComponent(cc.Label);
             cl.string = roomCode;
-            cl.fontSize = 14;
+            cl.fontSize = 16;  // 增大字体
             cl.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
             codeText.color = cc.color(220, 200, 160);
             codeText.parent = itemBg;
             
-            // 人数
+            // 人数 - 增大字体
             var countText = new cc.Node("CountText");
             countText.x = -containerWidth/2 + colWidth * 1.5;
             countText.anchorX = 0.5;
             countText.anchorY = 0.5;
             var ctl = countText.addComponent(cc.Label);
             ctl.string = playerCount + "/3";
-            ctl.fontSize = 14;
+            ctl.fontSize = 16;  // 增大字体
             ctl.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
             countText.color = playerCount >= 3 ? cc.color(220, 100, 80) : cc.color(100, 200, 100);
             countText.parent = itemBg;
             
-            // 底分
+            // 底分 - 增大字体
             var scoreText = new cc.Node("ScoreText");
             scoreText.x = -containerWidth/2 + colWidth * 2.5;
             scoreText.anchorX = 0.5;
             scoreText.anchorY = 0.5;
             var sl = scoreText.addComponent(cc.Label);
             sl.string = "" + (room.base_score || roomConfig.base_score || 1);
-            sl.fontSize = 14;
+            sl.fontSize = 16;  // 增大字体
             sl.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
             scoreText.color = cc.color(220, 180, 80);
             scoreText.parent = itemBg;
             
-            // 状态
+            // 状态 - 增大字体
             var statusText = new cc.Node("StatusText");
             statusText.x = -containerWidth/2 + colWidth * 3.5;
             statusText.anchorX = 0.5;
             statusText.anchorY = 0.5;
             var stl = statusText.addComponent(cc.Label);
             stl.string = playerCount >= 3 ? "已满" : "等待中";
-            stl.fontSize = 14;
+            stl.fontSize = 16;  // 增大字体
             stl.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
             statusText.color = playerCount >= 3 ? cc.color(220, 100, 80) : cc.color(100, 200, 100);
             statusText.parent = itemBg;
             
-            // 加入按钮
+            // 加入按钮 - 增大尺寸
             (function(roomData) {
                 var joinBtn = self._createActionButton(
                     "加入",
                     cc.color(76, 175, 80),
                     -containerWidth/2 + colWidth * 4.5,
                     0,
-                    60, 28,
+                    70, 36,  // 增加尺寸
                     function() {
                         var code = roomData.room_code || roomData.roomCode;
                         var scene = sceneNode.getChildByName("RoomListScene") || sceneNode;
