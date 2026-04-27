@@ -387,19 +387,19 @@ cc.Class({
         // ============================================================
         // 参数设置
         // ============================================================
-        var cardWidth = 240;      // 卡片宽度
-        var cardHeight = 150;     // 卡片高度
+        var cardWidth = 180;      // 卡片宽度（适配400px容器）
+        var cardHeight = 130;     // 卡片高度
         var gapX = 20;            // 卡片水平间距
         var gapY = 20;            // 卡片垂直间距（margin-top效果）
-        var containerGap = 20;    // 左右两个容器的间距
+        var containerGap = 60;    // 左右两个容器的间距
         
         // 容器尺寸
-        var panelWidth = 500;     // 容器宽度固定为500px
+        var panelWidth = 400;     // 容器宽度改为400px
         
-        // 计算容器高度（根据卡片数量）
+        // 计算容器高度（根据卡片数量）- 增加额外空间
         var leftRows = Math.ceil(leftRooms.length / 2) || 1;
         var rightRows = Math.ceil(rightRooms.length / 2) || 1;
-        var panelHeight = Math.max(leftRows, rightRows) * cardHeight + (Math.max(leftRows, rightRows) - 1) * gapY + 50;
+        var panelHeight = Math.max(leftRows, rightRows) * cardHeight + (Math.max(leftRows, rightRows) - 1) * gapY + 100;  // 增加高度
         
         // 画布尺寸
         var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
@@ -413,15 +413,15 @@ cc.Class({
         console.log("屏幕: " + screenWidth + "x" + screenHeight);
         
         // ============================================================
-        // 左容器位置（竞技场）- 在屏幕左边
+        // 左容器位置（竞技场）- 在屏幕左边，往左靠
         // ============================================================
         var leftPanel = new cc.Node("LeftArea");
         leftPanel.setContentSize(panelWidth, panelHeight);
-        leftPanel.anchorX = 0.5;
+        leftPanel.anchorX = 0;    // 左侧锚点，往左靠
         leftPanel.anchorY = 0.5;  // 中心锚点
         
-        // 位置：左容器在屏幕中心偏左
-        leftPanel.x = -panelWidth / 2 - containerGap / 2;
+        // 位置：左容器从屏幕中心开始，往左延伸
+        leftPanel.x = -screenWidth / 2 + 30;  // 距离左边30px
         leftPanel.y = 0;  // 屏幕中心垂直位置
         
         // 添加容器边框（调试用）
@@ -444,11 +444,11 @@ cc.Class({
             
             room.node.active = true;
             room.node.parent = leftPanel;
-            // 卡片X位置：在500px容器中居中
-            // 两卡片总宽度 = 240*2 + 20 = 500，刚好填满
-            room.node.x = -panelWidth / 2 + cardWidth / 2 + col * (cardWidth + gapX);
+            // 卡片X位置：在400px容器中，锚点为0（左对齐）
+            // 两卡片总宽度 = 180*2 + 20 = 380，两边各留10px边距
+            room.node.x = 10 + cardWidth / 2 + col * (cardWidth + gapX);
             // 卡片Y位置：从顶部开始，每行间隔 gapY
-            room.node.y = panelHeight / 2 - cardHeight / 2 - row * (cardHeight + gapY) - 30;
+            room.node.y = panelHeight / 2 - cardHeight / 2 - row * (cardHeight + gapY) - 40;
             
             // 添加卡片边框（调试用）
             this._addDebugBorder(room.node, cc.color(0, 255, 0, 100));  // 绿色边框
@@ -457,15 +457,15 @@ cc.Class({
         }
         
         // ============================================================
-        // 右容器位置（普通场）- 在屏幕右边
+        // 右容器位置（普通场）- 在屏幕右边，往右靠
         // ============================================================
         var rightPanel = new cc.Node("RightArea");
         rightPanel.setContentSize(panelWidth, panelHeight);
-        rightPanel.anchorX = 0.5;
+        rightPanel.anchorX = 1;    // 右侧锚点，往右靠
         rightPanel.anchorY = 0.5;  // 中心锚点
         
-        // 位置：右容器在屏幕中心偏右
-        rightPanel.x = panelWidth / 2 + containerGap / 2;
+        // 位置：右容器从屏幕中心开始，往右延伸
+        rightPanel.x = screenWidth / 2 - 30;  // 距离右边30px
         rightPanel.y = 0;  // 屏幕中心垂直位置
         
         // 添加容器边框（调试用）
@@ -488,10 +488,11 @@ cc.Class({
             
             room.node.active = true;
             room.node.parent = rightPanel;
-            // 卡片X位置：在500px容器中居中
-            room.node.x = -panelWidth / 2 + cardWidth / 2 + col * (cardWidth + gapX);
+            // 卡片X位置：在400px容器中，锚点为1（右对齐）
+            // 两卡片总宽度 = 180*2 + 20 = 380，两边各留10px边距
+            room.node.x = panelWidth - 10 - cardWidth / 2 - (1 - col) * (cardWidth + gapX);
             // 卡片Y位置：从顶部开始，每行间隔 gapY
-            room.node.y = panelHeight / 2 - cardHeight / 2 - row * (cardHeight + gapY) - 30;
+            room.node.y = panelHeight / 2 - cardHeight / 2 - row * (cardHeight + gapY) - 40;
             
             // 添加卡片边框（调试用）
             this._addDebugBorder(room.node, cc.color(255, 255, 0, 100));  // 黄色边框
