@@ -360,14 +360,26 @@ cc.Class({
     _getDefaultRoomConfigs: function() {
         return [
             {
+                id: 1,
+                room_name: "初级房",
+                room_type: 2,
+                base_score: 1,
+                multiplier: 1,
+                min_gold: 0,
+                max_gold: 50000,
+                description: "底分1,适合新手玩家",
+                status: 1,
+                sort_order: 0,
+                room_category: 1
+            },
+            {
                 id: 2,
                 room_name: "中级房",
-                room_type: 2,
+                room_type: 3,
                 base_score: 2,
                 multiplier: 1,
                 min_gold: 50000,
                 max_gold: 200000,
-                entry_gold: 50000,
                 description: "底分2,适合有一定经验的玩家",
                 status: 1,
                 sort_order: 1,
@@ -376,43 +388,27 @@ cc.Class({
             {
                 id: 3,
                 room_name: "高级房",
-                room_type: 3,
+                room_type: 4,
                 base_score: 5,
                 multiplier: 2,
                 min_gold: 200000,
                 max_gold: 1000000,
-                entry_gold: 200000,
                 description: "底分5,倍数2,高手对决",
                 status: 1,
                 sort_order: 2,
-                room_category: 1
+                room_category: 2
             },
             {
                 id: 4,
                 room_name: "大师房",
-                room_type: 4,
+                room_type: 5,
                 base_score: 10,
                 multiplier: 3,
                 min_gold: 1000000,
                 max_gold: 5000000,
-                entry_gold: 1000000,
                 description: "底分10,倍数3,大师专属",
                 status: 1,
                 sort_order: 3,
-                room_category: 2
-            },
-            {
-                id: 5,
-                room_name: "至尊房",
-                room_type: 5,
-                base_score: 20,
-                multiplier: 5,
-                min_gold: 5000000,
-                max_gold: 0,
-                entry_gold: 5000000,
-                description: "底分20,倍数5,至尊玩家专属",
-                status: 1,
-                sort_order: 4,
                 room_category: 2
             }
         ];
@@ -486,16 +482,19 @@ cc.Class({
                 roomType: roomType,
                 roomCategory: roomCategory,
                 sortOrder: sortOrder,
-                roomName: config.room_name || config.roomName || "未知房间"
+                roomName: config.room_name || config.roomName || "未知房间",
+                // 使用 min_gold 字段作为入场最低豆子要求
+                minGold: config.min_gold || config.minGold || 0,
+                maxGold: config.max_gold || config.maxGold || 0
             };
             
             // 按 room_category 分组
             if (roomCategory === 2) {
                 leftRooms.push(roomData);
-                console.log("  竞技场: " + roomData.roomName + " (sort_order=" + sortOrder + ")");
+                console.log("  竞技场: " + roomData.roomName + " (sort_order=" + sortOrder + ", min_gold=" + roomData.minGold + ")");
             } else {
                 rightRooms.push(roomData);
-                console.log("  普通场: " + roomData.roomName + " (sort_order=" + sortOrder + ")");
+                console.log("  普通场: " + roomData.roomName + " (sort_order=" + sortOrder + ", min_gold=" + roomData.minGold + ")");
             }
         }
         
@@ -503,7 +502,7 @@ cc.Class({
         console.log("--- 步骤2：各自排序（按 sort_order 升序）---");
         
         leftRooms.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
-        rightRooms.sort(function(a, b) { return b.sortOrder - a.sortOrder; });
+        rightRooms.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
         
         console.log("竞技场排序后: " + leftRooms.map(function(r) { return r.roomName; }).join(", "));
         console.log("普通场排序后: " + rightRooms.map(function(r) { return r.roomName; }).join(", "));
@@ -523,7 +522,7 @@ cc.Class({
             // 加载背景图
             self._loadRoomButtonBg(room.node, room.roomType);
             
-            // 更新最低豆子显示
+            // 更新最低豆子显示 - 使用 min_gold 字段
             self._updateMinGoldLabel(room.node, room.config);
             
             // 配置按钮组件
@@ -574,6 +573,7 @@ cc.Class({
         var padding = 20;       // 边距
         
         // 容器尺寸（固定2列）
+        // 通过容器宽度限制：宽度刚好容纳2个卡片+间距+边距
         var panelWidth = cardWidth * 2 + gapX + padding * 2;
         var panelHeight = 400;
         var containerGap = 80;  // 两个容器之间的间距
@@ -632,7 +632,8 @@ cc.Class({
     
     // ============================================================
     // 创建 Grid 面板容器
-    // 核心配置：type=GRID, constraint=FIXED_COLUMN, constraintNum=2
+    // 注意：此版本 Cocos Creator 没有 constraint 属性
+    // 通过设置容器宽度来限制每行2个卡片
     // ============================================================
     _createGridPanel: function(name, x, y, width, height, cardW, cardH, gapX, gapY, padding) {
         // 创建容器节点
@@ -652,17 +653,14 @@ cc.Class({
         // 添加 Layout 组件
         var layout = panel.addComponent(cc.Layout);
         
-        // ===== 核心：Grid 布局，固定2列 =====
+        // ===== Grid 布局配置 =====
+        // 注意：此版本没有 constraint 属性，通过容器宽度限制每行数量
         layout.type = cc.Layout.Type.GRID;
         layout.resizeMode = cc.Layout.ResizeMode.NONE;
         layout.cellSize = cc.size(cardW, cardH);
         layout.startAxis = cc.Layout.AxisDirection.HORIZONTAL;
         layout.horizontalDirection = cc.Layout.HorizontalDirection.LEFT_TO_RIGHT;
         layout.verticalDirection = cc.Layout.VerticalDirection.TOP_TO_BOTTOM;
-        
-        // ===== 核心：固定列数 =====
-        layout.constraint = cc.Layout.Constraint.FIXED_COLUMN;
-        layout.constraintNum = 2;  // 每行固定2个
         
         // 间距和边距
         layout.spacingX = gapX;
@@ -672,7 +670,8 @@ cc.Class({
         layout.paddingLeft = padding;
         layout.paddingRight = padding;
         
-        console.log("📦 创建Grid容器: " + name + ", 固定2列, constraintNum=2");
+        // 容器宽度刚好容纳2个卡片，从而实现每行固定2个
+        console.log("📦 创建Grid容器: " + name + ", 宽度=" + width + " (刚好容纳2个卡片)");
         
         return panel;
     },
@@ -761,6 +760,7 @@ cc.Class({
     },
     
     // 更新最低豆子显示Label
+    // 使用 min_gold 字段，不是 entry_gold
     _updateMinGoldLabel: function(btnNode, config) {
         var goldLabelNode = btnNode.getChildByName("min_gold_label");
         
@@ -781,7 +781,8 @@ cc.Class({
         }
         
         var label = goldLabelNode.getComponent(cc.Label);
-        var minGold = config.entry_gold || config.min_gold || 0;
+        // 使用 min_gold 字段作为最低豆子要求
+        var minGold = config.min_gold || config.minGold || 0;
         var goldText = this._formatGold(minGold);
         label.string = "最低 " + goldText + " 豆";
         goldLabelNode.color = cc.color(255, 215, 0);
@@ -789,6 +790,9 @@ cc.Class({
     },
     
     // 房间按钮点击处理
+    // 字段使用说明：
+    // - min_gold: 进入房间的最低豆子要求（玩家豆子 >= min_gold 才能进入）
+    // - max_gold: 进入房间的最高豆子限制（玩家豆子 <= max_gold 才能进入，0表示无上限）
     _onRoomButtonClick: function(roomConfig) {
         console.log("进入房间处理: " + roomConfig.room_name, roomConfig);
         
@@ -796,13 +800,21 @@ cc.Class({
         var myglobal = window.myglobal;
         var playerGold = myglobal && myglobal.playerData ? myglobal.playerData.gobal_count : 0;
         
-        if (playerGold < roomConfig.entry_gold) {
-            this._showMessage("豆子不足，需要 " + this._formatGold(roomConfig.entry_gold) + " 豆子才能进入" + roomConfig.room_name);
+        // 获取 min_gold 和 max_gold 字段
+        var minGold = roomConfig.min_gold || roomConfig.minGold || 0;
+        var maxGold = roomConfig.max_gold || roomConfig.maxGold || 0;
+        
+        console.log("玩家豆子: " + playerGold + ", 最低要求: " + minGold + ", 最高限制: " + maxGold);
+        
+        // 检查玩家豆子是否达到最低要求
+        if (playerGold < minGold) {
+            this._showMessage("豆子不足，需要 " + this._formatGold(minGold) + " 豆子才能进入" + roomConfig.room_name);
             return;
         }
         
-        if (roomConfig.max_gold > 0 && playerGold > roomConfig.max_gold) {
-            this._showMessage("您的豆子超过上限，请前往更高级的房间");
+        // 检查玩家豆子是否超过上限（maxGold > 0 表示有上限）
+        if (maxGold > 0 && playerGold > maxGold) {
+            this._showMessage("您的豆子超过上限(" + this._formatGold(maxGold) + ")，请前往更高级的房间");
             return;
         }
         
