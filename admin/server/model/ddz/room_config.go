@@ -10,6 +10,7 @@ type DDZRoomConfig struct {
         global.GVA_MODEL
         RoomName       string  `json:"roomName" gorm:"type:varchar(64);not null;comment:房间名称"`
         RoomType       int     `json:"roomType" gorm:"type:tinyint;uniqueIndex;not null;default:1;comment:房间类型:1-新手场,2-普通场,3-高级场,4-富豪场,5-至尊场"`
+        RoomCategory   int     `json:"roomCategory" gorm:"type:tinyint;not null;default:1;index;comment:房间分类:1-普通场,2-竞技场"`
         BaseScore      int     `json:"baseScore" gorm:"type:int;not null;default:1;comment:底分"`
         Multiplier     int     `json:"multiplier" gorm:"type:int;not null;default:1;comment:初始倍数"`
         MinGold        int64   `json:"minGold" gorm:"type:bigint;not null;default:0;comment:最低入场金币"`

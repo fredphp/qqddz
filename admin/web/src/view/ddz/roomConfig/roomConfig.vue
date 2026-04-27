@@ -34,6 +34,12 @@
             <el-option label="至尊场" :value="6" />
           </el-select>
         </el-form-item>
+        <el-form-item label="房间分类">
+          <el-select v-model="searchInfo.roomCategory" placeholder="房间分类" clearable>
+            <el-option label="普通场" :value="1" />
+            <el-option label="竞技场" :value="2" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="searchInfo.status" placeholder="状态" clearable>
             <el-option label="开启" :value="1" />
@@ -58,6 +64,13 @@
           <template #default="scope">
             <el-tag :type="getRoomTypeTag(scope.row.roomType)">
               {{ getRoomTypeName(scope.row.roomType) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" label="房间分类" min-width="80">
+          <template #default="scope">
+            <el-tag :type="scope.row.roomCategory === 2 ? 'danger' : 'success'">
+              {{ scope.row.roomCategory === 2 ? '竞技场' : '普通场' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -147,7 +160,17 @@
               </el-select>
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item label="房间分类" prop="roomCategory">
+              <el-select v-model="formData.roomCategory" placeholder="请选择房间分类" style="width: 100%">
+                <el-option label="普通场" :value="1" />
+                <el-option label="竞技场" :value="2" />
+              </el-select>
+            </el-form-item>
+          </el-col>
         </el-row>
+        
+        <el-row :gutter="20">
         
         <!-- 背景图配置 -->
         <el-form-item label="背景图编号" prop="bgImageNum">
@@ -260,6 +283,7 @@ defineOptions({
 const searchInfo = ref({
   roomName: '',
   roomType: null,
+  roomCategory: null,
   status: null
 })
 
@@ -275,6 +299,7 @@ const formData = ref({
   ID: 0,
   roomName: '',
   roomType: 2,
+  roomCategory: 1,  // 默认普通场
   baseScore: 1,
   multiplier: 1,
   minGold: 1000,
@@ -344,6 +369,7 @@ const onReset = () => {
   searchInfo.value = {
     roomName: '',
     roomType: null,
+    roomCategory: null,
     status: null
   }
   getTableData()
@@ -384,6 +410,7 @@ const openDialog = (type, row = null) => {
       ID: 0,
       roomName: '',
       roomType: 2,
+      roomCategory: 1,  // 默认普通场
       baseScore: 1,
       multiplier: 1,
       minGold: 1000,

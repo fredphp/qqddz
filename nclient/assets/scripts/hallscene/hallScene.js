@@ -518,17 +518,17 @@ cc.Class({
             }
         }
         
-        // 收集需要显示的按钮节点
-        var activeButtons = [];
+        // 收集需要显示的按钮节点和配置
+        var buttonDataList = [];
         
         // 根据 API 返回的配置显示对应的房间按钮
         for (var i = 0; i < roomConfigs.length; i++) {
             var config = roomConfigs[i];
-            var roomType = config.room_type;
+            var roomType = config.room_type || config.roomType;
             var buttonName = buttonNameMap[roomType];
             
             if (!buttonName) {
-                console.warn("未知的房间类型:", roomType, "支持的类型: 1, 2, 3, 4, 5");
+                console.warn("未知的房间类型:", roomType, "支持的类型: 2, 3, 4, 5, 6");
                 continue;
             }
             
@@ -537,10 +537,14 @@ cc.Class({
                 // 显示该按钮
                 btnNode.active = true;
                 
+                // 获取房间分类 (1=普通场, 2=竞技场)
+                var roomCategory = config.room_category || config.roomCategory || 1;
+                
                 console.log("初始化房间按钮: " + buttonName + 
-                           ", 房间名: " + config.room_name + 
+                           ", 房间名: " + (config.room_name || config.roomName) + 
                            ", 房间类型: " + roomType +
-                           ", 入场豆子: " + config.entry_gold +
+                           ", 房间分类: " + (roomCategory === 2 ? "竞技场" : "普通场") +
+                           ", 入场豆子: " + (config.entry_gold || config.minGold || config.entryGold) +
                            ", 背景图: btn_happy_" + roomType + ".png");
                 
                 // 保存配置到节点
@@ -569,25 +573,44 @@ cc.Class({
                     
                     // 添加新的事件监听
                     node.on(cc.Node.EventType.TOUCH_END, function(event) {
-                        console.log("===== 点击了房间: " + config.room_name + " =====");
+                        console.log("===== 点击了房间: " + (config.room_name || config.roomName) + " =====");
                         event.stopPropagation();
                         self._onRoomButtonClick(config);
                     });
                     
                     // 也监听鼠标点击事件（Web端）
                     node.on(cc.Node.EventType.MOUSE_UP, function(event) {
-                        console.log("===== 鼠标点击了房间: " + config.room_name + " =====");
+                        console.log("===== 鼠标点击了房间: " + (config.room_name || config.roomName) + " =====");
                         event.stopPropagation();
                         self._onRoomButtonClick(config);
                     });
                 })(config, btnNode);
                 
-                // 添加到活跃按钮列表
-                activeButtons.push(btnNode);
+                // 添加到列表（包含按钮节点和分类信息）
+                buttonDataList.push({
+                    node: btnNode,
+                    category: roomCategory,
+                    sortOrder: config.sort_order || config.sortOrder || config.sort || 0
+                });
             } else {
                 console.warn("未找到房间按钮节点: " + buttonName);
             }
         }
+        
+        // 按房间分类排序：竞技场(2)在前，普通场(1)在后
+        buttonDataList.sort(function(a, b) {
+            // 先按分类排序（竞技场优先）
+            if (a.category !== b.category) {
+                return b.category - a.category; // 降序，2(竞技场)在前
+            }
+            // 同分类按 sortOrder 排序
+            return a.sortOrder - b.sortOrder;
+        });
+        
+        // 提取排序后的按钮节点
+        var activeButtons = buttonDataList.map(function(item) {
+            return item.node;
+        });
         
         // 根据按钮数量自动居中排列
         this._centerRoomButtons(activeButtons);

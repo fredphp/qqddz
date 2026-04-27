@@ -83,6 +83,8 @@ type DDZRoomConfigResponse struct {
         RoomName       string  `json:"roomName"`
         RoomType       int     `json:"roomType"`
         RoomTypeName   string  `json:"roomTypeName"`
+        RoomCategory   int     `json:"roomCategory"`    // 房间分类:1-普通场,2-竞技场
+        RoomCategoryName string `json:"roomCategoryName"` // 房间分类名称
         BaseScore      int     `json:"baseScore"`
         Multiplier     int     `json:"multiplier"`
         MinGold        int64   `json:"minGold"`

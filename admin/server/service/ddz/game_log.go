@@ -202,6 +202,9 @@ func (s *DDZGameLogService) GetRoomConfigList(req ddzReq.DDZGameRoomConfigSearch
         if req.RoomType != nil {
                 query = query.Where("room_type = ?", *req.RoomType)
         }
+        if req.RoomCategory != nil {
+                query = query.Where("room_category = ?", *req.RoomCategory)
+        }
         if req.Status != nil {
                 query = query.Where("status = ?", *req.Status)
         }
@@ -212,7 +215,7 @@ func (s *DDZGameLogService) GetRoomConfigList(req ddzReq.DDZGameRoomConfigSearch
         }
 
         var configs []ddz.DDZRoomConfig
-        err = query.Limit(limit).Offset(offset).Order("sort_order asc, id asc").Find(&configs).Error
+        err = query.Limit(limit).Offset(offset).Order("room_category desc, sort_order asc, id asc").Find(&configs).Error
         if err != nil {
                 return nil, 0, err
         }
@@ -244,6 +247,7 @@ func (s *DDZGameLogService) CreateRoomConfig(req ddzReq.DDZGameRoomConfigCreate)
         config := ddz.DDZRoomConfig{
                 RoomName:       req.RoomName,
                 RoomType:       req.RoomType,
+                RoomCategory:   req.RoomCategory,
                 BaseScore:      req.BaseScore,
                 Multiplier:     req.Multiplier,
                 MinGold:        req.MinGold,
@@ -281,6 +285,11 @@ func (s *DDZGameLogService) UpdateRoomConfig(req ddzReq.DDZGameRoomConfigUpdate)
         // 房间类型 - 始终更新
         if req.RoomType > 0 {
                 updates["room_type"] = req.RoomType
+        }
+
+        // 房间分类
+        if req.RoomCategory > 0 {
+                updates["room_category"] = req.RoomCategory
         }
 
         // 底分
@@ -468,6 +477,12 @@ func (s *DDZGameLogService) toRoomConfigResponse(c ddz.DDZRoomConfig) ddzRes.DDZ
                 roomTypeName = "大师场"
         }
 
+        // 房间分类名称
+        roomCategoryName := "普通场"
+        if c.RoomCategory == 2 {
+                roomCategoryName = "竞技场"
+        }
+
         statusText := "关闭"
         if c.Status == 1 {
                 statusText = "开启"
@@ -480,27 +495,29 @@ func (s *DDZGameLogService) toRoomConfigResponse(c ddz.DDZRoomConfig) ddzRes.DDZ
         }
 
         return ddzRes.DDZRoomConfigResponse{
-                ID:             c.ID,
-                RoomName:       c.RoomName,
-                RoomType:       c.RoomType,
-                RoomTypeName:   roomTypeName,
-                BaseScore:      c.BaseScore,
-                Multiplier:     c.Multiplier,
-                MinGold:        c.MinGold,
-                MaxGold:        c.MaxGold,
-                EntryGold:      c.MinGold, // 入场金币 = 最低入场金币
-                BgImageNum:     bgImageNum,
-                BotEnabled:     c.BotEnabled,
-                BotCount:       c.BotCount,
-                FeeRate:        c.FeeRate,
-                MaxRound:       c.MaxRound,
-                TimeoutSeconds: c.TimeoutSeconds,
-                Status:         c.Status,
-                StatusText:     statusText,
-                SortOrder:      c.SortOrder,
-                Description:    c.Description,
-                CreatedAt:      c.CreatedAt.Format("2006-01-02 15:04:05"),
-                UpdatedAt:      c.UpdatedAt.Format("2006-01-02 15:04:05"),
+                ID:               c.ID,
+                RoomName:         c.RoomName,
+                RoomType:         c.RoomType,
+                RoomTypeName:     roomTypeName,
+                RoomCategory:     c.RoomCategory,
+                RoomCategoryName: roomCategoryName,
+                BaseScore:        c.BaseScore,
+                Multiplier:       c.Multiplier,
+                MinGold:          c.MinGold,
+                MaxGold:          c.MaxGold,
+                EntryGold:        c.MinGold, // 入场金币 = 最低入场金币
+                BgImageNum:       bgImageNum,
+                BotEnabled:       c.BotEnabled,
+                BotCount:         c.BotCount,
+                FeeRate:          c.FeeRate,
+                MaxRound:         c.MaxRound,
+                TimeoutSeconds:   c.TimeoutSeconds,
+                Status:           c.Status,
+                StatusText:       statusText,
+                SortOrder:        c.SortOrder,
+                Description:      c.Description,
+                CreatedAt:        c.CreatedAt.Format("2006-01-02 15:04:05"),
+                UpdatedAt:        c.UpdatedAt.Format("2006-01-02 15:04:05"),
         }
 }
 

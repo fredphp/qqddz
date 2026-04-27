@@ -474,11 +474,13 @@ DROP TABLE IF EXISTS `ddz_room_config`;
 CREATE TABLE `ddz_room_config`  (
   `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '配置ID',
   `room_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '房间名称',
-  `room_type` tinyint NOT NULL DEFAULT 1 COMMENT '房间类型:1-普通场,2-高级场,3-富豪场,4-至尊场',
+  `room_type` tinyint NOT NULL DEFAULT 1 COMMENT '房间类型:1-新手场,2-初级场,3-中级场,4-高级场,5-大师场,6-至尊场',
+  `room_category` tinyint NOT NULL DEFAULT 1 COMMENT '房间分类:1-普通场,2-竞技场',
   `base_score` bigint NOT NULL DEFAULT 1 COMMENT '底分',
   `multiplier` bigint NOT NULL DEFAULT 1 COMMENT '初始倍数',
   `min_gold` bigint NOT NULL DEFAULT 0 COMMENT '最低入场金币',
   `max_gold` bigint NOT NULL DEFAULT 0 COMMENT '最高入场金币(0表示无限制)',
+  `bg_image_num` tinyint NOT NULL DEFAULT 2 COMMENT '背景图编号(对应btn_happy_{编号}.png)',
   `bot_enabled` tinyint NOT NULL DEFAULT 1 COMMENT '是否允许机器人:0-否,1-是',
   `bot_count` bigint NOT NULL DEFAULT 0 COMMENT '房间机器人数量',
   `fee_rate` decimal(5, 4) NOT NULL DEFAULT 0.0000 COMMENT '手续费率',
@@ -492,6 +494,7 @@ CREATE TABLE `ddz_room_config`  (
   `deleted_at` datetime NULL DEFAULT NULL COMMENT '删除时间',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `idx_ddz_room_config_room_type`(`room_type` ASC) USING BTREE,
+  INDEX `idx_ddz_room_config_room_category`(`room_category` ASC) USING BTREE,
   INDEX `idx_ddz_room_config_status`(`status` ASC) USING BTREE,
   INDEX `idx_ddz_room_config_deleted_at`(`deleted_at` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
