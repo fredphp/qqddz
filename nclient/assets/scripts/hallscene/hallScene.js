@@ -466,15 +466,13 @@ cc.Class({
         }
         
         // ============================================================
-        // 【一、数据处理】按 room_category 分组并排序
+        // 【一、数据处理】所有房间合并到一个数组，按 sort_order 排序
         // ============================================================
         
-        var leftRooms = [];   // 竞技场 (room_category === 2)
-        var rightRooms = [];  // 普通场 (room_category === 1)
+        var allRooms = [];
         
         for (var i = 0; i < rooms.length; i++) {
             var config = rooms[i];
-            var roomCategory = config.room_category || config.roomCategory || 1;
             var sortOrder = config.sort_order || config.sortOrder || config.sort || 0;
             var roomType = config.room_type || config.roomType;
             var buttonName = buttonNameMap[roomType];
@@ -488,29 +486,21 @@ cc.Class({
                 node: btnNode,
                 config: config,
                 roomType: roomType,
-                roomCategory: roomCategory,
                 sortOrder: sortOrder,
                 roomName: config.room_name || config.roomName || "未知房间",
                 minGold: config.min_gold || config.minGold || 0,
                 maxGold: config.max_gold || config.maxGold || 0
             };
             
-            if (roomCategory === 2) {
-                leftRooms.push(roomData);
-            } else {
-                rightRooms.push(roomData);
-            }
+            allRooms.push(roomData);
         }
         
         // 按 sort_order 升序排序
-        leftRooms.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
-        rightRooms.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
+        allRooms.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
         
-        console.log("竞技场: " + leftRooms.length + " 个");
-        console.log("普通场: " + rightRooms.length + " 个");
+        console.log("房间总数: " + allRooms.length + " 个");
         
         // 配置所有卡片
-        var allRooms = leftRooms.concat(rightRooms);
         for (var i = 0; i < allRooms.length; i++) {
             var room = allRooms[i];
             room.node.active = true;
@@ -535,70 +525,69 @@ cc.Class({
             })(room.config, room.node, room.roomName);
         }
         
-        // 渲染布局
-        this._renderRoomLayout(leftRooms, rightRooms);
+        // 渲染布局 - 所有卡片排成一行
+        this._renderRoomLayout(allRooms);
     },
     
     // ============================================================
-    // 布局渲染 - 每行显示1个卡片，垂直排列
+    // 布局渲染 - 所有卡片水平排成一行
     // ============================================================
-    _renderRoomLayout: function(leftRooms, rightRooms) {
+    _renderRoomLayout: function(allRooms) {
         var self = this;
         
         // 清理旧容器
+        var oldPanel = this.node.getChildByName("CardContainer");
         var oldLeftPanel = this.node.getChildByName("LeftArea");
         var oldRightPanel = this.node.getChildByName("RightArea");
+        if (oldPanel) oldPanel.destroy();
         if (oldLeftPanel) oldLeftPanel.destroy();
         if (oldRightPanel) oldRightPanel.destroy();
         
-        // ============================================================
-        // 参数设置 - 每行一个卡片，垂直排列
-        // ============================================================
-        var cardWidth = 200;       // 卡片宽度
-        var cardHeight = 140;      // 卡片高度
-        var gapY = 30;             // 卡片垂直间距
+        if (allRooms.length === 0) {
+            console.log("没有房间卡片");
+            return;
+        }
         
-        // 容器尺寸
-        var panelWidth = 240;      // 容器宽度（单个卡片宽度 + 边距）
-        var topPadding = 20;       // 顶部内边距
-        var bottomPadding = 20;    // 底部内边距
-        
-        // 计算容器高度 - 每行一个卡片
-        var leftRows = leftRooms.length || 1;
-        var rightRows = rightRooms.length || 1;
-        var maxRows = Math.max(leftRows, rightRows);
-        var contentHeight = maxRows * cardHeight + (maxRows - 1) * gapY;
-        var panelHeight = topPadding + contentHeight + bottomPadding;
+        // ============================================================
+        // 参数设置
+        // ============================================================
+        var cardWidth = 180;       // 卡片宽度
+        var cardHeight = 120;      // 卡片高度
+        var gapX = 30;             // 卡片水平间距
         
         // 画布尺寸
         var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
         var screenHeight = canvas ? canvas.designResolution.height : 720;
         var screenWidth = canvas ? canvas.designResolution.width : 1280;
         
+        // 计算容器宽度
+        var totalCardsWidth = allRooms.length * cardWidth + (allRooms.length - 1) * gapX;
+        var panelWidth = Math.max(totalCardsWidth + 40, screenWidth - 100);
+        var panelHeight = cardHeight + 40;
+        
         // 容器位置
-        var edgeMargin = 100;      // 距离屏幕边缘的距离
-        var verticalOffset = 50;   // 垂直偏移（向下移动）
+        var verticalOffset = 50;   // 垂直偏移
         
         console.log("===== 布局调试 =====");
-        console.log("竞技场: " + leftRooms.length + "个, 普通场: " + rightRooms.length + "个");
-        console.log("卡片: " + cardWidth + "x" + cardHeight + ", 垂直间距: " + gapY);
-        console.log("容器: " + panelWidth + "x" + panelHeight + ", 行数: " + maxRows);
+        console.log("房间总数: " + allRooms.length + "个");
+        console.log("卡片: " + cardWidth + "x" + cardHeight + ", 水平间距: " + gapX);
+        console.log("总宽度: " + totalCardsWidth);
         
         // ============================================================
-        // 左容器（竞技场）- 每行一个卡片，垂直排列
+        // 创建容器 - 所有卡片水平排成一行
         // ============================================================
-        var leftPanel = new cc.Node("LeftArea");
-        leftPanel.setContentSize(panelWidth, panelHeight);
-        leftPanel.anchorX = 0.5;
-        leftPanel.anchorY = 0.5;
-        leftPanel.x = -screenWidth / 2 + edgeMargin + panelWidth / 2;
-        leftPanel.y = verticalOffset;
-        leftPanel.parent = this.node;
+        var cardPanel = new cc.Node("CardContainer");
+        cardPanel.setContentSize(panelWidth, panelHeight);
+        cardPanel.anchorX = 0.5;
+        cardPanel.anchorY = 0.5;
+        cardPanel.x = 0;  // 居中
+        cardPanel.y = verticalOffset;
+        cardPanel.parent = this.node;
         
-        // 放置竞技场卡片 - 从顶部开始，每行一个
-        var startY = panelHeight / 2 - topPadding - cardHeight / 2;
-        for (var i = 0; i < leftRooms.length; i++) {
-            var room = leftRooms[i];
+        // 放置所有卡片 - 水平排列
+        var startX = -totalCardsWidth / 2 + cardWidth / 2;
+        for (var i = 0; i < allRooms.length; i++) {
+            var room = allRooms[i];
             
             var widget = room.node.getComponent(cc.Widget);
             if (widget) widget.enabled = false;
@@ -607,50 +596,17 @@ cc.Class({
             room.node.scale = 1;
             
             room.node.active = true;
-            room.node.parent = leftPanel;
+            room.node.parent = cardPanel;
             
-            // 卡片水平居中
-            room.node.x = 0;
-            // 卡片垂直位置：从顶部向下排列，每行一个
-            room.node.y = startY - i * (cardHeight + gapY);
+            // 卡片水平位置：从左到右排列
+            room.node.x = startX + i * (cardWidth + gapX);
+            // 卡片垂直位置：居中
+            room.node.y = 0;
             
-            console.log("竞技场卡片[" + i + "] " + room.roomName + " 位置: (" + room.node.x + ", " + room.node.y + ")");
+            console.log("卡片[" + i + "] " + room.roomName + " 位置: (" + room.node.x + ", " + room.node.y + ")");
         }
         
-        // ============================================================
-        // 右容器（普通场）- 每行一个卡片，垂直排列
-        // ============================================================
-        var rightPanel = new cc.Node("RightArea");
-        rightPanel.setContentSize(panelWidth, panelHeight);
-        rightPanel.anchorX = 0.5;
-        rightPanel.anchorY = 0.5;
-        rightPanel.x = screenWidth / 2 - edgeMargin - panelWidth / 2;
-        rightPanel.y = verticalOffset;
-        rightPanel.parent = this.node;
-        
-        // 放置普通场卡片 - 从顶部开始，每行一个
-        startY = panelHeight / 2 - topPadding - cardHeight / 2;
-        for (var i = 0; i < rightRooms.length; i++) {
-            var room = rightRooms[i];
-            
-            var widget = room.node.getComponent(cc.Widget);
-            if (widget) widget.enabled = false;
-            room.node.anchorX = 0.5;
-            room.node.anchorY = 0.5;
-            room.node.scale = 1;
-            
-            room.node.active = true;
-            room.node.parent = rightPanel;
-            
-            // 卡片水平居中
-            room.node.x = 0;
-            // 卡片垂直位置：从顶部向下排列，每行一个
-            room.node.y = startY - i * (cardHeight + gapY);
-            
-            console.log("普通场卡片[" + i + "] " + room.roomName + " 位置: (" + room.node.x + ", " + room.node.y + ")");
-        }
-        
-        console.log("✅ 布局完成 - 每行一个卡片，垂直排列");
+        console.log("✅ 布局完成 - 所有卡片水平排成一行");
     },
     
     // 添加区域标题
