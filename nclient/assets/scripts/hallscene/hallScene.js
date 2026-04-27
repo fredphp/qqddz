@@ -390,12 +390,12 @@ cc.Class({
         var cardWidth = 200;       // 卡片宽度
         var cardHeight = 140;      // 卡片高度
         var gapX = 20;             // 卡片水平间距
-        var gapY = 50;             // 卡片垂直间距（增大防止重叠）
+        var gapY = 100;            // 卡片垂直间距（增大到100px）
         
         // 容器尺寸
         var panelWidth = 440;      // 容器宽度
-        var titleHeight = 40;      // 标题区域高度（减小）
-        var topPadding = 20;       // 顶部内边距（减小）
+        var titleHeight = 0;       // 标题区域高度（去掉标题）
+        var topPadding = 10;       // 顶部内边距
         var bottomPadding = 20;    // 底部内边距
         
         // 计算容器高度
@@ -430,11 +430,8 @@ cc.Class({
         leftPanel.y = -verticalOffset;
         leftPanel.parent = this.node;
         
-        // 添加区域标题
-        this._addAreaTitle(leftPanel, "竞技场", 0, panelHeight / 2 - 20);
-        
-        // 放置竞技场卡片 - 从标题下方开始
-        var startY = panelHeight / 2 - titleHeight - topPadding - cardHeight / 2;
+        // 放置竞技场卡片 - 从顶部开始
+        var startY = panelHeight / 2 - topPadding - cardHeight / 2;
         for (var i = 0; i < leftRooms.length; i++) {
             var room = leftRooms[i];
             var col = i % 2;
@@ -468,11 +465,8 @@ cc.Class({
         rightPanel.y = -verticalOffset;
         rightPanel.parent = this.node;
         
-        // 添加区域标题
-        this._addAreaTitle(rightPanel, "普通场", 0, panelHeight / 2 - 20);
-        
-        // 放置普通场卡片 - 从标题下方开始
-        startY = panelHeight / 2 - titleHeight - topPadding - cardHeight / 2;
+        // 放置普通场卡片 - 从顶部开始
+        startY = panelHeight / 2 - topPadding - cardHeight / 2;
         for (var i = 0; i < rightRooms.length; i++) {
             var room = rightRooms[i];
             var col = i % 2;
