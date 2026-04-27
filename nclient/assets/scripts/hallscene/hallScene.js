@@ -412,7 +412,7 @@ cc.Class({
         
         // 容器位置 - 减小与顶部的距离
         var edgeMargin = 60;       // 距离屏幕边缘的距离
-        var verticalOffset = 20;   // 垂直偏移（减小与顶部距离）
+        var verticalOffset = 5;    // 垂直偏移（减小与顶部距离）
         
         console.log("===== 布局调试 =====");
         console.log("竞技场: " + leftRooms.length + "个, 普通场: " + rightRooms.length + "个");
