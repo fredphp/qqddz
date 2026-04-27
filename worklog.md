@@ -238,3 +238,29 @@ Stage Summary:
 - 两个独立容器，各自固定2列Grid布局
 - 数据先分组再排序，分开渲染
 - 提交：768c8b3
+
+---
+Task ID: 7
+Agent: Main Agent
+Task: 修复Layout属性不存在错误和字段使用问题
+
+Work Log:
+1. 错误分析：
+   - `cc.Layout.Constraint.FIXED_COLUMN` 在此版本 Cocos Creator 中不存在
+   - 字段使用错误：应该用 `min_gold` 而不是 `entry_gold`
+
+2. 布局修复：
+   - 移除不存在的 `constraint` 和 `constraintNum` 属性
+   - 改为通过容器宽度限制控制每行固定2个卡片
+   - 容器宽度 = 2*卡片宽度 + 间距 + padding
+
+3. 字段修复：
+   - `_updateMinGoldLabel`: 使用 `min_gold` 字段显示最低豆子要求
+   - `_onRoomButtonClick`: 使用 `min_gold` 和 `max_gold` 进行验证
+   - 玩家豆子 >= min_gold 才能进入
+   - 玩家豆子 <= max_gold（max_gold > 0 时）才能进入
+
+Stage Summary:
+- 修复了 TypeError: Cannot read properties of undefined (reading 'FIXED_COLUMN')
+- 修复了字段使用错误（min_gold vs entry_gold）
+- 提交：78c6407
