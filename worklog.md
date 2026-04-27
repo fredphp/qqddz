@@ -168,3 +168,29 @@ API返回 bg_image_num，客户端根据此编号加载对应资源：
 - bg_image_num = 2 -> 加载 UI/btn_happy_2
 - bg_image_num = 3 -> 加载 UI/btn_happy_3
 - 以此类推...
+
+---
+Task ID: 5
+Agent: Main Agent
+Task: 重构游戏大厅房间布局，使用GridLayout固定2列网格
+
+Work Log:
+- 分析用户需求：不使用百分比宽度，固定2列网格布局
+- 修改 `_layoutRoomsByCategory` 方法：
+  - 移除 60%/40% 百分比宽度划分
+  - 改用固定宽度计算：panelWidth = itemWidth * 2 + gapX + padding * 2
+  - 两个容器并排放置，整体居中
+  - 添加区域标题（竞技场/普通场）
+- 修改 `_createGridContainer` 方法：
+  - 添加调试背景（半透明深色）
+  - 核心配置：type=GRID, constraint=FIXED_COLUMN, constraintNum=2
+  - 顶部padding增加30像素用于标题空间
+- 新增 `_addPanelTitle` 方法：显示区域标题
+
+Stage Summary:
+- 房间布局不再使用百分比宽度
+- 容器宽度固定计算：2*卡片宽度 + 间距 + padding
+- GridLayout 配置：constraint=FIXED_COLUMN, constraintNum=2
+- 每个区域独立GridLayout，自动2列换行排列
+- 左侧竞技场(room_category=2)，右侧普通场(room_category=1)
+- 房间按 sort_order 排序后依次添加到对应容器

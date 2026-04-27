@@ -610,7 +610,7 @@ cc.Class({
     },
     
     // 按分类布局房间按钮 - 使用 GridLayout 自动排版
-    // 核心规则：固定2列网格，自动换行
+    // 核心规则：固定2列网格，自动换行，不使用百分比宽度
     _layoutRoomsByCategory: function(arenaRooms, normalRooms) {
         var self = this;
         
@@ -621,17 +621,22 @@ cc.Class({
         
         console.log("📐 画布尺寸: " + screenWidth + " x " + screenHeight);
         
-        // ========== 布局参数 ==========
+        // ========== 布局参数（核心：不使用百分比宽度）==========
         var itemWidth = 220;    // 卡片宽度
         var itemHeight = 160;   // 卡片高度
         var gapX = 20;          // 水平间距
         var gapY = 20;          // 垂直间距
         var padding = 20;       // 四周留白
         
-        // 区域划分
-        var leftPanelWidth = screenWidth * 0.6;   // 左侧60%
-        var rightPanelWidth = screenWidth * 0.4;  // 右侧40%
-        var panelHeight = 400;
+        // 容器宽度 = 2个卡片 + 1个间距 + 左右padding
+        // 固定2列，宽度固定，不使用百分比
+        var panelWidth = itemWidth * 2 + gapX + padding * 2;
+        var panelHeight = 450;  // 容器高度
+        
+        // 容器之间的间距
+        var containerGap = 60;
+        
+        console.log("📦 容器宽度计算: 2*" + itemWidth + " + " + gapX + " + 2*" + padding + " = " + panelWidth);
         
         // ========== 清理旧的容器节点 ==========
         var oldLeftPanel = this.node.getChildByName("LeftPanel");
@@ -639,12 +644,18 @@ cc.Class({
         if (oldLeftPanel) oldLeftPanel.destroy();
         if (oldRightPanel) oldRightPanel.destroy();
         
+        // 计算容器位置（居中排列）
+        // 两个容器并排放置，整体居中
+        var totalWidth = panelWidth * 2 + containerGap;
+        var startX = -totalWidth / 2 + panelWidth / 2;  // 左容器起始位置
+        
         // ========== 创建左侧容器（竞技场）==========
+        var leftPanelX = startX;  // 左容器位置
         var leftPanel = this._createGridContainer(
             "LeftPanel",
-            -screenWidth / 2 + leftPanelWidth / 2,
-            0,
-            leftPanelWidth,
+            leftPanelX,
+            -50,  // 稍微下移
+            panelWidth,
             panelHeight,
             itemWidth,
             itemHeight,
@@ -654,6 +665,9 @@ cc.Class({
         );
         leftPanel.parent = this.node;
         
+        // 添加竞技场标题
+        this._addPanelTitle(leftPanel, "竞技场", -panelWidth/2 + padding, panelHeight/2 - 10);
+        
         // 将竞技场房间添加到左侧容器
         for (var i = 0; i < arenaRooms.length; i++) {
             var room = arenaRooms[i];
@@ -661,17 +675,18 @@ cc.Class({
             self._prepareItemForGrid(room.node, itemWidth, itemHeight);
             // 添加到容器，GridLayout 自动排列
             room.node.parent = leftPanel;
-            console.log("🎮 竞技场房间[" + i + "]: " + room.roomName);
+            console.log("🎮 竞技场房间[" + i + "]: " + room.roomName + ", sortOrder=" + room.sortOrder);
         }
         
-        console.log("✅ 竞技场容器: " + arenaRooms.length + " 个房间, 2列网格自动排列");
+        console.log("✅ 竞技场容器: " + arenaRooms.length + " 个房间, 固定2列网格自动排列");
         
         // ========== 创建右侧容器（普通场）==========
+        var rightPanelX = startX + panelWidth + containerGap;  // 右容器位置
         var rightPanel = this._createGridContainer(
             "RightPanel",
-            screenWidth / 2 - rightPanelWidth / 2,
-            0,
-            rightPanelWidth,
+            rightPanelX,
+            -50,  // 稍微下移
+            panelWidth,
             panelHeight,
             itemWidth,
             itemHeight,
@@ -681,6 +696,9 @@ cc.Class({
         );
         rightPanel.parent = this.node;
         
+        // 添加普通场标题
+        this._addPanelTitle(rightPanel, "普通场", -panelWidth/2 + padding, panelHeight/2 - 10);
+        
         // 将普通场房间添加到右侧容器
         for (var i = 0; i < normalRooms.length; i++) {
             var room = normalRooms[i];
@@ -688,11 +706,36 @@ cc.Class({
             self._prepareItemForGrid(room.node, itemWidth, itemHeight);
             // 添加到容器，GridLayout 自动排列
             room.node.parent = rightPanel;
-            console.log("🎰 普通场房间[" + i + "]: " + room.roomName);
+            console.log("🎰 普通场房间[" + i + "]: " + room.roomName + ", sortOrder=" + room.sortOrder);
         }
         
-        console.log("✅ 普通场容器: " + normalRooms.length + " 个房间, 2列网格自动排列");
-        console.log("✅ 房间布局完成: 竞技场左侧, 普通场右侧, 固定2列网格");
+        console.log("✅ 普通场容器: " + normalRooms.length + " 个房间, 固定2列网格自动排列");
+        console.log("✅ 房间布局完成: 竞技场左侧, 普通场右侧, 固定2列网格, 宽度=" + panelWidth);
+    },
+    
+    // 添加区域标题
+    _addPanelTitle: function(panel, titleText, x, y) {
+        var titleNode = new cc.Node("PanelTitle");
+        titleNode.setPosition(x, y);
+        titleNode.anchorX = 0;
+        titleNode.anchorY = 0.5;
+        
+        var label = titleNode.addComponent(cc.Label);
+        label.string = titleText;
+        label.fontSize = 28;
+        label.lineHeight = 36;
+        label.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+        
+        // 金黄色
+        titleNode.color = cc.color(255, 200, 50);
+        
+        // 添加描边
+        var outline = titleNode.addComponent(cc.LabelOutline);
+        outline.color = cc.color(0, 0, 0, 200);
+        outline.width = 2;
+        
+        titleNode.parent = panel;
+        console.log("✅ 添加区域标题: " + titleText);
     },
     
     // 创建网格容器（核心方法）
@@ -705,31 +748,41 @@ cc.Class({
         container.anchorX = 0.5;
         container.anchorY = 0.5;
         
+        // 添加半透明背景（调试用，可看到容器范围）
+        var bgSprite = container.addComponent(cc.Sprite);
+        bgSprite.type = cc.Sprite.Type.SLICED;
+        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        // 半透明深色背景
+        container.color = cc.color(30, 30, 50, 120);
+        
         // 添加 Layout 组件 - GRID 类型
         var layout = container.addComponent(cc.Layout);
         
         // ===== 核心配置：固定2列网格布局 =====
+        // 这是用户明确要求的配置方式
         layout.type = cc.Layout.Type.GRID;                    // 网格布局
         layout.resizeMode = cc.Layout.ResizeMode.NONE;        // 不自动调整大小
         layout.cellSize = cc.size(itemW, itemH);              // 单元格尺寸
         layout.startAxis = cc.Layout.AxisDirection.HORIZONTAL; // 从左往右排列
         layout.horizontalDirection = cc.Layout.HorizontalDirection.LEFT_TO_RIGHT;
         layout.verticalDirection = cc.Layout.VerticalDirection.TOP_TO_BOTTOM; // 从上往下
-        layout.constraint = cc.Layout.Constraint.FIXED_COLUMN; // 固定列数！
-        layout.constraintNum = 2;                              // 固定2列！
+        layout.constraint = cc.Layout.Constraint.FIXED_COLUMN; // 固定列数（核心！）
+        layout.constraintNum = 2;                              // 固定2列（核心！）
         
         // 间距和边距
-        layout.spacingX = gapX;
-        layout.spacingY = gapY;
-        layout.paddingTop = padding;
+        layout.spacingX = gapX;    // 水平间距
+        layout.spacingY = gapY;    // 垂直间距
+        layout.paddingTop = padding + 30;  // 顶部多留空间给标题
         layout.paddingBottom = padding;
         layout.paddingLeft = padding;
         layout.paddingRight = padding;
         
         console.log("📦 创建网格容器: " + name + 
+                   ", 位置(" + x + "," + y + ")" +
                    ", 尺寸: " + width + "x" + height + 
                    ", 单元格: " + itemW + "x" + itemH +
-                   ", 固定2列, 间距: " + gapX + "x" + gapY);
+                   ", 固定2列, 间距: " + gapX + "x" + gapY +
+                   ", constraint=FIXED_COLUMN, constraintNum=2");
         
         return container;
     },
