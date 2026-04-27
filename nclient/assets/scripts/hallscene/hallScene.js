@@ -728,7 +728,7 @@ cc.Class({
         goldLabelNode.setPosition(0, -btnNode.height/2 + 30);
     },
     
-    // 房间按钮点击处理 - 显示加载进度条，然后进入房间列表
+    // 房间按钮点击处理 - 直接进入房间列表全屏场景（无加载进度条）
     _onRoomButtonClick: function(roomConfig) {
         var self = this;
         var myglobal = window.myglobal;
@@ -754,8 +754,8 @@ cc.Class({
             myglobal.currentRoomName = roomConfig.room_name;
         }
         
-        // 显示加载进度条，完成后进入房间列表场景
-        this._showLoadingProgress(roomConfig, playerGold);
+        // 直接进入房间列表全屏场景（无加载进度条，无卡顿）
+        this._showRoomListScene(roomConfig, playerGold);
     },
     
     // ============================================================
