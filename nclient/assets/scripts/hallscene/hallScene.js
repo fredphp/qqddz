@@ -405,21 +405,25 @@ cc.Class({
         // ============================================================
         var isSmallScreen = visibleWidth < 800;  // 小屏幕判断
         
-        var spacingX = 10;       // 水平间距
-        var spacingY = 10;       // 垂直间距
+        var spacingX = 10;       // 水平间距（卡片之间）
+        var spacingY = 10;       // 垂直间距（行之间）
         var topMargin = 15;      // 顶部边距
         
-        // 根据屏幕大小调整容器宽度
+        // 根据屏幕大小调整容器宽度和卡片缩放
         var panelWidth;
         var cardScale = 1;
         
+        // 假设单个卡片宽度约为 280px
+        var cardWidth = 280;
+        
         if (isSmallScreen) {
             // 小屏幕：单列布局，卡片居中
-            panelWidth = visibleWidth * 0.9;  // 容器宽度为屏幕90%
-            cardScale = 0.8;  // 卡片稍微缩小
+            panelWidth = cardWidth * cardScale + 20;  // 容器宽度刚好容纳一个卡片
+            cardScale = 0.85;  // 卡片稍微缩小
         } else {
             // 大屏幕：双列布局
-            panelWidth = 600;  // 固定宽度
+            // 容器宽度 = 两个卡片宽度 + 间距
+            panelWidth = cardWidth * 2 + spacingX;  // = 570，刚好容纳两个卡片
         }
         
         // 计算容器高度
