@@ -957,7 +957,7 @@ cc.Class({
     },
     
     // ============================================================
-    // 显示房间列表场景（全屏界面）
+    // 显示房间列表场景（全屏游戏界面）
     // ============================================================
     _showRoomListScene: function(roomConfig, playerGold) {
         var self = this;
@@ -984,229 +984,469 @@ cc.Class({
         sceneNode.zIndex = 2500;
         sceneNode.parent = this.node;
         
-        // 添加背景
-        var bgNode = new cc.Node("Bg");
+        // ===== 游戏风格渐变背景 =====
+        this._drawGameBackground(sceneNode, screenWidth, screenHeight);
+        
+        // ===== 添加扑克牌装饰 =====
+        this._addPokerDecorations(sceneNode, screenWidth, screenHeight);
+        
+        // ===== 顶部标题栏 =====
+        this._drawTitleBar(sceneNode, screenWidth, screenHeight, roomConfig);
+        
+        // ===== 操作按钮区域 =====
+        this._drawActionButtons(sceneNode, screenWidth, screenHeight, roomConfig, playerGold);
+        
+        // ===== 房间列表区域 =====
+        this._drawRoomListArea(sceneNode, screenWidth, screenHeight, roomConfig, playerGold);
+        
+        // ===== 底部信息栏 =====
+        this._drawBottomBar(sceneNode, screenWidth, screenHeight, playerGold, roomConfig);
+    },
+    
+    // 绘制游戏风格渐变背景
+    _drawGameBackground: function(parentNode, screenWidth, screenHeight) {
+        // 主背景 - 深色渐变
+        var bgNode = new cc.Node("GameBg");
         bgNode.setContentSize(cc.size(screenWidth, screenHeight));
         var bgGraphics = bgNode.addComponent(cc.Graphics);
-        bgGraphics.fillColor = cc.color(25, 25, 45, 255);
-        bgGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight);
-        bgGraphics.fill();
-        bgNode.parent = sceneNode;
         
-        // 添加装饰性边框
-        this._addRoomListDecorations(sceneNode, screenWidth, screenHeight);
+        // 模拟渐变 - 从深蓝到深紫
+        var gradientSteps = 20;
+        var stepHeight = screenHeight / gradientSteps;
         
-        // ===== 顶部区域 =====
-        // 标题背景
+        for (var i = 0; i < gradientSteps; i++) {
+            var ratio = i / gradientSteps;
+            var r = Math.floor(15 + ratio * 10);
+            var g = Math.floor(20 + ratio * 15);
+            var b = Math.floor(40 + ratio * 30);
+            
+            bgGraphics.fillColor = cc.color(r, g, b, 255);
+            bgGraphics.rect(-screenWidth/2, -screenHeight/2 + i * stepHeight, screenWidth, stepHeight + 1);
+            bgGraphics.fill();
+        }
+        
+        // 添加装饰性纹理图案
+        bgGraphics.strokeColor = cc.color(255, 255, 255, 8);
+        bgGraphics.lineWidth = 1;
+        for (var x = -screenWidth/2; x < screenWidth/2; x += 50) {
+            bgGraphics.moveTo(x, -screenHeight/2);
+            bgGraphics.lineTo(x, screenHeight/2);
+        }
+        for (var y = -screenHeight/2; y < screenHeight/2; y += 50) {
+            bgGraphics.moveTo(-screenWidth/2, y);
+            bgGraphics.lineTo(screenWidth/2, y);
+        }
+        bgGraphics.stroke();
+        
+        bgNode.parent = parentNode;
+        
+        // 添加发光边框
+        var borderNode = new cc.Node("GlowBorder");
+        var borderGraphics = borderNode.addComponent(cc.Graphics);
+        borderGraphics.strokeColor = cc.color(255, 215, 0, 60);
+        borderGraphics.lineWidth = 4;
+        borderGraphics.roundRect(-screenWidth/2 + 10, -screenHeight/2 + 10, screenWidth - 20, screenHeight - 20, 15);
+        borderGraphics.stroke();
+        borderNode.parent = parentNode;
+    },
+    
+    // 添加扑克牌装饰
+    _addPokerDecorations: function(parentNode, screenWidth, screenHeight) {
+        // 左侧扑克牌装饰
+        this._drawPokerCard(parentNode, -screenWidth/2 + 80, 0, "A", "♠", cc.color(50, 50, 70), 0.8, -15);
+        this._drawPokerCard(parentNode, -screenWidth/2 + 120, 50, "K", "♥", cc.color(180, 50, 50), 0.6, 10);
+        
+        // 右侧扑克牌装饰
+        this._drawPokerCard(parentNode, screenWidth/2 - 80, 0, "Q", "♦", cc.color(180, 50, 50), 0.7, 15);
+        this._drawPokerCard(parentNode, screenWidth/2 - 120, -40, "J", "♣", cc.color(50, 50, 70), 0.5, -10);
+        
+        // 角落装饰花纹
+        this._drawCornerFloral(parentNode, -screenWidth/2 + 50, screenHeight/2 - 50, 0);
+        this._drawCornerFloral(parentNode, screenWidth/2 - 50, screenHeight/2 - 50, 90);
+        this._drawCornerFloral(parentNode, screenWidth/2 - 50, -screenHeight/2 + 50, 180);
+        this._drawCornerFloral(parentNode, -screenWidth/2 + 50, -screenHeight/2 + 50, 270);
+    },
+    
+    // 绘制扑克牌
+    _drawPokerCard: function(parentNode, x, y, rank, suit, suitColor, scale, rotation) {
+        var cardNode = new cc.Node("PokerCard");
+        cardNode.setPosition(x, y);
+        cardNode.rotation = rotation;
+        cardNode.scale = scale || 0.5;
+        cardNode.opacity = 120;
+        
+        var graphics = cardNode.addComponent(cc.Graphics);
+        
+        // 卡牌背景
+        graphics.fillColor = cc.color(240, 235, 220, 200);
+        graphics.roundRect(-30, -45, 60, 90, 8);
+        graphics.fill();
+        
+        // 卡牌边框
+        graphics.strokeColor = cc.color(180, 170, 150, 150);
+        graphics.lineWidth = 2;
+        graphics.roundRect(-30, -45, 60, 90, 8);
+        graphics.stroke();
+        
+        // 内部装饰线
+        graphics.strokeColor = cc.color(200, 190, 170, 100);
+        graphics.lineWidth = 1;
+        graphics.roundRect(-25, -40, 50, 80, 5);
+        graphics.stroke();
+        
+        cardNode.parent = parentNode;
+        
+        // 花色
+        var suitNode = new cc.Node("Suit");
+        suitNode.y = 10;
+        var suitLabel = suitNode.addComponent(cc.Label);
+        suitLabel.string = suit;
+        suitLabel.fontSize = 32;
+        suitNode.color = suitColor;
+        suitNode.parent = cardNode;
+        
+        // 点数
+        var rankNode = new cc.Node("Rank");
+        rankNode.y = -15;
+        var rankLabel = rankNode.addComponent(cc.Label);
+        rankLabel.string = rank;
+        rankLabel.fontSize = 20;
+        rankLabel.fontWeight = "bold";
+        rankNode.color = suitColor;
+        rankNode.parent = cardNode;
+    },
+    
+    // 绘制角落花纹
+    _drawCornerFloral: function(parentNode, x, y, rotation) {
+        var floralNode = new cc.Node("Floral");
+        floralNode.setPosition(x, y);
+        floralNode.rotation = rotation;
+        
+        var graphics = floralNode.addComponent(cc.Graphics);
+        graphics.strokeColor = cc.color(255, 215, 0, 80);
+        graphics.lineWidth = 2;
+        
+        // 装饰曲线
+        graphics.moveTo(0, 0);
+        graphics.bezierCurveTo(20, 10, 30, 20, 40, 40);
+        graphics.moveTo(0, 0);
+        graphics.bezierCurveTo(10, 20, 20, 30, 40, 40);
+        graphics.stroke();
+        
+        // 装饰点
+        graphics.fillColor = cc.color(255, 215, 0, 100);
+        graphics.circle(40, 40, 3);
+        graphics.fill();
+        
+        floralNode.parent = parentNode;
+    },
+    
+    // 绘制标题栏
+    _drawTitleBar: function(parentNode, screenWidth, screenHeight, roomConfig) {
+        var titleBarY = screenHeight/2 - 60;
+        
+        // 标题背景装饰条
         var titleBgNode = new cc.Node("TitleBg");
-        titleBgNode.setContentSize(cc.size(screenWidth - 40, 80));
-        titleBgNode.y = screenHeight/2 - 50;
-        var titleBgGraphics = titleBgNode.addComponent(cc.Graphics);
-        titleBgGraphics.fillColor = cc.color(35, 35, 55, 255);
-        titleBgGraphics.roundRect(-(screenWidth - 40)/2, -40, screenWidth - 40, 80, 10);
-        titleBgGraphics.fill();
-        titleBgGraphics.strokeColor = cc.color(80, 80, 120);
-        titleBgGraphics.lineWidth = 2;
-        titleBgGraphics.roundRect(-(screenWidth - 40)/2, -40, screenWidth - 40, 80, 10);
-        titleBgGraphics.stroke();
-        titleBgNode.parent = sceneNode;
+        titleBgNode.setPosition(0, titleBarY);
+        var titleGraphics = titleBgNode.addComponent(cc.Graphics);
         
-        // 标题文字
-        var titleNode = new cc.Node("Title");
-        titleNode.y = screenHeight/2 - 50;
+        // 渐变效果背景
+        titleGraphics.fillColor = cc.color(30, 30, 50, 230);
+        titleGraphics.roundRect(-screenWidth/2 + 20, -35, screenWidth - 40, 70, 10);
+        titleGraphics.fill();
+        
+        // 金色装饰边框
+        titleGraphics.strokeColor = cc.color(255, 200, 50, 200);
+        titleGraphics.lineWidth = 3;
+        titleGraphics.roundRect(-screenWidth/2 + 20, -35, screenWidth - 40, 70, 10);
+        titleGraphics.stroke();
+        
+        // 内部装饰线
+        titleGraphics.strokeColor = cc.color(255, 215, 0, 80);
+        titleGraphics.lineWidth = 1;
+        titleGraphics.roundRect(-screenWidth/2 + 30, -28, screenWidth - 60, 56, 8);
+        titleGraphics.stroke();
+        
+        titleBgNode.parent = parentNode;
+        
+        // 左侧装饰图标
+        var leftIcon = new cc.Node("LeftIcon");
+        leftIcon.setPosition(-screenWidth/2 + 100, titleBarY);
+        var leftGraphics = leftIcon.addComponent(cc.Graphics);
+        leftGraphics.fillColor = cc.color(255, 215, 0, 200);
+        leftGraphics.circle(0, 0, 15);
+        leftGraphics.fill();
+        leftGraphics.fillColor = cc.color(30, 30, 50);
+        leftGraphics.circle(0, 0, 10);
+        leftGraphics.fill();
+        leftIcon.parent = parentNode;
+        
+        // 右侧装饰图标
+        var rightIcon = new cc.Node("RightIcon");
+        rightIcon.setPosition(screenWidth/2 - 100, titleBarY);
+        var rightGraphics = rightIcon.addComponent(cc.Graphics);
+        rightGraphics.fillColor = cc.color(255, 215, 0, 200);
+        rightGraphics.circle(0, 0, 15);
+        rightGraphics.fill();
+        rightGraphics.fillColor = cc.color(30, 30, 50);
+        rightGraphics.circle(0, 0, 10);
+        rightGraphics.fill();
+        rightIcon.parent = parentNode;
+        
+        // 房间名称标题
+        var titleNode = new cc.Node("RoomTitle");
+        titleNode.setPosition(0, titleBarY + 5);
         var titleLabel = titleNode.addComponent(cc.Label);
-        titleLabel.string = "【" + roomConfig.room_name + "】 房间列表";
-        titleLabel.fontSize = 36;
-        titleLabel.lineHeight = 44;
+        titleLabel.string = roomConfig.room_name || "游戏房间";
+        titleLabel.fontSize = 40;
+        titleLabel.lineHeight = 48;
         titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        titleNode.color = cc.color(255, 215, 0);
+        titleNode.color = cc.color(255, 230, 100);
         
         var titleOutline = titleNode.addComponent(cc.LabelOutline);
-        titleOutline.color = cc.color(0, 0, 0);
-        titleOutline.width = 2;
-        titleNode.parent = sceneNode;
+        titleOutline.color = cc.color(100, 60, 0);
+        titleOutline.width = 3;
+        titleNode.parent = parentNode;
         
-        // 底分信息
-        var baseScoreNode = new cc.Node("BaseScore");
-        baseScoreNode.y = screenHeight/2 - 90;
-        var baseScoreLabel = baseScoreNode.addComponent(cc.Label);
-        baseScoreLabel.string = "底分: " + (roomConfig.base_score || 1) + " | 倍数: " + (roomConfig.multiplier || 1) + "x";
-        baseScoreLabel.fontSize = 20;
-        baseScoreLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        baseScoreNode.color = cc.color(180, 180, 200);
-        baseScoreNode.parent = sceneNode;
+        // 副标题 - 房间信息
+        var subTitleNode = new cc.Node("SubTitle");
+        subTitleNode.setPosition(0, titleBarY - 25);
+        var subTitleLabel = subTitleNode.addComponent(cc.Label);
+        subTitleLabel.string = "底分 " + (roomConfig.base_score || 1) + "  |  倍率 " + (roomConfig.multiplier || 1) + "x  |  " + (roomConfig.description || "经典斗地主");
+        subTitleLabel.fontSize = 18;
+        subTitleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        subTitleNode.color = cc.color(200, 180, 120);
+        subTitleNode.parent = parentNode;
+    },
+    
+    // 绘制操作按钮区域
+    _drawActionButtons: function(parentNode, screenWidth, screenHeight, roomConfig, playerGold) {
+        var self = this;
+        var btnBarY = screenHeight/2 - 130;
         
-        // ===== 操作区域（顶部） =====
-        var topBarY = screenHeight/2 - 130;
+        // 左侧 - 搜索区域
+        var searchX = -screenWidth/2 + 200;
         
-        // 搜索房间号输入框
-        var searchContainer = new cc.Node("SearchContainer");
-        searchContainer.y = topBarY;
-        searchContainer.parent = sceneNode;
+        // 搜索框背景
+        var searchBgNode = new cc.Node("SearchBg");
+        searchBgNode.setPosition(searchX, btnBarY);
+        var searchGraphics = searchBgNode.addComponent(cc.Graphics);
+        searchGraphics.fillColor = cc.color(25, 25, 35, 220);
+        searchGraphics.roundRect(-90, -18, 180, 36, 18);
+        searchGraphics.fill();
+        searchGraphics.strokeColor = cc.color(100, 100, 120, 180);
+        searchGraphics.lineWidth = 2;
+        searchGraphics.roundRect(-90, -18, 180, 36, 18);
+        searchGraphics.stroke();
+        searchBgNode.parent = parentNode;
         
-        var searchLabel = new cc.Node("SearchLabel");
-        searchLabel.x = -450;
-        var searchLabelComp = searchLabel.addComponent(cc.Label);
-        searchLabelComp.string = "房间号:";
-        searchLabelComp.fontSize = 22;
-        searchLabel.color = cc.color(200, 200, 220);
-        searchLabel.parent = searchContainer;
+        // 搜索图标
+        var searchIconNode = new cc.Node("SearchIcon");
+        searchIconNode.setPosition(searchX - 65, btnBarY);
+        var iconGraphics = searchIconNode.addComponent(cc.Graphics);
+        iconGraphics.strokeColor = cc.color(200, 200, 200, 200);
+        iconGraphics.lineWidth = 2;
+        iconGraphics.circle(-3, 3, 8);
+        iconGraphics.stroke();
+        iconGraphics.moveTo(3, -3);
+        iconGraphics.lineTo(10, -10);
+        iconGraphics.stroke();
+        searchIconNode.parent = parentNode;
         
-        // 输入框背景
-        var inputBgNode = new cc.Node("InputBg");
-        inputBgNode.setContentSize(cc.size(200, 40));
-        inputBgNode.x = -320;
-        var inputBg = inputBgNode.addComponent(cc.Graphics);
-        inputBg.fillColor = cc.color(45, 45, 65, 255);
-        inputBg.roundRect(-100, -20, 200, 40, 8);
-        inputBg.fill();
-        inputBg.strokeColor = cc.color(80, 80, 120);
-        inputBg.lineWidth = 2;
-        inputBg.roundRect(-100, -20, 200, 40, 8);
-        inputBg.stroke();
-        inputBgNode.parent = searchContainer;
-        
-        // 输入框文字
-        var inputTextNode = new cc.Node("InputText");
+        // 搜索输入提示
+        var inputTextNode = new cc.Node("SearchInput");
+        inputTextNode.setPosition(searchX + 10, btnBarY);
         inputTextNode.name = "RoomCodeInput";
-        inputTextNode.x = -320;
-        var inputText = inputTextNode.addComponent(cc.Label);
-        inputText.string = "输入房间号";
-        inputText.fontSize = 18;
-        inputText.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        inputTextNode.color = cc.color(150, 150, 170);
-        inputTextNode.parent = searchContainer;
+        var inputLabel = inputTextNode.addComponent(cc.Label);
+        inputLabel.string = "输入房间号";
+        inputLabel.fontSize = 16;
+        inputLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        inputTextNode.color = cc.color(150, 150, 160);
+        inputTextNode.parent = parentNode;
         
         // 搜索按钮
-        var searchBtn = this._createStyledButton("搜索", cc.color(70, 130, 180), -180, function() {
+        var searchBtn = this._createGameButton("搜 索", cc.color(70, 130, 180), searchX + 130, btnBarY, function() {
             var roomCode = inputTextNode.getComponent(cc.Label).string;
             if (roomCode && roomCode !== "输入房间号") {
                 console.log("搜索房间:", roomCode);
                 self._joinRoom(roomCode, roomConfig, playerGold);
             } else {
-                self._showTipInScene(sceneNode, "请输入房间号");
+                self._showTipInScene(parentNode, "请输入房间号");
             }
-        }, 80, 40);
-        searchBtn.parent = searchContainer;
+        }, 70, 36);
+        searchBtn.parent = parentNode;
         
-        // 快速加入按钮
-        var quickJoinBtn = this._createStyledButton("快速加入", cc.color(46, 125, 50), 350, function() {
-            console.log("快速加入");
-            sceneNode.destroy();
-            self._quickMatch(roomConfig, playerGold);
-        }, 120, 40);
-        quickJoinBtn.parent = searchContainer;
+        // 右侧 - 主要操作按钮
+        var rightX = screenWidth/2 - 280;
         
         // 创建房间按钮
-        var createRoomBtn = this._createStyledButton("创建房间", cc.color(21, 101, 192), 490, function() {
+        var createBtn = this._createGameButton("创 建 房 间", cc.color(21, 101, 192), rightX, btnBarY, function() {
             console.log("创建房间");
-            sceneNode.destroy();
+            var scene = parentNode.getChildByName("RoomListScene") || parentNode;
+            if (scene.destroy) scene.destroy();
             self._createRoom(roomConfig, playerGold);
-        }, 120, 40);
-        createRoomBtn.parent = searchContainer;
+        }, 120, 40, true);
+        createBtn.parent = parentNode;
         
-        // ===== 房间列表区域 =====
-        var listBgY = 0;
-        var listHeight = screenHeight - 350;
-        var listWidth = screenWidth - 80;
+        // 快速加入按钮
+        var quickBtn = this._createGameButton("快 速 加 入", cc.color(46, 125, 50), rightX + 140, btnBarY, function() {
+            console.log("快速加入");
+            var scene = parentNode.getChildByName("RoomListScene") || parentNode;
+            if (scene.destroy) scene.destroy();
+            self._quickMatch(roomConfig, playerGold);
+        }, 120, 40, true);
+        quickBtn.parent = parentNode;
+    },
+    
+    // 绘制房间列表区域
+    _drawRoomListArea: function(parentNode, screenWidth, screenHeight, roomConfig, playerGold) {
+        var self = this;
+        var listY = -20;
+        var listHeight = screenHeight - 320;
+        var listWidth = screenWidth - 100;
         
-        // 列表背景
-        var listBgNode = new cc.Node("ListBg");
+        // 列表容器背景
+        var listBgNode = new cc.Node("ListContainer");
+        listBgNode.setPosition(0, listY);
         listBgNode.setContentSize(cc.size(listWidth, listHeight));
-        listBgNode.y = listBgY;
-        var listBgGraphics = listBgNode.addComponent(cc.Graphics);
-        listBgGraphics.fillColor = cc.color(30, 30, 50, 200);
-        listBgGraphics.roundRect(-listWidth/2, -listHeight/2, listWidth, listHeight, 10);
-        listBgGraphics.fill();
-        listBgGraphics.strokeColor = cc.color(60, 60, 90);
-        listBgGraphics.lineWidth = 2;
-        listBgGraphics.roundRect(-listWidth/2, -listHeight/2, listWidth, listHeight, 10);
-        listBgGraphics.stroke();
-        listBgNode.parent = sceneNode;
+        var listGraphics = listBgNode.addComponent(cc.Graphics);
         
-        // 列表标题行
-        var headerY = listBgY + listHeight/2 - 25;
+        // 半透明背景
+        listGraphics.fillColor = cc.color(20, 20, 35, 200);
+        listGraphics.roundRect(-listWidth/2, -listHeight/2, listWidth, listHeight, 12);
+        listGraphics.fill();
+        
+        // 金色边框
+        listGraphics.strokeColor = cc.color(255, 200, 50, 150);
+        listGraphics.lineWidth = 2;
+        listGraphics.roundRect(-listWidth/2, -listHeight/2, listWidth, listHeight, 12);
+        listGraphics.stroke();
+        
+        // 内部装饰边框
+        listGraphics.strokeColor = cc.color(255, 215, 0, 50);
+        listGraphics.lineWidth = 1;
+        listGraphics.roundRect(-listWidth/2 + 8, -listHeight/2 + 8, listWidth - 16, listHeight - 16, 8);
+        listGraphics.stroke();
+        
+        listBgNode.parent = parentNode;
+        
+        // 表头背景
+        var headerBgNode = new cc.Node("HeaderBg");
+        headerBgNode.setPosition(0, listY + listHeight/2 - 30);
+        var headerGraphics = headerBgNode.addComponent(cc.Graphics);
+        headerGraphics.fillColor = cc.color(40, 35, 50, 220);
+        headerGraphics.roundRect(-listWidth/2 + 10, -20, listWidth - 20, 40, 8);
+        headerGraphics.fill();
+        headerBgNode.parent = parentNode;
+        
+        // 表头文字
         var headers = [
-            { text: "房间号", x: -400, width: 200 },
-            { text: "人数", x: -150, width: 100 },
-            { text: "底分", x: 0, width: 100 },
-            { text: "状态", x: 150, width: 100 },
-            { text: "操作", x: 350, width: 150 }
+            { text: "房  间  号", x: -listWidth/2 + 120 },
+            { text: "人 数", x: -listWidth/2 + 300 },
+            { text: "底 分", x: -listWidth/2 + 420 },
+            { text: "状 态", x: -listWidth/2 + 540 },
+            { text: "操 作", x: listWidth/2 - 100 }
         ];
         
         for (var i = 0; i < headers.length; i++) {
             var header = headers[i];
             var headerNode = new cc.Node("Header_" + i);
-            headerNode.setPosition(header.x, headerY);
+            headerNode.setPosition(header.x, listY + listHeight/2 - 30);
             var headerLabel = headerNode.addComponent(cc.Label);
             headerLabel.string = header.text;
-            headerLabel.fontSize = 20;
+            headerLabel.fontSize = 18;
             headerLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            headerNode.color = cc.color(255, 215, 0);
-            headerNode.parent = sceneNode;
+            headerNode.color = cc.color(255, 220, 100);
+            
+            var outline = headerNode.addComponent(cc.LabelOutline);
+            outline.color = cc.color(60, 40, 0);
+            outline.width = 1;
+            headerNode.parent = parentNode;
         }
         
-        // 分隔线
-        var dividerY = headerY - 20;
-        var dividerNode = new cc.Node("Divider");
-        dividerNode.setPosition(0, dividerY);
-        var dividerGraphics = dividerNode.addComponent(cc.Graphics);
-        dividerGraphics.strokeColor = cc.color(80, 80, 120);
-        dividerGraphics.lineWidth = 1;
-        dividerGraphics.moveTo(-listWidth/2 + 20, 0);
-        dividerGraphics.lineTo(listWidth/2 - 20, 0);
-        dividerGraphics.stroke();
-        dividerNode.parent = sceneNode;
-        
-        // 房间列表容器
+        // 房间列表滚动容器
         var roomListContainer = new cc.Node("RoomListContainer");
-        roomListContainer.setContentSize(cc.size(listWidth - 40, listHeight - 60));
-        roomListContainer.y = listBgY - 20;
-        roomListContainer.parent = sceneNode;
+        roomListContainer.setContentSize(cc.size(listWidth - 40, listHeight - 80));
+        roomListContainer.y = listY - 15;
+        roomListContainer.parent = parentNode;
         
         // 加载提示
         var loadingLabel = new cc.Node("LoadingLabel");
         loadingLabel.y = 0;
         var loading = loadingLabel.addComponent(cc.Label);
         loading.string = "正在获取房间列表...";
-        loading.fontSize = 22;
+        loading.fontSize = 20;
         loading.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         loadingLabel.color = cc.color(150, 150, 170);
         loadingLabel.parent = roomListContainer;
         
         // 获取并渲染房间列表
-        this._fetchAndRenderRoomListForScene(roomListContainer, loadingLabel, roomConfig, playerGold, sceneNode);
+        this._fetchAndRenderRoomListForScene(roomListContainer, loadingLabel, roomConfig, playerGold, parentNode);
+    },
+    
+    // 绘制底部信息栏
+    _drawBottomBar: function(parentNode, screenWidth, screenHeight, playerGold, roomConfig) {
+        var self = this;
+        var bottomY = -screenHeight/2 + 50;
         
-        // ===== 底部区域 =====
-        var bottomBarY = -screenHeight/2 + 50;
+        // 底部背景
+        var bottomBgNode = new cc.Node("BottomBg");
+        bottomBgNode.setPosition(0, bottomY);
+        var bottomGraphics = bottomBgNode.addComponent(cc.Graphics);
+        bottomGraphics.fillColor = cc.color(25, 25, 40, 220);
+        bottomGraphics.roundRect(-screenWidth/2 + 20, -25, screenWidth - 40, 50, 10);
+        bottomGraphics.fill();
+        bottomGraphics.strokeColor = cc.color(255, 200, 50, 100);
+        bottomGraphics.lineWidth = 1;
+        bottomGraphics.roundRect(-screenWidth/2 + 20, -25, screenWidth - 40, 50, 10);
+        bottomGraphics.stroke();
+        bottomBgNode.parent = parentNode;
         
-        // 返回大厅按钮
-        var backBtn = this._createStyledButton("← 返回大厅", cc.color(120, 120, 140), 0, function() {
+        // 返回按钮
+        var backBtn = this._createGameButton("← 返回大厅", cc.color(80, 80, 100), -screenWidth/2 + 120, bottomY, function() {
             console.log("返回大厅");
-            sceneNode.destroy();
-        }, 150, 50);
-        backBtn.setPosition(0, bottomBarY);
-        backBtn.parent = sceneNode;
+            var scene = parentNode.getChildByName("RoomListScene") || parentNode;
+            if (scene.destroy) scene.destroy();
+        }, 120, 36);
+        backBtn.parent = parentNode;
         
-        // 玩家信息（左下角）
-        var playerInfoNode = new cc.Node("PlayerInfo");
-        playerInfoNode.setPosition(-screenWidth/2 + 120, bottomBarY);
-        var playerInfoLabel = playerInfoNode.addComponent(cc.Label);
-        playerInfoLabel.string = "金币: " + this._formatGold(playerGold);
-        playerInfoLabel.fontSize = 18;
-        playerInfoNode.color = cc.color(255, 215, 0);
-        playerInfoNode.parent = sceneNode;
+        // 玩家金币信息
+        var goldIconNode = new cc.Node("GoldIcon");
+        goldIconNode.setPosition(50, bottomY);
+        var goldGraphics = goldIconNode.addComponent(cc.Graphics);
+        goldGraphics.fillColor = cc.color(255, 200, 50);
+        goldGraphics.circle(0, 0, 12);
+        goldGraphics.fill();
+        goldGraphics.fillColor = cc.color(255, 220, 100);
+        goldGraphics.circle(0, 0, 8);
+        goldGraphics.fill();
+        goldIconNode.parent = parentNode;
         
-        // 刷新按钮（右下角）
-        var refreshBtn = this._createStyledButton("刷新", cc.color(100, 100, 120), screenWidth/2 - 80, bottomBarY, function() {
+        var goldNode = new cc.Node("GoldInfo");
+        goldNode.setPosition(90, bottomY);
+        var goldLabel = goldNode.addComponent(cc.Label);
+        goldLabel.string = this._formatGold(playerGold);
+        goldLabel.fontSize = 22;
+        goldNode.color = cc.color(255, 220, 80);
+        
+        var goldOutline = goldNode.addComponent(cc.LabelOutline);
+        goldOutline.color = cc.color(80, 50, 0);
+        goldOutline.width = 2;
+        goldNode.parent = parentNode;
+        
+        // 刷新按钮
+        var refreshBtn = this._createGameButton("刷 新", cc.color(100, 100, 130), screenWidth/2 - 100, bottomY, function() {
             console.log("刷新房间列表");
-            // 重新加载房间列表
-            var container = sceneNode.getChildByName("RoomListContainer");
+            var container = parentNode.getChildByName("RoomListContainer");
+            if (!container) container = parentNode.parent.getChildByName("RoomListContainer");
+            if (!container) return;
+            
             var loading = container.getChildByName("LoadingLabel");
             if (loading) {
                 loading.active = true;
                 loading.getComponent(cc.Label).string = "正在刷新...";
             }
+            
             // 清空旧的房间项
             var children = container.children.slice();
             for (var i = 0; i < children.length; i++) {
@@ -1214,41 +1454,84 @@ cc.Class({
                     children[i].destroy();
                 }
             }
-            self._fetchAndRenderRoomListForScene(container, loading, roomConfig, playerGold, sceneNode);
-        }, 80, 40);
-        refreshBtn.parent = sceneNode;
+            self._fetchAndRenderRoomListForScene(container, loading, roomConfig, playerGold, parentNode);
+        }, 80, 36);
+        refreshBtn.parent = parentNode;
     },
     
-    // 添加房间列表装饰
-    _addRoomListDecorations: function(parentNode, screenWidth, screenHeight) {
-        // 四角装饰
-        var cornerSize = 60;
-        var corners = [
-            { x: -screenWidth/2 + 30, y: screenHeight/2 - 30, rotation: 0 },
-            { x: screenWidth/2 - 30, y: screenHeight/2 - 30, rotation: 90 },
-            { x: screenWidth/2 - 30, y: -screenHeight/2 + 30, rotation: 180 },
-            { x: -screenWidth/2 + 30, y: -screenHeight/2 + 30, rotation: 270 }
-        ];
+    // 创建游戏风格按钮
+    _createGameButton: function(text, baseColor, x, y, callback, width, height, isHighlight) {
+        width = width || 100;
+        height = height || 40;
         
-        for (var i = 0; i < corners.length; i++) {
-            var corner = corners[i];
-            var cornerNode = new cc.Node("Corner" + i);
-            cornerNode.setPosition(corner.x, corner.y);
-            cornerNode.rotation = corner.rotation;
-            
-            var graphics = cornerNode.addComponent(cc.Graphics);
-            graphics.strokeColor = cc.color(255, 215, 0, 100);
-            graphics.lineWidth = 3;
-            graphics.moveTo(0, 0);
-            graphics.lineTo(cornerSize, 0);
-            graphics.lineTo(cornerSize, 30);
-            graphics.moveTo(0, 0);
-            graphics.lineTo(0, cornerSize);
-            graphics.lineTo(30, cornerSize);
-            graphics.stroke();
-            
-            cornerNode.parent = parentNode;
+        var btn = new cc.Node("GameBtn_" + text);
+        btn.setContentSize(cc.size(width, height));
+        btn.setPosition(x, y);
+        
+        var graphics = btn.addComponent(cc.Graphics);
+        
+        // 按钮背景渐变效果
+        graphics.fillColor = baseColor;
+        graphics.roundRect(-width/2, -height/2, width, height, height/2);
+        graphics.fill();
+        
+        // 高亮效果
+        if (isHighlight) {
+            graphics.fillColor = cc.color(
+                Math.min(255, baseColor.r + 40),
+                Math.min(255, baseColor.g + 40),
+                Math.min(255, baseColor.b + 40),
+                80
+            );
+            graphics.roundRect(-width/2 + 3, 3, width - 6, height/2 - 3, height/4);
+            graphics.fill();
         }
+        
+        // 按钮边框
+        graphics.strokeColor = cc.color(
+            Math.min(255, baseColor.r + 60),
+            Math.min(255, baseColor.g + 60),
+            Math.min(255, baseColor.b + 60),
+            200
+        );
+        graphics.lineWidth = 2;
+        graphics.roundRect(-width/2, -height/2, width, height, height/2);
+        graphics.stroke();
+        
+        // 按钮文字
+        var label = btn.addComponent(cc.Label);
+        label.string = text;
+        label.fontSize = height * 0.4;
+        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        btn.color = cc.color(255, 255, 255);
+        
+        var outline = btn.addComponent(cc.LabelOutline);
+        outline.color = cc.color(0, 0, 0, 150);
+        outline.width = 1;
+        
+        // 触摸效果
+        btn.on(cc.Node.EventType.TOUCH_START, function(event) {
+            event.stopPropagation();
+            btn.scale = 0.95;
+            btn.opacity = 220;
+        });
+        btn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            btn.scale = 1;
+            btn.opacity = 255;
+            if (callback) callback();
+        });
+        btn.on(cc.Node.EventType.TOUCH_CANCEL, function(event) {
+            btn.scale = 1;
+            btn.opacity = 255;
+        });
+        
+        return btn;
+    },
+    
+    // 添加房间列表装饰（保留兼容）
+    _addRoomListDecorations: function(parentNode, screenWidth, screenHeight) {
+        // 已被新的装饰方法替代
     },
     
     // 创建样式化按钮
@@ -1464,7 +1747,7 @@ cc.Class({
         return mockRooms;
     },
     
-    // 渲染房间列表（用于全屏场景）
+    // 渲染房间列表（游戏风格卡片式设计）
     _renderRoomListInScene: function(container, rooms, roomConfig, playerGold, sceneNode) {
         var self = this;
         
@@ -1477,100 +1760,224 @@ cc.Class({
         }
         
         if (!rooms || rooms.length === 0) {
-            // 显示暂无房间提示
-            var emptyNode = new cc.Node("EmptyTip");
-            var emptyLabel = emptyNode.addComponent(cc.Label);
-            emptyLabel.string = "暂无可加入的房间，请创建新房间";
-            emptyLabel.fontSize = 22;
+            // 显示暂无房间提示（游戏风格）
+            var emptyBg = new cc.Node("EmptyBg");
+            var emptyGraphics = emptyBg.addComponent(cc.Graphics);
+            emptyGraphics.fillColor = cc.color(30, 30, 45, 200);
+            emptyGraphics.roundRect(-200, -40, 400, 80, 15);
+            emptyGraphics.fill();
+            emptyGraphics.strokeColor = cc.color(255, 200, 50, 100);
+            emptyGraphics.lineWidth = 2;
+            emptyGraphics.roundRect(-200, -40, 400, 80, 15);
+            emptyGraphics.stroke();
+            emptyBg.parent = container;
+            
+            var emptyIconNode = new cc.Node("EmptyIcon");
+            emptyIconNode.y = 10;
+            var iconLabel = emptyIconNode.addComponent(cc.Label);
+            iconLabel.string = "🎴";
+            iconLabel.fontSize = 28;
+            emptyIconNode.parent = emptyBg;
+            
+            var emptyLabelNode = new cc.Node("EmptyText");
+            emptyLabelNode.y = -15;
+            var emptyLabel = emptyLabelNode.addComponent(cc.Label);
+            emptyLabel.string = "暂无可加入的房间";
+            emptyLabel.fontSize = 20;
             emptyLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            emptyNode.color = cc.color(150, 150, 170);
-            emptyNode.parent = container;
+            emptyLabelNode.color = cc.color(200, 180, 120);
+            emptyLabelNode.parent = emptyBg;
+            
+            var tipLabelNode = new cc.Node("TipText");
+            tipLabelNode.y = -35;
+            var tipLabel = tipLabelNode.addComponent(cc.Label);
+            tipLabel.string = "点击「创建房间」开始游戏";
+            tipLabel.fontSize = 14;
+            tipLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+            tipLabelNode.color = cc.color(150, 150, 170);
+            tipLabelNode.parent = emptyBg;
             return;
         }
         
         var containerHeight = container.height;
-        var itemHeight = 50;
-        var startY = containerHeight/2 - 30;
+        var itemHeight = 55;
+        var startY = containerHeight/2 - 35;
+        var listWidth = container.width - 30;
         
         for (var i = 0; i < rooms.length && i < 8; i++) {
             var room = rooms[i];
             var itemY = startY - i * itemHeight;
             
-            // 房间项背景
-            var itemBg = new cc.Node("RoomItem_" + i);
-            itemBg.setContentSize(cc.size(container.width - 20, itemHeight - 5));
+            // 房间卡片背景
+            var itemBg = new cc.Node("RoomCard_" + i);
+            itemBg.setContentSize(cc.size(listWidth, itemHeight - 8));
             itemBg.setPosition(0, itemY);
             
             var bgGraphics = itemBg.addComponent(cc.Graphics);
-            bgGraphics.fillColor = i % 2 === 0 ? cc.color(40, 40, 60, 200) : cc.color(35, 35, 55, 200);
-            bgGraphics.roundRect(-(container.width - 20)/2, -itemHeight/2 + 2, container.width - 20, itemHeight - 5, 5);
+            
+            // 卡片背景色 - 交替变化
+            var bgColor = i % 2 === 0 ? cc.color(35, 35, 55, 220) : cc.color(30, 30, 50, 220);
+            bgGraphics.fillColor = bgColor;
+            bgGraphics.roundRect(-listWidth/2, -(itemHeight - 8)/2, listWidth, itemHeight - 8, 8);
             bgGraphics.fill();
+            
+            // 卡片边框
+            bgGraphics.strokeColor = cc.color(80, 80, 120, 150);
+            bgGraphics.lineWidth = 1;
+            bgGraphics.roundRect(-listWidth/2, -(itemHeight - 8)/2, listWidth, itemHeight - 8, 8);
+            bgGraphics.stroke();
+            
+            // 左侧装饰条
+            bgGraphics.fillColor = cc.color(255, 200, 50, 180);
+            bgGraphics.roundRect(-listWidth/2, -(itemHeight - 8)/2, 4, itemHeight - 8, 2);
+            bgGraphics.fill();
+            
             itemBg.parent = container;
             
-            // 房间号
+            // 房间号（带图标）
+            var codeIconNode = new cc.Node("CodeIcon");
+            codeIconNode.setPosition(-listWidth/2 + 50, 0);
+            var iconGraphics = codeIconNode.addComponent(cc.Graphics);
+            iconGraphics.fillColor = cc.color(255, 200, 50, 200);
+            iconGraphics.roundRect(-8, -8, 16, 16, 3);
+            iconGraphics.fill();
+            codeIconNode.parent = itemBg;
+            
             var codeLabel = new cc.Node("Code");
-            codeLabel.setPosition(-400, 0);
+            codeLabel.setPosition(-listWidth/2 + 130, 0);
             var code = codeLabel.addComponent(cc.Label);
             code.string = room.room_code_display || room.room_code || room.roomCode || "未知";
-            code.fontSize = 18;
+            code.fontSize = 20;
             code.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            codeLabel.color = cc.color(200, 200, 220);
+            codeLabel.color = cc.color(230, 220, 200);
+            
+            var codeOutline = codeLabel.addComponent(cc.LabelOutline);
+            codeOutline.color = cc.color(0, 0, 0, 100);
+            codeOutline.width = 1;
             codeLabel.parent = itemBg;
             
-            // 人数
-            var countLabel = new cc.Node("Count");
-            countLabel.setPosition(-150, 0);
-            var count = countLabel.addComponent(cc.Label);
-            count.string = (room.player_count || room.playerCount || 0) + "/3";
-            count.fontSize = 18;
-            count.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            
-            // 根据人数显示不同颜色
+            // 人数（带图标）
             var playerCount = room.player_count || room.playerCount || 0;
-            if (playerCount >= 3) {
-                countLabel.color = cc.color(255, 100, 100); // 红色 - 已满
-            } else if (playerCount >= 2) {
-                countLabel.color = cc.color(255, 200, 100); // 橙色 - 即将开始
-            } else {
-                countLabel.color = cc.color(100, 255, 100); // 绿色 - 可加入
-            }
-            countLabel.parent = itemBg;
+            var countNode = new cc.Node("PlayerCount");
+            countNode.setPosition(-listWidth/2 + 300, 0);
             
-            // 底分
+            // 玩家图标
+            for (var p = 0; p < 3; p++) {
+                var playerIcon = new cc.Node("PlayerIcon_" + p);
+                playerIcon.setPosition(p * 18, 0);
+                var pGraphics = playerIcon.addComponent(cc.Graphics);
+                pGraphics.fillColor = p < playerCount ? cc.color(100, 200, 100, 230) : cc.color(60, 60, 80, 150);
+                pGraphics.circle(0, 0, 6);
+                pGraphics.fill();
+                playerIcon.parent = countNode;
+            }
+            countNode.parent = itemBg;
+            
+            // 底分（金币图标）
+            var scoreIconNode = new cc.Node("ScoreIcon");
+            scoreIconNode.setPosition(-listWidth/2 + 405, 0);
+            var scoreGraphics = scoreIconNode.addComponent(cc.Graphics);
+            scoreGraphics.fillColor = cc.color(255, 200, 50);
+            scoreGraphics.circle(0, 0, 8);
+            scoreGraphics.fill();
+            scoreGraphics.fillColor = cc.color(255, 220, 100);
+            scoreGraphics.circle(0, 0, 5);
+            scoreGraphics.fill();
+            scoreIconNode.parent = itemBg;
+            
             var scoreLabel = new cc.Node("Score");
-            scoreLabel.setPosition(0, 0);
+            scoreLabel.setPosition(-listWidth/2 + 440, 0);
             var score = scoreLabel.addComponent(cc.Label);
             score.string = "" + (room.base_score || roomConfig.base_score || 1);
             score.fontSize = 18;
             score.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            scoreLabel.color = cc.color(255, 215, 0);
+            scoreLabel.color = cc.color(255, 220, 100);
             scoreLabel.parent = itemBg;
             
-            // 状态
-            var statusLabel = new cc.Node("Status");
-            statusLabel.setPosition(150, 0);
-            var status = statusLabel.addComponent(cc.Label);
-            status.string = room.status || "等待中";
-            status.fontSize = 18;
-            status.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+            // 状态标签
+            var statusNode = new cc.Node("Status");
+            statusNode.setPosition(-listWidth/2 + 540, 0);
+            var statusGraphics = statusNode.addComponent(cc.Graphics);
             
-            if (status.string === "游戏中") {
-                statusLabel.color = cc.color(255, 100, 100);
+            var statusText = room.status || "等待中";
+            var statusColor, statusBgColor;
+            if (statusText === "游戏中") {
+                statusColor = cc.color(255, 120, 100);
+                statusBgColor = cc.color(180, 60, 50, 180);
+            } else if (playerCount >= 2) {
+                statusColor = cc.color(255, 200, 80);
+                statusBgColor = cc.color(180, 140, 40, 180);
             } else {
-                statusLabel.color = cc.color(100, 200, 100);
+                statusColor = cc.color(120, 220, 120);
+                statusBgColor = cc.color(40, 140, 60, 180);
             }
-            statusLabel.parent = itemBg;
             
-            // 加入按钮（闭包处理）
-            (function(roomData) {
-                var joinBtn = self._createStyledButton("加入", cc.color(76, 175, 80), 350, function() {
+            statusGraphics.fillColor = statusBgColor;
+            statusGraphics.roundRect(-30, -12, 60, 24, 12);
+            statusGraphics.fill();
+            
+            var statusTextNode = new cc.Node("StatusText");
+            var statusLabel = statusTextNode.addComponent(cc.Label);
+            statusLabel.string = statusText;
+            statusLabel.fontSize = 14;
+            statusLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+            statusTextNode.color = statusColor;
+            statusTextNode.parent = statusNode;
+            statusNode.parent = itemBg;
+            
+            // 加入按钮
+            (function(roomData, itemIndex) {
+                var joinBtnNode = new cc.Node("JoinBtn");
+                joinBtnNode.setPosition(listWidth/2 - 70, 0);
+                
+                var joinGraphics = joinBtnNode.addComponent(cc.Graphics);
+                joinGraphics.fillColor = cc.color(76, 175, 80, 230);
+                joinGraphics.roundRect(-40, -15, 80, 30, 15);
+                joinGraphics.fill();
+                
+                // 按钮高光
+                joinGraphics.fillColor = cc.color(120, 200, 120, 100);
+                joinGraphics.roundRect(-37, 2, 74, 12, 6);
+                joinGraphics.fill();
+                
+                // 按钮边框
+                joinGraphics.strokeColor = cc.color(100, 200, 100, 200);
+                joinGraphics.lineWidth = 1;
+                joinGraphics.roundRect(-40, -15, 80, 30, 15);
+                joinGraphics.stroke();
+                
+                joinBtnNode.parent = itemBg;
+                
+                var joinLabel = new cc.Node("JoinText");
+                var joinLabelText = joinLabel.addComponent(cc.Label);
+                joinLabelText.string = "加入";
+                joinLabelText.fontSize = 16;
+                joinLabelText.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+                joinLabel.color = cc.color(255, 255, 255);
+                
+                var joinOutline = joinLabel.addComponent(cc.LabelOutline);
+                joinOutline.color = cc.color(0, 80, 0, 150);
+                joinOutline.width = 1;
+                joinLabel.parent = joinBtnNode;
+                
+                // 触摸效果
+                joinBtnNode.on(cc.Node.EventType.TOUCH_START, function(event) {
+                    event.stopPropagation();
+                    joinBtnNode.scale = 0.9;
+                });
+                joinBtnNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                    event.stopPropagation();
+                    joinBtnNode.scale = 1;
                     var roomCode = roomData.room_code || roomData.roomCode;
                     console.log("加入房间:", roomCode);
-                    sceneNode.destroy();
+                    var scene = sceneNode.getChildByName("RoomListScene") || sceneNode;
+                    if (scene.destroy) scene.destroy();
                     self._joinRoom(roomCode, roomConfig, playerGold);
-                }, 80, 35);
-                joinBtn.parent = itemBg;
-            })(room);
+                });
+                joinBtnNode.on(cc.Node.EventType.TOUCH_CANCEL, function(event) {
+                    joinBtnNode.scale = 1;
+                });
+            })(room, i);
         }
     },
     
