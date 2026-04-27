@@ -373,8 +373,7 @@ cc.Class({
     },
     
     // ============================================================
-    // 布局渲染：两个独立容器，紧凑网格布局
-    // 关键：容器宽度刚好容纳2个卡片，卡片从左上角紧密排列
+    // 布局渲染：使用 Layout 组件实现紧凑网格
     // ============================================================
     _renderRoomLayout: function(leftRooms, rightRooms) {
         var self = this;
@@ -386,126 +385,145 @@ cc.Class({
         if (oldRightPanel) oldRightPanel.destroy();
         
         // ============================================================
-        // 【一、布局参数（严格按照要求）】
+        // 【一、卡片尺寸强制固定】
         // ============================================================
-        var cardWidth = 260;     // 卡片宽度（固定260）
-        var cardHeight = 300;    // 卡片高度（根据内容自适应，这里设参考值）
-        var gapX = 10;           // 水平间距（紧凑：8~12）
-        var gapY = 10;           // 垂直间距（紧凑：8~12）
-        var topMargin = 50;      // 顶部边距
+        var cardWidth = 300;     // 卡片宽度（固定300）
+        var cardHeight = 180;    // 卡片高度（自适应内容）
         
         // ============================================================
-        // 【四、容器宽度（决定性修复）】
-        // 公式：容器宽度 = 卡片宽度 * 2 + 间距
-        // = 260 * 2 + 10 = 530
-        // ❗禁止：全屏宽度、自适应拉满
+        // 【三、间距设置】
         // ============================================================
-        var panelWidth = cardWidth * 2 + gapX;  // = 530，刚好容纳2个卡片
+        var spacingX = 10;       // 水平间距
+        var spacingY = 10;       // 垂直间距
+        
+        // ============================================================
+        // 【二、强制容器宽度】
+        // 公式：容器宽度 = 卡片宽度 * 2 + spacingX
+        // = 300 * 2 + 10 = 610
+        // ============================================================
+        var panelWidth = cardWidth * 2 + spacingX;  // = 610
         
         // 获取画布尺寸
         var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
         var screenWidth = canvas ? canvas.designResolution.width : 1280;
         var screenHeight = canvas ? canvas.designResolution.height : 720;
-        var panelHeight = screenHeight * 0.6;
         
-        console.log("===== 紧凑网格布局 =====");
+        // 计算容器高度（容纳所有卡片）
+        var maxRows = Math.ceil(Math.max(leftRooms.length, rightRooms.length) / 2);
+        var panelHeight = maxRows * cardHeight + (maxRows - 1) * spacingY + 20;
+        panelHeight = Math.max(panelHeight, screenHeight * 0.5);
+        
+        console.log("===== 使用 Layout 组件的网格布局 =====");
         console.log("卡片尺寸: " + cardWidth + " x " + cardHeight);
-        console.log("容器宽度: " + panelWidth + " (刚好容纳2个卡片，无多余空间)");
-        console.log("间距: gapX=" + gapX + ", gapY=" + gapY);
-        console.log("对齐: 左上角对齐，禁止居中分布");
+        console.log("容器宽度: " + panelWidth + " (刚好容纳2个卡片)");
+        console.log("间距: spacingX=" + spacingX + ", spacingY=" + spacingY);
         
-        // 容器位置：左区域靠左，右区域靠右
-        var containerGap = 100;  // 两个区域之间的间距
+        // 容器位置：两个区域并排
+        var containerGap = 60;  // 两个区域之间的间距
         var leftPanelX = -panelWidth / 2 - containerGap / 2;
         var rightPanelX = panelWidth / 2 + containerGap / 2;
-        var panelY = screenHeight / 2 - topMargin - panelHeight / 2;
+        
+        // ============================================================
+        // 【五、顶部紧凑排列】
+        // top = 40, anchorY = 1 (顶部对齐)
+        // ============================================================
+        var panelY = screenHeight / 2 - 40;  // 距离顶部40px
         
         console.log("画布: " + screenWidth + "x" + screenHeight);
         
         // ============================================================
-        // 创建左侧容器（竞技场）
+        // 创建左侧容器（竞技场）- 使用 Layout 组件
         // ============================================================
-        var leftPanel = new cc.Node("LeftArea");
-        leftPanel.setContentSize(panelWidth, panelHeight);
+        var leftPanel = this._createPanelWithLayout("LeftArea", panelWidth, panelHeight, cardWidth, cardHeight, spacingX, spacingY);
         leftPanel.setPosition(leftPanelX, panelY);
-        leftPanel.anchorX = 0.5;
-        leftPanel.anchorY = 0.5;
+        leftPanel.anchorY = 1;  // 顶部对齐
         leftPanel.parent = this.node;
         
-        // 渲染竞技场卡片（紧凑网格，无 padding）
-        this._renderCardsInGrid(leftPanel, leftRooms, cardWidth, cardHeight, gapX, gapY);
+        // 添加卡片到左侧容器
+        this._addCardsToPanel(leftPanel, leftRooms, cardWidth, cardHeight);
         
         // ============================================================
-        // 创建右侧容器（普通场）
+        // 创建右侧容器（普通场）- 使用 Layout 组件
         // ============================================================
-        var rightPanel = new cc.Node("RightArea");
-        rightPanel.setContentSize(panelWidth, panelHeight);
+        var rightPanel = this._createPanelWithLayout("RightArea", panelWidth, panelHeight, cardWidth, cardHeight, spacingX, spacingY);
         rightPanel.setPosition(rightPanelX, panelY);
-        rightPanel.anchorX = 0.5;
-        rightPanel.anchorY = 0.5;
+        rightPanel.anchorY = 1;  // 顶部对齐
         rightPanel.parent = this.node;
         
-        // 渲染普通场卡片（紧凑网格，无 padding）
-        this._renderCardsInGrid(rightPanel, rightRooms, cardWidth, cardHeight, gapX, gapY);
+        // 添加卡片到右侧容器
+        this._addCardsToPanel(rightPanel, rightRooms, cardWidth, cardHeight);
         
         console.log("========================================");
-        console.log("✅ 布局完成：紧凑网格，左对齐，无多余空间");
+        console.log("✅ 布局完成：Layout GRID，左上角对齐");
         console.log("========================================");
     },
     
     // ============================================================
-    // 【三、间距压缩 + 五、对齐方式 + 六、卡片排列规则】
-    // 渲染卡片：从左上角开始，紧凑排列，固定2列
+    // 创建带 Layout 组件的容器
+    // 【三、Layout 强制规则】
     // ============================================================
-    _renderCardsInGrid: function(panel, rooms, cardWidth, cardHeight, gapX, gapY) {
-        // ============================================================
-        // 【五、对齐方式】Horizontal Align: LEFT, Vertical Align: TOP
-        // 起始位置：从容器的左上角开始，无 padding
-        // ❗禁止：center（会自动拉开）、padding 导致卡片不贴边
-        // ============================================================
-        // startX 计算推导：
-        // - 第0列卡片中心 x = -panel.width/2 + cardWidth/2 = -530/2 + 260/2 = -135
-        // - 第1列卡片中心 x = -135 + (260 + 10) = 135
-        // - 验证：卡片1右边缘 = 135+130=265，卡片2左边缘 = 135-130=5，间隔=265-5=260？
-        // - 正确计算：卡片1右边缘=|-135|+130=265，卡片2左边缘=135-130=5，间隔=265-5=260
-        // - 不对！让我重新计算...
-        // - 卡片0：中心=-135，左边缘=-265，右边缘=-5
-        // - 卡片1：中心=135，左边缘=5，右边缘=265
-        // - 间隔 = 卡片1左边缘 - 卡片0右边缘 = 5 - (-5) = 10 ✓
-        // ============================================================
-        var startX = -panel.width / 2 + cardWidth / 2;  // 左边缘，无 padding
-        var startY = panel.height / 2 - cardHeight / 2; // 上边缘，无 padding
+    _createPanelWithLayout: function(name, width, height, cardWidth, cardHeight, spacingX, spacingY) {
+        var panel = new cc.Node(name);
+        panel.setContentSize(width, height);
+        panel.anchorX = 0.5;
+        panel.anchorY = 1;  // 顶部锚点
         
-        console.log("【紧凑布局】起始位置: startX=" + startX + ", startY=" + startY);
-        console.log("【紧凑布局】卡片尺寸: " + cardWidth + "x" + cardHeight);
-        console.log("【紧凑布局】容器尺寸: " + panel.width + "x" + panel.height);
-        console.log("【紧凑布局】验证容器宽度: 260*2+10=" + (260*2+10) + " = " + panel.width + " ✓");
+        // 添加 Layout 组件
+        var layout = panel.addComponent(cc.Layout);
         
+        // 【三、Layout 参数】
+        layout.type = cc.Layout.Type.GRID;                    // Type: GRID
+        layout.startAxis = cc.Layout.AxisDirection.HORIZONTAL; // Start Axis: HORIZONTAL
+        layout.horizontalDirection = cc.Layout.HorizontalDirection.LEFT_TO_RIGHT;
+        layout.verticalDirection = cc.Layout.VerticalDirection.TOP_TO_BOTTOM;
+        
+        // 【三、间距】
+        layout.spacingX = spacingX;  // = 10
+        layout.spacingY = spacingY;  // = 10
+        
+        // 【四、对齐方式】
+        layout.horizontalAlign = cc.Layout.HorizontalAlign.LEFT;   // 左对齐
+        layout.verticalAlign = cc.Layout.VerticalAlign.TOP;        // 顶部对齐
+        
+        // 设置格子大小（让 Layout 知道每个卡片的尺寸）
+        layout.cellSize = cc.size(cardWidth, cardHeight);
+        
+        // Resize Mode: CONTAINER（容器根据内容调整）
+        layout.resizeMode = cc.Layout.ResizeMode.CONTAINER;
+        
+        // 添加背景色用于调试（可选）
+        // var bg = panel.addComponent(cc.Sprite);
+        // bg.color = cc.color(50, 50, 50, 100);
+        
+        console.log("Layout 参数: type=GRID, startAxis=HORIZONTAL, cellSize=" + cardWidth + "x" + cardHeight);
+        console.log("Layout 对齐: horizontalAlign=LEFT, verticalAlign=TOP");
+        console.log("Layout 间距: spacingX=" + spacingX + ", spacingY=" + spacingY);
+        
+        return panel;
+    },
+    
+    // 添加卡片到容器
+    _addCardsToPanel: function(panel, rooms, cardWidth, cardHeight) {
         for (var i = 0; i < rooms.length; i++) {
             var room = rooms[i];
             
-            // 【六、卡片排列规则】每行2个，从左到右，自动换行
-            var col = i % 2;  // 0 或 1
-            var row = Math.floor(i / 2);
-            
-            // 计算位置：从左到右，从上到下，间距 gapX/gapY
-            var x = startX + col * (cardWidth + gapX);
-            var y = startY - row * (cardHeight + gapY);
-            
-            // 准备卡片节点（固定尺寸，禁止拉伸）
+            // 【一、卡片尺寸强制固定】
             this._prepareCardNode(room.node, cardWidth, cardHeight);
             
-            // 设置父节点
+            // 添加到容器（Layout 会自动排列）
             room.node.parent = panel;
             
-            // 设置位置
-            room.node.setPosition(x, y);
-            
-            console.log("  [" + i + "] " + room.roomName + " 列" + col + " 行" + row + " pos(" + x.toFixed(0) + "," + y.toFixed(0) + ")");
+            console.log("  [" + i + "] " + room.roomName + " 已添加到容器");
         }
         
-        console.log("渲染完成: " + rooms.length + " 个卡片，紧凑排列");
+        console.log("添加完成: " + rooms.length + " 个卡片");
     },
+    
+    // ============================================================
+    // _renderCardsInGrid 方法已移除
+    // 现在使用 Layout 组件自动排列，不需要手动 setPosition
+    // ============================================================
+
     
     // 准备卡片节点（确保尺寸正确，不被拉伸）
     _prepareCardNode: function(node, width, height) {
