@@ -398,7 +398,7 @@ cc.Class({
         // 计算容器高度（根据卡片数量）- 增加额外空间
         var leftRows = Math.ceil(leftRooms.length / 2) || 1;
         var rightRows = Math.ceil(rightRooms.length / 2) || 1;
-        var panelHeight = Math.max(leftRows, rightRows) * cardHeight + (Math.max(leftRows, rightRows) - 1) * gapY + 150;  // 容器高度
+        var panelHeight = Math.max(leftRows, rightRows) * cardHeight + (Math.max(leftRows, rightRows) - 1) * gapY + 170;  // 容器高度（增加20px）
         
         // 画布尺寸
         var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
@@ -421,7 +421,7 @@ cc.Class({
         
         // 位置：左容器从屏幕中心开始，往左延伸，整体向上移动
         leftPanel.x = -screenWidth / 2 + 30;  // 距离左边30px
-        leftPanel.y = 50;  // 向上移动50px
+        leftPanel.y = 60;  // 向上移动，增加10px margin-top效果
         
         // 添加容器边框（调试用）
         this._addDebugBorder(leftPanel, cc.color(255, 0, 0));  // 红色边框
@@ -465,7 +465,7 @@ cc.Class({
         
         // 位置：右容器在屏幕右边
         rightPanel.x = screenWidth / 2 - 30 - panelWidth;  // 距离右边30px
-        rightPanel.y = 50;  // 向上移动50px
+        rightPanel.y = 60;  // 向上移动，增加10px margin-top效果
         
         // 添加容器边框（调试用）
         this._addDebugBorder(rightPanel, cc.color(0, 0, 255));  // 蓝色边框
