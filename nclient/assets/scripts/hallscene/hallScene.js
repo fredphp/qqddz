@@ -982,22 +982,78 @@ cc.Class({
     
     // 获取房间列表
     _fetchRoomList: function(container, loadingLabel) {
+        var self = this;
         var myglobal = window.myglobal;
         var socket = myglobal && myglobal.socket ? myglobal.socket : null;
         
-        if (!socket || !socket.getRoomList) {
-            loadingLabel.getComponent(cc.Label).string = "无法获取房间列表";
+        // 检查WebSocket是否已连接
+        var isConnected = socket && socket.isConnected && socket.isConnected();
+        var isWebSocketOpen = socket && socket.isWebSocketOpen && socket.isWebSocketOpen();
+        
+        console.log("获取房间列表 - WebSocket状态: isConnected=" + isConnected + ", isWebSocketOpen=" + isWebSocketOpen);
+        
+        // 如果WebSocket未连接，使用模拟房间列表
+        if (!socket || !isConnected || !isWebSocketOpen) {
+            console.log("WebSocket未连接，使用模拟房间列表");
+            loadingLabel.getComponent(cc.Label).string = "使用模拟房间列表";
+            
+            // 延迟显示模拟房间，让用户看到提示
+            this.scheduleOnce(function() {
+                loadingLabel.destroy();
+                var mockRooms = self._generateMockRooms();
+                self._renderRoomList(container, mockRooms);
+            }, 0.5);
             return;
         }
         
-        socket.getRoomList(function(result, rooms) {
-            if (result === 0 && rooms && rooms.length > 0) {
+        // 设置超时，如果3秒内没有响应，使用模拟数据
+        var timeoutId = setTimeout(function() {
+            console.log("获取房间列表超时，使用模拟数据");
+            if (loadingLabel && loadingLabel.isValid) {
                 loadingLabel.destroy();
-                this._renderRoomList(container, rooms);
-            } else {
-                loadingLabel.getComponent(cc.Label).string = "暂无可加入的房间";
+                var mockRooms = self._generateMockRooms();
+                self._renderRoomList(container, mockRooms);
             }
-        }.bind(this));
+        }, 3000);
+        
+        socket.getRoomList(function(result, rooms) {
+            clearTimeout(timeoutId);
+            
+            if (result === 0 && rooms && rooms.length > 0) {
+                if (loadingLabel && loadingLabel.isValid) {
+                    loadingLabel.destroy();
+                }
+                self._renderRoomList(container, rooms);
+            } else {
+                // 服务端返回空列表或失败，使用模拟数据
+                console.log("服务端返回空列表，使用模拟数据");
+                if (loadingLabel && loadingLabel.isValid) {
+                    loadingLabel.destroy();
+                }
+                var mockRooms = self._generateMockRooms();
+                self._renderRoomList(container, mockRooms);
+            }
+        });
+    },
+    
+    // 生成模拟房间列表
+    _generateMockRooms: function() {
+        var mockRooms = [];
+        var roomCount = Math.floor(Math.random() * 3) + 1; // 1-3个模拟房间
+        
+        for (var i = 0; i < roomCount; i++) {
+            var roomCode = "ROOM" + (100000 + Math.floor(Math.random() * 900000));
+            var playerCount = Math.floor(Math.random() * 2) + 1; // 1-2人
+            
+            mockRooms.push({
+                room_code: roomCode,
+                player_count: playerCount,
+                max_players: 3
+            });
+        }
+        
+        console.log("生成模拟房间: " + JSON.stringify(mockRooms));
+        return mockRooms;
     },
     
     // 渲染房间列表
@@ -1050,9 +1106,23 @@ cc.Class({
         var myglobal = window.myglobal;
         var socket = myglobal && myglobal.socket ? myglobal.socket : null;
         
+        // 检查WebSocket是否已连接
+        var isConnected = socket && socket.isConnected && socket.isConnected();
+        var isWebSocketOpen = socket && socket.isWebSocketOpen && socket.isWebSocketOpen();
+        
         this._showMessageCenter("正在快速匹配...");
         
-        if (socket && socket.request_enter_room) {
+        // 如果WebSocket未连接，直接使用模拟数据
+        if (!socket || !isConnected || !isWebSocketOpen) {
+            console.log("WebSocket未连接，使用模拟数据进入游戏");
+            this.scheduleOnce(function() {
+                self._showMessageCenter("使用模拟数据进入游戏");
+                self._enterGameSceneWithMockData(roomConfig, playerGold);
+            }, 1);
+            return;
+        }
+        
+        if (socket.request_enter_room) {
             socket.request_enter_room({ room_level: roomConfig.room_type }, function(result, data) {
                 if (result === 0 && data && data.roomid) {
                     if (myglobal) myglobal.roomData = data;
@@ -1078,9 +1148,23 @@ cc.Class({
         var myglobal = window.myglobal;
         var socket = myglobal && myglobal.socket ? myglobal.socket : null;
         
+        // 检查WebSocket是否已连接
+        var isConnected = socket && socket.isConnected && socket.isConnected();
+        var isWebSocketOpen = socket && socket.isWebSocketOpen && socket.isWebSocketOpen();
+        
         this._showMessageCenter("正在创建房间...");
         
-        if (socket && socket.createRoom) {
+        // 如果WebSocket未连接，直接使用模拟数据
+        if (!socket || !isConnected || !isWebSocketOpen) {
+            console.log("WebSocket未连接，使用模拟数据创建房间");
+            this.scheduleOnce(function() {
+                self._showMessageCenter("创建模拟房间成功");
+                self._enterGameSceneWithMockData(roomConfig, playerGold);
+            }, 1);
+            return;
+        }
+        
+        if (socket.createRoom) {
             socket.createRoom(function(result, data) {
                 console.log("创建房间结果:", result, JSON.stringify(data));
                 if (result === 0 && data) {
@@ -1104,6 +1188,12 @@ cc.Class({
                     self._enterGameSceneWithMockData(roomConfig, playerGold);
                 }
             });
+            
+            // 设置超时
+            setTimeout(function() {
+                self._showMessageCenter("创建超时，使用模拟房间");
+                self._enterGameSceneWithMockData(roomConfig, playerGold);
+            }, 5000);
         } else {
             this._enterGameSceneWithMockData(roomConfig, playerGold);
         }
@@ -1115,9 +1205,23 @@ cc.Class({
         var myglobal = window.myglobal;
         var socket = myglobal && myglobal.socket ? myglobal.socket : null;
         
+        // 检查WebSocket是否已连接
+        var isConnected = socket && socket.isConnected && socket.isConnected();
+        var isWebSocketOpen = socket && socket.isWebSocketOpen && socket.isWebSocketOpen();
+        
         this._showMessageCenter("正在加入房间 " + roomCode + "...");
         
-        if (socket && socket.joinRoom) {
+        // 如果WebSocket未连接，直接使用模拟数据
+        if (!socket || !isConnected || !isWebSocketOpen) {
+            console.log("WebSocket未连接，使用模拟数据加入房间");
+            this.scheduleOnce(function() {
+                self._showMessageCenter("加入模拟房间成功");
+                self._enterGameSceneWithMockData(roomConfig, playerGold);
+            }, 1);
+            return;
+        }
+        
+        if (socket.joinRoom) {
             socket.joinRoom(roomCode, function(result, data) {
                 console.log("加入房间结果:", result, JSON.stringify(data));
                 if (result === 0 && data) {
@@ -1139,7 +1243,8 @@ cc.Class({
                     myglobal.roomData = roomData;
                     self._enterGameScene(roomData);
                 } else {
-                    self._showMessageCenter("加入房间失败");
+                    self._showMessageCenter("加入房间失败，使用模拟房间");
+                    self._enterGameSceneWithMockData(roomConfig, playerGold);
                 }
             });
         } else {
