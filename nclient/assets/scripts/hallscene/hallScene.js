@@ -423,9 +423,6 @@ cc.Class({
         leftPanel.x = -screenWidth / 2 + 30;  // 距离左边30px
         leftPanel.y = 10;  // margin-top 120px
         
-        // 添加容器边框（调试用）
-        this._addDebugBorder(leftPanel, cc.color(255, 0, 0));  // 红色边框
-        
         leftPanel.parent = this.node;
         console.log("左容器位置: (" + leftPanel.x + ", " + leftPanel.y + ")");
         
@@ -449,9 +446,6 @@ cc.Class({
             // 卡片Y位置：从顶部开始，每行间隔 gapY
             room.node.y = panelHeight / 2 - cardHeight / 2 - row * (cardHeight + gapY);
             
-            // 添加卡片边框（调试用）
-            this._addDebugBorder(room.node, cc.color(0, 255, 0, 100));  // 绿色边框
-            
             console.log("  竞技场卡片[" + i + "]: (" + room.node.x + ", " + room.node.y + ")");
         }
         
@@ -466,9 +460,6 @@ cc.Class({
         // 位置：右容器在屏幕右边
         rightPanel.x = screenWidth / 2 - 30 - panelWidth;  // 距离右边30px
         rightPanel.y = 10;  // margin-top 120px
-        
-        // 添加容器边框（调试用）
-        this._addDebugBorder(rightPanel, cc.color(0, 0, 255));  // 蓝色边框
         
         rightPanel.parent = this.node;
         console.log("右容器位置: (" + rightPanel.x + ", " + rightPanel.y + ")");
@@ -493,36 +484,10 @@ cc.Class({
             // 卡片Y位置：从顶部开始，每行间隔 gapY
             room.node.y = panelHeight / 2 - cardHeight / 2 - row * (cardHeight + gapY);
             
-            // 添加卡片边框（调试用）
-            this._addDebugBorder(room.node, cc.color(255, 255, 0, 100));  // 黄色边框
-            
             console.log("  普通场卡片[" + i + "]: (" + room.node.x + ", " + room.node.y + ")");
         }
         
         console.log("✅ 布局完成");
-    },
-    
-    // 添加调试边框（使用 opacity 而不是 color alpha）
-    _addDebugBorder: function(node, color) {
-        var sprite = node.getComponent(cc.Sprite);
-        if (!sprite) {
-            sprite = node.addComponent(cc.Sprite);
-        }
-        sprite.type = cc.Sprite.Type.SLICED;
-        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        sprite.spriteFrame = this._createBorderSpriteFrame();
-        // 使用 opacity 设置透明度，避免警告
-        node.color = cc.color(color.r, color.g, color.b);  // 不包含 alpha
-        node.opacity = 80;  // 使用 opacity 设置透明度
-    },
-    
-    // 创建边框 SpriteFrame
-    _createBorderSpriteFrame: function() {
-        // 创建一个简单的白色纹理
-        var texture = new cc.Texture2D();
-        texture.initWithData(new Uint8Array([255, 255, 255, 255]), cc.Texture2D.PixelFormat.RGBA8888, 1, 1);
-        var spriteFrame = new cc.SpriteFrame(texture);
-        return spriteFrame;
     },
     
     // 准备卡片节点（响应式，支持缩放）
