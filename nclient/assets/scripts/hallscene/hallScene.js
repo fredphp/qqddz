@@ -494,20 +494,20 @@ cc.Class({
         return 'UI/btn_happy_' + roomType;
     },
     
-    // 初始化房间选择按钮 - 根据配置动态显示并居中排列
-    // 背景图匹配规则: room_type -> btn_happy_{room_type}.png
+    // 初始化房间选择按钮 - 按分类分组布局
+    // 核心规则：左侧竞技场(60%)，右侧普通场(40%)，先分组再布局
     _initRoomButtons: function(roomConfigs) {
         var self = this;
         
-        // 默认按钮名称映射到 room_type
-        // 场景中的按钮: btn_room_junior, btn_room_middle, btn_room_senior, btn_room_master, btn_room_supreme
-        // 注意: btn_room_supreme 需要在 Cocos Creator 场景中手动添加
+        console.log("========== 开始初始化房间按钮（分类布局）==========");
+        
+        // 按钮名称映射到 room_type
         var buttonNameMap = {
-            2: "btn_room_junior",   // 初级房/新手场 (room_type=2)
-            3: "btn_room_middle",   // 中级房 (room_type=3)
-            4: "btn_room_senior",   // 高级房 (room_type=4)
-            5: "btn_room_master",   // 大师房 (room_type=5)
-            6: "btn_room_supreme"   // 至尊场 (room_type=6) - 需要在场景中添加此按钮
+            2: "btn_room_junior",
+            3: "btn_room_middle",
+            4: "btn_room_senior",
+            5: "btn_room_master",
+            6: "btn_room_supreme"
         };
         
         // 先隐藏所有房间按钮
@@ -518,174 +518,183 @@ cc.Class({
             }
         }
         
-        // 收集需要显示的按钮节点和配置
-        var buttonDataList = [];
+        // ========== 步骤1：数据分组 ==========
+        var arenaRooms = [];   // 竞技场 (room_category = 2)
+        var normalRooms = [];  // 普通场 (room_category = 1)
         
-        // 根据 API 返回的配置显示对应的房间按钮
         for (var i = 0; i < roomConfigs.length; i++) {
             var config = roomConfigs[i];
             var roomType = config.room_type || config.roomType;
+            var roomCategory = config.room_category || config.roomCategory || 1;
+            var sortOrder = config.sort_order || config.sortOrder || config.sort || 0;
             var buttonName = buttonNameMap[roomType];
             
             if (!buttonName) {
-                console.warn("未知的房间类型:", roomType, "支持的类型: 2, 3, 4, 5, 6");
+                console.warn("未知的房间类型:", roomType);
                 continue;
             }
             
             var btnNode = this.node.getChildByName(buttonName);
-            if (btnNode) {
-                // 显示该按钮
-                btnNode.active = true;
+            if (!btnNode) {
+                console.warn("未找到房间按钮节点:", buttonName);
+                continue;
+            }
+            
+            // 构建房间数据对象
+            var roomData = {
+                node: btnNode,
+                config: config,
+                roomType: roomType,
+                roomCategory: roomCategory,
+                sortOrder: sortOrder,
+                roomName: config.room_name || config.roomName || "未知房间",
+                minGold: config.entry_gold || config.min_gold || config.minGold || 0
+            };
+            
+            // 按分类分组
+            if (roomCategory === 2) {
+                arenaRooms.push(roomData);
+            } else {
+                normalRooms.push(roomData);
+            }
+        }
+        
+        // ========== 步骤2：各自排序 ==========
+        arenaRooms.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
+        normalRooms.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
+        
+        console.log("📊 分组结果: 竞技场 " + arenaRooms.length + " 个, 普通场 " + normalRooms.length + " 个");
+        
+        // ========== 步骤3：配置房间卡片 ==========
+        var allRooms = arenaRooms.concat(normalRooms);
+        for (var i = 0; i < allRooms.length; i++) {
+            var room = allRooms[i];
+            room.node.active = true;
+            room.node.roomConfig = room.config;
+            
+            // 加载背景图
+            self._loadRoomButtonBg(room.node, room.roomType);
+            
+            // 更新最低豆子显示
+            self._updateMinGoldLabel(room.node, room.config);
+            
+            // 配置按钮组件
+            var button = room.node.getComponent(cc.Button);
+            if (button) {
+                button.transition = cc.Button.Transition.SCALE;
+                button.duration = 0.1;
+                button.zoomScale = 1.1;
+            }
+            
+            // 注册点击事件
+            (function(config, node, roomName) {
+                node.off(cc.Node.EventType.TOUCH_END);
+                node.off(cc.Node.EventType.MOUSE_UP);
                 
-                // 获取房间分类 (1=普通场, 2=竞技场)
-                var roomCategory = config.room_category || config.roomCategory || 1;
-                
-                console.log("初始化房间按钮: " + buttonName + 
-                           ", 房间名: " + (config.room_name || config.roomName) + 
-                           ", 房间类型: " + roomType +
-                           ", 房间分类: " + (roomCategory === 2 ? "竞技场" : "普通场") +
-                           ", 入场豆子: " + (config.entry_gold || config.minGold || config.entryGold) +
-                           ", 背景图: btn_happy_" + roomType + ".png");
-                
-                // 保存配置到节点
-                btnNode.roomConfig = config;
-                
-                // 根据房间类型加载背景图
-                self._loadRoomButtonBg(btnNode, roomType);
-                
-                // 添加或更新最低豆子显示
-                self._updateMinGoldLabel(btnNode, config);
-                
-                // 获取 Button 组件
-                var button = btnNode.getComponent(cc.Button);
-                if (button) {
-                    // 配置 Button 组件
-                    button.transition = cc.Button.Transition.SCALE;
-                    button.duration = 0.1;
-                    button.zoomScale = 1.15;
-                }
-                
-                // 注册点击事件处理函数 - 使用闭包保存配置
-                (function(config, node) {
-                    // 移除旧的事件监听
-                    node.off(cc.Node.EventType.TOUCH_END);
-                    node.off(cc.Node.EventType.MOUSE_UP);
-                    
-                    // 添加新的事件监听
-                    node.on(cc.Node.EventType.TOUCH_END, function(event) {
-                        console.log("===== 点击了房间: " + (config.room_name || config.roomName) + " =====");
-                        event.stopPropagation();
-                        self._onRoomButtonClick(config);
-                    });
-                    
-                    // 也监听鼠标点击事件（Web端）
-                    node.on(cc.Node.EventType.MOUSE_UP, function(event) {
-                        console.log("===== 鼠标点击了房间: " + (config.room_name || config.roomName) + " =====");
-                        event.stopPropagation();
-                        self._onRoomButtonClick(config);
-                    });
-                })(config, btnNode);
-                
-                // 添加到列表（包含按钮节点和分类信息）
-                buttonDataList.push({
-                    node: btnNode,
-                    category: roomCategory,
-                    sortOrder: config.sort_order || config.sortOrder || config.sort || 0
+                node.on(cc.Node.EventType.TOUCH_END, function(event) {
+                    console.log("🎯 点击房间: " + roomName);
+                    event.stopPropagation();
+                    self._onRoomButtonClick(config);
                 });
-            } else {
-                console.warn("未找到房间按钮节点: " + buttonName);
-            }
+                
+                node.on(cc.Node.EventType.MOUSE_UP, function(event) {
+                    console.log("🎯 鼠标点击房间: " + roomName);
+                    event.stopPropagation();
+                    self._onRoomButtonClick(config);
+                });
+            })(room.config, room.node, room.roomName);
         }
         
-        // 按房间分类分组：竞技场(2)和普通场(1)
-        var arenaButtons = [];  // 竞技场按钮
-        var normalButtons = []; // 普通场按钮
-        
-        for (var i = 0; i < buttonDataList.length; i++) {
-            if (buttonDataList[i].category === 2) {
-                arenaButtons.push(buttonDataList[i]);
-            } else {
-                normalButtons.push(buttonDataList[i]);
-            }
-        }
-        
-        // 各自按 sortOrder 排序
-        arenaButtons.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
-        normalButtons.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
-        
-        console.log("竞技场按钮数量: " + arenaButtons.length + ", 普通场按钮数量: " + normalButtons.length);
-        
-        // 根据分类左右排列：竞技场靠左，普通场靠右
-        this._layoutRoomButtonsByCategory(arenaButtons, normalButtons);
+        // ========== 步骤4：布局渲染 ==========
+        this._layoutRoomsByCategory(arenaRooms, normalRooms);
     },
     
-    // 按分类左右排列房间按钮：竞技场靠左，普通场靠右
-    _layoutRoomButtonsByCategory: function(arenaButtons, normalButtons) {
-        // 获取屏幕/画布宽度
-        var canvas = this.node.getComponent(cc.Canvas) || 
-                     cc.find('Canvas').getComponent(cc.Canvas);
+    // 按分类布局房间按钮
+    // 左侧60%：竞技场（2x2网格）
+    // 右侧40%：普通场（横向排列）
+    _layoutRoomsByCategory: function(arenaRooms, normalRooms) {
+        var self = this;
+        
+        // 获取画布尺寸
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
         var screenWidth = canvas ? canvas.designResolution.width : 1280;
+        var screenHeight = canvas ? canvas.designResolution.height : 720;
         
-        // 原始按钮尺寸
-        var originalButtonWidth = 268;
-        var originalButtonHeight = 140;
+        console.log("📐 画布尺寸: " + screenWidth + " x " + screenHeight);
         
-        // 按钮宽度
-        var buttonWidth = 240;
-        var gap = 20; // 按钮间距
-        var scale = buttonWidth / originalButtonWidth;
-        var yPosition = -80;
+        // ========== 布局参数 ==========
+        var buttonWidth = 220;    // 按钮宽度
+        var buttonHeight = 160;   // 按钮高度
+        var hGap = 30;            // 水平间距
+        var vGap = 20;            // 垂直间距
+        var yPosition = -100;     // Y坐标基准
         
-        // 屏幕中心线
-        var centerX = 0;
+        // 区域划分
+        var leftPanelWidth = screenWidth * 0.6;   // 左侧60%
+        var rightPanelWidth = screenWidth * 0.4;  // 右侧40%
         
-        // ===== 竞技场按钮靠左排列 =====
-        // 左边 = 屏幕负X方向
-        var arenaCount = arenaButtons.length;
+        // ========== 左侧：竞技场（2x2网格布局）==========
+        var arenaCount = arenaRooms.length;
         if (arenaCount > 0) {
-            // 计算竞技场按钮组的总宽度
-            var arenaTotalWidth = arenaCount * buttonWidth + (arenaCount - 1) * gap;
-            // 竞技场在最左边，从左往右排列
-            // 第一个按钮的X位置 = 总宽度的一半向左偏移 + 半个按钮宽度
-            var arenaStartX = -arenaTotalWidth / 2 + buttonWidth / 2;
+            // 左侧区域中心点
+            var leftCenterX = -screenWidth / 2 + leftPanelWidth / 2;
             
-            console.log("竞技场布局 - 数量: " + arenaCount + ", 起始X: " + arenaStartX.toFixed(0));
+            // 2x2网格布局计算
+            var cols = 2;  // 固定2列
+            var rows = Math.ceil(arenaCount / cols);
             
-            // 从左往右排列竞技场按钮
+            // 计算网格总尺寸
+            var gridWidth = cols * buttonWidth + (cols - 1) * hGap;
+            var gridHeight = rows * buttonHeight + (rows - 1) * vGap;
+            
+            // 网格起始点（居中）
+            var startX = leftCenterX - gridWidth / 2 + buttonWidth / 2;
+            var startY = yPosition + (rows - 1) * (buttonHeight + vGap) / 2;
+            
+            console.log("🎮 竞技场布局: " + arenaCount + "个, " + rows + "行" + cols + "列");
+            console.log("   网格起始: (" + startX.toFixed(0) + ", " + startY.toFixed(0) + ")");
+            
             for (var i = 0; i < arenaCount; i++) {
-                var btnNode = arenaButtons[i].node;
-                var xPos = arenaStartX + i * (buttonWidth + gap);
-                btnNode.setPosition(xPos, yPosition);
-                btnNode.scale = scale;
+                var room = arenaRooms[i];
+                var col = i % cols;
+                var row = Math.floor(i / cols);
                 
-                console.log("竞技场按钮 " + btnNode.name + " 位置: (" + xPos.toFixed(0) + ", " + yPosition + ")");
+                var xPos = startX + col * (buttonWidth + hGap);
+                var yPos = startY - row * (buttonHeight + vGap);
+                
+                room.node.setPosition(xPos, yPos);
+                room.node.scale = 1;
+                
+                console.log("   [" + room.roomName + "] 位置: (" + xPos.toFixed(0) + ", " + yPos.toFixed(0) + ")");
             }
         }
         
-        // ===== 普通场按钮靠右排列 =====
-        // 右边 = 屏幕正X方向
-        var normalCount = normalButtons.length;
+        // ========== 右侧：普通场（横向排列）==========
+        var normalCount = normalRooms.length;
         if (normalCount > 0) {
-            // 计算普通场按钮组的总宽度
-            var normalTotalWidth = normalCount * buttonWidth + (normalCount - 1) * gap;
-            // 普通场在最右边，从左往右排列
-            // 第一个按钮的X位置 = 总宽度的一半向右偏移 - 半个按钮宽度
-            var normalStartX = normalTotalWidth / 2 - buttonWidth / 2;
+            // 右侧区域中心点
+            var rightCenterX = screenWidth / 2 - rightPanelWidth / 2;
             
-            console.log("普通场布局 - 数量: " + normalCount + ", 起始X: " + normalStartX.toFixed(0));
+            // 横向排列计算
+            var totalWidth = normalCount * buttonWidth + (normalCount - 1) * hGap;
+            var startX = rightCenterX - totalWidth / 2 + buttonWidth / 2;
             
-            // 从左往右排列普通场按钮（在右侧区域）
+            console.log("🎰 普通场布局: " + normalCount + "个, 横向排列");
+            console.log("   起始X: " + startX.toFixed(0));
+            
             for (var i = 0; i < normalCount; i++) {
-                var btnNode = normalButtons[i].node;
-                var xPos = normalStartX + i * (buttonWidth + gap);
-                btnNode.setPosition(xPos, yPosition);
-                btnNode.scale = scale;
+                var room = normalRooms[i];
+                var xPos = startX + i * (buttonWidth + hGap);
+                var yPos = yPosition;
                 
-                console.log("普通场按钮 " + btnNode.name + " 位置: (" + xPos.toFixed(0) + ", " + yPosition + ")");
+                room.node.setPosition(xPos, yPos);
+                room.node.scale = 1;
+                
+                console.log("   [" + room.roomName + "] 位置: (" + xPos.toFixed(0) + ", " + yPos.toFixed(0) + ")");
             }
         }
         
-        console.log("✅ 房间按钮按分类左右排列完成：竞技场靠左，普通场靠右");
+        console.log("✅ 房间布局完成: 竞技场左侧60%, 普通场右侧40%");
     },
     
     // 根据房间类型加载按钮背景图
