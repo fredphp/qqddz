@@ -640,15 +640,18 @@ cc.Class({
         var centerX = 0;
         
         // ===== 竞技场按钮靠左排列 =====
+        // 左边 = 屏幕负X方向
         var arenaCount = arenaButtons.length;
         if (arenaCount > 0) {
             // 计算竞技场按钮组的总宽度
             var arenaTotalWidth = arenaCount * buttonWidth + (arenaCount - 1) * gap;
-            // 从中心线向左偏移一半，然后减去半个按钮宽度，使最后一个按钮紧贴中心线左侧
-            var arenaStartX = centerX - arenaTotalWidth / 2 + buttonWidth / 2;
+            // 竞技场在最左边，从左往右排列
+            // 第一个按钮的X位置 = 总宽度的一半向左偏移 + 半个按钮宽度
+            var arenaStartX = -arenaTotalWidth / 2 + buttonWidth / 2;
             
             console.log("竞技场布局 - 数量: " + arenaCount + ", 起始X: " + arenaStartX.toFixed(0));
             
+            // 从左往右排列竞技场按钮
             for (var i = 0; i < arenaCount; i++) {
                 var btnNode = arenaButtons[i].node;
                 var xPos = arenaStartX + i * (buttonWidth + gap);
@@ -660,19 +663,21 @@ cc.Class({
         }
         
         // ===== 普通场按钮靠右排列 =====
+        // 右边 = 屏幕正X方向
         var normalCount = normalButtons.length;
         if (normalCount > 0) {
             // 计算普通场按钮组的总宽度
             var normalTotalWidth = normalCount * buttonWidth + (normalCount - 1) * gap;
-            // 从中心线向右偏移一半，然后加上半个按钮宽度，使第一个按钮紧贴中心线右侧
-            var normalStartX = centerX + normalTotalWidth / 2 - buttonWidth / 2;
+            // 普通场在最右边，从左往右排列
+            // 第一个按钮的X位置 = 总宽度的一半向右偏移 - 半个按钮宽度
+            var normalStartX = normalTotalWidth / 2 - buttonWidth / 2;
             
             console.log("普通场布局 - 数量: " + normalCount + ", 起始X: " + normalStartX.toFixed(0));
             
-            // 从右往左排列（倒序设置位置）
+            // 从左往右排列普通场按钮（在右侧区域）
             for (var i = 0; i < normalCount; i++) {
                 var btnNode = normalButtons[i].node;
-                var xPos = normalStartX - i * (buttonWidth + gap);
+                var xPos = normalStartX + i * (buttonWidth + gap);
                 btnNode.setPosition(xPos, yPosition);
                 btnNode.scale = scale;
                 
