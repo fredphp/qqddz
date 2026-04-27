@@ -118,12 +118,35 @@ cc.Class({
             this._playHallBackgroundMusic();
             this._adjustBottomButtons();
             this._hideBackgroundCharacters();
+            this._initWebSocket();  // 初始化 WebSocket 连接
             this._fetchRoomConfigs();
             this._removeNoticeBoard();
             
             console.log("=== _initUIAfterAuth 完成 ===");
         } catch (e) {
             console.error("_initUIAfterAuth 异常:", e);
+        }
+    },
+    
+    // 初始化 WebSocket 连接
+    _initWebSocket: function() {
+        var myglobal = window.myglobal;
+        if (!myglobal || !myglobal.socket) {
+            console.warn("socket 未初始化");
+            return;
+        }
+        
+        // 检查是否已连接
+        if (myglobal.socket.isConnected && myglobal.socket.isConnected()) {
+            console.log("WebSocket 已连接");
+            return;
+        }
+        
+        console.log("初始化 WebSocket 连接...");
+        
+        // 初始化 WebSocket
+        if (myglobal.socket.initSocket) {
+            myglobal.socket.initSocket();
         }
     },
     
@@ -705,21 +728,35 @@ cc.Class({
             myglobal.currentRoomName = roomConfig.room_name;
         }
         
-        if (window.socketCtr) {
-            var socket = window.socketCtr();
-            if (socket.request_enter_room) {
-                socket.request_enter_room({ room_level: roomConfig.room_type }, function(result, data) {
-                    if (result === 0) {
-                        if (myglobal) myglobal.roomData = data;
-                        self._enterGameScene(data);
-                    } else {
-                        self._showMessage("进入房间失败");
-                    }
-                });
+        // 使用 myglobal.socket（已初始化的连接），而不是创建新实例
+        var socket = myglobal && myglobal.socket ? myglobal.socket : null;
+        
+        if (socket && socket.request_enter_room) {
+            // 检查 WebSocket 是否已连接
+            if (socket.isConnected && !socket.isConnected()) {
+                // 未连接，先尝试初始化
+                console.log("WebSocket 未连接，尝试重新连接...");
+                if (socket.initSocket) {
+                    socket.initSocket();
+                }
+                // 等待连接后再请求
+                this._waitForConnectionAndEnterRoom(roomConfig, socket);
                 return;
             }
+            
+            socket.request_enter_room({ room_level: roomConfig.room_type }, function(result, data) {
+                if (result === 0) {
+                    if (myglobal) myglobal.roomData = data;
+                    self._enterGameScene(data);
+                } else {
+                    self._showMessage("进入房间失败");
+                }
+            });
+            return;
         }
         
+        // 降级处理：无 WebSocket 连接时使用模拟数据
+        console.log("WebSocket 不可用，使用模拟数据");
         var mockData = {
             roomid: "ROOM_" + roomConfig.room_type,
             room_config: roomConfig,
@@ -738,6 +775,35 @@ cc.Class({
         this.scheduleOnce(function() {
             self._enterGameScene(mockData);
         }, 0.5);
+    },
+    
+    // 等待 WebSocket 连接后进入房间
+    _waitForConnectionAndEnterRoom: function(roomConfig, socket) {
+        var self = this;
+        var myglobal = window.myglobal;
+        var attempts = 0;
+        var maxAttempts = 10;
+        
+        var tryEnter = function() {
+            attempts++;
+            if (socket.isConnected && socket.isConnected()) {
+                console.log("WebSocket 已连接，发送进入房间请求");
+                socket.request_enter_room({ room_level: roomConfig.room_type }, function(result, data) {
+                    if (result === 0) {
+                        if (myglobal) myglobal.roomData = data;
+                        self._enterGameScene(data);
+                    } else {
+                        self._showMessage("进入房间失败");
+                    }
+                });
+            } else if (attempts < maxAttempts) {
+                setTimeout(tryEnter, 500);
+            } else {
+                self._showMessage("连接服务器失败，请重试");
+            }
+        };
+        
+        setTimeout(tryEnter, 500);
     },
     
     _formatGold: function(gold) {
