@@ -122,15 +122,15 @@ cc.Class({
             var goldCount = playerData.gobal_count || 0;
             this.gobal_count.string = ":" + goldCount;
             
-            // 设置更大的字体
-            this.gobal_count.fontSize = 48;
-            this.gobal_count.lineHeight = 56;
+            // 设置更大的字体 - 增大字体使其更清晰可见
+            this.gobal_count.fontSize = 64;
+            this.gobal_count.lineHeight = 72;
             
             // 设置位置 - 上移到图片框中
             var labelNode = this.gobal_count.node;
             if (labelNode) {
-                labelNode.y = 50;  // 上移位置
-                console.log("✅ 金币Label位置已调整: y=50");
+                labelNode.y = 80;  // 进一步上移位置
+                console.log("✅ 金币Label位置已调整: y=80, fontSize=64");
             }
             
             console.log("✅ 元宝已设置:", goldCount);
@@ -983,18 +983,18 @@ cc.Class({
             return;
         }
         
-        // 调整 yuanbaoIcon 位置
+        // 调整 yuanbaoIcon 位置 - 上移更多
         var yuanbaoIcon = playerNode.getChildByName("yuanbaoIcon");
         if (yuanbaoIcon) {
-            yuanbaoIcon.y = 50;
-            console.log("✅ 元宝图标位置已调整: y=50");
+            yuanbaoIcon.y = 80;
+            console.log("✅ 元宝图标位置已调整: y=80");
         }
         
-        // 调整 gold_frame 位置
+        // 调整 gold_frame 位置 - 上移更多
         var goldFrame = playerNode.getChildByName("gold_frame");
         if (goldFrame) {
-            goldFrame.y = 50;
-            console.log("✅ 金币框位置已调整: y=50");
+            goldFrame.y = 80;
+            console.log("✅ 金币框位置已调整: y=80");
         }
     },
     
