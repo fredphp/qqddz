@@ -1643,159 +1643,133 @@ cc.Class({
         });
         
         // 弹窗主体 - 更宽更美观
-        var dialogWidth = 480;
-        var dialogHeight = 450;
+        var dialogWidth = 500;
+        var dialogHeight = 480;
         var dialogBg = new cc.Node("DialogBg");
         dialogBg.setContentSize(cc.size(dialogWidth, dialogHeight));
         dialogBg.setPosition(0, 0);
         
         var dbg = dialogBg.addComponent(cc.Graphics);
-        // 外层发光边框效果
-        dbg.fillColor = cc.color(25, 20, 40, 255);
+        // 外层阴影
+        dbg.fillColor = cc.color(0, 0, 0, 60);
+        dbg.roundRect(-dialogWidth/2 + 6, -dialogHeight/2 - 6, dialogWidth, dialogHeight, 16);
+        dbg.fill();
+        
+        // 主背景
+        dbg.fillColor = cc.color(28, 25, 42, 255);
         dbg.roundRect(-dialogWidth/2, -dialogHeight/2, dialogWidth, dialogHeight, 16);
         dbg.fill();
-        dbg.strokeColor = cc.color(255, 200, 80, 255);
-        dbg.lineWidth = 4;
+        dbg.strokeColor = cc.color(255, 180, 60, 255);  // 金橙色边框
+        dbg.lineWidth = 3;
         dbg.roundRect(-dialogWidth/2, -dialogHeight/2, dialogWidth, dialogHeight, 16);
-        dbg.stroke();
-        // 内层边框
-        dbg.strokeColor = cc.color(180, 130, 50, 200);
-        dbg.lineWidth = 2;
-        dbg.roundRect(-dialogWidth/2 + 6, -dialogHeight/2 + 6, dialogWidth - 12, dialogHeight - 12, 12);
         dbg.stroke();
         dialogBg.parent = dialog;
         
-        // 角落装饰
-        var cornerSize = 35;
-        var corners = [
-            { x: -dialogWidth/2 + 20, y: dialogHeight/2 - 20, rot: 0 },
-            { x: dialogWidth/2 - 20, y: dialogHeight/2 - 20, rot: 90 },
-            { x: dialogWidth/2 - 20, y: -dialogHeight/2 + 20, rot: 180 },
-            { x: -dialogWidth/2 + 20, y: -dialogHeight/2 + 20, rot: 270 }
-        ];
+        // ===== 顶部装饰条 - 橙色主题 =====
+        var topBar = new cc.Node("TopBar");
+        topBar.setContentSize(cc.size(dialogWidth, 8));
+        topBar.y = dialogHeight/2 - 4;
+        var topGfx = topBar.addComponent(cc.Graphics);
+        topGfx.fillColor = cc.color(255, 152, 0);  // 橙色主题色 - 区别于加入房间的绿色
+        topGfx.roundRect(-dialogWidth/2, -4, dialogWidth, 8, [16, 16, 0, 0]);
+        topGfx.fill();
+        topBar.parent = dialog;
         
-        for (var i = 0; i < corners.length; i++) {
-            var corner = corners[i];
-            var cornerNode = new cc.Node("Corner" + i);
-            cornerNode.setPosition(corner.x, corner.y);
-            cornerNode.rotation = corner.rot;
-            
-            var cg = cornerNode.addComponent(cc.Graphics);
-            cg.strokeColor = cc.color(255, 215, 0, 230);
-            cg.lineWidth = 3;
-            cg.moveTo(0, 0);
-            cg.lineTo(25, 0);
-            cg.lineTo(25, 10);
-            cg.moveTo(0, 0);
-            cg.lineTo(0, 25);
-            cg.lineTo(10, 25);
-            cg.stroke();
-            cornerNode.parent = dialog;
-        }
-        
-        // 扑克牌装饰 - 左上角
-        var pokerLeft = new cc.Node("PokerLeft");
-        pokerLeft.setPosition(-dialogWidth/2 + 60, dialogHeight/2 - 70);
-        var pl = pokerLeft.addComponent(cc.Label);
-        pl.string = "♠";
-        pl.fontSize = 36;
-        pokerLeft.color = cc.color(100, 100, 120);
-        pokerLeft.rotation = -15;
-        pokerLeft.parent = dialog;
-        
-        // 扑克牌装饰 - 右上角
-        var pokerRight = new cc.Node("PokerRight");
-        pokerRight.setPosition(dialogWidth/2 - 60, dialogHeight/2 - 70);
-        var pr = pokerRight.addComponent(cc.Label);
-        pr.string = "♥";
-        pr.fontSize = 36;
-        pokerRight.color = cc.color(180, 80, 80);
-        pokerRight.rotation = 15;
-        pokerRight.parent = dialog;
-        
-        // 标题区域背景
+        // ===== 标题区域 =====
         var titleBg = new cc.Node("TitleBg");
-        titleBg.setPosition(0, dialogHeight/2 - 50);
-        var tbg = titleBg.addComponent(cc.Graphics);
-        tbg.fillColor = cc.color(45, 35, 60, 250);
-        tbg.roundRect(-dialogWidth/2 + 20, -30, dialogWidth - 40, 60, 8);
-        tbg.fill();
-        tbg.strokeColor = cc.color(200, 160, 60, 180);
-        tbg.lineWidth = 2;
-        tbg.roundRect(-dialogWidth/2 + 20, -30, dialogWidth - 40, 60, 8);
-        tbg.stroke();
+        titleBg.setContentSize(cc.size(dialogWidth - 40, 70));
+        titleBg.y = dialogHeight/2 - 55;
+        var titleBgGfx = titleBg.addComponent(cc.Graphics);
+        titleBgGfx.fillColor = cc.color(42, 38, 58, 250);
+        titleBgGfx.roundRect(-(dialogWidth - 40)/2, -35, dialogWidth - 40, 70, 10);
+        titleBgGfx.fill();
         titleBg.parent = dialog;
+        
+        // 图标
+        var iconNode = new cc.Node("Icon");
+        var iconLabel = iconNode.addComponent(cc.Label);
+        iconLabel.string = "🏠";
+        iconLabel.fontSize = 32;
+        iconNode.x = -120;
+        iconNode.y = dialogHeight/2 - 55;
+        iconNode.parent = dialog;
         
         // 标题文字
         var titleText = new cc.Node("TitleText");
-        titleText.setPosition(0, dialogHeight/2 - 45);
+        titleText.setPosition(0, dialogHeight/2 - 50);
         titleText.anchorX = 0.5;
         titleText.anchorY = 0.5;
         var ttl = titleText.addComponent(cc.Label);
-        ttl.string = "✦ 创建房间 ✦";
-        ttl.fontSize = 28;
+        ttl.string = "创建房间";
+        ttl.fontSize = 30;
         ttl.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         titleText.color = cc.color(255, 220, 100);
         
         var titleOutline = titleText.addComponent(cc.LabelOutline);
         titleOutline.color = cc.color(120, 70, 0);
-        titleOutline.width = 3;
+        titleOutline.width = 2;
         titleText.parent = dialog;
+        
+        // 副标题说明
+        var subtitleNode = new cc.Node("Subtitle");
+        subtitleNode.y = dialogHeight/2 - 95;
+        var subtitleLabel = subtitleNode.addComponent(cc.Label);
+        subtitleLabel.string = "创建专属房间，邀请好友一起游戏";
+        subtitleLabel.fontSize = 14;
+        subtitleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        subtitleNode.color = cc.color(180, 170, 150);
+        subtitleNode.parent = dialog;
         
         // 房间类型卡片
         var roomTypeBg = new cc.Node("RoomTypeBg");
-        roomTypeBg.setPosition(0, dialogHeight/2 - 100);
+        roomTypeBg.setPosition(0, dialogHeight/2 - 130);
         var rtbg = roomTypeBg.addComponent(cc.Graphics);
-        rtbg.fillColor = cc.color(60, 50, 80, 200);
+        rtbg.fillColor = cc.color(50, 45, 70, 200);
         rtbg.roundRect(-100, -18, 200, 36, 18);
         rtbg.fill();
-        rtbg.strokeColor = cc.color(150, 120, 80, 150);
+        rtbg.strokeColor = cc.color(255, 180, 60, 180);
         rtbg.lineWidth = 1;
         rtbg.roundRect(-100, -18, 200, 36, 18);
         rtbg.stroke();
         roomTypeBg.parent = dialog;
         
         var roomTypeText = new cc.Node("RoomType");
-        roomTypeText.setPosition(0, dialogHeight/2 - 100);
+        roomTypeText.setPosition(0, dialogHeight/2 - 130);
         roomTypeText.anchorX = 0.5;
         roomTypeText.anchorY = 0.5;
         var rtl = roomTypeText.addComponent(cc.Label);
         rtl.string = "【" + (roomConfig.room_name || "初级房") + "】";
         rtl.fontSize = 18;
         rtl.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        roomTypeText.color = cc.color(255, 215, 0);
+        roomTypeText.color = cc.color(255, 200, 100);
         roomTypeText.parent = dialog;
         
         // 房间信息区域背景
         var infoBg = new cc.Node("InfoBg");
-        infoBg.setPosition(0, 0);
+        infoBg.setPosition(0, -10);
         var ibg = infoBg.addComponent(cc.Graphics);
-        ibg.fillColor = cc.color(35, 28, 50, 230);
-        ibg.roundRect(-dialogWidth/2 + 25, -80, dialogWidth - 50, 180, 10);
+        ibg.fillColor = cc.color(35, 30, 50, 230);
+        ibg.roundRect(-dialogWidth/2 + 30, -95, dialogWidth - 60, 200, 10);
         ibg.fill();
-        ibg.strokeColor = cc.color(100, 80, 60, 150);
+        ibg.strokeColor = cc.color(80, 65, 50, 150);
         ibg.lineWidth = 1;
-        ibg.roundRect(-dialogWidth/2 + 25, -80, dialogWidth - 50, 180, 10);
+        ibg.roundRect(-dialogWidth/2 + 30, -95, dialogWidth - 60, 200, 10);
         ibg.stroke();
         infoBg.parent = dialog;
         
         // 房间名称区域
         var nameLabel = new cc.Node("NameLabel");
-        nameLabel.setPosition(-dialogWidth/2 + 90, 55);
+        nameLabel.setPosition(-dialogWidth/2 + 90, 60);
         nameLabel.anchorX = 0.5;
         nameLabel.anchorY = 0.5;
         var nll = nameLabel.addComponent(cc.Label);
         nll.string = "房间名称";
         nll.fontSize = 16;
         nameLabel.color = cc.color(220, 200, 150);
-        
-        var nameOutline = nameLabel.addComponent(cc.LabelOutline);
-        nameOutline.color = cc.color(0, 0, 0, 150);
-        nameOutline.width = 1;
         nameLabel.parent = dialog;
         
-        // 房间名称输入框 - 更大更美观
-        var nameInput = this._createBeautifulInput("自定义房间名（可选）", 50, 10, 280, 38, "RoomNameInput");
+        // 房间名称输入框
+        var nameInput = this._createBeautifulInput("自定义房间名（可选）", 50, 15, 300, 42, "RoomNameInput");
         nameInput.parent = dialog;
         
         // 密码区域
@@ -1807,67 +1781,108 @@ cc.Class({
         pl.string = "房间密码";
         pl.fontSize = 16;
         pwdLabel.color = cc.color(220, 200, 150);
-        
-        var pwdOutline = pwdLabel.addComponent(cc.LabelOutline);
-        pwdOutline.color = cc.color(0, 0, 0, 150);
-        pwdOutline.width = 1;
         pwdLabel.parent = dialog;
         
         // 密码输入框
-        var pwdInput = this._createBeautifulInput("设置密码（可选，留空为公开房间）", 50, -35, 280, 38, "PwdInput");
+        var pwdInput = this._createBeautifulInput("设置密码（可选，留空为公开房间）", 50, -35, 300, 42, "PwdInput");
         pwdInput.parent = dialog;
         
-        // 密码说明
-        var pwdTipBg = new cc.Node("PwdTipBg");
-        pwdTipBg.setPosition(0, -75);
-        var ptbg = pwdTipBg.addComponent(cc.Graphics);
-        ptbg.fillColor = cc.color(50, 40, 65, 200);
-        ptbg.roundRect(-120, -10, 240, 20, 5);
-        ptbg.fill();
-        pwdTipBg.parent = dialog;
+        // 提示信息区域
+        var tipBg = new cc.Node("TipBg");
+        tipBg.setPosition(0, -85);
+        var tipGfx = tipBg.addComponent(cc.Graphics);
+        tipGfx.fillColor = cc.color(45, 40, 60, 200);
+        tipGfx.roundRect(-dialogWidth/2 + 40, -12, dialogWidth - 80, 24, 6);
+        tipGfx.fill();
+        tipBg.parent = dialog;
         
-        var pwdTip = new cc.Node("PwdTip");
-        pwdTip.setPosition(0, -75);
-        pwdTip.anchorX = 0.5;
-        pwdTip.anchorY = 0.5;
-        var pt = pwdTip.addComponent(cc.Label);
-        pt.string = "💡 公开房间任何人可直接加入";
-        pt.fontSize = 12;
-        pt.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        pwdTip.color = cc.color(160, 150, 130);
-        pwdTip.parent = dialog;
+        var tipIcon = new cc.Node("TipIcon");
+        var tipIconLabel = tipIcon.addComponent(cc.Label);
+        tipIconLabel.string = "💡";
+        tipIconLabel.fontSize = 14;
+        tipIcon.x = -dialogWidth/2 + 70;
+        tipIcon.y = -85;
+        tipIcon.parent = dialog;
         
-        // 分享提示区域
-        var shareBg = new cc.Node("ShareBg");
-        shareBg.setPosition(0, -115);
-        var sbg = shareBg.addComponent(cc.Graphics);
-        sbg.fillColor = cc.color(55, 45, 70, 200);
-        sbg.roundRect(-dialogWidth/2 + 30, -15, dialogWidth - 60, 30, 6);
-        sbg.fill();
-        shareBg.parent = dialog;
-        
-        var shareTip = new cc.Node("ShareTip");
-        shareTip.setPosition(0, -115);
-        shareTip.anchorX = 0.5;
-        shareTip.anchorY = 0.5;
-        var stl = shareTip.addComponent(cc.Label);
-        stl.string = "🎁 创建后可分享邀请链接给好友";
-        stl.fontSize = 14;
-        stl.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        shareTip.color = cc.color(180, 170, 140);
-        shareTip.parent = dialog;
+        var tipNode = new cc.Node("Tip");
+        tipNode.y = -85;
+        var tipLabel = tipNode.addComponent(cc.Label);
+        tipLabel.string = "公开房间任何人可直接加入，私密房间需要密码";
+        tipLabel.fontSize = 12;
+        tipLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        tipNode.color = cc.color(160, 150, 130);
+        tipNode.parent = dialog;
         
         // 按钮区域
         var btnY = -dialogHeight/2 + 55;
         
-        // 取消按钮 - 更有质感
-        var cancelBtn = this._createBeautifulButton("取 消", cc.color(80, 70, 90), cc.color(100, 90, 100), -100, btnY, 110, 42, function() {
-            dialog.destroy();
-        });
+        // 取消按钮
+        var cancelBtn = new cc.Node("CancelBtn");
+        cancelBtn.setContentSize(cc.size(140, 48));
+        cancelBtn.x = -95;
+        cancelBtn.y = btnY;
+        var cancelGfx = cancelBtn.addComponent(cc.Graphics);
+        cancelGfx.fillColor = cc.color(70, 65, 85);
+        cancelGfx.roundRect(-70, -24, 140, 48, 10);
+        cancelGfx.fill();
+        cancelGfx.strokeColor = cc.color(100, 95, 115);
+        cancelGfx.lineWidth = 2;
+        cancelGfx.roundRect(-70, -24, 140, 48, 10);
+        cancelGfx.stroke();
         cancelBtn.parent = dialog;
         
-        // 创建房间按钮 - 主色调绿色带渐变效果
-        var createBtn = this._createBeautifulButton("立即创建", cc.color(40, 120, 60), cc.color(60, 160, 80), 100, btnY, 140, 46, function() {
+        var cancelLabel = new cc.Node("Label");
+        var cancelLabelComp = cancelLabel.addComponent(cc.Label);
+        cancelLabelComp.string = "取消";
+        cancelLabelComp.fontSize = 20;
+        cancelLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        cancelLabel.color = cc.color(200, 195, 180);
+        cancelLabel.parent = cancelBtn;
+        
+        var cancelBtnComp = cancelBtn.addComponent(cc.Button);
+        cancelBtnComp.transition = cc.Button.Transition.SCALE;
+        cancelBtnComp.zoomScale = 0.95;
+        
+        cancelBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            dialog.destroy();
+        });
+        
+        // 创建房间按钮 - 橙色主题
+        var createBtn = new cc.Node("CreateBtn");
+        createBtn.setContentSize(cc.size(160, 48));
+        createBtn.x = 105;
+        createBtn.y = btnY;
+        var createGfx = createBtn.addComponent(cc.Graphics);
+        createGfx.fillColor = cc.color(255, 152, 0);  // 橙色主题
+        createGfx.roundRect(-80, -24, 160, 48, 10);
+        createGfx.fill();
+        createGfx.strokeColor = cc.color(255, 200, 100);
+        createGfx.lineWidth = 2;
+        createGfx.roundRect(-80, -24, 160, 48, 10);
+        createGfx.stroke();
+        createBtn.parent = dialog;
+        
+        var createIcon = new cc.Node("Icon");
+        var createIconLabel = createIcon.addComponent(cc.Label);
+        createIconLabel.string = "+";
+        createIconLabel.fontSize = 22;
+        createIcon.x = -50;
+        createIcon.color = cc.color(255, 255, 255);
+        createIcon.parent = createBtn;
+        
+        var createLabel = new cc.Node("Label");
+        var createLabelComp = createLabel.addComponent(cc.Label);
+        createLabelComp.string = "创建房间";
+        createLabelComp.fontSize = 20;
+        createLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        createLabel.color = cc.color(255, 255, 255);
+        createLabel.parent = createBtn;
+        
+        var createBtnComp = createBtn.addComponent(cc.Button);
+        createBtnComp.transition = cc.Button.Transition.SCALE;
+        createBtnComp.zoomScale = 0.95;
+        
+        createBtn.on(cc.Node.EventType.TOUCH_END, function() {
             // 获取输入内容
             var nameInputNode = dialog.getChildByName("RoomNameInput");
             var namePlaceholder = nameInputNode ? nameInputNode.getChildByName("Placeholder") : null;
@@ -1897,8 +1912,31 @@ cc.Class({
             
             // 调用原来的创建房间方法
             self._createRoom(roomConfig, playerGold);
-        }, true);
-        createBtn.parent = dialog;
+        });
+        
+        // 右上角关闭按钮
+        var closeBtn = new cc.Node("CloseBtn");
+        closeBtn.setContentSize(cc.size(40, 40));
+        closeBtn.x = dialogWidth/2 - 25;
+        closeBtn.y = dialogHeight/2 - 25;
+        var closeGfx = closeBtn.addComponent(cc.Graphics);
+        closeGfx.fillColor = cc.color(60, 55, 75);
+        closeGfx.circle(0, 0, 20);
+        closeGfx.fill();
+        closeBtn.parent = dialog;
+        
+        var closeX = new cc.Node("X");
+        var closeLabel = closeX.addComponent(cc.Label);
+        closeLabel.string = "×";
+        closeLabel.fontSize = 28;
+        closeLabel.lineHeight = 36;
+        closeLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        closeX.color = cc.color(180, 170, 160);
+        closeX.parent = closeBtn;
+        
+        closeBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            dialog.destroy();
+        });
     },
     
     // 创建精美输入框
@@ -3241,13 +3279,13 @@ cc.Class({
         
         // 创建按钮节点
         var btnNode = new cc.Node("EnterRoomButton");
-        btnNode.setContentSize(cc.size(200, 80));
+        btnNode.setContentSize(cc.size(180, 60));
         btnNode.anchorX = 0.5;
         btnNode.anchorY = 0.5;
         
-        // 放在右上角区域
-        btnNode.x = screenWidth / 2 - 120;
-        btnNode.y = screenHeight / 2 - 150;
+        // 放在左侧中间位置
+        btnNode.x = -screenWidth / 2 + 120;
+        btnNode.y = 0;
         btnNode.zIndex = 1000;
         btnNode.parent = this.node;
         
@@ -3289,29 +3327,36 @@ cc.Class({
         }
         sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         
-        // 绘制按钮背景
+        // 绘制按钮背景 - 橙色渐变风格
         var graphics = btnNode.addComponent(cc.Graphics);
-        graphics.fillColor = cc.color(255, 152, 0);  // 橙色
-        graphics.roundRect(-100, -40, 200, 80, 10);
+        graphics.fillColor = cc.color(255, 140, 0);  // 橙色
+        graphics.roundRect(-90, -30, 180, 60, 12);
         graphics.fill();
-        graphics.strokeColor = cc.color(255, 193, 7);  // 金色边框
+        graphics.strokeColor = cc.color(255, 200, 100);  // 金色边框
         graphics.lineWidth = 3;
-        graphics.roundRect(-100, -40, 200, 80, 10);
+        graphics.roundRect(-90, -30, 180, 60, 12);
         graphics.stroke();
         
-        // 添加文字
+        // 添加图标和文字
+        var iconNode = new cc.Node("Icon");
+        var iconLabel = iconNode.addComponent(cc.Label);
+        iconLabel.string = "🚪";
+        iconLabel.fontSize = 22;
+        iconNode.x = -45;
+        iconNode.parent = btnNode;
+        
         var labelNode = new cc.Node("Label");
         var label = labelNode.addComponent(cc.Label);
-        label.string = "加入房间";
-        label.fontSize = 28;
-        label.lineHeight = 36;
+        label.string = "输入房号";
+        label.fontSize = 22;
+        label.lineHeight = 30;
         label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         labelNode.color = cc.color(255, 255, 255);
         labelNode.parent = btnNode;
     },
     
     // ============================================================
-    // 显示加入房间弹窗
+    // 显示加入房间弹窗 - 重新设计，更清晰美观
     // ============================================================
     _showEnterRoomPopup: function() {
         var self = this;
@@ -3343,10 +3388,10 @@ cc.Class({
         // ===== 半透明背景遮罩 =====
         var bgMask = new cc.Node("BgMask");
         bgMask.setContentSize(cc.size(screenWidth, screenHeight));
-        var bgSprite = bgMask.addComponent(cc.Sprite);
-        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        bgMask.color = cc.color(0, 0, 0);
-        bgMask.opacity = 150;
+        var bgGfx = bgMask.addComponent(cc.Graphics);
+        bgGfx.fillColor = cc.color(0, 0, 0, 180);
+        bgGfx.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight);
+        bgGfx.fill();
         bgMask.parent = popup;
         
         // 点击遮罩关闭
@@ -3354,134 +3399,214 @@ cc.Class({
             popup.destroy();
         }, this);
         
-        // ===== 弹窗面板 =====
-        var panelWidth = 450;
-        var panelHeight = 320;
+        // ===== 弹窗面板 - 更大的尺寸 =====
+        var panelWidth = 500;
+        var panelHeight = 380;
         var panel = new cc.Node("Panel");
         panel.setContentSize(cc.size(panelWidth, panelHeight));
         panel.parent = popup;
         
-        // 绿色边框
-        var border = new cc.Node("Border");
-        border.setContentSize(cc.size(panelWidth, panelHeight));
-        var borderGfx = border.addComponent(cc.Graphics);
-        borderGfx.fillColor = cc.color(76, 175, 80);  // 绿色
-        borderGfx.roundRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 12);
-        borderGfx.fill();
-        border.parent = panel;
+        // 外层阴影
+        var shadow = new cc.Node("Shadow");
+        var shadowGfx = shadow.addComponent(cc.Graphics);
+        shadowGfx.fillColor = cc.color(0, 0, 0, 60);
+        shadowGfx.roundRect(-panelWidth/2 + 8, -panelHeight/2 - 8, panelWidth, panelHeight, 16);
+        shadowGfx.fill();
+        shadow.parent = panel;
         
-        // 米黄色内容背景
-        var content = new cc.Node("Content");
-        content.setContentSize(cc.size(panelWidth - 8, panelHeight - 8));
-        var contentGfx = content.addComponent(cc.Graphics);
-        contentGfx.fillColor = cc.color(255, 248, 232);  // 米黄色
-        contentGfx.roundRect(-(panelWidth - 8)/2, -(panelHeight - 8)/2, panelWidth - 8, panelHeight - 8, 10);
-        contentGfx.fill();
-        content.parent = panel;
+        // 主背景 - 深色优雅风格
+        var mainBg = new cc.Node("MainBg");
+        mainBg.setContentSize(cc.size(panelWidth, panelHeight));
+        var mainGfx = mainBg.addComponent(cc.Graphics);
+        mainGfx.fillColor = cc.color(30, 28, 45, 255);
+        mainGfx.roundRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 16);
+        mainGfx.fill();
+        mainGfx.strokeColor = cc.color(100, 85, 60);
+        mainGfx.lineWidth = 3;
+        mainGfx.roundRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 16);
+        mainGfx.stroke();
+        mainBg.parent = panel;
         
-        // ===== 标题栏 =====
-        var titleBarHeight = 50;
-        var titleBar = new cc.Node("TitleBar");
-        titleBar.setContentSize(cc.size(panelWidth - 8, titleBarHeight));
-        titleBar.y = panelHeight/2 - titleBarHeight/2 - 4;
-        var titleGfx = titleBar.addComponent(cc.Graphics);
-        titleGfx.fillColor = cc.color(255, 193, 7);  // 黄色
-        titleGfx.roundRect(-(panelWidth - 8)/2, -titleBarHeight/2, panelWidth - 8, titleBarHeight, [10, 10, 0, 0]);
-        titleGfx.fill();
-        titleBar.parent = panel;
+        // ===== 顶部装饰条 =====
+        var topBar = new cc.Node("TopBar");
+        topBar.setContentSize(cc.size(panelWidth, 8));
+        topBar.y = panelHeight/2 - 4;
+        var topGfx = topBar.addComponent(cc.Graphics);
+        topGfx.fillColor = cc.color(76, 175, 80);  // 绿色主题色
+        topGfx.roundRect(-panelWidth/2, -4, panelWidth, 8, [16, 16, 0, 0]);
+        topGfx.fill();
+        topBar.parent = panel;
+        
+        // ===== 标题区域 =====
+        var titleBg = new cc.Node("TitleBg");
+        titleBg.setContentSize(cc.size(panelWidth - 40, 60));
+        titleBg.y = panelHeight/2 - 50;
+        var titleBgGfx = titleBg.addComponent(cc.Graphics);
+        titleBgGfx.fillColor = cc.color(45, 42, 65, 250);
+        titleBgGfx.roundRect(-(panelWidth - 40)/2, -30, panelWidth - 40, 60, 10);
+        titleBgGfx.fill();
+        titleBg.parent = panel;
+        
+        // 图标
+        var iconNode = new cc.Node("Icon");
+        var iconLabel = iconNode.addComponent(cc.Label);
+        iconLabel.string = "🔑";
+        iconLabel.fontSize = 32;
+        iconNode.x = -100;
+        iconNode.y = panelHeight/2 - 50;
+        iconNode.parent = panel;
         
         // 标题文字
         var titleNode = new cc.Node("Title");
         var titleLabel = titleNode.addComponent(cc.Label);
         titleLabel.string = "加入房间";
-        titleLabel.fontSize = 24;
-        titleLabel.lineHeight = 36;
+        titleLabel.fontSize = 28;
+        titleLabel.lineHeight = 40;
         titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         titleNode.color = cc.color(255, 255, 255);
-        titleNode.parent = titleBar;
+        titleNode.y = panelHeight/2 - 50;
+        titleNode.parent = panel;
         
-        // ===== 关闭按钮 =====
-        var closeBtn = new cc.Node("CloseBtn");
-        closeBtn.setContentSize(cc.size(36, 36));
-        closeBtn.x = panelWidth/2 - 26;
-        closeBtn.y = panelHeight/2 - 26;
-        var closeGfx = closeBtn.addComponent(cc.Graphics);
-        closeGfx.fillColor = cc.color(255, 193, 7);
-        closeGfx.circle(0, 0, 18);
-        closeGfx.fill();
-        closeBtn.parent = panel;
+        // 副标题说明
+        var subtitleNode = new cc.Node("Subtitle");
+        var subtitleLabel = subtitleNode.addComponent(cc.Label);
+        subtitleLabel.string = "输入好友分享的房间号即可加入游戏";
+        subtitleLabel.fontSize = 14;
+        subtitleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        subtitleNode.color = cc.color(180, 170, 150);
+        subtitleNode.y = panelHeight/2 - 95;
+        subtitleNode.parent = panel;
         
-        var closeX = new cc.Node("X");
-        var closeLabel = closeX.addComponent(cc.Label);
-        closeLabel.string = "×";
-        closeLabel.fontSize = 28;
-        closeLabel.lineHeight = 36;
-        closeLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        closeX.color = cc.color(139, 110, 99);
-        closeX.parent = closeBtn;
+        // ===== 房间号输入区域 =====
+        var inputAreaY = 20;
         
-        closeBtn.on(cc.Node.EventType.TOUCH_END, function() {
-            popup.destroy();
-        }, this);
+        // 输入框标签
+        var inputLabel = new cc.Node("InputLabel");
+        var inputLabelComp = inputLabel.addComponent(cc.Label);
+        inputLabelComp.string = "房间号";
+        inputLabelComp.fontSize = 16;
+        inputLabel.color = cc.color(200, 190, 160);
+        inputLabel.x = -panelWidth/2 + 70;
+        inputLabel.y = inputAreaY + 45;
+        inputLabel.parent = panel;
         
-        // ===== 房间号输入框 =====
-        var inputWidth = 320;
-        var inputHeight = 50;
-        var inputY = 40;
-        
+        // 输入框背景
         var inputBg = new cc.Node("InputBg");
-        inputBg.setContentSize(cc.size(inputWidth, inputHeight));
-        inputBg.y = inputY;
+        inputBg.setContentSize(cc.size(360, 55));
+        inputBg.y = inputAreaY;
         var inputGfx = inputBg.addComponent(cc.Graphics);
-        inputGfx.fillColor = cc.color(255, 255, 255);
-        inputGfx.roundRect(-inputWidth/2, -inputHeight/2, inputWidth, inputHeight, 6);
+        inputGfx.fillColor = cc.color(50, 45, 70, 255);
+        inputGfx.roundRect(-180, -27.5, 360, 55, 10);
         inputGfx.fill();
-        inputGfx.strokeColor = cc.color(200, 200, 200);
+        inputGfx.strokeColor = cc.color(76, 175, 80);
         inputGfx.lineWidth = 2;
-        inputGfx.roundRect(-inputWidth/2, -inputHeight/2, inputWidth, inputHeight, 6);
+        inputGfx.roundRect(-180, -27.5, 360, 55, 10);
         inputGfx.stroke();
         inputBg.parent = panel;
         
         // 输入框
         var inputNode = new cc.Node("RoomIdInput");
-        inputNode.setContentSize(cc.size(inputWidth - 20, inputHeight - 4));
+        inputNode.setContentSize(cc.size(340, 50));
         var editBox = inputNode.addComponent(cc.EditBox);
-        editBox.placeholder = "请输入房间号";
-        editBox.fontSize = 20;
-        editBox.placeholderFontSize = 16;
-        editBox.fontColor = cc.color(0, 0, 0);
-        editBox.placeholderFontColor = cc.color(150, 150, 150);
+        editBox.placeholder = "请输入6位数字房间号";
+        editBox.fontSize = 24;
+        editBox.placeholderFontSize = 18;
+        editBox.fontColor = cc.color(255, 255, 255);
+        editBox.placeholderFontColor = cc.color(120, 115, 100);
         editBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         editBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         editBox.maxLength = 10;
-        editBox.backgroundColor = cc.color(255, 255, 255, 0);
+        editBox.backgroundColor = cc.color(0, 0, 0, 0);
         inputNode.parent = inputBg;
         
-        // ===== 提示文字 =====
+        // ===== 提示信息 =====
+        var tipBg = new cc.Node("TipBg");
+        tipBg.setContentSize(cc.size(360, 35));
+        tipBg.y = inputAreaY - 55;
+        var tipGfx = tipBg.addComponent(cc.Graphics);
+        tipGfx.fillColor = cc.color(40, 35, 55, 200);
+        tipGfx.roundRect(-180, -17.5, 360, 35, 8);
+        tipGfx.fill();
+        tipBg.parent = panel;
+        
+        var tipIcon = new cc.Node("TipIcon");
+        var tipIconLabel = tipIcon.addComponent(cc.Label);
+        tipIconLabel.string = "💡";
+        tipIconLabel.fontSize = 16;
+        tipIcon.x = -150;
+        tipIcon.y = inputAreaY - 55;
+        tipIcon.parent = panel;
+        
         var tipNode = new cc.Node("Tip");
-        tipNode.y = -20;
         var tipLabel = tipNode.addComponent(cc.Label);
-        tipLabel.string = "请输入6位数字房间号";
-        tipLabel.fontSize = 14;
+        tipLabel.string = "房间号由好友创建房间后获取，为6位数字";
+        tipLabel.fontSize = 13;
         tipLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        tipNode.color = cc.color(150, 150, 150);
+        tipNode.color = cc.color(150, 145, 130);
+        tipNode.y = inputAreaY - 55;
         tipNode.parent = panel;
         
-        // ===== 确认加入按钮 =====
+        // ===== 按钮区域 =====
+        var btnY = -panelHeight/2 + 55;
+        
+        // 取消按钮
+        var cancelBtn = new cc.Node("CancelBtn");
+        cancelBtn.setContentSize(cc.size(140, 48));
+        cancelBtn.x = -90;
+        cancelBtn.y = btnY;
+        var cancelGfx = cancelBtn.addComponent(cc.Graphics);
+        cancelGfx.fillColor = cc.color(70, 65, 85);
+        cancelGfx.roundRect(-70, -24, 140, 48, 10);
+        cancelGfx.fill();
+        cancelGfx.strokeColor = cc.color(100, 95, 115);
+        cancelGfx.lineWidth = 2;
+        cancelGfx.roundRect(-70, -24, 140, 48, 10);
+        cancelGfx.stroke();
+        cancelBtn.parent = panel;
+        
+        var cancelLabel = new cc.Node("Label");
+        var cancelLabelComp = cancelLabel.addComponent(cc.Label);
+        cancelLabelComp.string = "取消";
+        cancelLabelComp.fontSize = 20;
+        cancelLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        cancelLabel.color = cc.color(200, 195, 180);
+        cancelLabel.parent = cancelBtn;
+        
+        var cancelBtnComp = cancelBtn.addComponent(cc.Button);
+        cancelBtnComp.transition = cc.Button.Transition.SCALE;
+        cancelBtnComp.zoomScale = 0.95;
+        
+        cancelBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            popup.destroy();
+        }, this);
+        
+        // 确认加入按钮 - 绿色主题
         var confirmBtn = new cc.Node("ConfirmBtn");
-        confirmBtn.setContentSize(cc.size(200, 50));
-        confirmBtn.y = -90;
+        confirmBtn.setContentSize(cc.size(160, 48));
+        confirmBtn.x = 100;
+        confirmBtn.y = btnY;
         var confirmGfx = confirmBtn.addComponent(cc.Graphics);
         confirmGfx.fillColor = cc.color(76, 175, 80);  // 绿色
-        confirmGfx.roundRect(-100, -25, 200, 50, 8);
+        confirmGfx.roundRect(-80, -24, 160, 48, 10);
         confirmGfx.fill();
+        confirmGfx.strokeColor = cc.color(100, 200, 105);
+        confirmGfx.lineWidth = 2;
+        confirmGfx.roundRect(-80, -24, 160, 48, 10);
+        confirmGfx.stroke();
         confirmBtn.parent = panel;
+        
+        var confirmIcon = new cc.Node("Icon");
+        var confirmIconLabel = confirmIcon.addComponent(cc.Label);
+        confirmIconLabel.string = "✓";
+        confirmIconLabel.fontSize = 20;
+        confirmIcon.x = -50;
+        confirmIcon.color = cc.color(255, 255, 255);
+        confirmIcon.parent = confirmBtn;
         
         var confirmLabel = new cc.Node("Label");
         var confirmLabelComp = confirmLabel.addComponent(cc.Label);
-        confirmLabelComp.string = "确认加入";
-        confirmLabelComp.fontSize = 22;
-        confirmLabelComp.lineHeight = 32;
+        confirmLabelComp.string = "加入房间";
+        confirmLabelComp.fontSize = 20;
         confirmLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         confirmLabel.color = cc.color(255, 255, 255);
         confirmLabel.parent = confirmBtn;
@@ -3502,6 +3627,30 @@ cc.Class({
             
             // 发送加入房间请求
             self._joinRoomById(roomId, popup);
+        }, this);
+        
+        // ===== 关闭按钮（右上角） =====
+        var closeBtn = new cc.Node("CloseBtn");
+        closeBtn.setContentSize(cc.size(40, 40));
+        closeBtn.x = panelWidth/2 - 25;
+        closeBtn.y = panelHeight/2 - 25;
+        var closeGfx = closeBtn.addComponent(cc.Graphics);
+        closeGfx.fillColor = cc.color(60, 55, 75);
+        closeGfx.circle(0, 0, 20);
+        closeGfx.fill();
+        closeBtn.parent = panel;
+        
+        var closeX = new cc.Node("X");
+        var closeLabel = closeX.addComponent(cc.Label);
+        closeLabel.string = "×";
+        closeLabel.fontSize = 28;
+        closeLabel.lineHeight = 36;
+        closeLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        closeX.color = cc.color(180, 170, 160);
+        closeX.parent = closeBtn;
+        
+        closeBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            popup.destroy();
         }, this);
         
         console.log("✅ 加入房间弹窗创建完成");
