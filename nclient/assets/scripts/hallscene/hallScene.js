@@ -385,23 +385,20 @@ cc.Class({
         if (oldRightPanel) oldRightPanel.destroy();
         
         // ============================================================
-        // 【一、卡片尺寸强制固定】
+        // 【一、卡片尺寸 - 不强制设置，保持原始尺寸】
         // ============================================================
-        var cardWidth = 300;     // 卡片宽度（固定300）
-        var cardHeight = 180;    // 卡片高度（自适应内容）
+        // 卡片尺寸由 prefab 本身决定，不强制拉伸
         
         // ============================================================
-        // 【三、间距设置】
+        // 【三、间距设置】 - 紧凑排列
         // ============================================================
-        var spacingX = 10;       // 水平间距
-        var spacingY = 10;       // 垂直间距
+        var spacingX = 10;       // 水平间距（两个卡片之间）
+        var spacingY = 5;        // 垂直间距（行与行之间）
         
         // ============================================================
-        // 【二、强制容器宽度】
-        // 公式：容器宽度 = 卡片宽度 * 2 + spacingX
-        // = 300 * 2 + 10 = 610
+        // 【二、容器宽度 - 不限制，让 Layout 自动计算】
         // ============================================================
-        var panelWidth = cardWidth * 2 + spacingX;  // = 610
+        var panelWidth = 650;  // 足够容纳两个卡片
         
         // 获取画布尺寸
         var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
@@ -410,12 +407,11 @@ cc.Class({
         
         // 计算容器高度（容纳所有卡片）
         var maxRows = Math.ceil(Math.max(leftRooms.length, rightRooms.length) / 2);
-        var panelHeight = maxRows * cardHeight + (maxRows - 1) * spacingY + 20;
+        var panelHeight = maxRows * 200 + (maxRows - 1) * spacingY + 20;  // 假设卡片高度约200
         panelHeight = Math.max(panelHeight, screenHeight * 0.5);
         
         console.log("===== 使用 Layout 组件的网格布局 =====");
-        console.log("卡片尺寸: " + cardWidth + " x " + cardHeight);
-        console.log("容器宽度: " + panelWidth + " (刚好容纳2个卡片)");
+        console.log("容器宽度: " + panelWidth);
         console.log("间距: spacingX=" + spacingX + ", spacingY=" + spacingY);
         
         // 容器位置：两个区域并排
@@ -425,33 +421,33 @@ cc.Class({
         
         // ============================================================
         // 【五、顶部紧凑排列】
-        // top = 40, anchorY = 1 (顶部对齐)
+        // 距离顶部 10-15px
         // ============================================================
-        var panelY = screenHeight / 2 - 40;  // 距离顶部40px
+        var panelY = screenHeight / 2 - 15;  // 距离顶部15px
         
         console.log("画布: " + screenWidth + "x" + screenHeight);
         
         // ============================================================
         // 创建左侧容器（竞技场）- 使用 Layout 组件
         // ============================================================
-        var leftPanel = this._createPanelWithLayout("LeftArea", panelWidth, panelHeight, cardWidth, cardHeight, spacingX, spacingY);
+        var leftPanel = this._createPanelWithLayout("LeftArea", panelWidth, panelHeight, spacingX, spacingY);
         leftPanel.setPosition(leftPanelX, panelY);
         leftPanel.anchorY = 1;  // 顶部对齐
         leftPanel.parent = this.node;
         
         // 添加卡片到左侧容器
-        this._addCardsToPanel(leftPanel, leftRooms, cardWidth, cardHeight);
+        this._addCardsToPanel(leftPanel, leftRooms);
         
         // ============================================================
         // 创建右侧容器（普通场）- 使用 Layout 组件
         // ============================================================
-        var rightPanel = this._createPanelWithLayout("RightArea", panelWidth, panelHeight, cardWidth, cardHeight, spacingX, spacingY);
+        var rightPanel = this._createPanelWithLayout("RightArea", panelWidth, panelHeight, spacingX, spacingY);
         rightPanel.setPosition(rightPanelX, panelY);
         rightPanel.anchorY = 1;  // 顶部对齐
         rightPanel.parent = this.node;
         
         // 添加卡片到右侧容器
-        this._addCardsToPanel(rightPanel, rightRooms, cardWidth, cardHeight);
+        this._addCardsToPanel(rightPanel, rightRooms);
         
         console.log("========================================");
         console.log("✅ 布局完成：Layout GRID，左上角对齐");
@@ -460,9 +456,9 @@ cc.Class({
     
     // ============================================================
     // 创建带 Layout 组件的容器
-    // 【三、Layout 强制规则】
+    // 不使用 cellSize，让卡片保持原始尺寸
     // ============================================================
-    _createPanelWithLayout: function(name, width, height, cardWidth, cardHeight, spacingX, spacingY) {
+    _createPanelWithLayout: function(name, width, height, spacingX, spacingY) {
         var panel = new cc.Node(name);
         panel.setContentSize(width, height);
         panel.anchorX = 0.5;
@@ -471,50 +467,43 @@ cc.Class({
         // 添加 Layout 组件
         var layout = panel.addComponent(cc.Layout);
         
-        // 【三、Layout 参数】
-        layout.type = cc.Layout.Type.GRID;                    // Type: GRID
-        layout.startAxis = cc.Layout.AxisDirection.HORIZONTAL; // Start Axis: HORIZONTAL
+        // Layout 参数
+        layout.type = cc.Layout.Type.GRID;
+        layout.startAxis = cc.Layout.AxisDirection.HORIZONTAL;
         layout.horizontalDirection = cc.Layout.HorizontalDirection.LEFT_TO_RIGHT;
         layout.verticalDirection = cc.Layout.VerticalDirection.TOP_TO_BOTTOM;
         
-        // 【三、间距】
-        layout.spacingX = spacingX;  // = 10
-        layout.spacingY = spacingY;  // = 10
+        // 间距设置
+        layout.spacingX = spacingX;  // 水平间距
+        layout.spacingY = spacingY;  // 垂直间距
         
-        // 注意：Cocos Creator 2.4 没有 horizontalAlign/verticalAlign 属性
-        // 对齐方式通过 horizontalDirection 和 verticalDirection 控制
-        
-        // 设置格子大小（让 Layout 知道每个卡片的尺寸）
-        layout.cellSize = cc.size(cardWidth, cardHeight);
+        // ❗关键：不设置 cellSize，让卡片保持原始尺寸
+        // layout.cellSize = cc.size(0, 0);  // 不设置，使用子节点实际尺寸
         
         // Resize Mode: CONTAINER（容器根据内容调整）
         layout.resizeMode = cc.Layout.ResizeMode.CONTAINER;
         
-        // 设置 padding 为 0，确保卡片贴边
+        // padding 设为 0
         layout.paddingLeft = 0;
         layout.paddingRight = 0;
         layout.paddingTop = 0;
         layout.paddingBottom = 0;
         
-        console.log("Layout 参数: type=GRID, startAxis=HORIZONTAL, cellSize=" + cardWidth + "x" + cardHeight);
-        console.log("Layout 方向: LEFT_TO_RIGHT, TOP_TO_BOTTOM (等同于左上角对齐)");
-        console.log("Layout 间距: spacingX=" + spacingX + ", spacingY=" + spacingY);
+        console.log("Layout 参数: GRID, spacingX=" + spacingX + ", spacingY=" + spacingY + " (无 cellSize，保持原始尺寸)");
         
         return panel;
     },
     
     // 添加卡片到容器
-    _addCardsToPanel: function(panel, rooms, cardWidth, cardHeight) {
+    _addCardsToPanel: function(panel, rooms) {
         for (var i = 0; i < rooms.length; i++) {
             var room = rooms[i];
             
-            // 【一、卡片尺寸强制固定】
-            this._prepareCardNode(room.node, cardWidth, cardHeight);
+            // 保持卡片原始尺寸，不强制设置
+            this._prepareCardNodeNoResize(room.node);
             
             // 添加到容器（Layout 会自动排列）
             room.node.parent = panel;
-            
-            console.log("  [" + i + "] " + room.roomName + " 已添加到容器");
         }
         
         console.log("添加完成: " + rooms.length + " 个卡片");
@@ -536,6 +525,25 @@ cc.Class({
         
         // 固定尺寸
         node.setContentSize(width, height);
+        
+        // 锚点设为中心
+        node.anchorX = 0.5;
+        node.anchorY = 0.5;
+        
+        // 保持原比例，不缩放
+        node.scale = 1;
+    },
+    
+    // 准备卡片节点（保持原始尺寸，不拉伸）
+    _prepareCardNodeNoResize: function(node) {
+        // 禁用 Widget 组件（防止自动拉伸）
+        var widget = node.getComponent(cc.Widget);
+        if (widget) {
+            widget.enabled = false;
+        }
+        
+        // 保持原始尺寸，不强制设置
+        // node.setContentSize() 不调用，让卡片保持原始尺寸
         
         // 锚点设为中心
         node.anchorX = 0.5;
