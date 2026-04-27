@@ -728,7 +728,7 @@ cc.Class({
         goldLabelNode.setPosition(0, -btnNode.height/2 + 30);
     },
     
-    // 房间按钮点击处理 - 显示房间列表弹窗
+    // 房间按钮点击处理 - 显示加载进度条，然后进入房间列表
     _onRoomButtonClick: function(roomConfig) {
         var self = this;
         var myglobal = window.myglobal;
@@ -754,8 +754,772 @@ cc.Class({
             myglobal.currentRoomName = roomConfig.room_name;
         }
         
-        // 显示房间列表弹窗
-        this._showRoomListDialog(roomConfig, playerGold);
+        // 显示加载进度条，完成后进入房间列表场景
+        this._showLoadingProgress(roomConfig, playerGold);
+    },
+    
+    // ============================================================
+    // 显示加载进度条
+    // ============================================================
+    _showLoadingProgress: function(roomConfig, playerGold) {
+        var self = this;
+        
+        console.log("显示加载进度条...");
+        
+        // 获取画布尺寸
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
+        var screenHeight = canvas ? canvas.designResolution.height : 720;
+        var screenWidth = canvas ? canvas.designResolution.width : 1280;
+        
+        // 创建加载界面容器（全屏）
+        var loadingNode = new cc.Node("LoadingProgressNode");
+        loadingNode.setContentSize(cc.size(screenWidth, screenHeight));
+        loadingNode.anchorX = 0.5;
+        loadingNode.anchorY = 0.5;
+        loadingNode.x = 0;
+        loadingNode.y = 0;
+        loadingNode.zIndex = 3000;
+        loadingNode.parent = this.node;
+        
+        // 添加半透明黑色背景
+        var bgNode = new cc.Node("Bg");
+        bgNode.setContentSize(cc.size(screenWidth, screenHeight));
+        var bgGraphics = bgNode.addComponent(cc.Graphics);
+        bgGraphics.fillColor = cc.color(20, 20, 40, 250);
+        bgGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight);
+        bgGraphics.fill();
+        bgNode.parent = loadingNode;
+        
+        // 添加装饰性背景图案
+        this._addLoadingDecorations(loadingNode, screenWidth, screenHeight);
+        
+        // 标题文字
+        var titleNode = new cc.Node("Title");
+        titleNode.y = 150;
+        var titleLabel = titleNode.addComponent(cc.Label);
+        titleLabel.string = "斗地主";
+        titleLabel.fontSize = 56;
+        titleLabel.lineHeight = 72;
+        titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        titleNode.color = cc.color(255, 215, 0);
+        
+        // 添加标题描边
+        var titleOutline = titleNode.addComponent(cc.LabelOutline);
+        titleOutline.color = cc.color(139, 69, 19);
+        titleOutline.width = 3;
+        titleNode.parent = loadingNode;
+        
+        // 房间名称
+        var roomNameNode = new cc.Node("RoomName");
+        roomNameNode.y = 80;
+        var roomNameLabel = roomNameNode.addComponent(cc.Label);
+        roomNameLabel.string = "进入【" + roomConfig.room_name + "】";
+        roomNameLabel.fontSize = 32;
+        roomNameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        roomNameNode.color = cc.color(200, 200, 220);
+        roomNameNode.parent = loadingNode;
+        
+        // 加载提示文字
+        var tipNode = new cc.Node("Tip");
+        tipNode.y = -100;
+        var tipLabel = tipNode.addComponent(cc.Label);
+        tipLabel.string = "正在加载资源...";
+        tipLabel.fontSize = 24;
+        tipLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        tipNode.color = cc.color(150, 150, 170);
+        tipNode.parent = loadingNode;
+        
+        // 进度条背景
+        var progressBg = new cc.Node("ProgressBg");
+        progressBg.setContentSize(cc.size(500, 30));
+        progressBg.y = -160;
+        var progressBgGraphics = progressBg.addComponent(cc.Graphics);
+        progressBgGraphics.fillColor = cc.color(40, 40, 60, 255);
+        progressBgGraphics.roundRect(-250, -15, 500, 30, 15);
+        progressBgGraphics.fill();
+        progressBgGraphics.strokeColor = cc.color(80, 80, 100);
+        progressBgGraphics.lineWidth = 2;
+        progressBgGraphics.roundRect(-250, -15, 500, 30, 15);
+        progressBgGraphics.stroke();
+        progressBg.parent = loadingNode;
+        
+        // 进度条填充
+        var progressFill = new cc.Node("ProgressFill");
+        progressFill.y = -160;
+        var progressFillGraphics = progressFill.addComponent(cc.Graphics);
+        progressFill.parent = loadingNode;
+        
+        // 进度百分比文字
+        var percentNode = new cc.Node("Percent");
+        percentNode.y = -160;
+        var percentLabel = percentNode.addComponent(cc.Label);
+        percentLabel.string = "0%";
+        percentLabel.fontSize = 20;
+        percentLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        percentNode.color = cc.color(255, 255, 255);
+        percentNode.parent = loadingNode;
+        
+        // 底部提示
+        var bottomTipNode = new cc.Node("BottomTip");
+        bottomTipNode.y = -220;
+        var bottomTipLabel = bottomTipNode.addComponent(cc.Label);
+        bottomTipLabel.string = "正在连接服务器...";
+        bottomTipLabel.fontSize = 18;
+        bottomTipLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        bottomTipNode.color = cc.color(100, 100, 120);
+        bottomTipNode.parent = loadingNode;
+        
+        // 加载提示文字数组
+        var loadingTips = [
+            "正在加载资源...",
+            "正在连接服务器...",
+            "正在获取房间列表...",
+            "正在准备游戏数据...",
+            "即将进入房间..."
+        ];
+        
+        // 进度动画
+        var progress = 0;
+        var targetProgress = 100;
+        var tipIndex = 0;
+        
+        var updateProgress = function() {
+            if (progress >= targetProgress) {
+                // 进度完成，显示房间列表场景
+                self.scheduleOnce(function() {
+                    if (loadingNode && loadingNode.isValid) {
+                        loadingNode.destroy();
+                    }
+                    self._showRoomListScene(roomConfig, playerGold);
+                }, 0.3);
+                return;
+            }
+            
+            // 增加进度
+            progress += 2;
+            if (progress > targetProgress) progress = targetProgress;
+            
+            // 更新进度条填充
+            var fillWidth = (progress / 100) * 480;
+            progressFillGraphics.clear();
+            if (fillWidth > 0) {
+                // 渐变色效果
+                progressFillGraphics.fillColor = cc.color(76, 175, 80);
+                progressFillGraphics.roundRect(-240, -12, fillWidth, 24, 12);
+                progressFillGraphics.fill();
+            }
+            
+            // 更新百分比文字
+            percentLabel.string = progress + "%";
+            
+            // 更新加载提示文字
+            var newTipIndex = Math.floor(progress / 20);
+            if (newTipIndex < loadingTips.length && newTipIndex !== tipIndex) {
+                tipIndex = newTipIndex;
+                tipLabel.string = loadingTips[tipIndex];
+                bottomTipLabel.string = loadingTips[tipIndex];
+            }
+            
+            self.scheduleOnce(updateProgress, 0.05);
+        };
+        
+        // 开始进度动画
+        updateProgress();
+    },
+    
+    // 添加加载界面装饰
+    _addLoadingDecorations: function(parentNode, screenWidth, screenHeight) {
+        // 添加扑克牌装饰（四角）
+        var cardSymbols = ["♠", "♥", "♣", "♦"];
+        var cardColors = [
+            cc.color(50, 50, 70, 100),
+            cc.color(180, 50, 50, 100),
+            cc.color(50, 50, 70, 100),
+            cc.color(180, 50, 50, 100)
+        ];
+        
+        var positions = [
+            cc.v2(-screenWidth/2 + 80, screenHeight/2 - 80),
+            cc.v2(screenWidth/2 - 80, screenHeight/2 - 80),
+            cc.v2(-screenWidth/2 + 80, -screenHeight/2 + 80),
+            cc.v2(screenWidth/2 - 80, -screenHeight/2 + 80)
+        ];
+        
+        for (var i = 0; i < 4; i++) {
+            var symbolNode = new cc.Node("CardSymbol" + i);
+            symbolNode.setPosition(positions[i]);
+            var symbolLabel = symbolNode.addComponent(cc.Label);
+            symbolLabel.string = cardSymbols[i];
+            symbolLabel.fontSize = 60;
+            symbolNode.color = cardColors[i];
+            symbolNode.parent = parentNode;
+        }
+    },
+    
+    // ============================================================
+    // 显示房间列表场景（全屏界面）
+    // ============================================================
+    _showRoomListScene: function(roomConfig, playerGold) {
+        var self = this;
+        var myglobal = window.myglobal;
+        
+        console.log("显示房间列表全屏场景, 房间类型:", roomConfig.room_name);
+        
+        // 移除旧的界面
+        var oldScene = this.node.getChildByName("RoomListScene");
+        if (oldScene) oldScene.destroy();
+        
+        // 获取画布尺寸
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
+        var screenHeight = canvas ? canvas.designResolution.height : 720;
+        var screenWidth = canvas ? canvas.designResolution.width : 1280;
+        
+        // 创建全屏房间列表场景
+        var sceneNode = new cc.Node("RoomListScene");
+        sceneNode.setContentSize(cc.size(screenWidth, screenHeight));
+        sceneNode.anchorX = 0.5;
+        sceneNode.anchorY = 0.5;
+        sceneNode.x = 0;
+        sceneNode.y = 0;
+        sceneNode.zIndex = 2500;
+        sceneNode.parent = this.node;
+        
+        // 添加背景
+        var bgNode = new cc.Node("Bg");
+        bgNode.setContentSize(cc.size(screenWidth, screenHeight));
+        var bgGraphics = bgNode.addComponent(cc.Graphics);
+        bgGraphics.fillColor = cc.color(25, 25, 45, 255);
+        bgGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight);
+        bgGraphics.fill();
+        bgNode.parent = sceneNode;
+        
+        // 添加装饰性边框
+        this._addRoomListDecorations(sceneNode, screenWidth, screenHeight);
+        
+        // ===== 顶部区域 =====
+        // 标题背景
+        var titleBgNode = new cc.Node("TitleBg");
+        titleBgNode.setContentSize(cc.size(screenWidth - 40, 80));
+        titleBgNode.y = screenHeight/2 - 50;
+        var titleBgGraphics = titleBgNode.addComponent(cc.Graphics);
+        titleBgGraphics.fillColor = cc.color(35, 35, 55, 255);
+        titleBgGraphics.roundRect(-(screenWidth - 40)/2, -40, screenWidth - 40, 80, 10);
+        titleBgGraphics.fill();
+        titleBgGraphics.strokeColor = cc.color(80, 80, 120);
+        titleBgGraphics.lineWidth = 2;
+        titleBgGraphics.roundRect(-(screenWidth - 40)/2, -40, screenWidth - 40, 80, 10);
+        titleBgGraphics.stroke();
+        titleBgNode.parent = sceneNode;
+        
+        // 标题文字
+        var titleNode = new cc.Node("Title");
+        titleNode.y = screenHeight/2 - 50;
+        var titleLabel = titleNode.addComponent(cc.Label);
+        titleLabel.string = "【" + roomConfig.room_name + "】 房间列表";
+        titleLabel.fontSize = 36;
+        titleLabel.lineHeight = 44;
+        titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        titleNode.color = cc.color(255, 215, 0);
+        
+        var titleOutline = titleNode.addComponent(cc.LabelOutline);
+        titleOutline.color = cc.color(0, 0, 0);
+        titleOutline.width = 2;
+        titleNode.parent = sceneNode;
+        
+        // 底分信息
+        var baseScoreNode = new cc.Node("BaseScore");
+        baseScoreNode.y = screenHeight/2 - 90;
+        var baseScoreLabel = baseScoreNode.addComponent(cc.Label);
+        baseScoreLabel.string = "底分: " + (roomConfig.base_score || 1) + " | 倍数: " + (roomConfig.multiplier || 1) + "x";
+        baseScoreLabel.fontSize = 20;
+        baseScoreLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        baseScoreNode.color = cc.color(180, 180, 200);
+        baseScoreNode.parent = sceneNode;
+        
+        // ===== 操作区域（顶部） =====
+        var topBarY = screenHeight/2 - 130;
+        
+        // 搜索房间号输入框
+        var searchContainer = new cc.Node("SearchContainer");
+        searchContainer.y = topBarY;
+        searchContainer.parent = sceneNode;
+        
+        var searchLabel = new cc.Node("SearchLabel");
+        searchLabel.x = -450;
+        var searchLabelComp = searchLabel.addComponent(cc.Label);
+        searchLabelComp.string = "房间号:";
+        searchLabelComp.fontSize = 22;
+        searchLabel.color = cc.color(200, 200, 220);
+        searchLabel.parent = searchContainer;
+        
+        // 输入框背景
+        var inputBgNode = new cc.Node("InputBg");
+        inputBgNode.setContentSize(cc.size(200, 40));
+        inputBgNode.x = -320;
+        var inputBg = inputBgNode.addComponent(cc.Graphics);
+        inputBg.fillColor = cc.color(45, 45, 65, 255);
+        inputBg.roundRect(-100, -20, 200, 40, 8);
+        inputBg.fill();
+        inputBg.strokeColor = cc.color(80, 80, 120);
+        inputBg.lineWidth = 2;
+        inputBg.roundRect(-100, -20, 200, 40, 8);
+        inputBg.stroke();
+        inputBgNode.parent = searchContainer;
+        
+        // 输入框文字
+        var inputTextNode = new cc.Node("InputText");
+        inputTextNode.name = "RoomCodeInput";
+        inputTextNode.x = -320;
+        var inputText = inputTextNode.addComponent(cc.Label);
+        inputText.string = "输入房间号";
+        inputText.fontSize = 18;
+        inputText.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        inputTextNode.color = cc.color(150, 150, 170);
+        inputTextNode.parent = searchContainer;
+        
+        // 搜索按钮
+        var searchBtn = this._createStyledButton("搜索", cc.color(70, 130, 180), -180, function() {
+            var roomCode = inputTextNode.getComponent(cc.Label).string;
+            if (roomCode && roomCode !== "输入房间号") {
+                console.log("搜索房间:", roomCode);
+                self._joinRoom(roomCode, roomConfig, playerGold);
+            } else {
+                self._showTipInScene(sceneNode, "请输入房间号");
+            }
+        }, 80, 40);
+        searchBtn.parent = searchContainer;
+        
+        // 快速加入按钮
+        var quickJoinBtn = this._createStyledButton("快速加入", cc.color(46, 125, 50), 350, function() {
+            console.log("快速加入");
+            sceneNode.destroy();
+            self._quickMatch(roomConfig, playerGold);
+        }, 120, 40);
+        quickJoinBtn.parent = searchContainer;
+        
+        // 创建房间按钮
+        var createRoomBtn = this._createStyledButton("创建房间", cc.color(21, 101, 192), 490, function() {
+            console.log("创建房间");
+            sceneNode.destroy();
+            self._createRoom(roomConfig, playerGold);
+        }, 120, 40);
+        createRoomBtn.parent = searchContainer;
+        
+        // ===== 房间列表区域 =====
+        var listBgY = 0;
+        var listHeight = screenHeight - 350;
+        var listWidth = screenWidth - 80;
+        
+        // 列表背景
+        var listBgNode = new cc.Node("ListBg");
+        listBgNode.setContentSize(cc.size(listWidth, listHeight));
+        listBgNode.y = listBgY;
+        var listBgGraphics = listBgNode.addComponent(cc.Graphics);
+        listBgGraphics.fillColor = cc.color(30, 30, 50, 200);
+        listBgGraphics.roundRect(-listWidth/2, -listHeight/2, listWidth, listHeight, 10);
+        listBgGraphics.fill();
+        listBgGraphics.strokeColor = cc.color(60, 60, 90);
+        listBgGraphics.lineWidth = 2;
+        listBgGraphics.roundRect(-listWidth/2, -listHeight/2, listWidth, listHeight, 10);
+        listBgGraphics.stroke();
+        listBgNode.parent = sceneNode;
+        
+        // 列表标题行
+        var headerY = listBgY + listHeight/2 - 25;
+        var headers = [
+            { text: "房间号", x: -400, width: 200 },
+            { text: "人数", x: -150, width: 100 },
+            { text: "底分", x: 0, width: 100 },
+            { text: "状态", x: 150, width: 100 },
+            { text: "操作", x: 350, width: 150 }
+        ];
+        
+        for (var i = 0; i < headers.length; i++) {
+            var header = headers[i];
+            var headerNode = new cc.Node("Header_" + i);
+            headerNode.setPosition(header.x, headerY);
+            var headerLabel = headerNode.addComponent(cc.Label);
+            headerLabel.string = header.text;
+            headerLabel.fontSize = 20;
+            headerLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+            headerNode.color = cc.color(255, 215, 0);
+            headerNode.parent = sceneNode;
+        }
+        
+        // 分隔线
+        var dividerY = headerY - 20;
+        var dividerNode = new cc.Node("Divider");
+        dividerNode.setPosition(0, dividerY);
+        var dividerGraphics = dividerNode.addComponent(cc.Graphics);
+        dividerGraphics.strokeColor = cc.color(80, 80, 120);
+        dividerGraphics.lineWidth = 1;
+        dividerGraphics.moveTo(-listWidth/2 + 20, 0);
+        dividerGraphics.lineTo(listWidth/2 - 20, 0);
+        dividerGraphics.stroke();
+        dividerNode.parent = sceneNode;
+        
+        // 房间列表容器
+        var roomListContainer = new cc.Node("RoomListContainer");
+        roomListContainer.setContentSize(cc.size(listWidth - 40, listHeight - 60));
+        roomListContainer.y = listBgY - 20;
+        roomListContainer.parent = sceneNode;
+        
+        // 加载提示
+        var loadingLabel = new cc.Node("LoadingLabel");
+        loadingLabel.y = 0;
+        var loading = loadingLabel.addComponent(cc.Label);
+        loading.string = "正在获取房间列表...";
+        loading.fontSize = 22;
+        loading.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        loadingLabel.color = cc.color(150, 150, 170);
+        loadingLabel.parent = roomListContainer;
+        
+        // 获取并渲染房间列表
+        this._fetchAndRenderRoomListForScene(roomListContainer, loadingLabel, roomConfig, playerGold, sceneNode);
+        
+        // ===== 底部区域 =====
+        var bottomBarY = -screenHeight/2 + 50;
+        
+        // 返回大厅按钮
+        var backBtn = this._createStyledButton("← 返回大厅", cc.color(120, 120, 140), 0, function() {
+            console.log("返回大厅");
+            sceneNode.destroy();
+        }, 150, 50);
+        backBtn.setPosition(0, bottomBarY);
+        backBtn.parent = sceneNode;
+        
+        // 玩家信息（左下角）
+        var playerInfoNode = new cc.Node("PlayerInfo");
+        playerInfoNode.setPosition(-screenWidth/2 + 120, bottomBarY);
+        var playerInfoLabel = playerInfoNode.addComponent(cc.Label);
+        playerInfoLabel.string = "金币: " + this._formatGold(playerGold);
+        playerInfoLabel.fontSize = 18;
+        playerInfoNode.color = cc.color(255, 215, 0);
+        playerInfoNode.parent = sceneNode;
+        
+        // 刷新按钮（右下角）
+        var refreshBtn = this._createStyledButton("刷新", cc.color(100, 100, 120), screenWidth/2 - 80, bottomBarY, function() {
+            console.log("刷新房间列表");
+            // 重新加载房间列表
+            var container = sceneNode.getChildByName("RoomListContainer");
+            var loading = container.getChildByName("LoadingLabel");
+            if (loading) {
+                loading.active = true;
+                loading.getComponent(cc.Label).string = "正在刷新...";
+            }
+            // 清空旧的房间项
+            var children = container.children.slice();
+            for (var i = 0; i < children.length; i++) {
+                if (children[i].name !== "LoadingLabel") {
+                    children[i].destroy();
+                }
+            }
+            self._fetchAndRenderRoomListForScene(container, loading, roomConfig, playerGold, sceneNode);
+        }, 80, 40);
+        refreshBtn.parent = sceneNode;
+    },
+    
+    // 添加房间列表装饰
+    _addRoomListDecorations: function(parentNode, screenWidth, screenHeight) {
+        // 四角装饰
+        var cornerSize = 60;
+        var corners = [
+            { x: -screenWidth/2 + 30, y: screenHeight/2 - 30, rotation: 0 },
+            { x: screenWidth/2 - 30, y: screenHeight/2 - 30, rotation: 90 },
+            { x: screenWidth/2 - 30, y: -screenHeight/2 + 30, rotation: 180 },
+            { x: -screenWidth/2 + 30, y: -screenHeight/2 + 30, rotation: 270 }
+        ];
+        
+        for (var i = 0; i < corners.length; i++) {
+            var corner = corners[i];
+            var cornerNode = new cc.Node("Corner" + i);
+            cornerNode.setPosition(corner.x, corner.y);
+            cornerNode.rotation = corner.rotation;
+            
+            var graphics = cornerNode.addComponent(cc.Graphics);
+            graphics.strokeColor = cc.color(255, 215, 0, 100);
+            graphics.lineWidth = 3;
+            graphics.moveTo(0, 0);
+            graphics.lineTo(cornerSize, 0);
+            graphics.lineTo(cornerSize, 30);
+            graphics.moveTo(0, 0);
+            graphics.lineTo(0, cornerSize);
+            graphics.lineTo(30, cornerSize);
+            graphics.stroke();
+            
+            cornerNode.parent = parentNode;
+        }
+    },
+    
+    // 创建样式化按钮
+    _createStyledButton: function(text, color, x, callback, width, height) {
+        width = width || 100;
+        height = height || 40;
+        
+        var btn = new cc.Node("Btn_" + text);
+        btn.setContentSize(cc.size(width, height));
+        btn.setPosition(x, 0);
+        
+        // 按钮背景
+        var bg = btn.addComponent(cc.Graphics);
+        bg.fillColor = color;
+        bg.roundRect(-width/2, -height/2, width, height, 8);
+        bg.fill();
+        
+        // 按钮文字
+        var label = btn.addComponent(cc.Label);
+        label.string = text;
+        label.fontSize = 18;
+        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        label.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        btn.color = cc.color(255, 255, 255);
+        
+        // 触摸效果
+        btn.on(cc.Node.EventType.TOUCH_START, function(event) {
+            event.stopPropagation();
+            btn.scale = 0.95;
+        });
+        btn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            btn.scale = 1;
+            if (callback) callback();
+        });
+        btn.on(cc.Node.EventType.TOUCH_CANCEL, function(event) {
+            btn.scale = 1;
+        });
+        
+        return btn;
+    },
+    
+    // 在场景中显示提示
+    _showTipInScene: function(sceneNode, message) {
+        var tipNode = sceneNode.getChildByName("SceneTip");
+        if (tipNode) tipNode.destroy();
+        
+        tipNode = new cc.Node("SceneTip");
+        tipNode.y = 100;
+        
+        var bg = tipNode.addComponent(cc.Graphics);
+        bg.fillColor = cc.color(0, 0, 0, 180);
+        bg.roundRect(-150, -20, 300, 40, 8);
+        bg.fill();
+        
+        var label = tipNode.addComponent(cc.Label);
+        label.string = message;
+        label.fontSize = 20;
+        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        tipNode.color = cc.color(255, 255, 0);
+        tipNode.parent = sceneNode;
+        
+        this.scheduleOnce(function() {
+            if (tipNode && tipNode.isValid) tipNode.destroy();
+        }, 2);
+    },
+    
+    // 获取并渲染房间列表（用于全屏场景）
+    _fetchAndRenderRoomListForScene: function(container, loadingLabel, roomConfig, playerGold, sceneNode) {
+        var self = this;
+        var myglobal = window.myglobal;
+        var socket = myglobal && myglobal.socket ? myglobal.socket : null;
+        
+        // 检查WebSocket是否已连接
+        var isConnected = socket && socket.isConnected && socket.isConnected();
+        var isWebSocketOpen = socket && socket.isWebSocketOpen && socket.isWebSocketOpen();
+        
+        console.log("获取房间列表 - WebSocket状态: isConnected=" + isConnected + ", isWebSocketOpen=" + isWebSocketOpen);
+        
+        // 如果WebSocket未连接，使用模拟房间列表
+        if (!socket || !isConnected || !isWebSocketOpen) {
+            console.log("WebSocket未连接，使用模拟房间列表");
+            
+            this.scheduleOnce(function() {
+                if (loadingLabel && loadingLabel.isValid) {
+                    loadingLabel.active = false;
+                }
+                var mockRooms = self._generateMockRoomsForScene();
+                // 过滤：只显示人数少于3人的房间
+                var filteredRooms = mockRooms.filter(function(room) {
+                    return room.player_count > 0 && room.player_count < 3;
+                });
+                self._renderRoomListInScene(container, filteredRooms, roomConfig, playerGold, sceneNode);
+            }, 0.5);
+            return;
+        }
+        
+        // 设置超时
+        var timeoutId = setTimeout(function() {
+            console.log("获取房间列表超时，使用模拟数据");
+            if (loadingLabel && loadingLabel.isValid) {
+                loadingLabel.active = false;
+            }
+            var mockRooms = self._generateMockRoomsForScene();
+            var filteredRooms = mockRooms.filter(function(room) {
+                return room.player_count > 0 && room.player_count < 3;
+            });
+            self._renderRoomListInScene(container, filteredRooms, roomConfig, playerGold, sceneNode);
+        }, 3000);
+        
+        socket.getRoomList(function(result, rooms) {
+            clearTimeout(timeoutId);
+            
+            if (result === 0 && rooms && rooms.length > 0) {
+                if (loadingLabel && loadingLabel.isValid) {
+                    loadingLabel.active = false;
+                }
+                // 过滤：只显示人数少于3人的房间
+                var filteredRooms = rooms.filter(function(room) {
+                    var count = room.player_count || room.playerCount || 0;
+                    return count > 0 && count < 3;
+                });
+                self._renderRoomListInScene(container, filteredRooms, roomConfig, playerGold, sceneNode);
+            } else {
+                if (loadingLabel && loadingLabel.isValid) {
+                    loadingLabel.active = false;
+                }
+                var mockRooms = self._generateMockRoomsForScene();
+                var filteredRooms = mockRooms.filter(function(room) {
+                    return room.player_count > 0 && room.player_count < 3;
+                });
+                self._renderRoomListInScene(container, filteredRooms, roomConfig, playerGold, sceneNode);
+            }
+        });
+    },
+    
+    // 生成模拟房间列表（用于全屏场景）
+    _generateMockRoomsForScene: function() {
+        var mockRooms = [];
+        var roomCount = Math.floor(Math.random() * 5) + 3; // 3-7个模拟房间
+        
+        var myglobal = window.myglobal;
+        var baseScore = myglobal && myglobal.currentRoomConfig ? 
+            (myglobal.currentRoomConfig.base_score || 1) : 1;
+        
+        for (var i = 0; i < roomCount; i++) {
+            var roomCode = "" + (100001 + Math.floor(Math.random() * 899999));
+            var playerCount = Math.floor(Math.random() * 2) + 1; // 1-2人（确保少于3人）
+            
+            mockRooms.push({
+                room_code: roomCode,
+                room_code_display: roomCode.substring(0, 3) + " " + roomCode.substring(3),
+                player_count: playerCount,
+                max_players: 3,
+                base_score: baseScore,
+                status: playerCount >= 3 ? "游戏中" : "等待中"
+            });
+        }
+        
+        console.log("生成模拟房间: " + JSON.stringify(mockRooms));
+        return mockRooms;
+    },
+    
+    // 渲染房间列表（用于全屏场景）
+    _renderRoomListInScene: function(container, rooms, roomConfig, playerGold, sceneNode) {
+        var self = this;
+        
+        // 清空容器中非LoadingLabel的子节点
+        var children = container.children.slice();
+        for (var i = 0; i < children.length; i++) {
+            if (children[i].name !== "LoadingLabel") {
+                children[i].destroy();
+            }
+        }
+        
+        if (!rooms || rooms.length === 0) {
+            // 显示暂无房间提示
+            var emptyNode = new cc.Node("EmptyTip");
+            var emptyLabel = emptyNode.addComponent(cc.Label);
+            emptyLabel.string = "暂无可加入的房间，请创建新房间";
+            emptyLabel.fontSize = 22;
+            emptyLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+            emptyNode.color = cc.color(150, 150, 170);
+            emptyNode.parent = container;
+            return;
+        }
+        
+        var containerHeight = container.height;
+        var itemHeight = 50;
+        var startY = containerHeight/2 - 30;
+        
+        for (var i = 0; i < rooms.length && i < 8; i++) {
+            var room = rooms[i];
+            var itemY = startY - i * itemHeight;
+            
+            // 房间项背景
+            var itemBg = new cc.Node("RoomItem_" + i);
+            itemBg.setContentSize(cc.size(container.width - 20, itemHeight - 5));
+            itemBg.setPosition(0, itemY);
+            
+            var bgGraphics = itemBg.addComponent(cc.Graphics);
+            bgGraphics.fillColor = i % 2 === 0 ? cc.color(40, 40, 60, 200) : cc.color(35, 35, 55, 200);
+            bgGraphics.roundRect(-(container.width - 20)/2, -itemHeight/2 + 2, container.width - 20, itemHeight - 5, 5);
+            bgGraphics.fill();
+            itemBg.parent = container;
+            
+            // 房间号
+            var codeLabel = new cc.Node("Code");
+            codeLabel.setPosition(-400, 0);
+            var code = codeLabel.addComponent(cc.Label);
+            code.string = room.room_code_display || room.room_code || room.roomCode || "未知";
+            code.fontSize = 18;
+            code.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+            codeLabel.color = cc.color(200, 200, 220);
+            codeLabel.parent = itemBg;
+            
+            // 人数
+            var countLabel = new cc.Node("Count");
+            countLabel.setPosition(-150, 0);
+            var count = countLabel.addComponent(cc.Label);
+            count.string = (room.player_count || room.playerCount || 0) + "/3";
+            count.fontSize = 18;
+            count.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+            
+            // 根据人数显示不同颜色
+            var playerCount = room.player_count || room.playerCount || 0;
+            if (playerCount >= 3) {
+                countLabel.color = cc.color(255, 100, 100); // 红色 - 已满
+            } else if (playerCount >= 2) {
+                countLabel.color = cc.color(255, 200, 100); // 橙色 - 即将开始
+            } else {
+                countLabel.color = cc.color(100, 255, 100); // 绿色 - 可加入
+            }
+            countLabel.parent = itemBg;
+            
+            // 底分
+            var scoreLabel = new cc.Node("Score");
+            scoreLabel.setPosition(0, 0);
+            var score = scoreLabel.addComponent(cc.Label);
+            score.string = "" + (room.base_score || roomConfig.base_score || 1);
+            score.fontSize = 18;
+            score.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+            scoreLabel.color = cc.color(255, 215, 0);
+            scoreLabel.parent = itemBg;
+            
+            // 状态
+            var statusLabel = new cc.Node("Status");
+            statusLabel.setPosition(150, 0);
+            var status = statusLabel.addComponent(cc.Label);
+            status.string = room.status || "等待中";
+            status.fontSize = 18;
+            status.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+            
+            if (status.string === "游戏中") {
+                statusLabel.color = cc.color(255, 100, 100);
+            } else {
+                statusLabel.color = cc.color(100, 200, 100);
+            }
+            statusLabel.parent = itemBg;
+            
+            // 加入按钮（闭包处理）
+            (function(roomData) {
+                var joinBtn = self._createStyledButton("加入", cc.color(76, 175, 80), 350, function() {
+                    var roomCode = roomData.room_code || roomData.roomCode;
+                    console.log("加入房间:", roomCode);
+                    sceneNode.destroy();
+                    self._joinRoom(roomCode, roomConfig, playerGold);
+                }, 80, 35);
+                joinBtn.parent = itemBg;
+            })(room);
+        }
     },
     
     // 显示房间列表弹窗
