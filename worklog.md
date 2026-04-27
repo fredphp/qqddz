@@ -264,3 +264,42 @@ Stage Summary:
 - 修复了 TypeError: Cannot read properties of undefined (reading 'FIXED_COLUMN')
 - 修复了字段使用错误（min_gold vs entry_gold）
 - 提交：78c6407
+
+---
+Task ID: 8
+Agent: Main Agent
+Task: 重写房间布局，解决卡片位置错乱、变形问题
+
+Work Log:
+1. 问题分析：
+   - 此版本 Cocos Creator 没有 constraint 和 constraintNum 属性
+   - Layout 组件无法直接实现固定2列布局
+   - 卡片被拉伸变形
+
+2. 解决方案：
+   - 放弃使用 Layout 组件自动排版
+   - 改用手动计算位置实现固定2列网格布局
+
+3. 布局实现：
+   - 创建两个独立容器：LeftArea(竞技场), RightArea(普通场)
+   - 左容器靠左，右容器靠右
+   - 手动计算每个卡片位置：
+     ```javascript
+     col = i % 2  // 第1列或第2列
+     row = Math.floor(i / 2)  // 行号
+     x = startX + col * (cardWidth + gapX)
+     y = startY - row * (cardHeight + gapY)
+     ```
+
+4. 卡片尺寸固定：
+   - width: 200px
+   - height: 240px
+   - anchor: (0.5, 0.5)
+   - scale: 1 (不缩放)
+   - 禁用 Widget 组件防止被拉伸
+
+Stage Summary:
+- 实现固定2列网格布局
+- 卡片尺寸统一，不被拉伸
+- 左右两个独立容器，各自内部自动换行
+- 提交：a4b4a46
