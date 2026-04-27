@@ -443,7 +443,7 @@ cc.Class({
             rightPanelX = 0;
         } else {
             // 大屏幕：两个区域左右并排
-            var containerGap = 50;
+            var containerGap = 10;  // 两个区域之间的间距
             leftPanelX = -panelWidth / 2 - containerGap / 2;
             rightPanelX = panelWidth / 2 + containerGap / 2;
         }
