@@ -347,13 +347,14 @@ cc.Class({
         if (oldRightPanel) oldRightPanel.destroy();
         
         // ============================================================
-        // 布局参数
+        // 布局参数（卡片放大）
         // ============================================================
-        var cardWidth = 200;     // 卡片宽度
-        var cardHeight = 240;    // 卡片高度
-        var gapX = 30;           // 水平间距
-        var gapY = 30;           // 垂直间距
+        var cardWidth = 240;     // 卡片宽度（放大）
+        var cardHeight = 300;    // 卡片高度（放大）
+        var gapX = 40;           // 水平间距
+        var gapY = 40;           // 垂直间距
         var padding = 20;        // 边距
+        var topMargin = 40;      // 顶部边距
         
         // 获取画布尺寸
         var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
@@ -362,12 +363,13 @@ cc.Class({
         
         // 计算容器宽度（刚好容纳2个卡片）
         var panelWidth = cardWidth * 2 + gapX + padding * 2;
-        var panelHeight = screenHeight * 0.6;
+        var panelHeight = screenHeight * 0.7;
         
-        // 容器位置：左边靠左，右边靠右
+        // 容器位置：左边靠左，右边靠右，整体上移
         var leftPanelX = -screenWidth / 2 + panelWidth / 2 + 50;
         var rightPanelX = screenWidth / 2 - panelWidth / 2 - 50;
-        var panelY = -50;
+        // 上移容器：使第一排距离顶部约40px
+        var panelY = screenHeight / 2 - topMargin - panelHeight / 2;
         
         console.log("画布: " + screenWidth + "x" + screenHeight);
         console.log("容器宽度: " + panelWidth + ", 左X: " + leftPanelX + ", 右X: " + rightPanelX);
@@ -382,9 +384,6 @@ cc.Class({
         leftPanel.anchorY = 0.5;
         leftPanel.parent = this.node;
         
-        // 添加标题
-        this._addAreaTitle(leftPanel, "竞技场", -panelWidth/2 + padding, panelHeight/2 - 20);
-        
         // 渲染竞技场卡片（手动计算位置，固定2列）
         this._renderCardsInGrid(leftPanel, leftRooms, cardWidth, cardHeight, gapX, gapY, padding);
         
@@ -398,9 +397,6 @@ cc.Class({
         rightPanel.anchorY = 0.5;
         rightPanel.parent = this.node;
         
-        // 添加标题
-        this._addAreaTitle(rightPanel, "普通场", -panelWidth/2 + padding, panelHeight/2 - 20);
-        
         // 渲染普通场卡片（手动计算位置，固定2列）
         this._renderCardsInGrid(rightPanel, rightRooms, cardWidth, cardHeight, gapX, gapY, padding);
         
@@ -413,9 +409,9 @@ cc.Class({
     // 手动计算位置渲染卡片（固定2列网格）
     // ============================================================
     _renderCardsInGrid: function(panel, rooms, cardWidth, cardHeight, gapX, gapY, padding) {
-        // 起始位置（从容器的左上角开始）
+        // 起始位置（从容器的左上角开始，已删除标题）
         var startX = -panel.width / 2 + padding + cardWidth / 2;
-        var startY = panel.height / 2 - padding - cardHeight / 2 - 40; // 减去标题高度
+        var startY = panel.height / 2 - padding - cardHeight / 2; // 无标题，直接从顶部开始
         
         for (var i = 0; i < rooms.length; i++) {
             var room = rooms[i];
