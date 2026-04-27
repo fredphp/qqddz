@@ -385,14 +385,14 @@ cc.Class({
         if (oldRightPanel) oldRightPanel.destroy();
         
         // ============================================================
-        // 布局参数（卡片放大）
+        // 布局参数（精细调整）
         // ============================================================
-        var cardWidth = 240;     // 卡片宽度（放大）
-        var cardHeight = 300;    // 卡片高度（放大）
-        var gapX = 40;           // 水平间距
-        var gapY = 40;           // 垂直间距
-        var padding = 20;        // 边距
-        var topMargin = 40;      // 顶部边距
+        var cardWidth = 280;     // 卡片宽度（再放大）
+        var cardHeight = 340;    // 卡片高度（再放大）
+        var gapX = 20;           // 水平间距（紧凑）
+        var gapY = 20;           // 垂直间距（紧凑）
+        var padding = 15;        // 边距（减小）
+        var topMargin = 50;      // 顶部边距
         
         // 获取画布尺寸
         var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
@@ -401,12 +401,12 @@ cc.Class({
         
         // 计算容器宽度（刚好容纳2个卡片）
         var panelWidth = cardWidth * 2 + gapX + padding * 2;
-        var panelHeight = screenHeight * 0.7;
+        var panelHeight = screenHeight * 0.65;
         
-        // 容器位置：左边靠左，右边靠右，整体上移
-        var leftPanelX = -screenWidth / 2 + panelWidth / 2 + 50;
-        var rightPanelX = screenWidth / 2 - panelWidth / 2 - 50;
-        // 上移容器：使第一排距离顶部约40px
+        // 容器位置：左侧靠左边缘，右侧靠右边缘
+        var leftPanelX = -screenWidth / 2 + panelWidth / 2 + 20;  // 更靠左
+        var rightPanelX = screenWidth / 2 - panelWidth / 2 - 20;  // 更靠右
+        // 上移容器：使第一排距离顶部约50px
         var panelY = screenHeight / 2 - topMargin - panelHeight / 2;
         
         console.log("画布: " + screenWidth + "x" + screenHeight);
@@ -555,8 +555,8 @@ cc.Class({
         if (!goldLabelNode) {
             goldLabelNode = new cc.Node("min_gold_label");
             var label = goldLabelNode.addComponent(cc.Label);
-            label.fontSize = 24;
-            label.lineHeight = 30;
+            label.fontSize = 28;       // 放大字体
+            label.lineHeight = 36;      // 放大行高
             label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
             goldLabelNode.anchorX = 0.5;
             goldLabelNode.anchorY = 0.5;
