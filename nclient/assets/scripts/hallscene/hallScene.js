@@ -385,13 +385,13 @@ cc.Class({
         if (oldRightPanel) oldRightPanel.destroy();
         
         // ============================================================
-        // 布局参数（精细调整）
+        // 布局参数（紧凑排列）
         // ============================================================
-        var cardWidth = 280;     // 卡片宽度（再放大）
-        var cardHeight = 340;    // 卡片高度（再放大）
-        var gapX = 20;           // 水平间距（紧凑）
-        var gapY = 20;           // 垂直间距（紧凑）
-        var padding = 15;        // 边距（减小）
+        var cardWidth = 280;     // 卡片宽度
+        var cardHeight = 340;    // 卡片高度
+        var gapX = 10;           // 水平间距（紧凑）
+        var gapY = 10;           // 垂直间距（紧凑）
+        var padding = 5;         // 边距（最小化）
         var topMargin = 50;      // 顶部边距
         
         // 获取画布尺寸
@@ -399,13 +399,13 @@ cc.Class({
         var screenWidth = canvas ? canvas.designResolution.width : 1280;
         var screenHeight = canvas ? canvas.designResolution.height : 720;
         
-        // 计算容器宽度（刚好容纳2个卡片）
+        // 计算容器宽度（刚好容纳2个卡片，不留多余空间）
         var panelWidth = cardWidth * 2 + gapX + padding * 2;
         var panelHeight = screenHeight * 0.65;
         
         // 容器位置：左侧靠左边缘，右侧靠右边缘
-        var leftPanelX = -screenWidth / 2 + panelWidth / 2 + 20;  // 更靠左
-        var rightPanelX = screenWidth / 2 - panelWidth / 2 - 20;  // 更靠右
+        var leftPanelX = -screenWidth / 2 + panelWidth / 2 + 10;  // 紧贴左边缘
+        var rightPanelX = screenWidth / 2 - panelWidth / 2 - 10;  // 紧贴右边缘
         // 上移容器：使第一排距离顶部约50px
         var panelY = screenHeight / 2 - topMargin - panelHeight / 2;
         
