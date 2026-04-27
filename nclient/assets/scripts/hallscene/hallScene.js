@@ -161,8 +161,8 @@ cc.Class({
         // 隐藏不需要的按钮
         this._hideUnwantedButtons();
         
-        // 对齐背景角色图片
-        this._alignBackgroundCharacters();
+        // 隐藏背景角色图片（男孩和女孩）
+        this._hideBackgroundCharacters();
         
         // 从 API 获取房间配置
         this._fetchRoomConfigs();
@@ -171,32 +171,20 @@ cc.Class({
         this._removeNoticeBoard();
     },
     
-    // 对齐背景角色图片（男孩和女孩）
-    _alignBackgroundCharacters: function() {
+    // 隐藏背景角色图片（男孩和女孩）
+    _hideBackgroundCharacters: function() {
         // 获取两个角色节点
         var xiongmao1 = this.node.getChildByName("xiongmao1"); // 左侧角色
         var xiongmao2 = this.node.getChildByName("xiongmao2"); // 右侧角色
         
-        if (xiongmao1 && xiongmao2) {
-            // 获取画布宽度
-            var canvas = this.node.getComponent(cc.Canvas) || 
-                         cc.find('Canvas').getComponent(cc.Canvas);
-            var screenWidth = canvas ? canvas.designResolution.width : 1280;
-            
-            // 统一 Y 坐标（居中对齐）
-            var commonY = 90;
-            
-            // 计算 X 坐标（对称分布）
-            // 角色图片宽度约 390，两边留一定边距
-            var xOffset = screenWidth / 2 - 250; // 距离中心的偏移量
-            
-            // 左侧角色
-            xiongmao1.setPosition(-xOffset, commonY);
-            
-            // 右侧角色
-            xiongmao2.setPosition(xOffset, commonY);
-            
-            console.log("✅ 背景角色对齐完成: 左侧(" + (-xOffset) + ", " + commonY + "), 右侧(" + xOffset + ", " + commonY + ")");
+        if (xiongmao1) {
+            xiongmao1.active = false;
+            console.log("✅ 已隐藏左侧背景角色(xiongmao1)");
+        }
+        
+        if (xiongmao2) {
+            xiongmao2.active = false;
+            console.log("✅ 已隐藏右侧背景角色(xiongmao2)");
         }
     },
     
