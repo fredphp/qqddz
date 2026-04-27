@@ -110,13 +110,6 @@ cc.Class({
                 this.gobal_count.string = ":" + (playerData.gobal_count || 0);
                 this.gobal_count.fontSize = 64;
                 this.gobal_count.lineHeight = 72;
-                
-                var labelNode = this.gobal_count.node;
-                if (labelNode) {
-                    var widget = labelNode.getComponent(cc.Widget);
-                    if (widget) widget.enabled = false;
-                    labelNode.y = 80;
-                }
             }
             
             this._adjustGoldElementsPosition();
@@ -754,8 +747,27 @@ cc.Class({
         
         var yuanbaoIcon = playerNode.getChildByName("yuanbaoIcon");
         var goldFrame = playerNode.getChildByName("gold_frame");
-        if (yuanbaoIcon) yuanbaoIcon.y = 80;
-        if (goldFrame) goldFrame.y = 80;
+        
+        // 调整金豆图标位置
+        if (yuanbaoIcon) {
+            yuanbaoIcon.y = 80;
+            yuanbaoIcon.x = -50;  // 向左偏移
+        }
+        if (goldFrame) {
+            goldFrame.y = 80;
+        }
+        
+        // 调整金币文字位置 - 放在金豆图标后面
+        if (this.gobal_count && this.gobal_count.node) {
+            var labelNode = this.gobal_count.node;
+            var widget = labelNode.getComponent(cc.Widget);
+            if (widget) widget.enabled = false;
+            
+            // 文字放在金豆图标右侧
+            labelNode.anchorX = 0;  // 左锚点，从左侧开始
+            labelNode.x = 20;       // 金豆图标后面20px
+            labelNode.y = 80;       // 与金豆图标同一高度
+        }
     },
     
     _hideNodesWithText: function(parentNode, searchText) {
