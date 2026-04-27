@@ -542,6 +542,16 @@ window.socketCtr = function(){
         return _isConnected
     }
     
+    // 获取 WebSocket 物理连接状态（readyState === OPEN）
+    that.isWebSocketOpen = function(){
+        return _socket && _socket.readyState === 1 // WebSocket.OPEN = 1
+    }
+    
+    // 获取底层 WebSocket 对象（供外部检查 readyState）
+    that.getSocket = function(){
+        return _socket
+    }
+    
     that.getPlayerInfo = function(){
         return {
             id: _playerId,

@@ -521,18 +521,41 @@
             return;
         }
         
-        // 检查 WebSocket 连接状态
-        var isWebSocketConnected = this.socket && this.socket.isConnected && this.socket.isConnected();
+        // 检查 WebSocket 物理连接状态（readyState === OPEN）
+        var isWebSocketOpen = false;
+        if (this.socket && this.socket.isWebSocketOpen) {
+            isWebSocketOpen = this.socket.isWebSocketOpen();
+        }
+        
+        // 也检查逻辑连接状态（服务器确认）
+        var isServerConfirmed = this.socket && this.socket.isConnected && this.socket.isConnected();
         
         // 检查是否超时不活动
         var inactiveTime = Date.now() - this._lastActivityTime;
         var isInactive = inactiveTime > this._inactiveTimeout;
         
+        // 调试信息
+        console.log("🔍 在线状态检查详情:");
+        console.log("   - WebSocket物理连接(readyState=OPEN): " + isWebSocketOpen);
+        console.log("   - 服务器确认(_isConnected): " + isServerConfirmed);
+        console.log("   - 最后活动时间: " + new Date(this._lastActivityTime).toLocaleTimeString());
+        console.log("   - 不活动时长: " + Math.floor(inactiveTime / 1000) + "秒");
+        console.log("   - 不活动超时: " + Math.floor(this._inactiveTimeout / 1000) + "秒");
+        console.log("   - 是否不活动: " + isInactive);
+        
+        // 在线条件：
+        // 1. WebSocket 物理连接成功（readyState === OPEN）
+        // 2. 或者服务器已确认连接（_isConnected === true）
+        // 3. 且用户在活动
+        var isOnline = (isWebSocketOpen || isServerConfirmed) && !isInactive;
+        
+        console.log("   => 最终判定: " + (isOnline ? "🟢 在线" : "🔴 离线"));
+        
         // 更新在线状态
-        this._setOnlineStatus(isWebSocketConnected && !isInactive);
+        this._setOnlineStatus(isOnline);
         
         // 如果不活动时间过长，提示用户
-        if (isInactive && isWebSocketConnected) {
+        if (isInactive && (isWebSocketOpen || isServerConfirmed)) {
             console.warn("⚠️ 用户长时间不活动，可能需要重新验证");
         }
     };
