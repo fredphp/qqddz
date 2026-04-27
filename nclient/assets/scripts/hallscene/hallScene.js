@@ -1126,41 +1126,65 @@ cc.Class({
         var self = this;
         var actionY = screenHeight/2 - 130;
         
-        // 搜索框区域
+        // 左侧：输入房号搜索
         var searchX = -screenWidth/2 + 180;
         
         // 搜索输入框
         var inputNode = this._createInputNode("输入房间号", searchX, actionY, 160, 34);
         inputNode.parent = parentNode;
         
-        // 搜索按钮
-        var searchBtn = this._createButtonNode("搜索", cc.color(60, 100, 160), searchX + 115, actionY, 65, 32, function() {
-            var inputNode = parentNode.getChildByName("RoomCodeInput");
-            var placeholder = inputNode ? inputNode.getChildByName("Placeholder") : null;
-            var roomCode = placeholder ? placeholder.getComponent(cc.Label).string : "";
-            if (roomCode && roomCode !== "输入房间号") {
-                self._joinRoom(roomCode, roomConfig, playerGold);
-            } else {
-                self._showTipInScene(parentNode, "请输入房间号");
+        // 搜索按钮（使用 btn_enter_room 图片）
+        var searchBtn = this._createImageButtonNode(
+            'UI/btn_enter_room',
+            "加入房间",
+            searchX + 120,
+            actionY,
+            100,
+            40,
+            function() {
+                var inputNode = parentNode.getChildByName("RoomCodeInput");
+                var placeholder = inputNode ? inputNode.getChildByName("Placeholder") : null;
+                var roomCode = placeholder ? placeholder.getComponent(cc.Label).string : "";
+                if (roomCode && roomCode !== "输入房间号") {
+                    self._joinRoom(roomCode, roomConfig, playerGold);
+                } else {
+                    self._showTipInScene(parentNode, "请输入房间号");
+                }
             }
-        });
+        );
         searchBtn.parent = parentNode;
         
         // 右侧按钮组
         var btnX = screenWidth/2 - 180;
         
-        // 创建房间按钮 - 显示创建房间弹窗
-        var createBtn = this._createButtonNode("创建房间", cc.color(30, 90, 160), btnX - 60, actionY, 100, 36, function() {
-            self._showCreateRoomDialog(parentNode, roomConfig, playerGold);
-        }, true);
+        // 创建房间按钮（使用 btn_create_room 图片）
+        var createBtn = this._createImageButtonNode(
+            'UI/btn_create_room',
+            "创建房间",
+            btnX - 60,
+            actionY,
+            100,
+            40,
+            function() {
+                self._showCreateRoomDialog(parentNode, roomConfig, playerGold);
+            }
+        );
         createBtn.parent = parentNode;
         
-        // 快速加入按钮
-        var quickBtn = this._createButtonNode("快速加入", cc.color(40, 130, 60), btnX + 70, actionY, 100, 36, function() {
-            var scene = parentNode.getChildByName("RoomListScene") || parentNode;
-            if (scene.destroy) scene.destroy();
-            self._quickMatch(roomConfig, playerGold);
-        }, true);
+        // 快速开始按钮（使用 login_btn_quickStart 图片）
+        var quickBtn = this._createImageButtonNode(
+            'UI/button/login_btn_quickStart',
+            "快速开始",
+            btnX + 70,
+            actionY,
+            100,
+            40,
+            function() {
+                var scene = parentNode.getChildByName("RoomListScene") || parentNode;
+                if (scene.destroy) scene.destroy();
+                self._quickMatch(roomConfig, playerGold);
+            }
+        );
         quickBtn.parent = parentNode;
     },
     
@@ -1393,6 +1417,81 @@ cc.Class({
         });
         
         return btn;
+    },
+    
+    // 创建使用图片的按钮节点
+    _createImageButtonNode: function(imagePath, text, x, y, width, height, callback) {
+        var self = this;
+        var btn = new cc.Node("Btn_" + text);
+        btn.setContentSize(cc.size(width, height));
+        btn.setPosition(x, y);
+        btn.anchorX = 0.5;
+        btn.anchorY = 0.5;
+        
+        // 添加 Sprite 组件
+        var sprite = btn.addComponent(cc.Sprite);
+        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        
+        // 加载按钮图片
+        cc.resources.load(imagePath, cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.warn("加载按钮图片失败:", imagePath);
+                // 使用备用样式
+                self._createButtonFallback(btn, text, width, height);
+                return;
+            }
+            sprite.spriteFrame = spriteFrame;
+            console.log("✅ 按钮图片加载成功:", imagePath);
+        });
+        
+        // 添加 Button 组件
+        var button = btn.addComponent(cc.Button);
+        button.transition = cc.Button.Transition.SCALE;
+        button.duration = 0.1;
+        button.zoomScale = 0.95;
+        
+        // 触摸事件
+        btn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            if (callback) callback();
+        });
+        
+        return btn;
+    },
+    
+    // 按钮备用样式（图片加载失败时使用）
+    _createButtonFallback: function(btn, text, width, height) {
+        // 绘制按钮背景
+        var graphics = btn.addComponent(cc.Graphics);
+        
+        // 根据按钮文字选择颜色
+        var bgColor;
+        if (text.indexOf("创建") >= 0) {
+            bgColor = cc.color(30, 90, 160);  // 蓝色
+        } else if (text.indexOf("加入") >= 0 || text.indexOf("进入") >= 0) {
+            bgColor = cc.color(40, 130, 60);  // 绿色
+        } else if (text.indexOf("快速") >= 0) {
+            bgColor = cc.color(200, 120, 40);  // 橙色
+        } else {
+            bgColor = cc.color(80, 80, 80);  // 灰色
+        }
+        
+        graphics.fillColor = bgColor;
+        graphics.roundRect(-width/2, -height/2, width, height, 6);
+        graphics.fill();
+        graphics.strokeColor = cc.color(255, 255, 255, 80);
+        graphics.lineWidth = 2;
+        graphics.roundRect(-width/2, -height/2, width, height, 6);
+        graphics.stroke();
+        
+        // 添加文字
+        var labelNode = new cc.Node("Label");
+        var label = labelNode.addComponent(cc.Label);
+        label.string = text;
+        label.fontSize = Math.floor(height * 0.4);
+        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        labelNode.color = cc.color(255, 255, 255);
+        labelNode.parent = btn;
     },
     
     // 创建输入框节点
