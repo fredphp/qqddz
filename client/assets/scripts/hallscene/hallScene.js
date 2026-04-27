@@ -24,6 +24,16 @@ cc.Class({
        this.nickname_label.string = myglobal.playerData.nickName
        this.gobal_count.string = ":" + myglobal.playerData.gobal_count
        
+       // 设置金币显示的字体大小和位置
+       this.gobal_count.fontSize = 48
+       this.gobal_count.lineHeight = 56
+       if (this.gobal_count.node) {
+           this.gobal_count.node.y = 50
+       }
+       
+       // 调整金币图标和框的位置
+       this._adjustGoldElementsPosition()
+       
        // 隐藏不需要的按钮（创建房间、加入房间按钮不应该在大厅显示）
        this._hideUnwantedButtons();
        
@@ -32,6 +42,29 @@ cc.Class({
        
        // 移除公告栏（如果存在）
        this._removeNoticeBoard();
+    },
+    
+    // 调整金币相关元素位置
+    _adjustGoldElementsPosition: function() {
+        var playerNode = this.node.getChildByName("player_node")
+        if (!playerNode) {
+            playerNode = cc.find("Canvas/player_node")
+        }
+        if (playerNode) {
+            // 调整元宝图标位置
+            var yuanbaoIcon = playerNode.getChildByName("yuanbaoIcon")
+            if (yuanbaoIcon) {
+                yuanbaoIcon.y = 50
+                console.log("✅ 元宝图标位置已调整: y=50")
+            }
+            
+            // 调整金币框位置
+            var goldFrame = playerNode.getChildByName("gold_frame")
+            if (goldFrame) {
+                goldFrame.y = 50
+                console.log("✅ 金币框位置已调整: y=50")
+            }
+        }
     },
     
     // 隐藏不需要的按钮
