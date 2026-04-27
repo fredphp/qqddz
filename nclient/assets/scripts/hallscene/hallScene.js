@@ -210,8 +210,11 @@ cc.Class({
                 }
                 
                 try {
-                    self.headimage.spriteFrame = new cc.SpriteFrame(texture);
-                    console.log("网络头像加载成功");
+                    var spriteFrame = new cc.SpriteFrame(texture);
+                    if (spriteFrame) {
+                        self.headimage.spriteFrame = spriteFrame;
+                        console.log("网络头像加载成功");
+                    }
                 } catch (e) {
                     console.error("创建头像 SpriteFrame 失败:", e);
                     self._loadDefaultAvatar();
@@ -228,7 +231,24 @@ cc.Class({
                 }
                 
                 // 验证 spriteFrame 是否有效
-                if (!spriteFrame || !(spriteFrame instanceof cc.SpriteFrame)) {
+                if (!spriteFrame) {
+                    console.warn("本地头像 spriteFrame 为空");
+                    self._loadDefaultAvatar();
+                    return;
+                }
+                
+                // 使用多种方式验证 spriteFrame 有效性
+                var isValid = false;
+                try {
+                    if (spriteFrame instanceof cc.SpriteFrame) {
+                        isValid = true;
+                    } else if (typeof spriteFrame.textureLoaded === 'function' || 
+                               typeof spriteFrame.getTexture === 'function') {
+                        isValid = true;
+                    }
+                } catch (e) {}
+                
+                if (!isValid) {
                     console.warn("本地头像 spriteFrame 无效");
                     self._loadDefaultAvatar();
                     return;
@@ -255,7 +275,22 @@ cc.Class({
             }
             
             // 验证 spriteFrame 是否有效
-            if (!spriteFrame || !(spriteFrame instanceof cc.SpriteFrame)) {
+            if (!spriteFrame) {
+                console.error("默认头像 spriteFrame 为空");
+                return;
+            }
+            
+            var isValid = false;
+            try {
+                if (spriteFrame instanceof cc.SpriteFrame) {
+                    isValid = true;
+                } else if (typeof spriteFrame.textureLoaded === 'function' || 
+                           typeof spriteFrame.getTexture === 'function') {
+                    isValid = true;
+                }
+            } catch (e) {}
+            
+            if (!isValid) {
                 console.error("默认头像 spriteFrame 无效");
                 return;
             }
@@ -652,9 +687,24 @@ cc.Class({
                 return;
             }
             
-            // 检查是否是有效的 SpriteFrame
-            if (!(spriteFrame instanceof cc.SpriteFrame)) {
-                console.warn("加载的资源不是 SpriteFrame: " + bgImagePath, spriteFrame);
+            // 检查是否是有效的 SpriteFrame - 使用多种方式验证
+            var isValidSpriteFrame = false;
+            try {
+                // 方法1: instanceof 检查
+                if (spriteFrame instanceof cc.SpriteFrame) {
+                    isValidSpriteFrame = true;
+                }
+                // 方法2: 检查是否有必要的方法
+                else if (typeof spriteFrame.textureLoaded === 'function' || 
+                         typeof spriteFrame.getTexture === 'function') {
+                    isValidSpriteFrame = true;
+                }
+            } catch (e) {
+                console.warn("检查 spriteFrame 类型失败:", e);
+            }
+            
+            if (!isValidSpriteFrame) {
+                console.warn("加载的资源不是有效的 SpriteFrame: " + bgImagePath, spriteFrame);
                 self._loadDefaultRoomButtonBg(btnNode);
                 return;
             }
@@ -684,8 +734,23 @@ cc.Class({
             }
             
             // 验证 spriteFrame 是否有效
-            if (!spriteFrame || !(spriteFrame instanceof cc.SpriteFrame)) {
-                console.warn("默认背景图资源无效");
+            if (!spriteFrame) {
+                console.warn("默认背景图资源为空");
+                return;
+            }
+            
+            var isValidSpriteFrame = false;
+            try {
+                if (spriteFrame instanceof cc.SpriteFrame) {
+                    isValidSpriteFrame = true;
+                } else if (typeof spriteFrame.textureLoaded === 'function' || 
+                           typeof spriteFrame.getTexture === 'function') {
+                    isValidSpriteFrame = true;
+                }
+            } catch (e) {}
+            
+            if (!isValidSpriteFrame) {
+                console.warn("默认背景图资源不是有效的 SpriteFrame");
                 return;
             }
             
