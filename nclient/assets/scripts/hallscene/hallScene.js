@@ -2380,7 +2380,11 @@ cc.Class({
         var isConnected = socket && socket.isConnected && socket.isConnected();
         var isWebSocketOpen = socket && socket.isWebSocketOpen && socket.isWebSocketOpen();
         
-        console.log("获取房间列表 - WebSocket状态: isConnected=" + isConnected + ", isWebSocketOpen=" + isWebSocketOpen);
+        console.log("========================================");
+        console.log("获取房间列表 - 调试信息");
+        console.log("========================================");
+        console.log("WebSocket状态: isConnected=" + isConnected + ", isWebSocketOpen=" + isWebSocketOpen);
+        console.log("房间配置:", JSON.stringify(roomConfig));
         
         // 存储当前房间列表，用于实时更新
         var currentRooms = [];
@@ -2459,6 +2463,13 @@ cc.Class({
         socket.getRoomList(function(result, rooms) {
             clearTimeout(timeoutId);
             
+            console.log("========================================");
+            console.log("房间列表响应结果:");
+            console.log("  result =", result);
+            console.log("  rooms =", JSON.stringify(rooms));
+            console.log("  rooms.length =", rooms ? rooms.length : 0);
+            console.log("========================================");
+            
             if (loadingLabel && loadingLabel.isValid) {
                 loadingLabel.active = false;
             }
@@ -2466,11 +2477,23 @@ cc.Class({
             if (result === 0 && rooms && rooms.length > 0) {
                 // 存储房间列表用于实时更新
                 currentRooms = rooms;
+                
+                // 输出每个房间的详细信息
+                for (var i = 0; i < rooms.length; i++) {
+                    var r = rooms[i];
+                    console.log("房间[" + i + "]: room_code=" + (r.room_code || r.roomCode) + 
+                                ", player_count=" + (r.player_count || r.playerCount) +
+                                ", max_players=" + (r.max_players || r.maxPlayers));
+                }
+                
                 // 过滤：只显示人数少于3人的房间
                 var filteredRooms = rooms.filter(function(room) {
                     var count = room.player_count || room.playerCount || 0;
+                    console.log("过滤房间 " + (room.room_code || room.roomCode) + ": player_count=" + count);
                     return count > 0 && count < 3;
                 });
+                
+                console.log("过滤后房间数量:", filteredRooms.length);
                 self._renderRoomListInScene(container, filteredRooms, roomConfig, playerGold, sceneNode);
             } else {
                 // 没有房间或请求失败，显示空列表
