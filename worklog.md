@@ -303,3 +303,34 @@ Stage Summary:
 - 卡片尺寸统一，不被拉伸
 - 左右两个独立容器，各自内部自动换行
 - 提交：a4b4a46
+
+---
+Task ID: 9
+Agent: Main Agent
+Task: 调整房间布局 - 删除标题、整体上移、卡片放大
+
+Work Log:
+1. 删除标题：
+   - 移除 `_addAreaTitle(leftPanel, "竞技场", ...)` 调用
+   - 移除 `_addAreaTitle(rightPanel, "普通场", ...)` 调用
+   - 不保留占位，不隐藏，直接移除节点
+
+2. 整体上移：
+   - 添加 `topMargin = 40` 变量
+   - 计算容器位置：`panelY = screenHeight/2 - topMargin - panelHeight/2`
+   - 移除 `startY` 中的标题高度偏移（-40）
+   - 第一排房间距离屏幕顶部约 40px
+
+3. 卡片放大：
+   - cardWidth: 200px → 240px
+   - cardHeight: 240px → 300px
+   - gapX: 30 → 40
+   - gapY: 30 → 40
+   - panelHeight: screenHeight * 0.6 → screenHeight * 0.7
+
+Stage Summary:
+- 已删除"竞技场"和"普通场"标题
+- 房间列表整体上移，第一排距离顶部约40px
+- 卡片尺寸放大：240x300px
+- 保持固定2列网格布局
+- 提交：d05b26d
