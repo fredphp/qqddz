@@ -66,46 +66,72 @@ cc.Class({
         }
         
         var self = this;
-        myglobal.verifyToken(function(valid, message) {
-            if (!valid) {
-                cc.director.loadScene("loginScene");
-                return;
-            }
+        
+        // 检查 verifyToken 是否存在
+        if (typeof myglobal.verifyToken !== 'function') {
+            console.warn("verifyToken 方法不存在，跳过验证");
             self._initUIAfterAuth();
-        });
+            return;
+        }
+        
+        try {
+            myglobal.verifyToken(function(valid, message) {
+                if (!valid) {
+                    cc.director.loadScene("loginScene");
+                    return;
+                }
+                self._initUIAfterAuth();
+            });
+        } catch (e) {
+            console.error("verifyToken 调用失败:", e);
+            self._initUIAfterAuth();
+        }
     },
     
     _initUIAfterAuth: function() {
-        var myglobal = window.myglobal;
-        var playerData = myglobal.playerData;
+        console.log("=== _initUIAfterAuth ===");
         
-        // 设置昵称
-        if (this.nickname_label) {
-            this.nickname_label.string = playerData.nickName || "游客";
-        }
-        
-        // 设置金币
-        if (this.gobal_count) {
-            this.gobal_count.string = ":" + (playerData.gobal_count || 0);
-            this.gobal_count.fontSize = 64;
-            this.gobal_count.lineHeight = 72;
+        try {
+            var myglobal = window.myglobal;
+            var playerData = myglobal ? myglobal.playerData : null;
             
-            var labelNode = this.gobal_count.node;
-            if (labelNode) {
-                var widget = labelNode.getComponent(cc.Widget);
-                if (widget) widget.enabled = false;
-                labelNode.y = 80;
+            if (!playerData) {
+                console.warn("playerData 为空，使用默认值");
+                playerData = { nickName: "游客", gobal_count: 0, avatarUrl: null };
             }
+            
+            // 设置昵称
+            if (this.nickname_label) {
+                this.nickname_label.string = playerData.nickName || "游客";
+            }
+            
+            // 设置金币
+            if (this.gobal_count) {
+                this.gobal_count.string = ":" + (playerData.gobal_count || 0);
+                this.gobal_count.fontSize = 64;
+                this.gobal_count.lineHeight = 72;
+                
+                var labelNode = this.gobal_count.node;
+                if (labelNode) {
+                    var widget = labelNode.getComponent(cc.Widget);
+                    if (widget) widget.enabled = false;
+                    labelNode.y = 80;
+                }
+            }
+            
+            this._adjustGoldElementsPosition();
+            this._loadUserAvatar(playerData.avatarUrl);
+            this.roomConfigs = [];
+            this._playHallBackgroundMusic();
+            this._hideUnwantedButtons();
+            this._hideBackgroundCharacters();
+            this._fetchRoomConfigs();
+            this._removeNoticeBoard();
+            
+            console.log("=== _initUIAfterAuth 完成 ===");
+        } catch (e) {
+            console.error("_initUIAfterAuth 异常:", e);
         }
-        
-        this._adjustGoldElementsPosition();
-        this._loadUserAvatar(playerData.avatarUrl);
-        this.roomConfigs = [];
-        this._playHallBackgroundMusic();
-        this._hideUnwantedButtons();
-        this._hideBackgroundCharacters();
-        this._fetchRoomConfigs();
-        this._removeNoticeBoard();
     },
     
     _hideBackgroundCharacters: function() {
@@ -185,38 +211,50 @@ cc.Class({
         var apiUrl = window.defines ? window.defines.apiUrl : '';
         var cryptoKey = window.defines ? window.defines.cryptoKey : '';
         
+        // 如果没有配置 API，使用默认配置
         if (!apiUrl || !window.HttpAPI) {
+            console.log("使用默认房间配置");
             self._initRoomButtons(self._getDefaultRoomConfigs());
             return;
         }
         
-        HttpAPI._roomConfigCache = null;
-        try { localStorage.removeItem('room_config_cache'); } catch (e) {}
-        
-        HttpAPI.get(
-            apiUrl + '/api/v1/room/config/list',
-            cryptoKey,
-            function(err, result) {
-                if (err) {
-                    self._initRoomButtons(self._getDefaultRoomConfigs());
-                    return;
-                }
-                
-                var configs = null;
-                if (result && result.code === 0 && result.data) {
-                    configs = result.data;
-                } else if (result && Array.isArray(result)) {
-                    configs = result;
-                }
-                
-                if (configs && configs.length > 0) {
-                    self.roomConfigs = configs;
-                    self._initRoomButtons(configs);
-                } else {
-                    self._initRoomButtons(self._getDefaultRoomConfigs());
-                }
+        try {
+            // 清除缓存
+            if (HttpAPI._roomConfigCache) {
+                HttpAPI._roomConfigCache = null;
             }
-        );
+            try { localStorage.removeItem('room_config_cache'); } catch (e) {}
+            
+            // 请求 API
+            HttpAPI.get(
+                apiUrl + '/api/v1/room/config/list',
+                cryptoKey,
+                function(err, result) {
+                    if (err) {
+                        console.warn("API请求失败:", err);
+                        self._initRoomButtons(self._getDefaultRoomConfigs());
+                        return;
+                    }
+                    
+                    var configs = null;
+                    if (result && result.code === 0 && result.data) {
+                        configs = result.data;
+                    } else if (result && Array.isArray(result)) {
+                        configs = result;
+                    }
+                    
+                    if (configs && configs.length > 0) {
+                        self.roomConfigs = configs;
+                        self._initRoomButtons(configs);
+                    } else {
+                        self._initRoomButtons(self._getDefaultRoomConfigs());
+                    }
+                }
+            );
+        } catch (e) {
+            console.error("_fetchRoomConfigs 异常:", e);
+            self._initRoomButtons(self._getDefaultRoomConfigs());
+        }
     },
     
     _getDefaultRoomConfigs: function() {
