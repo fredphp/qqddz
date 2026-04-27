@@ -728,7 +728,7 @@ cc.Class({
         goldLabelNode.setPosition(0, -btnNode.height/2 + 30);
     },
     
-    // 房间按钮点击处理
+    // 房间按钮点击处理 - 显示房间列表弹窗
     _onRoomButtonClick: function(roomConfig) {
         var self = this;
         var myglobal = window.myglobal;
@@ -747,65 +747,327 @@ cc.Class({
             return;
         }
         
-        this._showMessage("正在进入" + roomConfig.room_name + "...");
-        
+        // 保存当前房间配置
         if (myglobal) {
             myglobal.currentRoomConfig = roomConfig;
             myglobal.currentRoomLevel = roomConfig.room_type;
             myglobal.currentRoomName = roomConfig.room_name;
         }
         
-        // 使用 myglobal.socket（已初始化的连接），而不是创建新实例
+        // 显示房间列表弹窗
+        this._showRoomListDialog(roomConfig, playerGold);
+    },
+    
+    // 显示房间列表弹窗
+    _showRoomListDialog: function(roomConfig, playerGold) {
+        var self = this;
+        var myglobal = window.myglobal;
+        
+        console.log("显示房间列表弹窗, 房间类型:", roomConfig.room_name);
+        
+        // 移除旧的弹窗
+        var oldDialog = this.node.getChildByName("RoomListDialog");
+        if (oldDialog) oldDialog.destroy();
+        
+        // 创建弹窗背景
+        var dialog = new cc.Node("RoomListDialog");
+        dialog.setContentSize(cc.size(600, 400));
+        dialog.anchorX = 0.5;
+        dialog.anchorY = 0.5;
+        dialog.x = 0;
+        dialog.y = 0;
+        dialog.parent = this.node;
+        
+        // 添加半透明背景
+        var bgSprite = dialog.addComponent(cc.Sprite);
+        bgSprite.type = cc.Sprite.Type.SLICED;
+        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        dialog.color = cc.color(40, 40, 60);
+        dialog.opacity = 240;
+        
+        // 标题
+        var titleNode = new cc.Node("Title");
+        titleNode.y = 160;
+        var titleLabel = titleNode.addComponent(cc.Label);
+        titleLabel.string = roomConfig.room_name + " - 选择房间";
+        titleLabel.fontSize = 32;
+        titleLabel.lineHeight = 40;
+        titleNode.color = cc.color(255, 215, 0);
+        titleNode.parent = dialog;
+        
+        // 房间列表容器
+        var listContainer = new cc.Node("ListContainer");
+        listContainer.setContentSize(cc.size(560, 180));
+        listContainer.y = 30;
+        listContainer.parent = dialog;
+        
+        // 加载中的提示
+        var loadingLabel = new cc.Node("LoadingLabel");
+        loadingLabel.y = 0;
+        var loading = loadingLabel.addComponent(cc.Label);
+        loading.string = "正在获取房间列表...";
+        loading.fontSize = 24;
+        loadingLabel.color = cc.color(200, 200, 200);
+        loadingLabel.parent = listContainer;
+        
+        // 按钮容器
+        var btnContainer = new cc.Node("BtnContainer");
+        btnContainer.y = -130;
+        btnContainer.parent = dialog;
+        
+        // 快速匹配按钮
+        var quickMatchBtn = this._createButton("快速匹配", cc.color(76, 175, 80), -180, function() {
+            console.log("点击快速匹配");
+            dialog.destroy();
+            self._quickMatch(roomConfig, playerGold);
+        });
+        quickMatchBtn.parent = btnContainer;
+        
+        // 创建房间按钮
+        var createRoomBtn = this._createButton("创建房间", cc.color(33, 150, 243), 0, function() {
+            console.log("点击创建房间");
+            dialog.destroy();
+            self._createRoom(roomConfig, playerGold);
+        });
+        createRoomBtn.parent = btnContainer;
+        
+        // 关闭按钮
+        var closeBtn = this._createButton("关闭", cc.color(158, 158, 158), 180, function() {
+            dialog.destroy();
+        });
+        closeBtn.parent = btnContainer;
+        
+        // 输入房间号区域
+        var inputContainer = new cc.Node("InputContainer");
+        inputContainer.y = -70;
+        inputContainer.parent = dialog;
+        
+        var inputLabel = new cc.Node("InputLabel");
+        inputLabel.x = -200;
+        var inputLabelComp = inputLabel.addComponent(cc.Label);
+        inputLabelComp.string = "房间号:";
+        inputLabelComp.fontSize = 22;
+        inputLabel.color = cc.color(200, 200, 200);
+        inputLabel.parent = inputContainer;
+        
+        // 房间号输入框（用Label模拟）
+        var roomCodeInput = new cc.Node("RoomCodeInput");
+        roomCodeInput.setContentSize(cc.size(150, 35));
+        roomCodeInput.x = -80;
+        roomCodeInput.parent = inputContainer;
+        
+        var inputBg = roomCodeInput.addComponent(cc.Sprite);
+        inputBg.color = cc.color(60, 60, 80);
+        
+        var inputText = roomCodeInput.addComponent(cc.Label);
+        inputText.string = "点击输入";
+        inputText.fontSize = 20;
+        inputText.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        
+        // 加入房间按钮
+        var joinBtn = this._createButton("加入", cc.color(255, 152, 0), 80, function() {
+            var roomCode = inputText.string;
+            if (roomCode && roomCode !== "点击输入") {
+                console.log("加入房间:", roomCode);
+                dialog.destroy();
+                self._joinRoom(roomCode, roomConfig, playerGold);
+            } else {
+                self._showMessage("请输入房间号");
+            }
+        });
+        joinBtn.parent = inputContainer;
+        
+        // 获取房间列表
+        this._fetchRoomList(listContainer, loadingLabel);
+    },
+    
+    // 创建按钮
+    _createButton: function(text, color, x, callback) {
+        var btn = new cc.Node(text + "Btn");
+        btn.setContentSize(cc.size(120, 45));
+        btn.x = x;
+        
+        var sprite = btn.addComponent(cc.Sprite);
+        sprite.type = cc.Sprite.Type.SLICED;
+        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        btn.color = color;
+        
+        var label = btn.addComponent(cc.Label);
+        label.string = text;
+        label.fontSize = 22;
+        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        
+        btn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            if (callback) callback();
+        });
+        
+        return btn;
+    },
+    
+    // 获取房间列表
+    _fetchRoomList: function(container, loadingLabel) {
+        var myglobal = window.myglobal;
         var socket = myglobal && myglobal.socket ? myglobal.socket : null;
         
-        console.log("=== 进入房间调试 ===");
-        console.log("socket 存在:", !!socket);
-        console.log("request_enter_room 存在:", !!(socket && socket.request_enter_room));
-        
-        if (socket && socket.request_enter_room) {
-            // 检查 WebSocket 物理连接状态
-            var isWebSocketOpen = socket.isWebSocketOpen ? socket.isWebSocketOpen() : false;
-            var isLogicalConnected = socket.isConnected ? socket.isConnected() : false;
-            
-            console.log("WebSocket 物理连接:", isWebSocketOpen);
-            console.log("WebSocket 逻辑连接:", isLogicalConnected);
-            
-            // 如果物理连接已打开，直接发送请求
-            if (isWebSocketOpen) {
-                console.log("WebSocket 已连接，发送进入房间请求");
-                socket.request_enter_room({ room_level: roomConfig.room_type }, function(result, data) {
-                    console.log("进入房间响应:", result, JSON.stringify(data));
-                    if (result === 0 && data && data.roomid) {
-                        if (myglobal) myglobal.roomData = data;
-                        self._enterGameScene(data);
-                    } else {
-                        // 服务器返回失败，使用模拟数据
-                        console.log("服务器返回失败，使用模拟数据");
-                        self._enterGameSceneWithMockData(roomConfig, playerGold);
-                    }
-                });
-                
-                // 设置超时，如果3秒内没有响应，使用模拟数据
-                this._enterRoomTimeout = setTimeout(function() {
-                    console.log("进入房间超时，使用模拟数据");
-                    self._enterGameSceneWithMockData(roomConfig, playerGold);
-                }, 3000);
-                return;
-            }
-            
-            // 未连接，先尝试初始化
-            console.log("WebSocket 未连接，尝试重新连接...");
-            if (socket.initSocket) {
-                socket.initSocket();
-            }
-            // 等待连接后再请求
-            this._waitForConnectionAndEnterRoom(roomConfig, socket, playerGold);
+        if (!socket || !socket.getRoomList) {
+            loadingLabel.getComponent(cc.Label).string = "无法获取房间列表";
             return;
         }
         
-        // 降级处理：无 WebSocket 连接时使用模拟数据
-        console.log("WebSocket 不可用，使用模拟数据");
-        this._enterGameSceneWithMockData(roomConfig, playerGold);
+        socket.getRoomList(function(result, rooms) {
+            if (result === 0 && rooms && rooms.length > 0) {
+                loadingLabel.destroy();
+                this._renderRoomList(container, rooms);
+            } else {
+                loadingLabel.getComponent(cc.Label).string = "暂无可加入的房间";
+            }
+        }.bind(this));
+    },
+    
+    // 渲染房间列表
+    _renderRoomList: function(container, rooms) {
+        var self = this;
+        
+        for (var i = 0; i < rooms.length && i < 5; i++) {
+            var room = rooms[i];
+            var item = new cc.Node("RoomItem_" + i);
+            item.setContentSize(cc.size(540, 35));
+            item.y = 70 - i * 40;
+            
+            var bg = item.addComponent(cc.Sprite);
+            bg.color = i % 2 === 0 ? cc.color(50, 50, 70) : cc.color(45, 45, 65);
+            
+            // 房间号
+            var codeLabel = new cc.Node();
+            codeLabel.x = -200;
+            var code = codeLabel.addComponent(cc.Label);
+            code.string = "房间: " + (room.room_code || room.roomCode || "未知");
+            code.fontSize = 18;
+            codeLabel.color = cc.color(200, 200, 200);
+            codeLabel.parent = item;
+            
+            // 人数
+            var countLabel = new cc.Node();
+            countLabel.x = 50;
+            var count = countLabel.addComponent(cc.Label);
+            count.string = "人数: " + (room.player_count || room.playerCount || 0) + "/3";
+            count.fontSize = 18;
+            countLabel.color = cc.color(150, 200, 150);
+            countLabel.parent = item;
+            
+            // 加入按钮
+            var joinBtn = this._createButton("加入", cc.color(76, 175, 80), 200, function() {
+                var roomCode = room.room_code || room.roomCode;
+                self._joinRoom(roomCode, myglobal.currentRoomConfig, myglobal.playerData.gobal_count);
+            });
+            joinBtn.setContentSize(cc.size(70, 30));
+            joinBtn.x = 220;
+            joinBtn.parent = item;
+            
+            item.parent = container;
+        }
+    },
+    
+    // 快速匹配
+    _quickMatch: function(roomConfig, playerGold) {
+        var self = this;
+        var myglobal = window.myglobal;
+        var socket = myglobal && myglobal.socket ? myglobal.socket : null;
+        
+        this._showMessage("正在快速匹配...");
+        
+        if (socket && socket.request_enter_room) {
+            socket.request_enter_room({ room_level: roomConfig.room_type }, function(result, data) {
+                if (result === 0 && data && data.roomid) {
+                    if (myglobal) myglobal.roomData = data;
+                    self._enterGameScene(data);
+                } else {
+                    self._enterGameSceneWithMockData(roomConfig, playerGold);
+                }
+            });
+            
+            this._enterRoomTimeout = setTimeout(function() {
+                self._enterGameSceneWithMockData(roomConfig, playerGold);
+            }, 5000);
+        } else {
+            this._enterGameSceneWithMockData(roomConfig, playerGold);
+        }
+    },
+    
+    // 创建房间
+    _createRoom: function(roomConfig, playerGold) {
+        var self = this;
+        var myglobal = window.myglobal;
+        var socket = myglobal && myglobal.socket ? myglobal.socket : null;
+        
+        this._showMessage("正在创建房间...");
+        
+        if (socket && socket.createRoom) {
+            socket.createRoom(function(result, data) {
+                console.log("创建房间结果:", result, JSON.stringify(data));
+                if (result === 0 && data) {
+                    // 转换数据格式
+                    var roomData = {
+                        roomid: data.room_code || data.roomCode || "NEW_ROOM",
+                        seatindex: 1,
+                        playerdata: [{
+                            accountid: myglobal.playerData.accountID,
+                            nick_name: myglobal.playerData.nickName,
+                            avatarUrl: myglobal.playerData.avatarUrl || "avatar_1",
+                            goldcount: playerGold,
+                            seatindex: 1
+                        }],
+                        housemanageid: myglobal.playerData.accountID
+                    };
+                    myglobal.roomData = roomData;
+                    self._enterGameScene(roomData);
+                } else {
+                    self._showMessage("创建房间失败，使用模拟数据");
+                    self._enterGameSceneWithMockData(roomConfig, playerGold);
+                }
+            });
+        } else {
+            this._enterGameSceneWithMockData(roomConfig, playerGold);
+        }
+    },
+    
+    // 加入房间
+    _joinRoom: function(roomCode, roomConfig, playerGold) {
+        var self = this;
+        var myglobal = window.myglobal;
+        var socket = myglobal && myglobal.socket ? myglobal.socket : null;
+        
+        this._showMessage("正在加入房间 " + roomCode + "...");
+        
+        if (socket && socket.joinRoom) {
+            socket.joinRoom(roomCode, function(result, data) {
+                console.log("加入房间结果:", result, JSON.stringify(data));
+                if (result === 0 && data) {
+                    // 转换数据格式
+                    var roomData = {
+                        roomid: data.room_code || data.roomCode || roomCode,
+                        seatindex: data.player ? data.player.seat : 1,
+                        playerdata: (data.players || []).map(function(p, idx) {
+                            return {
+                                accountid: p.id,
+                                nick_name: p.name,
+                                avatarUrl: "avatar_1",
+                                goldcount: 1000,
+                                seatindex: p.seat || idx + 1
+                            };
+                        }),
+                        housemanageid: ""
+                    };
+                    myglobal.roomData = roomData;
+                    self._enterGameScene(roomData);
+                } else {
+                    self._showMessage("加入房间失败");
+                }
+            });
+        } else {
+            this._showMessage("无法连接服务器");
+        }
     },
     
     // 使用模拟数据进入游戏场景

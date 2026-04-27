@@ -61,6 +61,7 @@ window.socketCtr = function(){
         PLAY_CARDS: "play_cards",
         PASS: "pass",
         CHAT: "chat",
+        GET_ROOM_LIST: "get_room_list",  // 获取房间列表
         
         // 服务端响应
         CONNECTED: "connected",
@@ -81,6 +82,7 @@ window.socketCtr = function(){
         GAME_OVER: "game_over",
         ERROR: "error",
         FORCE_LOGOUT: "force_logout", // 强制下线
+        ROOM_LIST_RESULT: "room_list_result",  // 房间列表结果
         
         // 心跳消息
         HEARTBEAT: "heartbeat",
@@ -170,6 +172,11 @@ window.socketCtr = function(){
                 
             case MessageType.MATCH_FOUND:
                 evt.fire("match_found", data)
+                break
+                
+            case MessageType.ROOM_LIST_RESULT:
+                console.log("收到房间列表:", JSON.stringify(data))
+                evt.fire("room_list_result", data)
                 break
                 
             case MessageType.GAME_START:
@@ -447,6 +454,59 @@ window.socketCtr = function(){
                 callback && callback(-1, {})
             }
         })
+    }
+    
+    // ========== 房间管理 ==========
+    
+    // 获取房间列表
+    that.getRoomList = function(callback){
+        _request(MessageType.GET_ROOM_LIST, {}, function(result, data){
+            if (result === 0 && data && data.rooms) {
+                callback && callback(0, data.rooms)
+            } else {
+                callback && callback(-1, [])
+            }
+        })
+    }
+    
+    // 创建房间
+    that.createRoom = function(callback){
+        _request(MessageType.CREATE_ROOM, {}, function(result, data){
+            if (result === 0 && data) {
+                callback && callback(0, data)
+            } else {
+                callback && callback(-1, {})
+            }
+        })
+    }
+    
+    // 加入房间
+    that.joinRoom = function(roomCode, callback){
+        _request(MessageType.JOIN_ROOM, { room_code: roomCode }, function(result, data){
+            if (result === 0 && data) {
+                callback && callback(0, data)
+            } else {
+                callback && callback(-1, {})
+            }
+        })
+    }
+    
+    // 监听房间列表结果
+    that.onRoomListResult = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("room_list_result", callback)
+    }
+    
+    // 监听房间创建结果
+    that.onRoomCreated = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("room_created", callback)
+    }
+    
+    // 监听加入房间结果
+    that.onRoomJoined = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("room_joined", callback)
     }
 
     // ========== 游戏流程 ==========
