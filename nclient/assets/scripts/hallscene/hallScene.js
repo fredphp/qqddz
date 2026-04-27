@@ -421,7 +421,7 @@ cc.Class({
         
         // 位置：左容器从屏幕中心开始，往左延伸，整体向上移动
         leftPanel.x = -screenWidth / 2 + 30;  // 距离左边30px
-        leftPanel.y = 90;  // margin-top 40px
+        leftPanel.y = 10;  // margin-top 120px
         
         // 添加容器边框（调试用）
         this._addDebugBorder(leftPanel, cc.color(255, 0, 0));  // 红色边框
@@ -465,7 +465,7 @@ cc.Class({
         
         // 位置：右容器在屏幕右边
         rightPanel.x = screenWidth / 2 - 30 - panelWidth;  // 距离右边30px
-        rightPanel.y = 90;  // margin-top 40px
+        rightPanel.y = 10;  // margin-top 120px
         
         // 添加容器边框（调试用）
         this._addDebugBorder(rightPanel, cc.color(0, 0, 255));  // 蓝色边框
