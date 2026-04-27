@@ -597,34 +597,30 @@ cc.Class({
             }
         }
         
-        // 按房间分类排序：竞技场(2)在前，普通场(1)在后
-        buttonDataList.sort(function(a, b) {
-            // 先按分类排序（竞技场优先）
-            if (a.category !== b.category) {
-                return b.category - a.category; // 降序，2(竞技场)在前
+        // 按房间分类分组：竞技场(2)和普通场(1)
+        var arenaButtons = [];  // 竞技场按钮
+        var normalButtons = []; // 普通场按钮
+        
+        for (var i = 0; i < buttonDataList.length; i++) {
+            if (buttonDataList[i].category === 2) {
+                arenaButtons.push(buttonDataList[i]);
+            } else {
+                normalButtons.push(buttonDataList[i]);
             }
-            // 同分类按 sortOrder 排序
-            return a.sortOrder - b.sortOrder;
-        });
-        
-        // 提取排序后的按钮节点
-        var activeButtons = buttonDataList.map(function(item) {
-            return item.node;
-        });
-        
-        // 根据按钮数量自动居中排列
-        this._centerRoomButtons(activeButtons);
-    },
-    
-    // 居中排列房间按钮 - 根据数量自动调整宽度占比
-    _centerRoomButtons: function(buttons) {
-        if (!buttons || buttons.length === 0) {
-            return;
         }
         
-        var buttonCount = buttons.length;
-        console.log("居中排列 " + buttonCount + " 个房间按钮");
+        // 各自按 sortOrder 排序
+        arenaButtons.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
+        normalButtons.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
         
+        console.log("竞技场按钮数量: " + arenaButtons.length + ", 普通场按钮数量: " + normalButtons.length);
+        
+        // 根据分类左右排列：竞技场靠左，普通场靠右
+        this._layoutRoomButtonsByCategory(arenaButtons, normalButtons);
+    },
+    
+    // 按分类左右排列房间按钮：竞技场靠左，普通场靠右
+    _layoutRoomButtonsByCategory: function(arenaButtons, normalButtons) {
         // 获取屏幕/画布宽度
         var canvas = this.node.getComponent(cc.Canvas) || 
                      cc.find('Canvas').getComponent(cc.Canvas);
@@ -634,57 +630,57 @@ cc.Class({
         var originalButtonWidth = 268;
         var originalButtonHeight = 140;
         
-        // 计算每个按钮应该占据的宽度比例
-        // 4个按钮 = 25%, 3个 = 33.33%, 2个 = 50%, 1个 = 100%
-        var buttonWidthPercent = 1 / buttonCount;
-        
-        // 按钮之间的间距（相对屏幕宽度的比例）
-        var gapPercent = 0.02; // 2% 间距
-        var totalGapPercent = gapPercent * (buttonCount - 1);
-        
-        // 每个按钮实际占据的宽度（包含间距）
-        var buttonSlotWidth = screenWidth * buttonWidthPercent;
-        
-        // 实际按钮宽度（减去间距）
-        var actualButtonWidth = buttonSlotWidth - screenWidth * gapPercent;
-        
-        // 限制按钮最大和最小宽度
-        var maxButtonWidth = 280;
-        var minButtonWidth = 180;
-        actualButtonWidth = Math.min(maxButtonWidth, Math.max(minButtonWidth, actualButtonWidth));
-        
-        // 计算缩放比例
-        var scale = actualButtonWidth / originalButtonWidth;
-        
-        // Y 坐标
+        // 按钮宽度
+        var buttonWidth = 240;
+        var gap = 20; // 按钮间距
+        var scale = buttonWidth / originalButtonWidth;
         var yPosition = -80;
         
-        // 计算总宽度（用于居中）
-        var totalWidth = buttonCount * actualButtonWidth + (buttonCount - 1) * screenWidth * gapPercent;
+        // 屏幕中心线
+        var centerX = 0;
         
-        // 计算起始 X 坐标（居中）
-        var startX = -totalWidth / 2 + actualButtonWidth / 2;
-        
-        console.log("屏幕宽度: " + screenWidth + 
-                   ", 按钮数量: " + buttonCount + 
-                   ", 按钮宽度: " + actualButtonWidth +
-                   ", 缩放比例: " + scale.toFixed(2));
-        
-        // 设置每个按钮的位置和缩放
-        for (var i = 0; i < buttonCount; i++) {
-            var btnNode = buttons[i];
-            var xPos = startX + i * (actualButtonWidth + screenWidth * gapPercent);
+        // ===== 竞技场按钮靠左排列 =====
+        var arenaCount = arenaButtons.length;
+        if (arenaCount > 0) {
+            // 计算竞技场按钮组的总宽度
+            var arenaTotalWidth = arenaCount * buttonWidth + (arenaCount - 1) * gap;
+            // 从中心线向左偏移一半，然后减去半个按钮宽度，使最后一个按钮紧贴中心线左侧
+            var arenaStartX = centerX - arenaTotalWidth / 2 + buttonWidth / 2;
             
-            // 设置位置
-            btnNode.setPosition(xPos, yPosition);
+            console.log("竞技场布局 - 数量: " + arenaCount + ", 起始X: " + arenaStartX.toFixed(0));
             
-            // 设置缩放
-            btnNode.scale = scale;
-            
-            console.log("按钮 " + btnNode.name + " 位置: (" + xPos.toFixed(0) + ", " + yPosition + "), 缩放: " + scale.toFixed(2));
+            for (var i = 0; i < arenaCount; i++) {
+                var btnNode = arenaButtons[i].node;
+                var xPos = arenaStartX + i * (buttonWidth + gap);
+                btnNode.setPosition(xPos, yPosition);
+                btnNode.scale = scale;
+                
+                console.log("竞技场按钮 " + btnNode.name + " 位置: (" + xPos.toFixed(0) + ", " + yPosition + ")");
+            }
         }
         
-        console.log("✅ 房间按钮居中排列完成");
+        // ===== 普通场按钮靠右排列 =====
+        var normalCount = normalButtons.length;
+        if (normalCount > 0) {
+            // 计算普通场按钮组的总宽度
+            var normalTotalWidth = normalCount * buttonWidth + (normalCount - 1) * gap;
+            // 从中心线向右偏移一半，然后加上半个按钮宽度，使第一个按钮紧贴中心线右侧
+            var normalStartX = centerX + normalTotalWidth / 2 - buttonWidth / 2;
+            
+            console.log("普通场布局 - 数量: " + normalCount + ", 起始X: " + normalStartX.toFixed(0));
+            
+            // 从右往左排列（倒序设置位置）
+            for (var i = 0; i < normalCount; i++) {
+                var btnNode = normalButtons[i].node;
+                var xPos = normalStartX - i * (buttonWidth + gap);
+                btnNode.setPosition(xPos, yPosition);
+                btnNode.scale = scale;
+                
+                console.log("普通场按钮 " + btnNode.name + " 位置: (" + xPos.toFixed(0) + ", " + yPosition + ")");
+            }
+        }
+        
+        console.log("✅ 房间按钮按分类左右排列完成：竞技场靠左，普通场靠右");
     },
     
     // 根据房间类型加载按钮背景图
