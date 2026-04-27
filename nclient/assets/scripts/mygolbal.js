@@ -4,6 +4,7 @@
  * 确保所有依赖都已加载
  * 支持自动登录和强制下线检测
  * 支持跨平台存储（Web/App）
+ * 支持心跳检测和在线状态监听
  */
 
 (function() {
@@ -21,7 +22,15 @@
         eventlister: null,
         _initialized: false,
         _forceLogout: false,  // 是否被强制下线
-        _forceLogoutReason: ""  // 强制下线原因
+        _forceLogoutReason: "",  // 强制下线原因
+        
+        // ========== 在线状态监听 ==========
+        _onlineStatusListeners: [],     // 在线状态监听器列表
+        _isOnline: true,                // 当前是否在线
+        _connectionCheckInterval: null, // 连接检查定时器
+        _tokenCheckInterval: null,      // Token 检查定时器
+        _lastActivityTime: Date.now(),  // 最后活动时间
+        _inactiveTimeout: 30 * 60 * 1000, // 不活动超时时间（30分钟）
     };
     
     // 检查依赖是否都已加载
@@ -372,6 +381,283 @@
             token: this.playerData.token,
             player_id: this.playerData.uniqueID
         }));
+    };
+
+    // ==================== 在线状态监听 ====================
+
+    // 启动在线状态监测
+    myglobal.startOnlineMonitoring = function() {
+        var self = this;
+        
+        console.log("🔍 启动在线状态监测");
+        
+        // 停止之前的监测
+        this.stopOnlineMonitoring();
+        
+        // 记录最后活动时间
+        this._lastActivityTime = Date.now();
+        
+        // 监听用户活动（Web端）
+        if (typeof window !== 'undefined') {
+            // 监听用户交互
+            var updateActivity = function() {
+                self._lastActivityTime = Date.now();
+            };
+            
+            window.addEventListener('mousedown', updateActivity);
+            window.addEventListener('keydown', updateActivity);
+            window.addEventListener('touchstart', updateActivity);
+            window.addEventListener('scroll', updateActivity);
+            
+            this._activityListeners = {
+                mousedown: updateActivity,
+                keydown: updateActivity,
+                touchstart: updateActivity,
+                scroll: updateActivity
+            };
+        }
+        
+        // 定时检查连接状态
+        this._connectionCheckInterval = setInterval(function() {
+            self._checkOnlineStatus();
+        }, 5000); // 每5秒检查一次
+        
+        // 定时检查 Token 有效性（每5分钟）
+        this._tokenCheckInterval = setInterval(function() {
+            self._checkTokenValidity();
+        }, 5 * 60 * 1000);
+        
+        // 监听 WebSocket 状态变化
+        if (this.socket && this.socket.addStateListener) {
+            this._socketStateListener = function(state, oldState) {
+                console.log("🔌 WebSocket 状态变化: " + oldState + " -> " + state);
+                if (state === "connected") {
+                    self._setOnlineStatus(true);
+                } else if (state === "disconnected") {
+                    self._setOnlineStatus(false);
+                }
+            };
+            this.socket.addStateListener(this._socketStateListener);
+        }
+        
+        // 监听心跳成功
+        if (this.eventlister) {
+            this.eventlister.on("heartbeat_success", function(data) {
+                self._lastActivityTime = Date.now();
+                self._setOnlineStatus(true);
+            });
+            
+            // 监听连接丢失
+            this.eventlister.on("connection_lost", function(data) {
+                console.warn("💔 连接丢失:", data.reason);
+                self._setOnlineStatus(false);
+                self._handleConnectionLost();
+            });
+        }
+        
+        console.log("✅ 在线状态监测已启动");
+    };
+    
+    // 停止在线状态监测
+    myglobal.stopOnlineMonitoring = function() {
+        if (this._connectionCheckInterval) {
+            clearInterval(this._connectionCheckInterval);
+            this._connectionCheckInterval = null;
+        }
+        
+        if (this._tokenCheckInterval) {
+            clearInterval(this._tokenCheckInterval);
+            this._tokenCheckInterval = null;
+        }
+        
+        // 移除活动监听器
+        if (typeof window !== 'undefined' && this._activityListeners) {
+            window.removeEventListener('mousedown', this._activityListeners.mousedown);
+            window.removeEventListener('keydown', this._activityListeners.keydown);
+            window.removeEventListener('touchstart', this._activityListeners.touchstart);
+            window.removeEventListener('scroll', this._activityListeners.scroll);
+            this._activityListeners = null;
+        }
+        
+        // 移除 Socket 状态监听器
+        if (this.socket && this.socket.removeStateListener && this._socketStateListener) {
+            this.socket.removeStateListener(this._socketStateListener);
+            this._socketStateListener = null;
+        }
+        
+        console.log("🛑 在线状态监测已停止");
+    };
+    
+    // 检查在线状态
+    myglobal._checkOnlineStatus = function() {
+        // 检查 WebSocket 连接状态
+        var isWebSocketConnected = this.socket && this.socket.isConnected && this.socket.isConnected();
+        
+        // 检查是否超时不活动
+        var inactiveTime = Date.now() - this._lastActivityTime;
+        var isInactive = inactiveTime > this._inactiveTimeout;
+        
+        // 更新在线状态
+        this._setOnlineStatus(isWebSocketConnected && !isInactive);
+        
+        // 如果不活动时间过长，提示用户
+        if (isInactive && isWebSocketConnected) {
+            console.warn("⚠️ 用户长时间不活动，可能需要重新验证");
+        }
+    };
+    
+    // 检查 Token 有效性
+    myglobal._checkTokenValidity = function() {
+        var self = this;
+        
+        if (!this.playerData || !this.playerData.token) {
+            return;
+        }
+        
+        console.log("🔐 定时检查 Token 有效性...");
+        
+        this.verifyToken(function(valid, message) {
+            if (!valid) {
+                console.warn("⚠️ Token 已失效:", message);
+                self._handleTokenExpired();
+            } else {
+                console.log("✅ Token 仍然有效");
+            }
+        });
+    };
+    
+    // 设置在线状态
+    myglobal._setOnlineStatus = function(isOnline) {
+        if (this._isOnline !== isOnline) {
+            this._isOnline = isOnline;
+            console.log(isOnline ? "🟢 用户在线" : "🔴 用户离线");
+            
+            // 通知所有监听器
+            for (var i = 0; i < this._onlineStatusListeners.length; i++) {
+                try {
+                    this._onlineStatusListeners[i](isOnline);
+                } catch (e) {
+                    console.error("在线状态监听器执行错误:", e);
+                }
+            }
+            
+            // 触发事件
+            if (this.eventlister) {
+                this.eventlister.fire("online_status_changed", { isOnline: isOnline });
+            }
+        }
+    };
+    
+    // 添加在线状态监听器
+    myglobal.addOnlineStatusListener = function(listener) {
+        if (typeof listener === 'function') {
+            this._onlineStatusListeners.push(listener);
+            // 立即通知当前状态
+            listener(this._isOnline);
+        }
+    };
+    
+    // 移除在线状态监听器
+    myglobal.removeOnlineStatusListener = function(listener) {
+        for (var i = this._onlineStatusListeners.length - 1; i >= 0; i--) {
+            if (this._onlineStatusListeners[i] === listener) {
+                this._onlineStatusListeners.splice(i, 1);
+            }
+        }
+    };
+    
+    // 获取在线状态
+    myglobal.isOnline = function() {
+        return this._isOnline;
+    };
+    
+    // 处理连接丢失
+    myglobal.onConnectionLost = function() {
+        console.warn("💔 检测到连接丢失");
+        this._setOnlineStatus(false);
+        
+        // 显示提示
+        this.showConnectionLostMessage();
+    };
+    
+    // 显示连接丢失提示
+    myglobal.showConnectionLostMessage = function() {
+        var message = "网络连接已断开，请检查网络后重试";
+        
+        if (typeof cc !== 'undefined') {
+            // 游戏中显示提示
+            if (typeof alert === 'function') {
+                alert(message);
+            }
+            // 尝试重新连接
+            this._tryReconnect();
+        } else {
+            alert(message);
+            window.location.reload();
+        }
+    };
+    
+    // 尝试重新连接
+    myglobal._tryReconnect = function() {
+        var self = this;
+        var maxAttempts = 3;
+        var attempt = 0;
+        
+        var tryConnect = function() {
+            attempt++;
+            console.log("🔄 尝试重新连接 (" + attempt + "/" + maxAttempts + ")");
+            
+            if (self.socket && self.socket.initSocket) {
+                self.socket.initSocket();
+                
+                // 等待连接结果
+                setTimeout(function() {
+                    if (self.socket.isConnected && self.socket.isConnected()) {
+                        console.log("✅ 重新连接成功");
+                        self._setOnlineStatus(true);
+                    } else if (attempt < maxAttempts) {
+                        setTimeout(tryConnect, 2000);
+                    } else {
+                        console.error("❌ 重新连接失败");
+                        // 跳转到登录页面
+                        if (typeof cc !== 'undefined' && cc.director) {
+                            cc.director.loadScene("loginScene");
+                        }
+                    }
+                }, 3000);
+            }
+        };
+        
+        tryConnect();
+    };
+    
+    // 处理 Token 过期
+    myglobal._handleTokenExpired = function() {
+        console.warn("⚠️ Token 已过期，需要重新登录");
+        
+        // 清除本地状态
+        if (this.playerData) {
+            this.playerData.clearLocal();
+        }
+        
+        // 显示提示并跳转登录
+        var message = "登录已过期，请重新登录";
+        if (typeof alert === 'function') {
+            alert(message);
+        }
+        
+        // 停止监测
+        this.stopOnlineMonitoring();
+        
+        // 跳转到登录页面
+        if (typeof cc !== 'undefined' && cc.director) {
+            cc.director.loadScene("loginScene");
+        }
+    };
+    
+    // 更新活动时间
+    myglobal.updateActivity = function() {
+        this._lastActivityTime = Date.now();
     };
 
     // 设置全局变量

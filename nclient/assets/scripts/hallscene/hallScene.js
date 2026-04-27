@@ -119,12 +119,86 @@ cc.Class({
             this._adjustBottomButtons();
             this._hideBackgroundCharacters();
             this._initWebSocket();  // 初始化 WebSocket 连接
+            this._startOnlineMonitoring();  // 启动在线状态监测
             this._fetchRoomConfigs();
             this._removeNoticeBoard();
             
             console.log("=== _initUIAfterAuth 完成 ===");
         } catch (e) {
             console.error("_initUIAfterAuth 异常:", e);
+        }
+    },
+    
+    // 启动在线状态监测
+    _startOnlineMonitoring: function() {
+        var myglobal = window.myglobal;
+        if (!myglobal) {
+            console.warn("myglobal 未定义，无法启动在线监测");
+            return;
+        }
+        
+        console.log("🔍 大厅场景：启动在线状态监测");
+        
+        // 启动全局在线监测
+        if (myglobal.startOnlineMonitoring) {
+            myglobal.startOnlineMonitoring();
+        }
+        
+        // 监听在线状态变化
+        var self = this;
+        this._onlineStatusHandler = function(isOnline) {
+            console.log("大厅场景：在线状态变化 -> " + (isOnline ? "在线" : "离线"));
+            if (!isOnline) {
+                self._showOfflineMessage();
+            }
+        };
+        
+        if (myglobal.addOnlineStatusListener) {
+            myglobal.addOnlineStatusListener(this._onlineStatusHandler);
+        }
+        
+        // 监听强制下线事件
+        if (myglobal.eventlister) {
+            myglobal.eventlister.on("force_logout", function(data) {
+                console.warn("🚫 收到强制下线事件:", data);
+                self._handleForceLogout(data);
+            });
+        }
+    },
+    
+    // 显示离线提示
+    _showOfflineMessage: function() {
+        this._showMessage("网络连接已断开，正在重新连接...");
+    },
+    
+    // 处理强制下线
+    _handleForceLogout: function(data) {
+        var reason = data.reason || "您已被强制下线";
+        this._showMessage(reason);
+        
+        // 停止监测
+        var myglobal = window.myglobal;
+        if (myglobal && myglobal.stopOnlineMonitoring) {
+            myglobal.stopOnlineMonitoring();
+        }
+        
+        // 延迟跳转到登录页面
+        this.scheduleOnce(function() {
+            cc.director.loadScene("loginScene");
+        }, 2);
+    },
+    
+    // 停止在线状态监测
+    _stopOnlineMonitoring: function() {
+        var myglobal = window.myglobal;
+        
+        if (myglobal && myglobal.stopOnlineMonitoring) {
+            myglobal.stopOnlineMonitoring();
+        }
+        
+        if (myglobal && myglobal.removeOnlineStatusListener && this._onlineStatusHandler) {
+            myglobal.removeOnlineStatusListener(this._onlineStatusHandler);
+            this._onlineStatusHandler = null;
         }
     },
     
@@ -923,6 +997,16 @@ cc.Class({
             }
             this._hideNodesWithText(child, searchText);
         }
+    },
+    
+    // 场景销毁时清理资源
+    onDestroy: function() {
+        console.log("=== hallScene onDestroy ===");
+        
+        // 停止在线状态监测（大厅场景需要持续监测，所以只有场景销毁时才停止）
+        // 注意：通常大厅场景不会销毁，除非切换到游戏场景
+        // 如果需要保持监测，可以注释掉下面这行
+        // this._stopOnlineMonitoring();
     },
 
     start () {}

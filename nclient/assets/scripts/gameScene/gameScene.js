@@ -31,6 +31,76 @@ cc.Class({
         }
         
         this._initScene(myglobal, RoomState, isopen_sound)
+        this._startOnlineMonitoring()
+    },
+    
+    // 启动在线状态监测
+    _startOnlineMonitoring: function() {
+        var myglobal = window.myglobal
+        if (!myglobal) {
+            console.warn("gameScene: myglobal 未定义，无法启动在线监测")
+            return
+        }
+        
+        console.log("🔍 游戏场景：启动在线状态监测")
+        
+        // 监听在线状态变化
+        var self = this
+        this._onlineStatusHandler = function(isOnline) {
+            console.log("游戏场景：在线状态变化 -> " + (isOnline ? "在线" : "离线"))
+            if (!isOnline) {
+                self._showOfflineMessage()
+            }
+        }
+        
+        if (myglobal.addOnlineStatusListener) {
+            myglobal.addOnlineStatusListener(this._onlineStatusHandler)
+        }
+        
+        // 监听强制下线事件
+        if (myglobal.eventlister) {
+            myglobal.eventlister.on("force_logout", function(data) {
+                console.warn("🚫 游戏场景收到强制下线事件:", data)
+                self._handleForceLogout(data)
+            })
+        }
+    },
+    
+    // 显示离线提示
+    _showOfflineMessage: function() {
+        console.warn("💔 游戏场景：网络连接已断开")
+        // 可以在游戏中显示一个提示UI
+    },
+    
+    // 处理强制下线
+    _handleForceLogout: function(data) {
+        var reason = data.reason || "您已被强制下线"
+        console.warn("🚫 游戏场景强制下线:", reason)
+        
+        // 停止监测
+        var myglobal = window.myglobal
+        if (myglobal && myglobal.stopOnlineMonitoring) {
+            myglobal.stopOnlineMonitoring()
+        }
+        
+        // 显示提示并跳转到登录页面
+        var self = this
+        this.scheduleOnce(function() {
+            if (typeof alert === 'function') {
+                alert(reason + "\n\n请重新登录")
+            }
+            cc.director.loadScene("loginScene")
+        }, 0.5)
+    },
+    
+    // 停止在线状态监测
+    _stopOnlineMonitoring: function() {
+        var myglobal = window.myglobal
+        
+        if (myglobal && myglobal.removeOnlineStatusListener && this._onlineStatusHandler) {
+            myglobal.removeOnlineStatusListener(this._onlineStatusHandler)
+            this._onlineStatusHandler = null
+        }
     },
     
     _waitForInit: function() {
@@ -255,6 +325,14 @@ cc.Class({
     },
 
     start() {
+    },
+
+    // 场景销毁时清理资源
+    onDestroy: function() {
+        console.log("=== gameScene onDestroy ===")
+        
+        // 停止在线状态监测
+        this._stopOnlineMonitoring()
     },
 
     getUserOutCardPosByAccount(accountid) {

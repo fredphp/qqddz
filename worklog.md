@@ -429,3 +429,57 @@ Stage Summary:
 - 卡片紧凑排列，不分散
 - 左右两个区域居中对称
 - 提交：b2d9ad5
+
+---
+Task ID: 14
+Agent: Main Agent
+Task: 实现全局登录状态监听和心跳检测机制
+
+Work Log:
+1. 在 socket_ctr.js 中添加心跳机制：
+   - 新增心跳变量：interval(30秒)、timeout(10秒)、missedHeartbeats计数
+   - 添加 _startHeartbeat/_stopHeartbeat 方法
+   - 添加 _sendHeartbeat 方法发送心跳包
+   - 添加 _onHeartbeatAck 处理心跳响应
+   - 添加 _onHeartbeatFailed 处理心跳失败（连续3次失败判定断开）
+   - 添加 _handleConnectionLost 处理连接丢失
+   - 新增 MessageType.HEARTBEAT 和 HEARTBEAT_ACK
+   - 连接成功后自动启动心跳，断开后停止心跳
+
+2. 添加连接状态管理：
+   - _connectionState: disconnected/connecting/connected
+   - _stateListeners 状态监听器列表
+   - _setConnectionState 更新状态并通知监听器
+   - addStateListener/removeStateListener 方法
+
+3. 在 mygolbal.js 中添加在线状态监测：
+   - startOnlineMonitoring: 启动监测
+   - stopOnlineMonitoring: 停止监测
+   - _checkOnlineStatus: 每5秒检查连接状态
+   - _checkTokenValidity: 每5分钟验证Token
+   - _setOnlineStatus: 更新在线状态
+   - addOnlineStatusListener/removeOnlineStatusListener
+   - _handleConnectionLost: 处理连接丢失
+   - _tryReconnect: 尝试重新连接（最多3次）
+   - _handleTokenExpired: 处理Token过期
+
+4. 在 hallScene.js 中集成：
+   - _startOnlineMonitoring: 启动监测
+   - _onlineStatusHandler: 监听状态变化
+   - _showOfflineMessage: 显示离线提示
+   - _handleForceLogout: 处理强制下线
+   - onDestroy: 场景销毁时清理
+
+5. 在 gameScene.js 中集成：
+   - 同样添加在线状态监测
+   - 处理强制下线和连接丢失
+   - 场景销毁时清理资源
+
+Stage Summary:
+- 实现了完整的心跳检测机制（30秒间隔，10秒超时）
+- 连续3次心跳失败自动判定连接断开
+- 断开后自动尝试重连（最多3次）
+- Token每5分钟自动验证有效性
+- 所有非登录界面（大厅、游戏场景）都实时监测在线状态
+- 强制下线时自动跳转登录页面
+- 用户活动状态监测（鼠标、键盘、触摸事件）
