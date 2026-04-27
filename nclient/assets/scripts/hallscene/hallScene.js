@@ -647,8 +647,9 @@ cc.Class({
         var bgSprite = panel.addComponent(cc.Sprite);
         bgSprite.type = cc.Sprite.Type.SLICED;
         bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        panel.color = cc.color(20, 20, 40, 100);
-        panel.opacity = 200;
+        // 设置颜色（不包含alpha）和透明度（分开设置）
+        panel.color = cc.color(20, 20, 40);
+        panel.opacity = 120;
         
         // 添加 Layout 组件
         var layout = panel.addComponent(cc.Layout);
