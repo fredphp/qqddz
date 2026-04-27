@@ -387,14 +387,14 @@ cc.Class({
         // ============================================================
         // 参数设置
         // ============================================================
-        var cardWidth = 280;      // 卡片宽度（减小）
-        var cardHeight = 170;     // 卡片高度
-        var gapX = 5;             // 卡片水平间距（减小）
-        var gapY = 15;            // 卡片垂直间距（增大，防止重叠）
-        var containerGap = 20;    // 左右两个容器的间距（减小）
+        var cardWidth = 240;      // 卡片宽度
+        var cardHeight = 150;     // 卡片高度
+        var gapX = 20;            // 卡片水平间距
+        var gapY = 20;            // 卡片垂直间距（margin-top效果）
+        var containerGap = 20;    // 左右两个容器的间距
         
         // 容器尺寸
-        var panelWidth = cardWidth * 2 + gapX;
+        var panelWidth = 500;     // 容器宽度固定为500px
         
         // 计算容器高度（根据卡片数量）
         var leftRows = Math.ceil(leftRooms.length / 2) || 1;
@@ -441,9 +441,11 @@ cc.Class({
             
             room.node.active = true;
             room.node.parent = leftPanel;
-            // 卡片位置：相对于容器中心
+            // 卡片X位置：在500px容器中居中
+            // 两卡片总宽度 = 240*2 + 20 = 500，刚好填满
             room.node.x = -panelWidth / 2 + cardWidth / 2 + col * (cardWidth + gapX);
-            room.node.y = panelHeight / 2 - cardHeight / 2 - row * (cardHeight + gapY) - 20;
+            // 卡片Y位置：从顶部开始，每行间隔 gapY
+            room.node.y = panelHeight / 2 - cardHeight / 2 - row * (cardHeight + gapY) - 30;
             
             console.log("  竞技场卡片[" + i + "]: (" + room.node.x + ", " + room.node.y + ")");
         }
@@ -477,9 +479,10 @@ cc.Class({
             
             room.node.active = true;
             room.node.parent = rightPanel;
-            // 卡片位置：相对于容器中心
+            // 卡片X位置：在500px容器中居中
             room.node.x = -panelWidth / 2 + cardWidth / 2 + col * (cardWidth + gapX);
-            room.node.y = panelHeight / 2 - cardHeight / 2 - row * (cardHeight + gapY) - 20;
+            // 卡片Y位置：从顶部开始，每行间隔 gapY
+            room.node.y = panelHeight / 2 - cardHeight / 2 - row * (cardHeight + gapY) - 30;
             
             console.log("  普通场卡片[" + i + "]: (" + room.node.x + ", " + room.node.y + ")");
         }
