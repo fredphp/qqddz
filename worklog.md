@@ -194,3 +194,47 @@ Stage Summary:
 - 每个区域独立GridLayout，自动2列换行排列
 - 左侧竞技场(room_category=2)，右侧普通场(room_category=1)
 - 房间按 sort_order 排序后依次添加到对应容器
+
+---
+Task ID: 6
+Agent: Main Agent
+Task: 严格按照规则重写房间列表布局
+
+Work Log:
+完全重写 hallScene.js，严格按照用户规则实现：
+
+【一、数据处理】
+- 按 room_category 分组：leftRooms(竞技场=2), rightRooms(普通场=1)
+- 各自按 sort_order 升序排序：`leftRooms.sort((a,b)=>a.sortOrder-b.sortOrder)`
+
+【二、布局结构】
+- 创建两个独立容器：LeftPanel(竞技场), RightPanel(普通场)
+- 左右并排，整体居中
+
+【三、布局方式】
+- 使用 cc.Layout 组件实现 Grid 布局
+- 核心配置：
+  - type = cc.Layout.Type.GRID
+  - constraint = cc.Layout.Constraint.FIXED_COLUMN
+  - constraintNum = 2 (固定2列)
+- 每行固定2个卡片，超出自动换行
+- 从左到右，从上到下排列
+
+【四、渲染逻辑】
+- leftRooms.forEach → 渲染到 LeftPanel
+- rightRooms.forEach → 渲染到 RightPanel
+- 分开渲染，禁止混合
+
+【五、方法重构】
+- `_initRoomButtons`: 数据分组+排序+卡片配置
+- `_renderRoomLayout`: 创建两个独立Grid容器，分开渲染
+- `_createGridPanel`: 创建Grid布局容器
+- `_addAreaTitle`: 添加区域标题
+- `_prepareCardNode`: 准备卡片节点
+
+Stage Summary:
+- 代码完全重写，逻辑清晰
+- 严格遵守用户规定的所有规则
+- 两个独立容器，各自固定2列Grid布局
+- 数据先分组再排序，分开渲染
+- 提交：768c8b3
