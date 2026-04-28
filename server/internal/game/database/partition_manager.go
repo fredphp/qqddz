@@ -13,8 +13,7 @@ import (
 // PartitionManager 分表管理器
 type PartitionManager struct {
         db            *gorm.DB
-        mu            sync.RWMutex
-        createdTables map[string]bool // 已创建的分表缓存
+        createdTables sync.Map // 已创建的分表缓存（线程安全）
 }
 
 // 分表相关常量
@@ -36,18 +35,13 @@ var partitionOnce sync.Once
 // GetPartitionManager 获取分表管理器单例
 func GetPartitionManager() *PartitionManager {
         partitionOnce.Do(func() {
-                partitionManager = &PartitionManager{
-                        createdTables: make(map[string]bool),
-                }
+                partitionManager = &PartitionManager{}
         })
         return partitionManager
 }
 
 // Init 初始化分表管理器
 func (pm *PartitionManager) Init(db *gorm.DB) error {
-        pm.mu.Lock()
-        defer pm.mu.Unlock()
-
         pm.db = db
 
         // 初始化时创建当月和下月的分表
@@ -116,13 +110,21 @@ func (pm *PartitionManager) getTableName(baseTable, suffix string) string {
 }
 
 // isTableExists 检查表是否存在
-// 注意：此方法不加锁，调用者需要确保线程安全
 func (pm *PartitionManager) isTableExists(tableName string) bool {
+        // 先检查缓存（sync.Map 是线程安全的）
+        if _, exists := pm.createdTables.Load(tableName); exists {
+                return true
+        }
+
         // 检查数据库
         var count int64
         pm.db.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", tableName).Scan(&count)
 
-        return count > 0
+        exists := count > 0
+        if exists {
+                pm.createdTables.Store(tableName, true)
+        }
+        return exists
 }
 
 // createRoomTable 创建房间分表
@@ -165,7 +167,7 @@ func (pm *PartitionManager) createRoomTable(suffix string) error {
                 return fmt.Errorf("创建房间分表 %s 失败: %w", tableName, err)
         }
 
-        pm.createdTables[tableName] = true
+        pm.createdTables.Store(tableName, true)
 
         log.Printf("✅ 创建房间分表: %s", tableName)
         return nil
@@ -221,7 +223,7 @@ func (pm *PartitionManager) createGameRecordTable(suffix string) error {
                 return fmt.Errorf("创建游戏记录分表 %s 失败: %w", tableName, err)
         }
 
-        pm.createdTables[tableName] = true
+        pm.createdTables.Store(tableName, true)
 
         log.Printf("✅ 创建游戏记录分表: %s", tableName)
         return nil
@@ -262,7 +264,7 @@ func (pm *PartitionManager) createPlayLogTable(suffix string) error {
                 return fmt.Errorf("创建出牌日志分表 %s 失败: %w", tableName, err)
         }
 
-        pm.createdTables[tableName] = true
+        pm.createdTables.Store(tableName, true)
 
         log.Printf("✅ 创建出牌日志分表: %s", tableName)
         return nil
@@ -297,7 +299,7 @@ func (pm *PartitionManager) createDealLogTable(suffix string) error {
                 return fmt.Errorf("创建发牌日志分表 %s 失败: %w", tableName, err)
         }
 
-        pm.createdTables[tableName] = true
+        pm.createdTables.Store(tableName, true)
 
         log.Printf("✅ 创建发牌日志分表: %s", tableName)
         return nil
@@ -332,7 +334,7 @@ func (pm *PartitionManager) createBidLogTable(suffix string) error {
                 return fmt.Errorf("创建叫地主日志分表 %s 失败: %w", tableName, err)
         }
 
-        pm.createdTables[tableName] = true
+        pm.createdTables.Store(tableName, true)
 
         log.Printf("✅ 创建叫地主日志分表: %s", tableName)
         return nil
@@ -371,7 +373,7 @@ func (pm *PartitionManager) createLoginLogTable(suffix string) error {
                 return fmt.Errorf("创建登录日志分表 %s 失败: %w", tableName, err)
         }
 
-        pm.createdTables[tableName] = true
+        pm.createdTables.Store(tableName, true)
 
         log.Printf("✅ 创建登录日志分表: %s", tableName)
         return nil
@@ -405,7 +407,7 @@ func (pm *PartitionManager) createArenaCoinLogTable(suffix string) error {
                 return fmt.Errorf("创建竞技币流水分表 %s 失败: %w", tableName, err)
         }
 
-        pm.createdTables[tableName] = true
+        pm.createdTables.Store(tableName, true)
 
         log.Printf("✅ 创建竞技币流水分表: %s", tableName)
         return nil
