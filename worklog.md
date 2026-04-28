@@ -483,3 +483,49 @@ Stage Summary:
 - 所有非登录界面（大厅、游戏场景）都实时监测在线状态
 - 强制下线时自动跳转登录页面
 - 用户活动状态监测（鼠标、键盘、触摸事件）
+
+---
+Task ID: 15
+Agent: Main Agent
+Task: 修复房间创建逻辑，使用当前登录用户信息而非创建新玩家
+
+Work Log:
+1. 问题分析：
+   - 创建房间时使用 `GetOrCreatePlayerByNickname(client.GetName())` 创建新玩家
+   - 这是错误的逻辑，应该使用当前已登录用户的 PlayerID
+   - 用户登录后应该有正确的 PlayerID，不应该再创建
+
+2. 服务端修改：
+   
+   **server/internal/game/room/manager.go**
+   - CreateRoom: 改用 `client.GetPlayerID()` 获取已登录用户的ID
+   - JoinRoom: 同样使用 `client.GetPlayerID()`
+   - 移除 `GetOrCreatePlayerByNickname` 调用
+   - 添加 PlayerID 为空的警告日志
+
+   **server/internal/types/interfaces.go**
+   - ClientInterface 添加 `SetName(string)` 和 `SetPlayerID(uint64)` 方法
+
+   **server/internal/server/client.go**
+   - 实现 `SetName` 方法
+   - 实现 `SetPlayerID` 方法
+
+   **server/internal/server/connection.go**
+   - 新增 `authenticateClient` 方法
+   - WebSocket 连接时从 URL 参数获取 Token
+   - 验证 Token 并设置客户端的 PlayerID 和 Name
+   - 添加 `time` 包导入
+
+3. 客户端修改：
+
+   **nclient/assets/scripts/data/socket_ctr.js**
+   - initSocket 方法从 `myglobal.playerData.token` 获取 Token
+   - 连接 WebSocket 时将 Token 作为 URL 参数传递
+   - 格式: `ws://server/ws?token=xxx`
+
+Stage Summary:
+- 创建房间现在使用当前登录用户的 PlayerID
+- 不再创建新玩家记录
+- WebSocket 连接时验证 Token 并设置用户身份
+- 客户端连接时自动带上登录 Token
+- 数据库 ddz_rooms 表将正确记录创建者 ID

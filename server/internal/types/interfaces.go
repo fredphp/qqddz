@@ -18,6 +18,7 @@ type ServerInterface interface {
 type ClientInterface interface {
         GetID() string
         GetName() string
+        SetName(name string)        // 设置玩家昵称
         GetRoom() string
         SetRoom(code string)
         SendMessage(msg *protocol.Message)
@@ -25,6 +26,7 @@ type ClientInterface interface {
         GetCallIndex() int64
         SetCallIndex(index int64)
         GetPlayerID() uint64 // 获取数据库玩家ID
+        SetPlayerID(id uint64) // 设置数据库玩家ID
 }
 
 // ChatLimiter 聊天速率限制器接口

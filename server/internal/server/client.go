@@ -291,6 +291,20 @@ func (c *Client) GetID() string     { return c.ID }
 func (c *Client) GetName() string   { return c.Name }
 func (c *Client) GetPlayerID() uint64 { return c.PlayerID }
 
+// SetName 设置玩家昵称
+func (c *Client) SetName(name string) {
+        c.mu.Lock()
+        defer c.mu.Unlock()
+        c.Name = name
+}
+
+// SetPlayerID 设置数据库玩家ID
+func (c *Client) SetPlayerID(id uint64) {
+        c.mu.Lock()
+        defer c.mu.Unlock()
+        c.PlayerID = id
+}
+
 // SetCallIndex 设置当前请求的 callIndex（用于 JSON 模式响应）
 func (c *Client) SetCallIndex(index int64) {
         c.mu.Lock()

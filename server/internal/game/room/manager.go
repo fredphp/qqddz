@@ -41,10 +41,13 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface) (*Room, error) {
 
         rm.rooms[code] = room
 
-        // 获取或创建数据库玩家记录（使用昵称作为唯一标识）
-        creatorID := database.GetOrCreatePlayerByNickname(client.GetName())
+        // 使用当前登录用户的 PlayerID（不再创建新玩家）
+        creatorID := client.GetPlayerID()
+        if creatorID == 0 {
+                log.Printf("⚠️ 玩家 %s 的 PlayerID 为空，可能未正确登录", client.GetName())
+        }
 
-        // 保存房间到数据库（即使玩家ID为0也要保存房间）
+        // 保存房间到数据库
         dbRoom := &database.Room{
                 RoomCode:     code,
                 RoomType:     1, // 默认普通场
@@ -59,11 +62,11 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface) (*Room, error) {
         if creatorID > 0 {
                 dbRoom.Player1ID = &creatorID
         }
-        
+
         if err := database.CreateRoom(dbRoom); err != nil {
                 log.Printf("⚠️ 创建房间到数据库失败: %v", err)
         } else {
-                log.Printf("💾 房间 %s 已保存到数据库，创建者ID: %d", code, creatorID)
+                log.Printf("💾 房间 %s 已保存到数据库，创建者ID: %d, 昵称: %s", code, creatorID, client.GetName())
         }
 
         // 保存到 Redis
@@ -137,12 +140,16 @@ func (rm *RoomManager) JoinRoom(client types.ClientInterface, code string) (*Roo
                 Player: room.GetPlayerInfo(client.GetID()),
         }))
 
-        // 获取或创建数据库玩家记录，并更新数据库
-        joinerID := database.GetOrCreatePlayerByNickname(client.GetName())
-        if err := database.AddPlayerToRoom(code, joinerID, seat); err != nil {
-                log.Printf("⚠️ 更新房间数据库失败: %v", err)
+        // 使用当前登录用户的 PlayerID 更新数据库
+        joinerID := client.GetPlayerID()
+        if joinerID > 0 {
+                if err := database.AddPlayerToRoom(code, joinerID, seat); err != nil {
+                        log.Printf("⚠️ 更新房间数据库失败: %v", err)
+                } else {
+                        log.Printf("💾 房间 %s 玩家 %s (ID: %d) 已更新到数据库", code, client.GetName(), joinerID)
+                }
         } else {
-                log.Printf("💾 房间 %s 玩家 %s 已更新到数据库", code, client.GetName())
+                log.Printf("⚠️ 玩家 %s 的 PlayerID 为空，跳过数据库更新", client.GetName())
         }
         // 如果房间满了，更新状态
         if playerCount >= 3 {

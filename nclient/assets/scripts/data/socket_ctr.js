@@ -316,6 +316,14 @@ window.socketCtr = function(){
             wsUrl = "ws://" + wsUrl + "/ws"
         }
         
+        // 添加 Token 到 URL 参数（用于服务端认证用户身份）
+        var myglobal = window.myglobal
+        if (myglobal && myglobal.playerData && myglobal.playerData.token) {
+            var separator = wsUrl.indexOf("?") > 0 ? "&" : "?"
+            wsUrl = wsUrl + separator + "token=" + encodeURIComponent(myglobal.playerData.token)
+            console.log("🔐 WebSocket 连接带上 Token")
+        }
+        
         console.log("连接服务器:", wsUrl)
         
         try {

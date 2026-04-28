@@ -3,7 +3,9 @@ package server
 import (
         "log"
         "net/http"
+        "time"
 
+        "github.com/palemoky/fight-the-landlord/internal/game/database"
         "github.com/palemoky/fight-the-landlord/internal/types"
 )
 
@@ -61,6 +63,13 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
         // 创建客户端
         client := NewClient(s, conn)
         client.IP = clientIP // 记录客户端 IP
+
+        // 尝试从请求中获取 Token 并验证用户身份
+        token := r.URL.Query().Get("token")
+        if token != "" {
+                s.authenticateClient(client, token)
+        }
+
         s.registerClient(client)
 
         // 创建会话
@@ -72,11 +81,47 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
         client.pendingConnected = true
         client.playerSession = playerSession
 
-        log.Printf("✅ 玩家 %s (%s) 已连接", client.Name, client.ID)
+        log.Printf("✅ 玩家 %s (%s) 已连接, PlayerID: %d", client.Name, client.ID, client.PlayerID)
 
         // 启动客户端读写协程
         go client.ReadPump()
         go client.WritePump()
+}
+
+// authenticateClient 验证客户端 Token 并设置用户信息
+func (s *Server) authenticateClient(client *Client, token string) {
+        db := database.DB()
+        if db == nil {
+                log.Printf("⚠️ 数据库未连接，跳过 Token 验证")
+                return
+        }
+
+        // 查询账户
+        var account database.UserAccount
+        result := db.Where("token = ?", token).First(&account)
+        if result.Error != nil {
+                log.Printf("⚠️ Token 验证失败: %v", result.Error)
+                return
+        }
+
+        // 检查 Token 是否过期
+        if account.TokenExpireAt != nil && account.TokenExpireAt.Before(time.Now()) {
+                log.Printf("⚠️ Token 已过期")
+                return
+        }
+
+        // 获取玩家信息
+        var player database.Player
+        if err := db.First(&player, account.PlayerID).Error; err != nil {
+                log.Printf("⚠️ 获取玩家信息失败: %v", err)
+                return
+        }
+
+        // 设置客户端信息
+        client.SetPlayerID(player.ID)
+        client.SetName(player.Nickname)
+
+        log.Printf("🔐 用户认证成功 - PlayerID: %d, 昵称: %s", player.ID, player.Nickname)
 }
 
 // handleHealth 健康检查接口
