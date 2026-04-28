@@ -321,7 +321,7 @@ func GetRoomConfigByID(id uint64) (*RoomConfig, error) {
 // GetRoomConfigByType 根据类型获取房间配置
 func GetRoomConfigByType(roomType uint8) (*RoomConfig, error) {
         var config RoomConfig
-        err := DB().Where("room_type = ? AND status = ?", roomType, RoomStatusOpen).
+        err := DB().Where("room_type = ? AND status = ?", roomType, RoomConfigStatusOpen).
                 First(&config).Error
         if err != nil {
                 return nil, err
@@ -332,7 +332,7 @@ func GetRoomConfigByType(roomType uint8) (*RoomConfig, error) {
 // GetActiveRoomConfigs 获取所有启用的房间配置
 func GetActiveRoomConfigs() ([]RoomConfig, error) {
         var configs []RoomConfig
-        err := DB().Where("status = ?", RoomStatusOpen).
+        err := DB().Where("status = ?", RoomConfigStatusOpen).
                 Order("sort_order ASC").
                 Find(&configs).Error
         if err != nil {

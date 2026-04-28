@@ -260,10 +260,10 @@ const (
         PlayerGenderFemale  uint8 = 2 // 女
 )
 
-// RoomStatus 房间状态
+// RoomConfigStatus 房间配置状态
 const (
-        RoomStatusClosed uint8 = 0 // 关闭
-        RoomStatusOpen   uint8 = 1 // 开启
+        RoomConfigStatusClosed uint8 = 0 // 关闭
+        RoomConfigStatusOpen   uint8 = 1 // 开启
 )
 
 // RoomType 房间类型
