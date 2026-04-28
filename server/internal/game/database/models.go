@@ -110,6 +110,30 @@ const (
         RoomStatusFinished uint8 = 3 // 已结束
 )
 
+// RoomPlayer 房间玩家关联表模型
+type RoomPlayer struct {
+        ID         uint64     `gorm:"primaryKey;autoIncrement;comment:主键ID" json:"id"`
+        RoomCode   string     `gorm:"type:varchar(10);uniqueIndex:idx_room_player;not null;index;comment:房间号" json:"room_code"`
+        PlayerID   uint64     `gorm:"type:bigint unsigned;uniqueIndex:idx_room_player;not null;index;comment:玩家ID" json:"player_id"`
+        SeatIndex  uint8      `gorm:"type:tinyint unsigned;not null;default:0;index;comment:座位号:0-2" json:"seat_index"`
+        IsCreator  uint8      `gorm:"type:tinyint unsigned;not null;default:0;comment:是否房主:0-否,1-是" json:"is_creator"`
+        IsReady    uint8      `gorm:"type:tinyint unsigned;not null;default:0;comment:是否准备:0-否,1-是" json:"is_ready"`
+        IsOffline  uint8      `gorm:"type:tinyint unsigned;not null;default:0;comment:是否离线:0-在线,1-离线" json:"is_offline"`
+        JoinedAt   time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:加入时间" json:"joined_at"`
+        LeftAt     *time.Time `gorm:"type:datetime;comment:离开时间" json:"left_at"`
+        CreatedAt  time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
+        UpdatedAt  time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`
+
+        // 关联关系
+        Room   Room   `gorm:"foreignKey:RoomCode;references:RoomCode" json:"room"`
+        Player Player `gorm:"foreignKey:PlayerID" json:"player"`
+}
+
+// TableName 指定房间玩家关联表名
+func (RoomPlayer) TableName() string {
+        return "ddz_room_players"
+}
+
 // GameRecord 游戏记录表模型
 type GameRecord struct {
         ID                  uint64     `gorm:"primaryKey;autoIncrement;comment:游戏记录ID" json:"id"`

@@ -119,6 +119,7 @@ type DDZRoomSearch struct {
         RoomCategory *int   `json:"roomCategory" form:"roomCategory"`
         Status       *int   `json:"status" form:"status"`
         CreatorID    string `json:"creatorId" form:"creatorId"`
+        Month        string `json:"month" form:"month"` // 月份筛选，格式: 202401，默认当月
 }
 
 // ==================== 游戏配置（ddz_game_configs 表）====================

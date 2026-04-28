@@ -529,3 +529,118 @@ Stage Summary:
 - WebSocket 连接时验证 Token 并设置用户身份
 - 客户端连接时自动带上登录 Token
 - 数据库 ddz_rooms 表将正确记录创建者 ID
+
+---
+Task ID: 16
+Agent: Main Agent
+Task: 实现按月自动创建分表功能
+
+Work Log:
+
+## 1. 创建分表管理器 (partition_manager.go)
+- 新增 `PartitionManager` 结构体管理分表
+- 支持 7 种分表类型：
+  - room (房间表)
+  - game_record (游戏记录表)
+  - play_log (出牌日志表)
+  - deal_log (发牌日志表)
+  - bid_log (叫地主日志表)
+  - login_log (登录日志表)
+  - arena_coin_log (竞技币流水表)
+- 初始化时自动创建当月和下月分表
+- 分表命名格式: `{原表名}_{年月}`，例如 `ddz_rooms_202406`
+- `EnsureTableExists` 方法确保指定分表存在
+
+## 2. 创建分表操作函数 (partition_operations.go)
+- 新增分表模型：
+  - `PartitionRoom` - 分表房间模型
+  - `PartitionGameRecord` - 分表游戏记录模型
+  - `PartitionPlayLog` - 分表出牌日志模型
+  - `PartitionDealLog` - 分表发牌日志模型
+  - `PartitionBidLog` - 分表叫地主日志模型
+  - `PartitionLoginLog` - 分表登录日志模型
+  - `PartitionArenaCoinLog` - 分表竞技币流水模型
+- 分表操作函数：
+  - `CreatePartitionRoom` - 创建房间到分表
+  - `GetPartitionRoomByCode` - 从分表获取房间
+  - `UpdatePartitionRoomStatus` - 更新分表房间状态
+  - `AddPlayerToPartitionRoom` - 添加玩家到分表房间
+  - `ClosePlayerOldRooms` - **关闭玩家旧房间**（解决刷新页面后重新创建房间的问题）
+  - `CreatePartitionGameRecord` - 创建游戏记录到分表
+  - 其他日志分表创建函数...
+
+## 3. 创建分表定时调度器 (partition_scheduler.go)
+- `PartitionScheduler` 定时调度器
+- 每天检查一次，确保下个月分表已存在
+- 当月最后一天提前创建下下个月的分表
+- `StartPartitionScheduler` / `StopPartitionScheduler` 全局函数
+
+## 4. 修改房间管理器 (room/manager.go)
+- CreateRoom: 创建房间时先调用 `ClosePlayerOldRooms` 关闭旧房间
+- CreateRoom: 使用 `CreatePartitionRoom` 保存到分表
+- JoinRoom: 使用 `AddPlayerToPartitionRoom` 更新分表
+- JoinRoom: 使用 `UpdatePartitionRoomStatus` 更新分表状态
+
+## 5. 集成到 API 服务 (api/handler.go)
+- 数据库连接成功后初始化分表管理器
+- 启动分表定时调度器
+- 服务关闭时停止调度器
+
+Stage Summary:
+- 实现了完整的按月分表功能
+- 服务启动时自动创建当月和下月分表
+- 每天自动检查并创建需要的分表
+- 创建房间时自动关闭玩家的旧房间（解决刷新页面问题）
+- 房间记录正确写入到分表中
+- 支持按时间查询历史分表数据
+
+---
+Task ID: 17
+Agent: Main Agent
+Task: Admin后台管理系统默认查询当月数据，添加月份筛选功能
+
+Work Log:
+
+## 1. 修改请求参数模型
+
+**admin/server/model/ddz/request/game.go**
+- DDZGameRecordSearch 添加 `Month` 字段（月份筛选，格式: 202401，默认当月）
+- DDZGameRecordDetail 添加 `Month` 字段
+
+**admin/server/model/ddz/request/config.go**
+- DDZRoomSearch 添加 `Month` 字段（月份筛选，格式: 202401，默认当月）
+
+## 2. 修改服务层查询逻辑
+
+**admin/server/service/ddz/game_log.go**
+- 添加 `getCurrentMonth()` 辅助函数获取当前月份
+- 添加 `getTableNameWithMonth()` 辅助函数生成分表名称
+- 修改 `GetGameRecordList`:
+  - 默认查询当月分表 `ddz_game_records_202406`
+  - 支持通过 month 参数查询指定月份
+  - 分表不存在时返回空结果
+- 修改 `GetRoomList`:
+  - 默认查询当月分表 `ddz_rooms_202406`
+  - 支持通过 month 参数查询指定月份
+  - 分表不存在时返回空结果
+- 添加 `toGameRecordResponseFromPartition` 方法处理分表数据转换
+- 添加 `toRoomResponseFromPartition` 方法处理分表数据转换
+
+## 3. 修改前端页面
+
+**admin/web/src/view/ddz/gameRoom/gameRoom.vue**
+- 添加月份选择器（el-date-picker，type="month"）
+- 添加提示：默认查询当月数据，可通过月份筛选查看历史记录
+- 更新 searchInfo 和 onReset 函数支持 month 字段
+- 添加"已关闭"状态选项
+
+**admin/web/src/view/ddz/gameRecord/gameRecord.vue**
+- 添加月份选择器（el-date-picker，type="month"）
+- 添加提示：默认查询当月数据，可通过月份筛选查看历史记录
+- 更新 searchInfo 和 onReset 函数支持 month 字段
+
+Stage Summary:
+- Admin后台默认查询当月分表数据
+- 前端页面添加月份选择器，支持查询历史月份数据
+- 分表不存在时优雅返回空结果
+- 用户体验提示：默认查询当月数据

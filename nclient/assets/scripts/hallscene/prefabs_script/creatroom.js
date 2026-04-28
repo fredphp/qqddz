@@ -27,20 +27,20 @@ cc.Class({
 
         switch (customData) {
             case "create_room_1":
-                console.log("创建房间类型1");
-                this._createRoom(1);
+                console.log("创建房间类型1 - 普通场");
+                this._createRoom(1);  // 房间配置ID = 1
                 break;
             case "create_room_2":
-                console.log("创建房间类型2");
-                this._createRoom(2);
+                console.log("创建房间类型2 - 高级场");
+                this._createRoom(2);  // 房间配置ID = 2
                 break;
             case "create_room_3":
-                console.log("创建房间类型3");
-                this._createRoom(3);
+                console.log("创建房间类型3 - 富豪场");
+                this._createRoom(3);  // 房间配置ID = 3
                 break;
             case "create_room_4":
-                console.log("创建房间类型4");
-                this._createRoom(4);
+                console.log("创建房间类型4 - 至尊场");
+                this._createRoom(4);  // 房间配置ID = 4
                 break;
             case "create_room_close":
                 console.log("关闭创建房间面板");
@@ -51,12 +51,18 @@ cc.Class({
         }
     },
 
-    _createRoom(roomType) {
+    _createRoom(roomConfigId) {
         var myglobal = window.myglobal;
         if (myglobal && myglobal.socket) {
-            // 发送创建房间请求
-            // myglobal.socket.createRoom(roomType);
-            console.log("发送创建房间请求, 类型:", roomType);
+            // 发送创建房间请求，携带房间配置ID
+            myglobal.socket.createRoom(roomConfigId, function(result, data) {
+                if (result === 0) {
+                    console.log("创建房间成功:", JSON.stringify(data));
+                } else {
+                    console.error("创建房间失败");
+                }
+            });
+            console.log("发送创建房间请求, 配置ID:", roomConfigId);
         }
     }
 });

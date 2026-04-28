@@ -58,6 +58,16 @@ func NewHandler(cryptoKey string, enableCrypto bool, dbConfig *DBConfig) (*Handl
                         } else {
                                 log.Println("✅ 数据库表迁移成功")
                         }
+
+                        // 初始化分表管理器
+                        log.Println("📊 正在初始化分表管理器...")
+                        if err := database.InitPartitionManager(database.GetInstance().GetDB()); err != nil {
+                                log.Printf("⚠️ 分表管理器初始化失败: %v", err)
+                        } else {
+                                log.Println("✅ 分表管理器初始化成功")
+                                // 启动分表定时调度器
+                                database.StartPartitionScheduler()
+                        }
                 }
         } else {
                 log.Printf("⚠️ 未配置数据库(dbConfig=%v, Host=%s)，将使用模拟模式", dbConfig != nil, func() string {
@@ -249,6 +259,9 @@ func GetRequestData(r *http.Request) *crypto.RequestData {
 
 // Close 关闭资源
 func (h *Handler) Close() error {
+        // 停止分表定时调度器
+        database.StopPartitionScheduler()
+
         // 关闭数据库连接
         if database.GetInstance().IsConnected() {
                 if err := database.CloseDB(); err != nil {

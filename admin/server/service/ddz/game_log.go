@@ -2,6 +2,8 @@ package ddz
 
 import (
         "errors"
+        "fmt"
+        "time"
 
         "github.com/flipped-aurora/gin-vue-admin/server/model/ddz"
         ddzReq "github.com/flipped-aurora/gin-vue-admin/server/model/ddz/request"
@@ -12,12 +14,41 @@ type DDZGameLogService struct{}
 
 var DDZGameLogServiceApp = new(DDZGameLogService)
 
+// getCurrentMonth 获取当前月份字符串（格式: 202401）
+func getCurrentMonth() string {
+        return time.Now().Format("200601")
+}
+
+// getTableNameWithMonth 根据月份获取分表名称
+func getTableNameWithMonth(baseTable, month string) string {
+        if month == "" {
+                month = getCurrentMonth()
+        }
+        return baseTable + "_" + month
+}
+
 // GetGameRecordList 获取游戏记录列表
 func (s *DDZGameLogService) GetGameRecordList(req ddzReq.DDZGameRecordSearch) (list interface{}, total int64, err error) {
         db := GetDDZDB()
         limit := req.PageSize
         offset := req.PageSize * (req.Page - 1)
-        query := db.Model(&ddz.DDZGameRecord{})
+
+        // 确定查询的分表
+        month := req.Month
+        if month == "" {
+                month = getCurrentMonth()
+        }
+        tableName := getTableNameWithMonth("ddz_game_records", month)
+
+        // 检查分表是否存在
+        var tableCount int64
+        db.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", tableName).Scan(&tableCount)
+        if tableCount == 0 {
+                // 分表不存在，返回空结果
+                return []ddzRes.DDZGameRecordResponse{}, 0, nil
+        }
+
+        query := db.Table(tableName)
 
         if req.GameID != "" {
                 query = query.Where("game_id LIKE ?", "%"+req.GameID+"%")
@@ -62,7 +93,35 @@ func (s *DDZGameLogService) GetGameRecordList(req ddzReq.DDZGameRecordSearch) (l
                 return nil, 0, err
         }
 
-        var records []ddz.DDZGameRecord
+        // 定义临时结构体用于扫描分表数据
+        type GameRecord struct {
+                ID                   uint64     `json:"id"`
+                GameID               string     `json:"game_id"`
+                RoomID               string     `json:"room_id"`
+                RoomCode             string     `json:"room_code"`
+                RoomType             uint8      `json:"room_type"`
+                RoomCategory         uint8      `json:"room_category"`
+                LandlordID           uint64     `json:"landlord_id"`
+                Farmer1ID            uint64     `json:"farmer1_id"`
+                Farmer2ID            uint64     `json:"farmer2_id"`
+                BaseScore            int        `json:"base_score"`
+                Multiplier           int        `json:"multiplier"`
+                BombCount            int        `json:"bomb_count"`
+                Spring               uint8      `json:"spring"`
+                Result               uint8      `json:"result"`
+                LandlordWinGold      int64      `json:"landlord_win_gold"`
+                Farmer1WinGold       int64      `json:"farmer1_win_gold"`
+                Farmer2WinGold       int64      `json:"farmer2_win_gold"`
+                LandlordWinArenaCoin int64      `json:"landlord_win_arena_coin"`
+                Farmer1WinArenaCoin  int64      `json:"farmer1_win_arena_coin"`
+                Farmer2WinArenaCoin  int64      `json:"farmer2_win_arena_coin"`
+                StartedAt            time.Time  `json:"started_at"`
+                EndedAt              *time.Time `json:"ended_at"`
+                DurationSeconds      int        `json:"duration_seconds"`
+                CreatedAt            time.Time  `json:"created_at"`
+        }
+
+        var records []GameRecord
         err = query.Limit(limit).Offset(offset).Order("id desc").Find(&records).Error
         if err != nil {
                 return nil, 0, err
@@ -71,7 +130,7 @@ func (s *DDZGameLogService) GetGameRecordList(req ddzReq.DDZGameRecordSearch) (l
         // 转换为响应格式
         recordList := make([]ddzRes.DDZGameRecordResponse, 0, len(records))
         for _, r := range records {
-                resp := s.toGameRecordResponse(r)
+                resp := s.toGameRecordResponseFromPartition(r)
                 recordList = append(recordList, resp)
         }
 
@@ -411,15 +470,31 @@ func (s *DDZGameLogService) DeleteSmsCode(id uint) error {
         return db.Delete(&ddz.DDZSmsCode{}, id).Error
 }
 
-// GetRoomList 获取游戏房间实例列表（ddz_rooms 表）
+// GetRoomList 获取游戏房间实例列表（ddz_rooms 分表）
 func (s *DDZGameLogService) GetRoomList(req ddzReq.DDZRoomSearch) (list interface{}, total int64, err error) {
         db := GetDDZDB()
         limit := req.PageSize
         offset := req.PageSize * (req.Page - 1)
-        query := db.Model(&ddz.DDZRoom{})
+
+        // 确定查询的分表
+        month := req.Month
+        if month == "" {
+                month = getCurrentMonth()
+        }
+        tableName := getTableNameWithMonth("ddz_rooms", month)
+
+        // 检查分表是否存在
+        var tableCount int64
+        db.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", tableName).Scan(&tableCount)
+        if tableCount == 0 {
+                // 分表不存在，返回空结果
+                return []ddzRes.DDZRoomResponse{}, 0, nil
+        }
+
+        query := db.Table(tableName)
 
         if req.RoomID != "" {
-                query = query.Where("room_id LIKE ?", "%"+req.RoomID+"%")
+                query = query.Where("room_code LIKE ?", "%"+req.RoomID+"%")
         }
         if req.RoomName != "" {
                 query = query.Where("room_name LIKE ?", "%"+req.RoomName+"%")
@@ -442,7 +517,26 @@ func (s *DDZGameLogService) GetRoomList(req ddzReq.DDZRoomSearch) (list interfac
                 return nil, 0, err
         }
 
-        var rooms []ddz.DDZRoom
+        // 定义临时结构体用于扫描分表数据
+        type RoomRecord struct {
+                ID           uint64     `json:"id"`
+                RoomCode     string     `json:"room_code"`
+                RoomName     string     `json:"room_name"`
+                RoomConfigID uint64     `json:"room_config_id"`
+                RoomType     uint8      `json:"room_type"`
+                RoomCategory uint8      `json:"room_category"`
+                CreatorID    uint64     `json:"creator_id"`
+                PlayerCount  int        `json:"player_count"`
+                MaxPlayers   int        `json:"max_players"`
+                Status       uint8      `json:"status"`
+                BaseScore    int        `json:"base_score"`
+                Multiplier   int        `json:"multiplier"`
+                CreatedAt    time.Time  `json:"created_at"`
+                UpdatedAt    time.Time  `json:"updated_at"`
+                EndedAt      *time.Time `json:"ended_at"`
+        }
+
+        var rooms []RoomRecord
         err = query.Limit(limit).Offset(offset).Order("id desc").Find(&rooms).Error
         if err != nil {
                 return nil, 0, err
@@ -450,7 +544,7 @@ func (s *DDZGameLogService) GetRoomList(req ddzReq.DDZRoomSearch) (list interfac
 
         roomList := make([]ddzRes.DDZRoomResponse, 0, len(rooms))
         for _, r := range rooms {
-                roomList = append(roomList, s.toRoomResponse(r))
+                roomList = append(roomList, s.toRoomResponseFromPartition(r))
         }
 
         return roomList, total, nil
@@ -801,5 +895,283 @@ func (s *DDZGameLogService) toRoomResponse(r ddz.DDZRoom) ddzRes.DDZRoomResponse
                 StartedAt:        r.StartedAt,
                 EndedAt:          r.EndedAt,
                 CreatedAt:        r.CreatedAt.Format("2006-01-02 15:04:05"),
+        }
+}
+
+// toGameRecordResponseFromPartition 从分表数据转换为响应格式
+func (s *DDZGameLogService) toGameRecordResponseFromPartition(r interface{}) ddzRes.DDZGameRecordResponse {
+        db := GetDDZDB()
+
+        // 类型断言
+        var record struct {
+                ID                   uint64
+                GameID               string
+                RoomID               string
+                RoomCode             string
+                RoomType             uint8
+                RoomCategory         uint8
+                LandlordID           uint64
+                Farmer1ID            uint64
+                Farmer2ID            uint64
+                BaseScore            int
+                Multiplier           int
+                BombCount            int
+                Spring               uint8
+                Result               uint8
+                LandlordWinGold      int64
+                Farmer1WinGold       int64
+                Farmer2WinGold       int64
+                LandlordWinArenaCoin int64
+                Farmer1WinArenaCoin  int64
+                Farmer2WinArenaCoin  int64
+                StartedAt            time.Time
+                EndedAt              *time.Time
+                DurationSeconds      int
+                CreatedAt            time.Time
+        }
+
+        switch v := r.(type) {
+        case struct {
+                ID                   uint64     `json:"id"`
+                GameID               string     `json:"game_id"`
+                RoomID               string     `json:"room_id"`
+                RoomCode             string     `json:"room_code"`
+                RoomType             uint8      `json:"room_type"`
+                RoomCategory         uint8      `json:"room_category"`
+                LandlordID           uint64     `json:"landlord_id"`
+                Farmer1ID            uint64     `json:"farmer1_id"`
+                Farmer2ID            uint64     `json:"farmer2_id"`
+                BaseScore            int        `json:"base_score"`
+                Multiplier           int        `json:"multiplier"`
+                BombCount            int        `json:"bomb_count"`
+                Spring               uint8      `json:"spring"`
+                Result               uint8      `json:"result"`
+                LandlordWinGold      int64      `json:"landlord_win_gold"`
+                Farmer1WinGold       int64      `json:"farmer1_win_gold"`
+                Farmer2WinGold       int64      `json:"farmer2_win_gold"`
+                LandlordWinArenaCoin int64      `json:"landlord_win_arena_coin"`
+                Farmer1WinArenaCoin  int64      `json:"farmer1_win_arena_coin"`
+                Farmer2WinArenaCoin  int64      `json:"farmer2_win_arena_coin"`
+                StartedAt            time.Time  `json:"started_at"`
+                EndedAt              *time.Time `json:"ended_at"`
+                DurationSeconds      int        `json:"duration_seconds"`
+                CreatedAt            time.Time  `json:"created_at"`
+        }:
+                record = v
+        }
+
+        // 房间类型名称
+        roomTypeName := "未知"
+        switch record.RoomType {
+        case 2:
+                roomTypeName = "初级场"
+        case 3:
+                roomTypeName = "中级场"
+        case 4:
+                roomTypeName = "高级场"
+        case 5:
+                roomTypeName = "大师场"
+        case 6:
+                roomTypeName = "至尊场"
+        }
+
+        // 结果文本
+        resultText := "未知"
+        if record.Result == 1 {
+                resultText = "地主胜"
+        } else if record.Result == 2 {
+                resultText = "农民胜"
+        }
+
+        // 春天文本
+        springText := ""
+        if record.Spring == 1 {
+                springText = "春天"
+        } else if record.Spring == 2 {
+                springText = "反春天"
+        }
+
+        // 游戏时长文本
+        durationText := ""
+        if record.DurationSeconds > 0 {
+                minutes := record.DurationSeconds / 60
+                seconds := record.DurationSeconds % 60
+                if minutes > 0 {
+                        durationText = fmt.Sprintf("%d分%d秒", minutes, seconds)
+                } else {
+                        durationText = fmt.Sprintf("%d秒", seconds)
+                }
+        }
+
+        // 获取地主昵称
+        landlordName := ""
+        if record.LandlordID > 0 {
+                var player ddz.DDZPlayer
+                if err := db.Where("id = ?", record.LandlordID).First(&player).Error; err == nil {
+                        landlordName = player.Nickname
+                }
+        }
+
+        // 获取农民昵称
+        farmer1Name := ""
+        if record.Farmer1ID > 0 {
+                var player ddz.DDZPlayer
+                if err := db.Where("id = ?", record.Farmer1ID).First(&player).Error; err == nil {
+                        farmer1Name = player.Nickname
+                }
+        }
+
+        farmer2Name := ""
+        if record.Farmer2ID > 0 {
+                var player ddz.DDZPlayer
+                if err := db.Where("id = ?", record.Farmer2ID).First(&player).Error; err == nil {
+                        farmer2Name = player.Nickname
+                }
+        }
+
+        return ddzRes.DDZGameRecordResponse{
+                ID:                   record.ID,
+                RoomID:               record.RoomID,
+                RoomType:             record.RoomType,
+                RoomTypeName:         roomTypeName,
+                RoomCategory:         record.RoomCategory,
+                BaseScore:            record.BaseScore,
+                Multiplier:           record.Multiplier,
+                LandlordID:           fmt.Sprintf("%d", record.LandlordID),
+                LandlordName:         landlordName,
+                Farmer1ID:            fmt.Sprintf("%d", record.Farmer1ID),
+                Farmer1Name:          farmer1Name,
+                Farmer2ID:            fmt.Sprintf("%d", record.Farmer2ID),
+                Farmer2Name:          farmer2Name,
+                Winner:               record.Result,
+                Result:               record.Result,
+                ResultText:           resultText,
+                Spring:               record.Spring,
+                SpringText:           springText,
+                BombCount:            record.BombCount,
+                LandlordWinGold:      record.LandlordWinGold,
+                Farmer1WinGold:       record.Farmer1WinGold,
+                Farmer2WinGold:       record.Farmer2WinGold,
+                LandlordWinArenaCoin: record.LandlordWinArenaCoin,
+                Farmer1WinArenaCoin:  record.Farmer1WinArenaCoin,
+                Farmer2WinArenaCoin:  record.Farmer2WinArenaCoin,
+                GameDuration:         record.DurationSeconds,
+                DurationText:         durationText,
+                GameTime:             record.StartedAt,
+                StartedAt:            record.StartedAt,
+                EndedAt:              record.EndedAt,
+                Players:              []ddzRes.DDZGamePlayerInfo{},
+                CreatedAt:            record.CreatedAt.Format("2006-01-02 15:04:05"),
+        }
+}
+
+// toRoomResponseFromPartition 从分表数据转换为响应格式
+func (s *DDZGameLogService) toRoomResponseFromPartition(r interface{}) ddzRes.DDZRoomResponse {
+        db := GetDDZDB()
+
+        // 类型断言
+        var room struct {
+                ID           uint64
+                RoomCode     string
+                RoomName     string
+                RoomConfigID uint64
+                RoomType     uint8
+                RoomCategory uint8
+                CreatorID    uint64
+                PlayerCount  int
+                MaxPlayers   int
+                Status       uint8
+                BaseScore    int
+                Multiplier   int
+                CreatedAt    time.Time
+                UpdatedAt    time.Time
+                EndedAt      *time.Time
+        }
+
+        switch v := r.(type) {
+        case struct {
+                ID           uint64     `json:"id"`
+                RoomCode     string     `json:"room_code"`
+                RoomName     string     `json:"room_name"`
+                RoomConfigID uint64     `json:"room_config_id"`
+                RoomType     uint8      `json:"room_type"`
+                RoomCategory uint8      `json:"room_category"`
+                CreatorID    uint64     `json:"creator_id"`
+                PlayerCount  int        `json:"player_count"`
+                MaxPlayers   int        `json:"max_players"`
+                Status       uint8      `json:"status"`
+                BaseScore    int        `json:"base_score"`
+                Multiplier   int        `json:"multiplier"`
+                CreatedAt    time.Time  `json:"created_at"`
+                UpdatedAt    time.Time  `json:"updated_at"`
+                EndedAt      *time.Time `json:"ended_at"`
+        }:
+                room = v
+        }
+
+        // 房间类型名称
+        roomTypeName := "未知"
+        switch room.RoomType {
+        case 1:
+                roomTypeName = "新手场"
+        case 2:
+                roomTypeName = "普通场"
+        case 3:
+                roomTypeName = "高级场"
+        case 4:
+                roomTypeName = "富豪场"
+        case 5:
+                roomTypeName = "至尊场"
+        }
+
+        // 房间分类名称
+        roomCategoryName := "普通场"
+        if room.RoomCategory == 2 {
+                roomCategoryName = "竞技场"
+        }
+
+        // 房间状态文本
+        statusText := "未知"
+        switch room.Status {
+        case 0:
+                statusText = "已关闭"
+        case 1:
+                statusText = "等待中"
+        case 2:
+                statusText = "游戏中"
+        case 3:
+                statusText = "已结束"
+        }
+
+        // 获取创建者昵称
+        creatorName := ""
+        if room.CreatorID > 0 {
+                var player ddz.DDZPlayer
+                if err := db.Where("id = ?", room.CreatorID).First(&player).Error; err == nil {
+                        creatorName = player.Nickname
+                }
+        }
+
+        return ddzRes.DDZRoomResponse{
+                ID:               room.ID,
+                RoomID:           room.RoomCode,
+                RoomConfigID:     room.RoomConfigID,
+                RoomName:         room.RoomName,
+                RoomType:         room.RoomType,
+                RoomTypeName:     roomTypeName,
+                RoomCategory:     room.RoomCategory,
+                RoomCategoryName: roomCategoryName,
+                Status:           room.Status,
+                StatusText:       statusText,
+                PlayerCount:      room.PlayerCount,
+                MaxPlayers:       room.MaxPlayers,
+                CreatorID:        fmt.Sprintf("%d", room.CreatorID),
+                CreatorName:      creatorName,
+                Players:          []ddzRes.DDZRoomPlayer{},
+                BaseScore:        room.BaseScore,
+                Multiplier:       room.Multiplier,
+                StartedAt:        nil,
+                EndedAt:          room.EndedAt,
+                CreatedAt:        room.CreatedAt.Format("2006-01-02 15:04:05"),
         }
 }

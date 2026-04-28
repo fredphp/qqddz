@@ -2,6 +2,16 @@
   <div>
     <div class="gva-search-box">
       <el-form ref="searchForm" :inline="true" :model="searchInfo">
+        <el-form-item label="月份">
+          <el-date-picker
+            v-model="searchInfo.month"
+            type="month"
+            placeholder="选择月份"
+            format="YYYY-MM"
+            value-format="YYYYMM"
+            clearable
+          />
+        </el-form-item>
         <el-form-item label="房间ID">
           <el-input v-model="searchInfo.roomId" placeholder="房间ID" />
         </el-form-item>
@@ -25,6 +35,7 @@
         </el-form-item>
         <el-form-item label="房间状态">
           <el-select v-model="searchInfo.status" placeholder="房间状态" clearable>
+            <el-option label="已关闭" :value="0" />
             <el-option label="等待中" :value="1" />
             <el-option label="游戏中" :value="2" />
             <el-option label="已结束" :value="3" />
@@ -38,6 +49,9 @@
           <el-button icon="refresh" @click="onReset">重置</el-button>
         </el-form-item>
       </el-form>
+      <div class="search-tip">
+        <el-tag type="info" size="small">默认查询当月数据，可通过月份筛选查看历史记录</el-tag>
+      </div>
     </div>
     <div class="gva-table-box">
       <el-table :data="tableData" row-key="ID">
@@ -160,6 +174,7 @@ defineOptions({
 })
 
 const searchInfo = ref({
+  month: '',
   roomId: '',
   roomName: '',
   roomType: null,
@@ -196,6 +211,7 @@ const onSubmit = () => {
 
 const onReset = () => {
   searchInfo.value = {
+    month: '',
     roomId: '',
     roomName: '',
     roomType: null,

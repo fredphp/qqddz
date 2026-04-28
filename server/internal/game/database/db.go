@@ -189,6 +189,7 @@ func (d *Database) AutoMigrate() error {
                 &Player{},
                 &RoomConfig{},
                 &Room{},
+                &RoomPlayer{},
                 &GameRecord{},
                 &DealLog{},
                 &BidLog{},
@@ -471,6 +472,143 @@ func GetWaitingRooms(limit int) ([]Room, error) {
 // DeleteRoom 删除房间
 func DeleteRoom(roomCode string) error {
         return DB().Where("room_code = ?", roomCode).Delete(&Room{}).Error
+}
+
+// =============================================
+// 房间玩家关联表操作
+// =============================================
+
+// CreateRoomPlayer 创建房间玩家关联
+func CreateRoomPlayer(roomPlayer *RoomPlayer) error {
+        return DB().Create(roomPlayer).Error
+}
+
+// GetRoomPlayers 获取房间所有玩家
+func GetRoomPlayers(roomCode string) ([]RoomPlayer, error) {
+        var players []RoomPlayer
+        err := DB().Where("room_code = ? AND left_at IS NULL", roomCode).
+                Order("seat_index ASC").
+                Find(&players).Error
+        if err != nil {
+                return nil, err
+        }
+        return players, nil
+}
+
+// GetRoomPlayerByPlayerID 根据玩家ID获取房间玩家关联
+func GetRoomPlayerByPlayerID(roomCode string, playerID uint64) (*RoomPlayer, error) {
+        var roomPlayer RoomPlayer
+        err := DB().Where("room_code = ? AND player_id = ? AND left_at IS NULL", roomCode, playerID).
+                First(&roomPlayer).Error
+        if err != nil {
+                return nil, err
+        }
+        return &roomPlayer, nil
+}
+
+// UpdateRoomPlayerSeat 更新玩家座位
+func UpdateRoomPlayerSeat(roomCode string, playerID uint64, seatIndex uint8) error {
+        return DB().Model(&RoomPlayer{}).
+                Where("room_code = ? AND player_id = ? AND left_at IS NULL", roomCode, playerID).
+                Update("seat_index", seatIndex).Error
+}
+
+// UpdateRoomPlayerReady 更新玩家准备状态
+func UpdateRoomPlayerReady(roomCode string, playerID uint64, isReady bool) error {
+        readyVal := uint8(0)
+        if isReady {
+                readyVal = 1
+        }
+        return DB().Model(&RoomPlayer{}).
+                Where("room_code = ? AND player_id = ? AND left_at IS NULL", roomCode, playerID).
+                Update("is_ready", readyVal).Error
+}
+
+// UpdateRoomPlayerOffline 更新玩家离线状态
+func UpdateRoomPlayerOffline(roomCode string, playerID uint64, isOffline bool) error {
+        offlineVal := uint8(0)
+        if isOffline {
+                offlineVal = 1
+        }
+        return DB().Model(&RoomPlayer{}).
+                Where("room_code = ? AND player_id = ? AND left_at IS NULL", roomCode, playerID).
+                Update("is_offline", offlineVal).Error
+}
+
+// RemoveRoomPlayer 移除房间玩家（设置离开时间）
+func RemoveRoomPlayer(roomCode string, playerID uint64) error {
+        now := time.Now()
+        return DB().Model(&RoomPlayer{}).
+                Where("room_code = ? AND player_id = ? AND left_at IS NULL", roomCode, playerID).
+                Update("left_at", &now).Error
+}
+
+// GetNextSeatIndex 获取房间下一个可用座位号
+func GetNextSeatIndex(roomCode string) (uint8, error) {
+        var players []RoomPlayer
+        err := DB().Where("room_code = ? AND left_at IS NULL", roomCode).
+                Order("seat_index ASC").
+                Find(&players).Error
+        if err != nil {
+                return 0, err
+        }
+
+        // 找到第一个空座位
+        usedSeats := make(map[uint8]bool)
+        for _, p := range players {
+                usedSeats[p.SeatIndex] = true
+        }
+
+        for i := uint8(0); i < 3; i++ {
+                if !usedSeats[i] {
+                        return i, nil
+                }
+        }
+
+        return 0, fmt.Errorf("room is full")
+}
+
+// IsPlayerInRoom 检查玩家是否在房间中
+func IsPlayerInRoom(roomCode string, playerID uint64) (bool, error) {
+        var count int64
+        err := DB().Model(&RoomPlayer{}).
+                Where("room_code = ? AND player_id = ? AND left_at IS NULL", roomCode, playerID).
+                Count(&count).Error
+        if err != nil {
+                return false, err
+        }
+        return count > 0, nil
+}
+
+// GetActiveRoomCount 获取活跃房间数量（玩家数大于0）
+func GetActiveRoomCount() (int64, error) {
+        var count int64
+        err := DB().Model(&Room{}).
+                Where("status IN ?", []uint8{RoomStatusWaiting, RoomStatusPlaying}).
+                Count(&count).Error
+        return count, err
+}
+
+// GetRoomListWithPlayers 获取房间列表（包含玩家信息）
+func GetRoomListWithPlayers(page, pageSize int, status uint8) ([]Room, int64, error) {
+        var rooms []Room
+        var total int64
+
+        db := DB().Model(&Room{})
+        if status > 0 {
+                db = db.Where("status = ?", status)
+        }
+
+        if err := db.Count(&total).Error; err != nil {
+                return nil, 0, err
+        }
+
+        offset := (page - 1) * pageSize
+        if err := db.Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&rooms).Error; err != nil {
+                return nil, 0, err
+        }
+
+        return rooms, total, nil
 }
 
 // =============================================

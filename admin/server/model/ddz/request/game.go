@@ -17,9 +17,11 @@ type DDZGameRecordSearch struct {
         Spring        *int   `json:"spring" form:"spring"`
         MinDuration   int    `json:"minDuration" form:"minDuration"`
         MaxDuration   int    `json:"maxDuration" form:"maxDuration"`
+        Month         string `json:"month" form:"month"`         // 月份筛选，格式: 202401，默认当月
 }
 
 // DDZGameRecordDetail 游戏记录详情请求
 type DDZGameRecordDetail struct {
-        ID uint `json:"ID" form:"ID" binding:"required"`
+        ID    uint   `json:"ID" form:"ID" binding:"required"`
+        Month string `json:"month" form:"month"` // 月份筛选，格式: 202401
 }

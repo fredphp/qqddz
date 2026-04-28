@@ -422,7 +422,12 @@ window.socketCtr = function(){
     // ========== 房间相关 ==========
     
     that.request_creatroom = function(req, callback){
-        _request(MessageType.CREATE_ROOM, {}, function(result, data){
+        // 支持传递房间配置ID
+        var payload = {}
+        if (req && req.room_config_id) {
+            payload.room_config_id = req.room_config_id
+        }
+        _request(MessageType.CREATE_ROOM, payload, function(result, data){
             callback && callback(result, {
                 roomid: data.room_code,
                 bottom: 100,
@@ -488,8 +493,12 @@ window.socketCtr = function(){
     }
     
     // 创建房间
-    that.createRoom = function(callback){
-        _request(MessageType.CREATE_ROOM, {}, function(result, data){
+    that.createRoom = function(roomConfigId, callback){
+        var payload = {}
+        if (roomConfigId) {
+            payload.room_config_id = roomConfigId
+        }
+        _request(MessageType.CREATE_ROOM, payload, function(result, data){
             if (result === 0 && data) {
                 callback && callback(0, data)
             } else {
