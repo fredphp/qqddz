@@ -124,9 +124,8 @@ type RoomPlayer struct {
         CreatedAt  time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
         UpdatedAt  time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`
 
-        // 关联关系
-        Room   Room   `gorm:"foreignKey:RoomCode;references:RoomCode" json:"room"`
-        Player Player `gorm:"foreignKey:PlayerID" json:"player"`
+        // 注意：不使用 GORM 关联字段，外键约束由迁移脚本管理
+        // 迁移脚本：migrations/add_room_players.sql 定义了正确的外键约束
 }
 
 // TableName 指定房间玩家关联表名

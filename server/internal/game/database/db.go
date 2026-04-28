@@ -177,6 +177,7 @@ func (d *Database) IsConnected() bool {
 }
 
 // AutoMigrate 自动迁移数据库表结构
+// 注意：外键约束由迁移脚本手动管理，不在 AutoMigrate 中创建
 func (d *Database) AutoMigrate() error {
         d.mu.RLock()
         defer d.mu.RUnlock()
@@ -185,7 +186,11 @@ func (d *Database) AutoMigrate() error {
                 return fmt.Errorf("database not initialized")
         }
 
-        return d.db.AutoMigrate(
+        // 使用 DisableForeignKeyConstraintWhenMigrating 禁用外键约束的自动创建
+        // 外键约束由迁移脚本管理，避免 GORM 创建错误方向的外键
+        return d.db.Session(&gorm.Session{
+                SkipDefaultTransaction: true,
+        }).Set("gorm:disable_foreign_key_constraint_when_migrating", true).AutoMigrate(
                 &Player{},
                 &RoomConfig{},
                 &Room{},
