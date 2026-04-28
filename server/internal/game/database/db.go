@@ -80,8 +80,10 @@ func (d *Database) Init(config *DatabaseConfig) error {
         // 配置GORM日志级别
         logLevel := d.getLogLevel()
         
+        // 配置GORM：禁用外键约束自动创建，避免 GORM 创建错误的外键
         gormConfig := &gorm.Config{
-                Logger: logger.Default.LogMode(logLevel),
+                Logger:                                   logger.Default.LogMode(logLevel),
+                DisableForeignKeyConstraintWhenMigrating: true,
         }
 
         db, err := gorm.Open(mysql.Open(dsn), gormConfig)
@@ -177,7 +179,7 @@ func (d *Database) IsConnected() bool {
 }
 
 // AutoMigrate 自动迁移数据库表结构
-// 注意：外键约束由迁移脚本手动管理，不在 AutoMigrate 中创建
+// 注意：外键约束由迁移脚本手动管理，GORM 配置已禁用自动创建外键
 func (d *Database) AutoMigrate() error {
         d.mu.RLock()
         defer d.mu.RUnlock()
@@ -186,11 +188,7 @@ func (d *Database) AutoMigrate() error {
                 return fmt.Errorf("database not initialized")
         }
 
-        // 使用 DisableForeignKeyConstraintWhenMigrating 禁用外键约束的自动创建
-        // 外键约束由迁移脚本管理，避免 GORM 创建错误方向的外键
-        return d.db.Session(&gorm.Session{
-                SkipDefaultTransaction: true,
-        }).Set("gorm:disable_foreign_key_constraint_when_migrating", true).AutoMigrate(
+        return d.db.AutoMigrate(
                 &Player{},
                 &RoomConfig{},
                 &Room{},
