@@ -72,9 +72,10 @@ CREATE TABLE IF NOT EXISTS `ddz_room_config` (
 -- 3. 房间表 (ddz_rooms)
 -- =============================================
 CREATE TABLE IF NOT EXISTS `ddz_rooms` (
-    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '房间ID',
-    `room_code` VARCHAR(10) NOT NULL COMMENT '房间号',
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '房间ID(自增主键)',
+    `room_code` VARCHAR(10) NOT NULL COMMENT '房间号(业务使用，如123456)',
     `room_name` VARCHAR(64) NOT NULL DEFAULT '' COMMENT '房间名称',
+    `room_config_id` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '房间配置ID(关联ddz_room_config表)',
     `room_type` TINYINT NOT NULL DEFAULT 1 COMMENT '房间类型: 1-普通场, 2-高级场, 3-富豪场, 4-至尊场',
     `room_category` TINYINT NOT NULL DEFAULT 1 COMMENT '房间分类: 1-普通场, 2-竞技场',
     `creator_id` BIGINT UNSIGNED NOT NULL COMMENT '创建者玩家ID',
@@ -91,6 +92,7 @@ CREATE TABLE IF NOT EXISTS `ddz_rooms` (
     `ended_at` DATETIME DEFAULT NULL COMMENT '结束时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `idx_room_code` (`room_code`),
+    KEY `idx_room_config_id` (`room_config_id`),
     KEY `idx_creator_id` (`creator_id`),
     KEY `idx_status` (`status`),
     KEY `idx_created_at` (`created_at`)

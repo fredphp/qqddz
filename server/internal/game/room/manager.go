@@ -15,7 +15,8 @@ import (
 )
 
 // CreateRoom 创建房间
-func (rm *RoomManager) CreateRoom(client types.ClientInterface) (*Room, error) {
+// roomConfigID: 房间配置ID，用于关联房间配置表
+func (rm *RoomManager) CreateRoom(client types.ClientInterface, roomConfigID uint64) (*Room, error) {
         rm.mu.Lock()
         defer rm.mu.Unlock()
 
@@ -48,6 +49,16 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface) (*Room, error) {
                 log.Printf("⚠️ 玩家 %s 的 PlayerID 为空，可能未正确登录", client.GetName())
         }
 
+        // 获取房间配置信息
+        var roomConfig *database.RoomConfig
+        var err error
+        if roomConfigID > 0 {
+                roomConfig, err = database.GetRoomConfigByID(roomConfigID)
+                if err != nil {
+                        log.Printf("⚠️ 获取房间配置失败: %v, 使用默认配置", err)
+                }
+        }
+
         // 保存房间到数据库
         // 生成房间名称：房{房间号}
         roomName := fmt.Sprintf("房%s", code)
@@ -55,6 +66,7 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface) (*Room, error) {
         dbRoom := &database.Room{
                 RoomCode:     code,
                 RoomName:     roomName,
+                RoomConfigID: roomConfigID,
                 RoomType:     1, // 默认普通场
                 RoomCategory: 1, // 默认普通场
                 CreatorID:    creatorID,
@@ -64,6 +76,16 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface) (*Room, error) {
                 BaseScore:    1,
                 Multiplier:   1,
         }
+
+        // 如果有房间配置，使用配置中的参数
+        if roomConfig != nil {
+                dbRoom.RoomType = roomConfig.RoomType
+                dbRoom.RoomCategory = roomConfig.RoomCategory
+                dbRoom.BaseScore = roomConfig.BaseScore
+                dbRoom.Multiplier = roomConfig.Multiplier
+                log.Printf("📋 使用房间配置 ID: %d, 类型: %d, 底分: %d", roomConfigID, roomConfig.RoomType, roomConfig.BaseScore)
+        }
+
         if creatorID > 0 {
                 dbRoom.Player1ID = &creatorID
         }
@@ -71,7 +93,7 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface) (*Room, error) {
         if err := database.CreateRoom(dbRoom); err != nil {
                 log.Printf("⚠️ 创建房间到数据库失败: %v", err)
         } else {
-                log.Printf("💾 房间 %s (名称: %s) 已保存到数据库，创建者ID: %d, 昵称: %s", code, roomName, creatorID, client.GetName())
+                log.Printf("💾 房间 %s (名称: %s, 配置ID: %d) 已保存到数据库，创建者ID: %d, 昵称: %s", code, roomName, roomConfigID, creatorID, client.GetName())
         }
 
         // 保存到 Redis

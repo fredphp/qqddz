@@ -73,6 +73,7 @@ type Room struct {
         ID           uint64     `gorm:"primaryKey;autoIncrement;comment:房间ID" json:"id"`
         RoomCode     string     `gorm:"type:varchar(10);uniqueIndex;not null;comment:房间号" json:"room_code"`
         RoomName     string     `gorm:"type:varchar(64);not null;default:'';comment:房间名称" json:"room_name"`
+        RoomConfigID uint64     `gorm:"type:bigint unsigned;not null;default:0;index;comment:房间配置ID" json:"room_config_id"`
         RoomType     uint8      `gorm:"type:tinyint;not null;default:1;index;comment:房间类型:1-普通场,2-高级场,3-富豪场,4-至尊场" json:"room_type"`
         RoomCategory uint8      `gorm:"type:tinyint;not null;default:1;comment:房间分类:1-普通场,2-竞技场" json:"room_category"`
         CreatorID    uint64     `gorm:"type:bigint unsigned;not null;index;comment:创建者玩家ID" json:"creator_id"`
@@ -89,10 +90,11 @@ type Room struct {
         EndedAt      *time.Time `gorm:"type:datetime;comment:结束时间" json:"ended_at"`
 
         // 关联关系
-        Creator Player `gorm:"foreignKey:CreatorID" json:"creator_info"`
-        Player1 Player `gorm:"foreignKey:Player1ID" json:"player1_info"`
-        Player2 Player `gorm:"foreignKey:Player2ID" json:"player2_info"`
-        Player3 Player `gorm:"foreignKey:Player3ID" json:"player3_info"`
+        Creator    Player     `gorm:"foreignKey:CreatorID" json:"creator_info"`
+        RoomConfig RoomConfig `gorm:"foreignKey:RoomConfigID" json:"room_config_info"`
+        Player1    Player     `gorm:"foreignKey:Player1ID" json:"player1_info"`
+        Player2    Player     `gorm:"foreignKey:Player2ID" json:"player2_info"`
+        Player3    Player     `gorm:"foreignKey:Player3ID" json:"player3_info"`
 }
 
 // TableName 指定房间表名

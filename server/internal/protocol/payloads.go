@@ -18,6 +18,11 @@ type JoinRoomPayload struct {
         RoomCode string `json:"room_code"`
 }
 
+// CreateRoomPayload 创建房间请求
+type CreateRoomPayload struct {
+        RoomConfigID uint64 `json:"room_config_id"` // 房间配置ID
+}
+
 // BidPayload 叫地主请求
 type BidPayload struct {
         Bid bool `json:"bid"` // true = 叫地主, false = 不叫
