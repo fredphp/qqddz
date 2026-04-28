@@ -438,7 +438,10 @@ cc.Class({
         // 检查是否需要显示等待界面
         if (playerdata_list.length < 3) {
             console.log("⏳ 房间人数不足3人，显示等待界面")
-            this._showWaitingUI(3 - playerdata_list.length)
+            // 延迟显示等待界面，确保在其他UI初始化之后
+            this.scheduleOnce(function() {
+                this._showWaitingUI(3 - playerdata_list.length)
+            }, 0.1)
         }
         
         // 初始化游戏前UI
@@ -471,8 +474,9 @@ cc.Class({
         waitingNode.anchorY = 0.5
         waitingNode.x = 0
         waitingNode.y = 0
-        waitingNode.zIndex = 2000
         waitingNode.parent = this.node
+        // 设置为最上层
+        waitingNode.setSiblingIndex(this.node.childrenCount - 1)
         this._waitingUINode = waitingNode
         
         // 半透明背景
