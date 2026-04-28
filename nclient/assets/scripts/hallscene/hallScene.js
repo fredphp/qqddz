@@ -3053,7 +3053,7 @@ cc.Class({
         }
     },
     
-    // 快速匹配 - 只使用真实socket连接，不使用模拟数据
+    // 快速匹配 - 智能匹配（优先加入现有等待房间）
     _quickMatch: function(roomConfig, playerGold) {
         var self = this;
         var myglobal = window.myglobal;
@@ -3063,7 +3063,7 @@ cc.Class({
         var isConnected = socket && socket.isConnected && socket.isConnected();
         var isWebSocketOpen = socket && socket.isWebSocketOpen && socket.isWebSocketOpen();
         
-        this._showMessageCenter("正在快速匹配...");
+        this._showMessageCenter("正在智能匹配...");
         
         // 如果WebSocket未连接，等待连接
         if (!socket || !isConnected || !isWebSocketOpen) {
@@ -3074,16 +3074,91 @@ cc.Class({
                 socket.initSocket();
             }
             
-            // 等待WebSocket连接后进入房间
-            this._waitForConnectionAndEnterRoom(roomConfig, socket, playerGold);
+            // 等待WebSocket连接后进行智能匹配
+            this._waitForConnectionAndSmartMatch(roomConfig, playerGold);
             return;
         }
         
-        // WebSocket已连接，直接发送快速匹配请求
-        this._sendQuickMatchRequest(roomConfig, playerGold);
+        // WebSocket已连接，执行智能匹配
+        this._smartMatch(roomConfig, playerGold);
     },
     
-    // 发送快速匹配请求
+    // 智能匹配：优先加入等待房间，没有则创建新房间
+    _smartMatch: function(roomConfig, playerGold) {
+        var self = this;
+        var myglobal = window.myglobal;
+        var socket = myglobal && myglobal.socket ? myglobal.socket : null;
+        
+        if (!socket) {
+            self._showMessageCenter("服务器连接异常，请稍后重试");
+            return;
+        }
+        
+        console.log("🔍 开始智能匹配，房间类型:", roomConfig.room_type);
+        
+        // 第一步：获取可加入的房间列表
+        if (socket.getRoomList) {
+            socket.getRoomList(function(result, rooms) {
+                console.log("📋 获取房间列表:", result, "房间数:", rooms ? rooms.length : 0);
+                
+                if (result === 0 && rooms && rooms.length > 0) {
+                    // 找到人数不足3人的等待房间
+                    var waitingRoom = null;
+                    for (var i = 0; i < rooms.length; i++) {
+                        var room = rooms[i];
+                        if (room.playerCount < 3) {
+                            waitingRoom = room;
+                            break;
+                        }
+                    }
+                    
+                    if (waitingRoom) {
+                        // 有等待中的房间，加入该房间
+                        console.log("✅ 找到等待房间:", waitingRoom.roomCode);
+                        self._showMessageCenter("找到等待房间，正在加入...");
+                        self._joinRoom(waitingRoom.roomCode, roomConfig, playerGold);
+                        return;
+                    }
+                }
+                
+                // 没有可加入的房间，创建新房间
+                console.log("🏠 没有等待房间，创建新房间");
+                self._showMessageCenter("创建新房间，等待其他玩家...");
+                self._createRoom(roomConfig, playerGold);
+            });
+        } else {
+            // 没有获取房间列表的方法，直接创建房间
+            console.log("🏠 直接创建新房间");
+            self._createRoom(roomConfig, playerGold);
+        }
+    },
+    
+    // 等待连接后进行智能匹配
+    _waitForConnectionAndSmartMatch: function(roomConfig, playerGold) {
+        var self = this;
+        var socket = window.myglobal && window.myglobal.socket ? window.myglobal.socket : null;
+        var attempts = 0;
+        var maxAttempts = 10;  // 最多等待5秒
+        
+        var tryConnect = function() {
+            attempts++;
+            var isWebSocketOpen = socket && socket.isWebSocketOpen ? socket.isWebSocketOpen() : false;
+            
+            console.log("尝试连接 WebSocket, 第" + attempts + "次, 物理连接状态:", isWebSocketOpen);
+            
+            if (isWebSocketOpen) {
+                self._smartMatch(roomConfig, playerGold);
+            } else if (attempts < maxAttempts) {
+                setTimeout(tryConnect, 500);
+            } else {
+                self._showMessageCenter("连接服务器失败，请检查网络后重试");
+            }
+        };
+        
+        setTimeout(tryConnect, 500);
+    },
+    
+    // 发送快速匹配请求（队列匹配模式 - 备用）
     _sendQuickMatchRequest: function(roomConfig, playerGold) {
         var self = this;
         var myglobal = window.myglobal;
