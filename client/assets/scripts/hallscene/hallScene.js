@@ -42,6 +42,106 @@ cc.Class({
        
        // 移除公告栏（如果存在）
        this._removeNoticeBoard();
+       
+       // 更新房间货币显示（根据房间类型显示"豆"或"竞技币"）
+       this._updateRoomCurrencyDisplay();
+       
+       // 延迟再次更新（确保所有节点都已加载）
+       this.scheduleOnce(function() {
+           this._updateRoomCurrencyDisplay();
+       }, 1.0);
+    },
+    
+    // 更新房间货币显示
+    // 根据房间类型：普通场显示"豆"，竞技场显示"竞技币"
+    _updateRoomCurrencyDisplay: function() {
+        var self = this;
+        
+        // 房间类型映射：按钮名称 -> 房间配置类型
+        // roomType: 1-新手场, 2-普通场, 3-高级场, 4-富豪场, 5-至尊场
+        // roomCategory: 1-普通场(显示豆), 2-竞技场(显示竞技币)
+        var roomConfigs = {
+            // 默认配置，实际应从服务器获取
+            // 格式: { roomType: { category: 1|2, name: "房间名" } }
+            1: { category: 1, name: "初级房" },  // 新手场 - 普通场
+            2: { category: 1, name: "中级房" },  // 普通场 - 普通场
+            3: { category: 1, name: "高级房" },  // 高级场 - 普通场
+            4: { category: 1, name: "大师房" },  // 富豪场 - 普通场
+            5: { category: 2, name: "至尊场" }   // 至尊场 - 竞技场（示例）
+        };
+        
+        // 遍历所有文本节点，查找包含"豆"的文本并更新
+        this._updateCurrencyText(this.node, roomConfigs);
+        
+        // 同时检查Canvas下的节点
+        var canvas = cc.find("Canvas");
+        if (canvas) {
+            this._updateCurrencyText(canvas, roomConfigs);
+        }
+        
+        console.log("房间货币显示已更新");
+    },
+    
+    // 递归更新货币文本
+    _updateCurrencyText: function(parentNode, roomConfigs) {
+        if (!parentNode || !parentNode.children) return;
+        
+        var children = parentNode.children;
+        for (var i = 0; i < children.length; i++) {
+            var child = children[i];
+            
+            // 检查节点上的 Label 组件
+            var label = child.getComponent(cc.Label);
+            if (label && label.string) {
+                var text = label.string;
+                
+                // 检查是否包含"豆"字（货币单位）
+                if (text.indexOf("豆") >= 0 || text.indexOf("万豆") >= 0) {
+                    // 尝试根据父节点或兄弟节点判断房间类型
+                    var roomCategory = this._getRoomCategoryFromNode(child, roomConfigs);
+                    
+                    if (roomCategory === 2) {
+                        // 竞技场 - 显示"竞技币"
+                        var newText = text.replace(/豆/g, "竞技币");
+                        label.string = newText;
+                        console.log("更新货币显示: " + text + " -> " + newText);
+                    }
+                    // 普通场保持显示"豆"，无需修改
+                }
+            }
+            
+            // 递归查找子节点
+            if (child.children && child.children.length > 0) {
+                this._updateCurrencyText(child, roomConfigs);
+            }
+        }
+    },
+    
+    // 根据节点位置判断房间类型
+    _getRoomCategoryFromNode: function(node, roomConfigs) {
+        // 根据节点的父节点名称或位置判断房间类型
+        // 这里可以根据实际场景结构调整
+        
+        var parent = node.parent;
+        var grandParent = parent ? parent.parent : null;
+        
+        // 检查父节点或祖父节点的名称
+        var checkNames = [];
+        if (parent) checkNames.push(parent.name);
+        if (grandParent) checkNames.push(grandParent.name);
+        
+        // 检查节点名称中的房间类型提示
+        var nodeName = node.name.toLowerCase();
+        if (nodeName.indexOf("arena") >= 0 || nodeName.indexOf("竞技") >= 0) {
+            return 2; // 竞技场
+        }
+        if (nodeName.indexOf("master") >= 0 || nodeName.indexOf("至尊") >= 0) {
+            // 至尊场可能是竞技场
+            return roomConfigs[5] ? roomConfigs[5].category : 2;
+        }
+        
+        // 默认返回普通场
+        return 1;
     },
     
     // 调整金币相关元素位置

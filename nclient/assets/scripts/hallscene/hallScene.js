@@ -703,15 +703,19 @@ cc.Class({
         });
     },
     
-    // 更新最低豆子显示（使用 min_gold 字段）
+    // 更新最低豆子/竞技币显示（根据 room_category 判断）
+    // room_category: 1-普通场(显示豆), 2-竞技场(显示竞技币)
     _updateMinGoldLabel: function(btnNode, config) {
         var goldLabelNode = btnNode.getChildByName("min_gold_label");
+        
+        // 获取房间分类，默认为普通场(1)
+        var roomCategory = config.room_category || config.roomCategory || 1;
         
         if (!goldLabelNode) {
             goldLabelNode = new cc.Node("min_gold_label");
             var label = goldLabelNode.addComponent(cc.Label);
-            label.fontSize = 28;       // 放大字体
-            label.lineHeight = 36;      // 放大行高
+            label.fontSize = 24;       // 字体大小
+            label.lineHeight = 30;      // 行高
             label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
             goldLabelNode.anchorX = 0.5;
             goldLabelNode.anchorY = 0.5;
@@ -720,14 +724,32 @@ cc.Class({
             outline.color = cc.color(0, 0, 0);
             outline.width = 2;
             
+            // 设置更高的 zIndex 确保显示在最上层
+            goldLabelNode.zIndex = 100;
+            
             goldLabelNode.parent = btnNode;
         }
         
         var label = goldLabelNode.getComponent(cc.Label);
         var minGold = config.min_gold || config.minGold || 0;
-        label.string = "最低 " + this._formatGold(minGold) + " 豆";
-        goldLabelNode.color = cc.color(255, 215, 0);
-        goldLabelNode.setPosition(0, -btnNode.height/2 + 30);
+        
+        // 根据房间类型显示不同货币
+        // room_category: 1-普通场(显示豆), 2-竞技场(显示竞技币)
+        var currencyName = (roomCategory === 2) ? "竞技币" : "豆";
+        label.string = "最低 " + this._formatGold(minGold) + " " + currencyName;
+        
+        // 竞技场使用不同颜色（银白色），普通场使用金色
+        if (roomCategory === 2) {
+            goldLabelNode.color = cc.color(200, 220, 255);  // 竞技场：淡蓝色
+        } else {
+            goldLabelNode.color = cc.color(255, 215, 0);    // 普通场：金色
+        }
+        
+        // 修正位置：按钮图片底部蓝色渐变条在 75%-90% 高度位置
+        // 按钮高度 375，底部渐变条中心约在 80% 位置
+        // Y坐标：-btnNode.height/2 是底部边缘，加上偏移量使其显示在渐变条内
+        var yOffset = -btnNode.height/2 + 50;  // 从底部边缘向上50像素
+        goldLabelNode.setPosition(0, yOffset);
     },
     
     // 房间按钮点击处理 - 直接快速匹配进入游戏（跳过房间列表）
