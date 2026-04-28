@@ -15,6 +15,8 @@ window.socketCtr = function(){
     var _playerId = ""
     var _playerName = ""
     var _reconnectToken = ""
+    var _currentRoomCode = ""  // 当前房间号
+    var _isInRoom = false        // 是否在房间中
     
     // ========== 心跳机制 ==========
     var _heartbeatInterval = null      // 心跳定时器
@@ -145,11 +147,37 @@ window.socketCtr = function(){
                 evt.fire("connection_success", data)
                 break
                 
+            // 处理重连成功消息
+            case "reconnected":
+                _playerId = data.player_id
+                _playerName = data.player_name
+                _isConnected = true
+                _setConnectionState("connected")
+                console.log("重连成功，玩家ID:", _playerId)
+                // 启动心跳
+                _startHeartbeat()
+                // 如果在房间中，触发房间恢复事件
+                if (data.room_code) {
+                    _currentRoomCode = data.room_code
+                    _isInRoom = true
+                    console.log("重连恢复房间:", data.room_code)
+                    evt.fire("room_restored", data)
+                } else {
+                    evt.fire("connection_success", data)
+                }
+                break
+                
             case MessageType.ROOM_CREATED:
+                _currentRoomCode = data.room_code
+                _isInRoom = true
+                console.log("房间创建成功:", data.room_code)
                 evt.fire("room_created", data)
                 break
                 
             case MessageType.ROOM_JOINED:
+                _currentRoomCode = data.room_code
+                _isInRoom = true
+                console.log("加入房间成功:", data.room_code)
                 evt.fire("room_joined", data)
                 break
                 
@@ -637,8 +665,22 @@ window.socketCtr = function(){
         if (evt) evt.on("other_chucard_notify", callback)
     }
     
+    // 房间恢复事件（重连后恢复房间状态）
+    that.onRoomRestored = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("room_restored", callback)
+    }
+    
     that.isConnected = function(){
         return _isConnected
+    }
+    
+    that.isInRoom = function(){
+        return _isInRoom
+    }
+    
+    that.getCurrentRoomCode = function(){
+        return _currentRoomCode
     }
     
     // 获取 WebSocket 物理连接状态（readyState === OPEN）
@@ -655,6 +697,41 @@ window.socketCtr = function(){
         return {
             id: _playerId,
             name: _playerName
+        }
+    }
+    
+    // 获取重连令牌（用于刷新页面后重连）
+    that.getReconnectToken = function(){
+        return _reconnectToken
+    }
+    
+    // 保存重连信息到 localStorage
+    that.saveReconnectInfo = function(){
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('ddz_reconnect_token', _reconnectToken)
+            localStorage.setItem('ddz_player_id', _playerId)
+            localStorage.setItem('ddz_room_code', _currentRoomCode)
+        }
+    }
+    
+    // 从 localStorage 加载重连信息
+    that.loadReconnectInfo = function(){
+        if (typeof localStorage !== 'undefined') {
+            return {
+                token: localStorage.getItem('ddz_reconnect_token') || '',
+                playerId: localStorage.getItem('ddz_player_id') || '',
+                roomCode: localStorage.getItem('ddz_room_code') || ''
+            }
+        }
+        return { token: '', playerId: '', roomCode: '' }
+    }
+    
+    // 清除重连信息
+    that.clearReconnectInfo = function(){
+        if (typeof localStorage !== 'undefined') {
+            localStorage.removeItem('ddz_reconnect_token')
+            localStorage.removeItem('ddz_player_id')
+            localStorage.removeItem('ddz_room_code')
         }
     }
 

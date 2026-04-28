@@ -194,8 +194,32 @@ cc.Class({
             gameui_node.emit("unchoose_card_event", event)
         }.bind(this))
 
-        // 使用房间数据（从hallScene传入）
+        // 检查是否已经在房间中（通过创建房间进入）
+        var currentRoomCode = myglobal.socket.getCurrentRoomCode()
+        var isInRoom = myglobal.socket.isInRoom()
+        
+        console.log("gameScene: currentRoomCode=" + currentRoomCode + ", isInRoom=" + isInRoom)
+        
+        // 使用房间数据（从hallScene传入或创建房间时保存）
         var roomData = myglobal.roomData
+        
+        if (isInRoom && currentRoomCode && !roomData) {
+            // 已经在房间中（创建房间进入），直接显示房间信息
+            console.log("已在房间中，设置房间UI")
+            roomData = {
+                roomid: currentRoomCode,
+                room_code: currentRoomCode,
+                seatindex: 1,
+                playerdata: [{
+                    accountid: myglobal.playerData.accountid || myglobal.playerData.playerId,
+                    nick_name: myglobal.playerData.nickName,
+                    avatarUrl: "avatar_1",
+                    goldcount: myglobal.playerData.gobal_count || 1000,
+                    seatindex: 1
+                }]
+            }
+        }
+        
         if (roomData) {
             console.log("使用房间数据:", JSON.stringify(roomData))
             this._processRoomData(roomData, myglobal, isopen_sound)
@@ -283,6 +307,26 @@ cc.Class({
                 return
             }
             gameui_node.emit("show_bottom_card_event", event)
+        }.bind(this))
+        
+        // 监听房间恢复事件（重连后）
+        myglobal.socket.onRoomRestored(function(data) {
+            console.log("房间恢复: " + JSON.stringify(data))
+            if (data.room_code) {
+                var restoredRoomData = {
+                    roomid: data.room_code,
+                    room_code: data.room_code,
+                    seatindex: 1,
+                    playerdata: [{
+                        accountid: data.player_id,
+                        nick_name: data.player_name,
+                        avatarUrl: "avatar_1",
+                        goldcount: 1000,
+                        seatindex: 1
+                    }]
+                }
+                this._processRoomData(restoredRoomData, myglobal, isopen_sound)
+            }
         }.bind(this))
         
         console.log("gameScene 初始化完成");

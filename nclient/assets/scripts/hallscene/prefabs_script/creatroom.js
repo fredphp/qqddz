@@ -58,6 +58,17 @@ cc.Class({
             myglobal.socket.createRoom(roomConfigId, function(result, data) {
                 if (result === 0) {
                     console.log("创建房间成功:", JSON.stringify(data));
+                    
+                    // 保存房间信息到 playerData
+                    myglobal.playerData.roomid = data.room_code
+                    myglobal.playerData.bottom = 100
+                    myglobal.playerData.rate = 1
+                    
+                    // 保存重连信息到 localStorage
+                    myglobal.socket.saveReconnectInfo()
+                    
+                    // 跳转到游戏场景
+                    cc.director.loadScene("gameScene")
                 } else {
                     console.error("创建房间失败");
                 }

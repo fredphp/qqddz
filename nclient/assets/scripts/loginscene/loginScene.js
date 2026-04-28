@@ -430,6 +430,52 @@ cc.Class({
             return;
         }
 
+        // 检查是否有保存的重连信息（刷新页面后恢复）
+        if (myglobal.socket && myglobal.socket.loadReconnectInfo) {
+            var reconnectInfo = myglobal.socket.loadReconnectInfo()
+            console.log("检查重连信息:", reconnectInfo)
+            
+            if (reconnectInfo.token && reconnectInfo.playerId) {
+                console.log("发现保存的重连信息，尝试恢复...")
+                this._showLoading(true, "正在恢复登录状态...")
+                
+                // 初始化 WebSocket 连接
+                if (myglobal.socket.initSocket) {
+                    myglobal.socket.initSocket()
+                }
+                
+                var self = this
+                
+                // 监听房间恢复事件
+                myglobal.socket.onRoomRestored(function(data) {
+                    console.log("房间恢复成功，跳转到游戏场景")
+                    self._showLoading(false)
+                    
+                    // 恢复玩家数据
+                    myglobal.playerData.playerId = data.player_id
+                    myglobal.playerData.nickName = data.player_name
+                    
+                    // 跳转到游戏场景
+                    cc.director.loadScene("gameScene")
+                })
+                
+                // 监听普通连接成功（不在房间中）
+                var evt = window.eventLister ? window.eventLister({}) : null
+                if (evt) {
+                    evt.on("connection_success", function(data) {
+                        console.log("连接成功，不在房间中，跳转到大厅")
+                        self._showLoading(false)
+                        myglobal.playerData.playerId = data.player_id
+                        myglobal.playerData.nickName = data.player_name
+                        myglobal.playerData.gobal_count = data.gold || 0
+                        cc.director.loadScene("hallScene")
+                    })
+                }
+                
+                return
+            }
+        }
+
         // 初始化背景音乐 - 处理浏览器自动播放策略
         this._initBackgroundMusic();
 
