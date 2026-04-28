@@ -5,6 +5,9 @@
         <el-form-item label="游戏ID">
           <el-input v-model="searchInfo.gameId" placeholder="游戏ID" />
         </el-form-item>
+        <el-form-item label="房间ID">
+          <el-input v-model="searchInfo.roomId" placeholder="房间ID" />
+        </el-form-item>
         <el-form-item label="房间类型">
           <el-select v-model="searchInfo.roomType" placeholder="房间类型" clearable>
             <el-option label="初级场" :value="2" />
@@ -39,6 +42,7 @@
       <el-table :data="tableData" row-key="ID">
         <el-table-column align="center" label="ID" min-width="60" prop="ID" />
         <el-table-column align="center" label="游戏ID" min-width="120" prop="gameId" show-overflow-tooltip />
+        <el-table-column align="center" label="房间ID" min-width="120" prop="roomId" show-overflow-tooltip />
         <el-table-column align="center" label="房间类型" min-width="80">
           <template #default="scope">
             <el-tag>{{ scope.row.roomTypeName }}</el-tag>
@@ -235,6 +239,7 @@ defineOptions({
 
 const searchInfo = ref({
   gameId: '',
+  roomId: '',
   roomType: null,
   roomCategory: null,
   result: null,
@@ -258,6 +263,7 @@ const onSubmit = () => {
 const onReset = () => {
   searchInfo.value = {
     gameId: '',
+    roomId: '',
     roomType: null,
     roomCategory: null,
     result: null,

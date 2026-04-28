@@ -123,6 +123,35 @@ export const getBgImageOptions = () => {
   })
 }
 
+// ==================== 游戏房间实例 ====================
+
+// 获取房间列表
+export const getRoomList = (data) => {
+  return service({
+    url: '/ddz/room/list',
+    method: 'post',
+    data
+  })
+}
+
+// 获取房间详情
+export const getRoomDetail = (id) => {
+  return service({
+    url: '/ddz/room/detail',
+    method: 'get',
+    params: { id }
+  })
+}
+
+// 删除房间
+export const deleteRoom = (data) => {
+  return service({
+    url: '/ddz/room/delete',
+    method: 'delete',
+    data
+  })
+}
+
 // ==================== 短信验证码 ====================
 
 // 获取短信验证码列表
