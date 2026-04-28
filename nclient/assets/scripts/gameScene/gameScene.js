@@ -465,18 +465,19 @@ cc.Class({
         // 检查是否需要显示等待界面
         if (playerdata_list.length < 3) {
             console.log("⏳ 房间人数不足3人，显示等待界面")
-            // 显示等待界面
-            this._showWaitingUI(3 - playerdata_list.length)
+            // 显示等待界面，传入房间号
+            this._showWaitingUI(3 - playerdata_list.length, roomid)
         }
     },
     
     // 显示等待玩家界面
-    _showWaitingUI: function(needPlayers) {
+    _showWaitingUI: function(needPlayers, roomCode) {
         var self = this
         this._isWaitingForPlayers = true
         this._needPlayers = needPlayers
+        this._currentRoomCode = roomCode || ""
         
-        console.log("显示等待界面，还需玩家数:", needPlayers)
+        console.log("显示等待界面，还需玩家数:", needPlayers, "房间号:", roomCode)
         
         // 移除旧的等待界面
         this._hideWaitingUI()
@@ -521,6 +522,33 @@ cc.Class({
         titleOutline.color = cc.color(0, 0, 0)
         titleOutline.width = 2
         titleNode.parent = waitingNode
+        
+        // 房间号显示（醒目）
+        if (roomCode) {
+            var roomCodeBgNode = new cc.Node("RoomCodeBg")
+            roomCodeBgNode.y = 175
+            var roomCodeBg = roomCodeBgNode.addComponent(cc.Graphics)
+            roomCodeBg.fillColor = cc.color(255, 140, 0, 200)
+            roomCodeBg.roundRect(-150, -25, 300, 50, 10)
+            roomCodeBg.fill()
+            roomCodeBgNode.parent = waitingNode
+            
+            var roomCodeLabelNode = new cc.Node("RoomCodeLabel")
+            roomCodeLabelNode.y = 175
+            var roomCodeLabel = roomCodeLabelNode.addComponent(cc.Label)
+            roomCodeLabel.string = "房间号: " + roomCode
+            roomCodeLabel.fontSize = 32
+            roomCodeLabel.lineHeight = 42
+            roomCodeLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+            roomCodeLabelNode.color = cc.color(255, 255, 255)
+            
+            var roomCodeOutline = roomCodeLabelNode.addComponent(cc.LabelOutline)
+            roomCodeOutline.color = cc.color(0, 0, 0)
+            roomCodeOutline.width = 2
+            roomCodeLabelNode.parent = waitingNode
+            this._waitingRoomCodeLabel = roomCodeLabel
+            console.log("🏠 等待界面显示房间号:", roomCode)
+        }
         
         // 玩家数量提示
         var countNode = new cc.Node("Count")
