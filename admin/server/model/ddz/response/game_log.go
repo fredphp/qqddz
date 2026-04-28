@@ -79,29 +79,31 @@ type DDZPlayerStatResponse struct {
 
 // DDZRoomConfigResponse 房间配置响应（与游戏服务端ddz_room_config表一致）
 type DDZRoomConfigResponse struct {
-        ID             uint    `json:"ID"`
-        RoomName       string  `json:"roomName"`
-        RoomType       int     `json:"roomType"`
-        RoomTypeName   string  `json:"roomTypeName"`
-        RoomCategory   int     `json:"roomCategory"`    // 房间分类:1-普通场,2-竞技场
-        RoomCategoryName string `json:"roomCategoryName"` // 房间分类名称
-        BaseScore      int     `json:"baseScore"`
-        Multiplier     int     `json:"multiplier"`
-        MinGold        int64   `json:"minGold"`
-        MaxGold        int64   `json:"maxGold"`
-        EntryGold      int64   `json:"entryGold"` // 入场金币 = minGold
-        BgImageNum     int     `json:"bgImageNum"`  // 背景图编号
-        BotEnabled     int     `json:"botEnabled"`
-        BotCount       int     `json:"botCount"`
-        FeeRate        float64 `json:"feeRate"`
-        MaxRound       int     `json:"maxRound"`
-        TimeoutSeconds int     `json:"timeoutSeconds"`
-        Status         int     `json:"status"`
-        StatusText     string  `json:"statusText"`
-        SortOrder      int     `json:"sortOrder"`
-        Description    string  `json:"description"`
-        CreatedAt      string  `json:"createdAt"`
-        UpdatedAt      string  `json:"updatedAt"`
+        ID               uint    `json:"ID"`
+        RoomName         string  `json:"roomName"`
+        RoomType         int     `json:"roomType"`
+        RoomTypeName     string  `json:"roomTypeName"`
+        RoomCategory     int     `json:"roomCategory"`     // 房间分类:1-普通场,2-竞技场
+        RoomCategoryName string  `json:"roomCategoryName"` // 房间分类名称
+        BaseScore        int     `json:"baseScore"`
+        Multiplier       int     `json:"multiplier"`
+        MinGold          int64   `json:"minGold"`
+        MaxGold          int64   `json:"maxGold"`
+        MinArenaCoin     int64   `json:"minArenaCoin"`     // 最低入场竞技币
+        MaxArenaCoin     int64   `json:"maxArenaCoin"`     // 最高入场竞技币
+        EntryGold        int64   `json:"entryGold"`        // 入场金币 = minGold
+        BgImageNum       int     `json:"bgImageNum"`       // 背景图编号
+        BotEnabled       int     `json:"botEnabled"`
+        BotCount         int     `json:"botCount"`
+        FeeRate          float64 `json:"feeRate"`
+        MaxRound         int     `json:"maxRound"`
+        TimeoutSeconds   int     `json:"timeoutSeconds"`
+        Status           int     `json:"status"`
+        StatusText       string  `json:"statusText"`
+        SortOrder        int     `json:"sortOrder"`
+        Description      string  `json:"description"`
+        CreatedAt        string  `json:"createdAt"`
+        UpdatedAt        string  `json:"updatedAt"`
 }
 
 // DDZSmsCodeResponse 短信验证码响应

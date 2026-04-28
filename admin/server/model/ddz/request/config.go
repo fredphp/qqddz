@@ -17,12 +17,14 @@ type DDZGameRoomConfigSearch struct {
 type DDZGameRoomConfigCreate struct {
         RoomName       string  `json:"roomName" binding:"required"`
         RoomType       int     `json:"roomType" binding:"required"`
-        RoomCategory   int     `json:"roomCategory"`                                          // 房间分类:1-普通场,2-竞技场
+        RoomCategory   int     `json:"roomCategory"`     // 房间分类:1-普通场,2-竞技场
         BaseScore      int     `json:"baseScore" binding:"required"`
         Multiplier     int     `json:"multiplier"`
         MinGold        int64   `json:"minGold"`
         MaxGold        int64   `json:"maxGold"`
-        BgImageNum     int     `json:"bgImageNum"`                                         // 背景图编号
+        MinArenaCoin   int64   `json:"minArenaCoin"`     // 最低入场竞技币
+        MaxArenaCoin   int64   `json:"maxArenaCoin"`     // 最高入场竞技币
+        BgImageNum     int     `json:"bgImageNum"`       // 背景图编号
         BotEnabled     int     `json:"botEnabled"`
         BotCount       int     `json:"botCount"`
         FeeRate        float64 `json:"feeRate"`
@@ -38,12 +40,14 @@ type DDZGameRoomConfigUpdate struct {
         ID             uint    `json:"ID" binding:"required"`
         RoomName       string  `json:"roomName"`
         RoomType       int     `json:"roomType"`
-        RoomCategory   int     `json:"roomCategory"`                                          // 房间分类:1-普通场,2-竞技场
+        RoomCategory   int     `json:"roomCategory"`     // 房间分类:1-普通场,2-竞技场
         BaseScore      int     `json:"baseScore"`
         Multiplier     int     `json:"multiplier"`
         MinGold        int64   `json:"minGold"`
         MaxGold        int64   `json:"maxGold"`
-        BgImageNum     int     `json:"bgImageNum"`                                         // 背景图编号
+        MinArenaCoin   int64   `json:"minArenaCoin"`     // 最低入场竞技币
+        MaxArenaCoin   int64   `json:"maxArenaCoin"`     // 最高入场竞技币
+        BgImageNum     int     `json:"bgImageNum"`       // 背景图编号
         BotEnabled     int     `json:"botEnabled"`
         BotCount       int     `json:"botCount"`
         FeeRate        float64 `json:"feeRate"`

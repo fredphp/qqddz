@@ -19,39 +19,42 @@ func (s *DDZGameLogService) GetGameRecordList(req ddzReq.DDZGameRecordSearch) (l
         offset := req.PageSize * (req.Page - 1)
         query := db.Model(&ddz.DDZGameRecord{})
 
+        if req.GameID != "" {
+                query = query.Where("game_id LIKE ?", "%"+req.GameID+"%")
+        }
         if req.RoomID != "" {
                 query = query.Where("room_id = ?", req.RoomID)
         }
         if req.RoomType != nil {
                 query = query.Where("room_type = ?", *req.RoomType)
         }
+        if req.RoomCategory != nil {
+                query = query.Where("room_category = ?", *req.RoomCategory)
+        }
+        if req.Result != nil {
+                query = query.Where("result = ?", *req.Result)
+        }
         if req.Winner != nil {
-                query = query.Where("winner = ?", *req.Winner)
+                query = query.Where("result = ?", *req.Winner)
         }
         if req.Spring != nil {
                 query = query.Where("spring = ?", *req.Spring)
         }
         if req.StartTime != "" {
-                query = query.Where("game_time >= ?", req.StartTime)
+                query = query.Where("started_at >= ?", req.StartTime)
         }
         if req.EndTime != "" {
-                query = query.Where("game_time <= ?", req.EndTime+" 23:59:59")
+                query = query.Where("started_at <= ?", req.EndTime+" 23:59:59")
         }
         if req.MinDuration > 0 {
-                query = query.Where("game_duration >= ?", req.MinDuration)
+                query = query.Where("duration_seconds >= ?", req.MinDuration)
         }
         if req.MaxDuration > 0 {
-                query = query.Where("game_duration <= ?", req.MaxDuration)
+                query = query.Where("duration_seconds <= ?", req.MaxDuration)
         }
         if req.PlayerID != "" {
-                // 通过游戏玩家记录查找
-                var gameIDs []string
-                db.Model(&ddz.DDZGamePlayerRecord{}).Where("player_id = ?", req.PlayerID).Pluck("game_id", &gameIDs)
-                if len(gameIDs) > 0 {
-                        query = query.Where("id IN ?", gameIDs)
-                } else {
-                        return []ddzRes.DDZGameRecordResponse{}, 0, nil
-                }
+                // 通过地主ID或农民ID查找
+                query = query.Where("landlord_id = ? OR farmer1_id = ? OR farmer2_id = ?", req.PlayerID, req.PlayerID, req.PlayerID)
         }
 
         err = query.Count(&total).Error
@@ -244,14 +247,22 @@ func (s *DDZGameLogService) CreateRoomConfig(req ddzReq.DDZGameRoomConfigCreate)
                 bgImageNum = ddz.BgImageNumMin // 默认使用编号2
         }
 
+        // 默认房间分类为普通场
+        roomCategory := req.RoomCategory
+        if roomCategory == 0 {
+                roomCategory = 1
+        }
+
         config := ddz.DDZRoomConfig{
                 RoomName:       req.RoomName,
                 RoomType:       req.RoomType,
-                RoomCategory:   req.RoomCategory,
+                RoomCategory:   roomCategory,
                 BaseScore:      req.BaseScore,
                 Multiplier:     req.Multiplier,
                 MinGold:        req.MinGold,
                 MaxGold:        req.MaxGold,
+                MinArenaCoin:   req.MinArenaCoin,
+                MaxArenaCoin:   req.MaxArenaCoin,
                 BgImageNum:     bgImageNum,
                 BotEnabled:     req.BotEnabled,
                 BotCount:       req.BotCount,
@@ -305,6 +316,10 @@ func (s *DDZGameLogService) UpdateRoomConfig(req ddzReq.DDZGameRoomConfigUpdate)
         // 金币范围
         updates["min_gold"] = req.MinGold
         updates["max_gold"] = req.MaxGold
+
+        // 竞技币范围
+        updates["min_arena_coin"] = req.MinArenaCoin
+        updates["max_arena_coin"] = req.MaxArenaCoin
 
         // 更新背景图编号 - 始终更新，如果值无效则使用默认值
         bgImageNum := req.BgImageNum
@@ -399,9 +414,80 @@ func (s *DDZGameLogService) DeleteSmsCode(id uint) error {
 // 转换方法
 
 func (s *DDZGameLogService) toGameRecordResponse(r ddz.DDZGameRecord) ddzRes.DDZGameRecordResponse {
+        db := GetDDZDB()
+
+        // 房间类型名称
+        roomTypeName := "未知"
+        switch r.RoomType {
+        case 2:
+                roomTypeName = "初级场"
+        case 3:
+                roomTypeName = "中级场"
+        case 4:
+                roomTypeName = "高级场"
+        case 5:
+                roomTypeName = "大师场"
+        case 6:
+                roomTypeName = "至尊场"
+        }
+
+        // 结果文本
+        resultText := "未知"
+        if r.Result == 1 {
+                resultText = "地主胜"
+        } else if r.Result == 2 {
+                resultText = "农民胜"
+        }
+
+        // 春天文本
+        springText := ""
+        if r.Spring == 1 {
+                springText = "春天"
+        } else if r.Spring == 2 {
+                springText = "反春天"
+        }
+
+        // 游戏时长文本
+        durationText := ""
+        if r.DurationSeconds > 0 {
+                minutes := r.DurationSeconds / 60
+                seconds := r.DurationSeconds % 60
+                if minutes > 0 {
+                        durationText = string(rune(minutes)) + "分" + string(rune(seconds)) + "秒"
+                } else {
+                        durationText = string(rune(seconds)) + "秒"
+                }
+        }
+
+        // 获取地主昵称
+        landlordName := ""
+        if r.LandlordID != "" {
+                var player ddz.DDZPlayer
+                if err := db.Where("id = ?", r.LandlordID).First(&player).Error; err == nil {
+                        landlordName = player.Nickname
+                }
+        }
+
+        // 获取农民1昵称
+        farmer1Name := ""
+        if r.Farmer1ID != "" {
+                var player ddz.DDZPlayer
+                if err := db.Where("id = ?", r.Farmer1ID).First(&player).Error; err == nil {
+                        farmer1Name = player.Nickname
+                }
+        }
+
+        // 获取农民2昵称
+        farmer2Name := ""
+        if r.Farmer2ID != "" {
+                var player ddz.DDZPlayer
+                if err := db.Where("id = ?", r.Farmer2ID).First(&player).Error; err == nil {
+                        farmer2Name = player.Nickname
+                }
+        }
+
         // 获取玩家信息
         var players []ddzRes.DDZGamePlayerInfo
-        db := GetDDZDB()
         var playerRecords []ddz.DDZGamePlayerRecord
         db.Where("game_id = ?", r.ID).Order("player_index asc").Find(&playerRecords)
         for _, pr := range playerRecords {
@@ -422,20 +508,38 @@ func (s *DDZGameLogService) toGameRecordResponse(r ddz.DDZGameRecord) ddzRes.DDZ
         }
 
         return ddzRes.DDZGameRecordResponse{
-                ID:           r.ID,
-                RoomID:       r.RoomID,
-                RoomType:     r.RoomType,
-                RoomLevel:    r.RoomLevel,
-                BaseScore:    r.BaseScore,
-                Multiple:     r.Multiple,
-                LandlordID:   r.LandlordID,
-                Winner:       r.Winner,
-                GameDuration: r.GameDuration,
-                GameTime:     r.GameTime,
-                Spring:       r.Spring,
-                BombCount:    r.BombCount,
-                Players:      players,
-                CreatedAt:    r.CreatedAt.Format("2006-01-02 15:04:05"),
+                ID:                   r.ID,
+                RoomID:               r.RoomID,
+                RoomType:             r.RoomType,
+                RoomTypeName:         roomTypeName,
+                RoomCategory:         r.RoomCategory,
+                BaseScore:            r.BaseScore,
+                Multiplier:           r.Multiplier,
+                LandlordID:           r.LandlordID,
+                LandlordName:         landlordName,
+                Farmer1ID:            r.Farmer1ID,
+                Farmer1Name:          farmer1Name,
+                Farmer2ID:            r.Farmer2ID,
+                Farmer2Name:          farmer2Name,
+                Winner:               r.Result, // 兼容旧字段
+                Result:               r.Result,
+                ResultText:           resultText,
+                Spring:               r.Spring,
+                SpringText:           springText,
+                BombCount:            r.BombCount,
+                LandlordWinGold:      r.LandlordWinGold,
+                Farmer1WinGold:       r.Farmer1WinGold,
+                Farmer2WinGold:       r.Farmer2WinGold,
+                LandlordWinArenaCoin: r.LandlordWinArenaCoin,
+                Farmer1WinArenaCoin:  r.Farmer1WinArenaCoin,
+                Farmer2WinArenaCoin:  r.Farmer2WinArenaCoin,
+                GameDuration:         r.DurationSeconds,
+                DurationText:         durationText,
+                GameTime:             r.StartedAt,
+                StartedAt:            r.StartedAt,
+                EndedAt:              r.EndedAt,
+                Players:              players,
+                CreatedAt:            r.CreatedAt.Format("2006-01-02 15:04:05"),
         }
 }
 
@@ -475,6 +579,8 @@ func (s *DDZGameLogService) toRoomConfigResponse(c ddz.DDZRoomConfig) ddzRes.DDZ
                 roomTypeName = "高级场"
         case 5:
                 roomTypeName = "大师场"
+        case 6:
+                roomTypeName = "至尊场"
         }
 
         // 房间分类名称
@@ -505,6 +611,8 @@ func (s *DDZGameLogService) toRoomConfigResponse(c ddz.DDZRoomConfig) ddzRes.DDZ
                 Multiplier:       c.Multiplier,
                 MinGold:          c.MinGold,
                 MaxGold:          c.MaxGold,
+                MinArenaCoin:     c.MinArenaCoin,
+                MaxArenaCoin:     c.MaxArenaCoin,
                 EntryGold:        c.MinGold, // 入场金币 = 最低入场金币
                 BgImageNum:       bgImageNum,
                 BotEnabled:       c.BotEnabled,
