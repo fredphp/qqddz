@@ -240,13 +240,45 @@ cc.Class({
                     console.log("✅ Token 验证成功，自动登录");
                     self._showError("自动登录中...");
                     
-                    // 延迟跳转到大厅
-                    self.scheduleOnce(function() {
-                        if (myglobal.socket && myglobal.socket.initSocket) {
-                            myglobal.socket.initSocket();
-                        }
-                        cc.director.loadScene("hallScene");
-                    }, 0.5);
+                    // 检查是否有保存的房间信息（刷新页面后恢复到游戏场景）
+                    var reconnectInfo = myglobal.socket && myglobal.socket.loadReconnectInfo ? 
+                        myglobal.socket.loadReconnectInfo() : { token: '', playerId: '', roomCode: '' };
+                    
+                    console.log("检查重连信息:", reconnectInfo);
+                    
+                    // 如果有房间号，说明之前在游戏中，需要恢复到游戏场景
+                    if (reconnectInfo.roomCode) {
+                        console.log("发现保存的房间信息，跳转到游戏场景");
+                        
+                        self.scheduleOnce(function() {
+                            if (myglobal.socket && myglobal.socket.initSocket) {
+                                myglobal.socket.initSocket();
+                            }
+                            
+                            // 监听房间恢复事件
+                            myglobal.socket.onRoomRestored(function(data) {
+                                console.log("房间恢复成功:", data);
+                                cc.director.loadScene("gameScene");
+                            });
+                            
+                            // 监听普通连接成功（不在房间中）
+                            var evt = window.eventLister ? window.eventLister({}) : null;
+                            if (evt) {
+                                evt.on("connection_success", function(data) {
+                                    console.log("连接成功，跳转到游戏场景");
+                                    cc.director.loadScene("gameScene");
+                                });
+                            }
+                        }, 0.5);
+                    } else {
+                        // 没有房间信息，正常跳转到大厅
+                        self.scheduleOnce(function() {
+                            if (myglobal.socket && myglobal.socket.initSocket) {
+                                myglobal.socket.initSocket();
+                            }
+                            cc.director.loadScene("hallScene");
+                        }, 0.5);
+                    }
                 } else {
                     // Token无效，显示错误信息并停留在登录页面
                     console.log("❌ Token 验证失败:", message);

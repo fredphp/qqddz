@@ -3246,7 +3246,7 @@ cc.Class({
         // 检查WebSocket物理连接是否打开
         var isWebSocketOpen = socket && socket.isWebSocketOpen && socket.isWebSocketOpen();
         
-        this._showMessageCenter("正在创建房间...");
+        this._showMessageCenter("正在进入游戏...");
         
         // 如果WebSocket未打开，尝试连接
         if (!socket || !isWebSocketOpen) {
@@ -3273,14 +3273,17 @@ cc.Class({
             return;
         }
         
-        console.log("发送创建房间请求");
+        console.log("发送创建房间请求, 房间配置ID:", roomConfig ? roomConfig.id : "无");
         
-        socket.createRoom(function(result, data) {
+        // 注意：socket.createRoom 的第一个参数是 roomConfigId，第二个参数是 callback
+        var roomConfigId = roomConfig ? roomConfig.id : null;
+        socket.createRoom(roomConfigId, function(result, data) {
             console.log("创建房间结果:", result, JSON.stringify(data));
             if (result === 0 && data) {
                 // 转换数据格式
                 var roomData = {
                     roomid: data.room_code || data.roomCode || "NEW_ROOM",
+                    room_code: data.room_code || data.roomCode || "NEW_ROOM",
                     seatindex: 1,
                     playerdata: [{
                         accountid: myglobal.playerData.accountID || myglobal.playerData.uniqueID,
@@ -3294,6 +3297,13 @@ cc.Class({
                 myglobal.roomData = roomData;
                 myglobal.playerData.bottom = roomConfig.base_score || 1;
                 myglobal.playerData.rate = roomConfig.multiplier || 1;
+                myglobal.playerData.roomid = roomData.room_code;
+                
+                // 保存重连信息
+                if (myglobal.socket && myglobal.socket.saveReconnectInfo) {
+                    myglobal.socket.saveReconnectInfo();
+                }
+                
                 self._showMessageCenter("进入游戏成功");
                 self._enterGameScene(roomData);
             } else {
