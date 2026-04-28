@@ -730,7 +730,7 @@ cc.Class({
         goldLabelNode.setPosition(0, -btnNode.height/2 + 30);
     },
     
-    // 房间按钮点击处理 - 直接进入房间列表全屏场景（无加载进度条）
+    // 房间按钮点击处理 - 直接快速匹配进入游戏（跳过房间列表）
     _onRoomButtonClick: function(roomConfig) {
         var self = this;
         var myglobal = window.myglobal;
@@ -756,8 +756,8 @@ cc.Class({
             myglobal.currentRoomName = roomConfig.room_name;
         }
         
-        // 直接进入房间列表全屏场景（无加载进度条，无卡顿）
-        this._showRoomListScene(roomConfig, playerGold);
+        // 直接快速匹配进入游戏（跳过房间列表）
+        this._quickMatch(roomConfig, playerGold);
     },
     
     // ============================================================
