@@ -411,6 +411,68 @@ func (s *DDZGameLogService) DeleteSmsCode(id uint) error {
         return db.Delete(&ddz.DDZSmsCode{}, id).Error
 }
 
+// GetRoomList 获取游戏房间实例列表（ddz_rooms 表）
+func (s *DDZGameLogService) GetRoomList(req ddzReq.DDZRoomSearch) (list interface{}, total int64, err error) {
+        db := GetDDZDB()
+        limit := req.PageSize
+        offset := req.PageSize * (req.Page - 1)
+        query := db.Model(&ddz.DDZRoom{})
+
+        if req.RoomID != "" {
+                query = query.Where("room_id LIKE ?", "%"+req.RoomID+"%")
+        }
+        if req.RoomName != "" {
+                query = query.Where("room_name LIKE ?", "%"+req.RoomName+"%")
+        }
+        if req.RoomType != nil {
+                query = query.Where("room_type = ?", *req.RoomType)
+        }
+        if req.RoomCategory != nil {
+                query = query.Where("room_category = ?", *req.RoomCategory)
+        }
+        if req.Status != nil {
+                query = query.Where("status = ?", *req.Status)
+        }
+        if req.CreatorID != "" {
+                query = query.Where("creator_id = ?", req.CreatorID)
+        }
+
+        err = query.Count(&total).Error
+        if err != nil {
+                return nil, 0, err
+        }
+
+        var rooms []ddz.DDZRoom
+        err = query.Limit(limit).Offset(offset).Order("id desc").Find(&rooms).Error
+        if err != nil {
+                return nil, 0, err
+        }
+
+        roomList := make([]ddzRes.DDZRoomResponse, 0, len(rooms))
+        for _, r := range rooms {
+                roomList = append(roomList, s.toRoomResponse(r))
+        }
+
+        return roomList, total, nil
+}
+
+// GetRoomDetail 获取房间详情
+func (s *DDZGameLogService) GetRoomDetail(id uint) (ddzRes.DDZRoomResponse, error) {
+        db := GetDDZDB()
+        var room ddz.DDZRoom
+        err := db.First(&room, id).Error
+        if err != nil {
+                return ddzRes.DDZRoomResponse{}, err
+        }
+        return s.toRoomResponse(room), nil
+}
+
+// DeleteRoom 删除房间
+func (s *DDZGameLogService) DeleteRoom(id uint) error {
+        db := GetDDZDB()
+        return db.Delete(&ddz.DDZRoom{}, id).Error
+}
+
 // 转换方法
 
 func (s *DDZGameLogService) toGameRecordResponse(r ddz.DDZGameRecord) ddzRes.DDZGameRecordResponse {
@@ -663,5 +725,81 @@ func (s *DDZGameLogService) toSmsCodeResponse(c ddz.DDZSmsCode) ddzRes.DDZSmsCod
                 UsedAt:     usedAt,
                 IP:         c.IP,
                 CreatedAt:  c.CreatedAt.Format("2006-01-02 15:04:05"),
+        }
+}
+
+func (s *DDZGameLogService) toRoomResponse(r ddz.DDZRoom) ddzRes.DDZRoomResponse {
+        db := GetDDZDB()
+
+        // 房间类型名称
+        roomTypeName := "未知"
+        switch r.RoomType {
+        case 1:
+                roomTypeName = "新手场"
+        case 2:
+                roomTypeName = "普通场"
+        case 3:
+                roomTypeName = "高级场"
+        case 4:
+                roomTypeName = "富豪场"
+        case 5:
+                roomTypeName = "至尊场"
+        }
+
+        // 房间分类名称
+        roomCategoryName := "普通场"
+        if r.RoomCategory == 2 {
+                roomCategoryName = "竞技场"
+        }
+
+        // 房间状态文本
+        statusText := "未知"
+        switch r.Status {
+        case 1:
+                statusText = "等待中"
+        case 2:
+                statusText = "游戏中"
+        case 3:
+                statusText = "已结束"
+        }
+
+        // 获取创建者昵称
+        creatorName := ""
+        if r.CreatorID != "" {
+                var player ddz.DDZPlayer
+                if err := db.Where("id = ?", r.CreatorID).First(&player).Error; err == nil {
+                        creatorName = player.Nickname
+                }
+        }
+
+        // 解析玩家列表
+        var players []ddzRes.DDZRoomPlayer
+        if r.Players != "" {
+                // 这里可以解析JSON格式的玩家列表
+                // 暂时留空
+        }
+
+        return ddzRes.DDZRoomResponse{
+                ID:               r.ID,
+                RoomID:           r.RoomID,
+                RoomConfigID:     r.RoomConfigID,
+                RoomName:         r.RoomName,
+                RoomType:         r.RoomType,
+                RoomTypeName:     roomTypeName,
+                RoomCategory:     r.RoomCategory,
+                RoomCategoryName: roomCategoryName,
+                Status:           r.Status,
+                StatusText:       statusText,
+                PlayerCount:      r.PlayerCount,
+                MaxPlayers:       r.MaxPlayers,
+                CreatorID:        r.CreatorID,
+                CreatorName:      creatorName,
+                Players:          players,
+                BaseScore:        r.BaseScore,
+                Multiplier:       r.Multiplier,
+                CurrentGameID:    r.CurrentGameID,
+                StartedAt:        r.StartedAt,
+                EndedAt:          r.EndedAt,
+                CreatedAt:        r.CreatedAt.Format("2006-01-02 15:04:05"),
         }
 }

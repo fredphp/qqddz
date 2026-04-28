@@ -106,6 +106,48 @@ type DDZRoomConfigResponse struct {
         UpdatedAt        string  `json:"updatedAt"`
 }
 
+// DDZRoomResponse 游戏房间实例响应
+type DDZRoomResponse struct {
+        ID               uint              `json:"ID"`
+        RoomID           string            `json:"roomId"`
+        RoomConfigID     uint              `json:"roomConfigId"`
+        RoomName         string            `json:"roomName"`
+        RoomType         int               `json:"roomType"`
+        RoomTypeName     string            `json:"roomTypeName"`
+        RoomCategory     int               `json:"roomCategory"`
+        RoomCategoryName string            `json:"roomCategoryName"`
+        Status           int               `json:"status"`
+        StatusText       string            `json:"statusText"`
+        PlayerCount      int               `json:"playerCount"`
+        MaxPlayers       int               `json:"maxPlayers"`
+        CreatorID        string            `json:"creatorId"`
+        CreatorName      string            `json:"creatorName"`
+        Players          []DDZRoomPlayer   `json:"players"`
+        BaseScore        int               `json:"baseScore"`
+        Multiplier       int               `json:"multiplier"`
+        CurrentGameID    string            `json:"currentGameId"`
+        StartedAt        string            `json:"startedAt"`
+        EndedAt          string            `json:"endedAt"`
+        CreatedAt        string            `json:"createdAt"`
+}
+
+// DDZRoomPlayer 房间玩家信息
+type DDZRoomPlayer struct {
+        PlayerID   string `json:"playerId"`
+        Nickname   string `json:"nickname"`
+        Avatar     string `json:"avatar"`
+        IsReady    bool   `json:"isReady"`
+        SeatIndex  int    `json:"seatIndex"`
+}
+
+// DDZRoomListResponse 房间列表响应
+type DDZRoomListResponse struct {
+        List     []DDZRoomResponse `json:"list"`
+        Total    int64             `json:"total"`
+        Page     int               `json:"page"`
+        PageSize int               `json:"pageSize"`
+}
+
 // DDZSmsCodeResponse 短信验证码响应
 type DDZSmsCodeResponse struct {
         ID         uint   `json:"ID"`

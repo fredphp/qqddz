@@ -458,3 +458,96 @@ func (api *DDZGameLogApi) DeleteSmsCode(c *gin.Context) {
 
         response.OkWithMessage("删除成功", c)
 }
+
+// GetRoomList 获取游戏房间实例列表（ddz_rooms 表）
+// @Tags     DDZ游戏房间
+// @Summary  获取游戏房间实例列表
+// @Security ApiKeyAuth
+// @accept   application/json
+// @Produce  application/json
+// @Param    data  body      ddzReq.DDZRoomSearch  true  "分页参数"
+// @Success  200   {object}  response.Response{data=response.PageResult,msg=string}
+// @Router   /ddz/room/list [post]
+func (api *DDZGameLogApi) GetRoomList(c *gin.Context) {
+        var req ddzReq.DDZRoomSearch
+        err := c.ShouldBindJSON(&req)
+        if err != nil {
+                response.FailWithMessage(err.Error(), c)
+                return
+        }
+        err = utils.Verify(req.PageInfo, utils.PageInfoVerify)
+        if err != nil {
+                response.FailWithMessage(err.Error(), c)
+                return
+        }
+
+        list, total, err := ddzGameLogService.GetRoomList(req)
+        if err != nil {
+                global.GVA_LOG.Error("获取房间列表失败!", zap.Error(err))
+                response.FailWithMessage("获取房间列表失败", c)
+                return
+        }
+
+        response.OkWithDetailed(response.PageResult{
+                List:     list,
+                Total:    total,
+                Page:     req.Page,
+                PageSize: req.PageSize,
+        }, "获取成功", c)
+}
+
+// GetRoomDetail 获取房间详情
+// @Tags     DDZ游戏房间
+// @Summary  获取房间详情
+// @Security ApiKeyAuth
+// @accept   application/json
+// @Produce  application/json
+// @Param    id   query     uint  true  "房间ID"
+// @Success  200  {object}  response.Response{data=ddzRes.DDZRoomResponse,msg=string}
+// @Router   /ddz/room/detail [get]
+func (api *DDZGameLogApi) GetRoomDetail(c *gin.Context) {
+        id := c.Query("id")
+        if id == "" {
+                response.FailWithMessage("房间ID不能为空", c)
+                return
+        }
+
+        roomID := utils.StringToUint(id)
+        detail, err := ddzGameLogService.GetRoomDetail(roomID)
+        if err != nil {
+                global.GVA_LOG.Error("获取房间详情失败!", zap.Error(err))
+                response.FailWithMessage("获取房间详情失败", c)
+                return
+        }
+
+        response.OkWithDetailed(detail, "获取成功", c)
+}
+
+// DeleteRoom 删除房间
+// @Tags     DDZ游戏房间
+// @Summary  删除房间
+// @Security ApiKeyAuth
+// @accept   application/json
+// @Produce  application/json
+// @Param    data  body      map[string]interface{}  true  "房间ID"
+// @Success  200   {object}  response.Response{msg=string}
+// @Router   /ddz/room/delete [delete]
+func (api *DDZGameLogApi) DeleteRoom(c *gin.Context) {
+        var req struct {
+                ID uint `json:"ID" binding:"required"`
+        }
+        err := c.ShouldBindJSON(&req)
+        if err != nil {
+                response.FailWithMessage(err.Error(), c)
+                return
+        }
+
+        err = ddzGameLogService.DeleteRoom(req.ID)
+        if err != nil {
+                global.GVA_LOG.Error("删除房间失败!", zap.Error(err))
+                response.FailWithMessage("删除房间失败", c)
+                return
+        }
+
+        response.OkWithMessage("删除成功", c)
+}

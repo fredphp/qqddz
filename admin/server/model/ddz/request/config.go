@@ -58,54 +58,17 @@ type DDZGameRoomConfigUpdate struct {
         Description    string  `json:"description"`
 }
 
-// ==================== 菜单房间配置（ddz_room_configs 表）====================
+// ==================== 游戏房间实例（ddz_rooms 表）====================
 
-// DDZRoomConfigSearch 菜单房间配置搜索请求
-type DDZRoomConfigSearch struct {
+// DDZRoomSearch 游戏房间实例搜索请求
+type DDZRoomSearch struct {
         request.PageInfo
-        RoomType *int `json:"roomType" form:"roomType"`
-        Status   *int `json:"status" form:"status"`
-}
-
-// DDZRoomConfigCreate 创建菜单房间配置请求
-type DDZRoomConfigCreate struct {
-        Name        string `json:"name" binding:"required"`
-        RoomType    int    `json:"roomType" binding:"required"`
-        RoomLevel   int    `json:"roomLevel"`
-        BaseScore   int    `json:"baseScore"`
-        MinCoins    int64  `json:"minCoins"`
-        MaxCoins    int64  `json:"maxCoins"`
-        BgImageNum  int    `json:"bgImageNum"`   // 背景图编号
-        ServiceFee  int    `json:"serviceFee"`
-        MaxMultiple int    `json:"maxMultiple"`
-        Timeout     int    `json:"timeout"`
-        AllowSpring int    `json:"allowSpring"`
-        AllowBomb   int    `json:"allowBomb"`
-        AllowRocket int    `json:"allowRocket"`
-        Status      int    `json:"status"`
-        Sort        int    `json:"sort"`
-        Description string `json:"description"`
-}
-
-// DDZRoomConfigUpdate 更新菜单房间配置请求
-type DDZRoomConfigUpdate struct {
-        ID          uint   `json:"ID" binding:"required"`
-        Name        string `json:"name"`
-        RoomType    int    `json:"roomType"`
-        RoomLevel   int    `json:"roomLevel"`
-        BaseScore   int    `json:"baseScore"`
-        MinCoins    int64  `json:"minCoins"`
-        MaxCoins    int64  `json:"maxCoins"`
-        BgImageNum  int    `json:"bgImageNum"`   // 背景图编号
-        ServiceFee  int    `json:"serviceFee"`
-        MaxMultiple int    `json:"maxMultiple"`
-        Timeout     int    `json:"timeout"`
-        AllowSpring int    `json:"allowSpring"`
-        AllowBomb   int    `json:"allowBomb"`
-        AllowRocket int    `json:"allowRocket"`
-        Status      int    `json:"status"`
-        Sort        int    `json:"sort"`
-        Description string `json:"description"`
+        RoomID       string `json:"roomId" form:"roomId"`
+        RoomName     string `json:"roomName" form:"roomName"`
+        RoomType     *int   `json:"roomType" form:"roomType"`
+        RoomCategory *int   `json:"roomCategory" form:"roomCategory"`
+        Status       *int   `json:"status" form:"status"`
+        CreatorID    string `json:"creatorId" form:"creatorId"`
 }
 
 // ==================== 游戏配置（ddz_game_configs 表）====================

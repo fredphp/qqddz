@@ -21,6 +21,8 @@ func (r *DDZGameLogRouter) InitDDZGameLogRouter(Router *gin.RouterGroup) {
                 ddzGameLogRouter.PUT("roomConfig/update", ddzGameLogApi.UpdateRoomConfig)
                 ddzGameLogRouter.DELETE("roomConfig/delete", ddzGameLogApi.DeleteRoomConfig)
                 ddzGameLogRouter.POST("roomConfig/refresh-cache", ddzGameLogApi.RefreshRoomConfigCache)
+                // 游戏房间实例 (ddz_rooms 表)
+                ddzGameLogRouter.DELETE("room/delete", ddzGameLogApi.DeleteRoom)
                 // 短信验证码
                 ddzGameLogRouter.DELETE("smsCode/delete", ddzGameLogApi.DeleteSmsCode)
         }
@@ -36,6 +38,9 @@ func (r *DDZGameLogRouter) InitDDZGameLogRouter(Router *gin.RouterGroup) {
                 ddzGameLogRouterWithoutRecord.POST("playerStat/list", ddzGameLogApi.GetPlayerStatList)
                 // 游戏房间配置 (ddz_room_config 表)
                 ddzGameLogRouterWithoutRecord.POST("roomConfig/list", ddzGameLogApi.GetRoomConfigList)
+                // 游戏房间实例 (ddz_rooms 表)
+                ddzGameLogRouterWithoutRecord.POST("room/list", ddzGameLogApi.GetRoomList)
+                ddzGameLogRouterWithoutRecord.GET("room/detail", ddzGameLogApi.GetRoomDetail)
                 // 短信验证码
                 ddzGameLogRouterWithoutRecord.POST("smsCode/list", ddzGameLogApi.GetSmsCodeList)
         }

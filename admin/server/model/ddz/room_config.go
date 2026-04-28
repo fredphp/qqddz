@@ -32,30 +32,29 @@ func (DDZRoomConfig) TableName() string {
         return "ddz_room_config"
 }
 
-// DDZRoomConfigs 菜单房间配置（对应 ddz_room_configs 表）
-// 用于后台管理系统的房间配置管理
-type DDZRoomConfigs struct {
+// DDZRoom 游戏房间实例（对应 ddz_rooms 表）
+// 存储实际创建的游戏房间
+type DDZRoom struct {
         global.GVA_MODEL
-        Name        string `json:"name" gorm:"type:varchar(191);comment:房间名称"`
-        RoomType    int    `json:"roomType" gorm:"type:int;comment:房间类型 1普通 2VIP"`
-        RoomLevel   int    `json:"roomLevel" gorm:"type:int;comment:房间等级"`
-        BaseScore   int    `json:"baseScore" gorm:"type:int;comment:底分"`
-        MinCoins    int64  `json:"minCoins" gorm:"type:bigint;comment:最低金币准入"`
-        MaxCoins    int64  `json:"maxCoins" gorm:"type:bigint;comment:最高金币上限(0为无上限)"`
-        BgImageNum  int    `json:"bgImageNum" gorm:"type:tinyint;not null;default:2;comment:背景图编号(对应btn_happy_{编号}.png)"`
-        ServiceFee  int    `json:"serviceFee" gorm:"type:int;default:0;comment:服务费比例(百分比)"`
-        MaxMultiple int    `json:"maxMultiple" gorm:"type:int;default:20;comment:最大倍数"`
-        Timeout     int    `json:"timeout" gorm:"type:int;default:30;comment:出牌超时时间(秒)"`
-        AllowSpring int    `json:"allowSpring" gorm:"type:int;default:1;comment:是否允许春天 0否 1是"`
-        AllowBomb   int    `json:"allowBomb" gorm:"type:int;default:1;comment:是否允许炸弹 0否 1是"`
-        AllowRocket int    `json:"allowRocket" gorm:"type:int;default:1;comment:是否允许王炸 0否 1是"`
-        Status      int    `json:"status" gorm:"type:int;default:1;comment:状态 1启用 2禁用"`
-        Sort        int    `json:"sort" gorm:"type:int;default:0;comment:排序"`
-        Description string `json:"description" gorm:"type:text;comment:房间描述"`
+        RoomID         string `json:"roomId" gorm:"uniqueIndex;type:varchar(64);not null;comment:房间唯一标识"`
+        RoomConfigID   uint   `json:"roomConfigId" gorm:"index;comment:房间配置ID"`
+        RoomName       string `json:"roomName" gorm:"type:varchar(64);not null;comment:房间名称"`
+        RoomType       int    `json:"roomType" gorm:"type:tinyint;not null;default:1;comment:房间类型:1-新手场,2-普通场,3-高级场,4-富豪场,5-至尊场"`
+        RoomCategory   int    `json:"roomCategory" gorm:"type:tinyint;not null;default:1;index;comment:房间分类:1-普通场,2-竞技场"`
+        Status         int    `json:"status" gorm:"type:tinyint;not null;default:1;index;comment:房间状态:1-等待中,2-游戏中,3-已结束"`
+        PlayerCount    int    `json:"playerCount" gorm:"type:tinyint;not null;default:0;comment:当前玩家数"`
+        MaxPlayers     int    `json:"maxPlayers" gorm:"type:tinyint;not null;default:3;comment:最大玩家数"`
+        CreatorID      string `json:"creatorId" gorm:"type:varchar(64);comment:创建者玩家ID"`
+        Players        string `json:"players" gorm:"type:text;comment:玩家列表(JSON)"`
+        BaseScore      int    `json:"baseScore" gorm:"type:int;not null;default:1;comment:底分"`
+        Multiplier     int    `json:"multiplier" gorm:"type:int;not null;default:1;comment:初始倍数"`
+        CurrentGameID  string `json:"currentGameId" gorm:"type:varchar(64);comment:当前游戏ID"`
+        StartedAt      string `json:"startedAt" gorm:"type:datetime;comment:游戏开始时间"`
+        EndedAt        string `json:"endedAt" gorm:"type:datetime;comment:游戏结束时间"`
 }
 
-func (DDZRoomConfigs) TableName() string {
-        return "ddz_room_configs"
+func (DDZRoom) TableName() string {
+        return "ddz_rooms"
 }
 
 // DDZGameConfig 游戏配置
@@ -71,6 +70,13 @@ type DDZGameConfig struct {
 func (DDZGameConfig) TableName() string {
         return "ddz_game_configs"
 }
+
+// 房间状态常量
+const (
+        RoomStatusWaiting = 1 // 等待中
+        RoomStatusPlaying = 2 // 游戏中
+        RoomStatusEnded   = 3 // 已结束
+)
 
 // 背景图编号常量
 const (
