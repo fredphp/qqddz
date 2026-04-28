@@ -740,7 +740,7 @@ cc.Class({
         if (roomCategory === 2) {
             // 竞技场 - 使用 min_arena_coin 字段
             minValue = config.min_arena_coin || config.minArenaCoin || 0;
-            currencyName = "竞技币";
+            currencyName = "币";
             goldLabelNode.color = cc.color(200, 220, 255);  // 竞技场：淡蓝色
         } else {
             // 普通场 - 使用 min_gold 字段
