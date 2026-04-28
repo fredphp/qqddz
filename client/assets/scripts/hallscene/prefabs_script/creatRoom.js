@@ -46,6 +46,11 @@ cc.Class({
                 //网络数据包
                 myglobal.playerData.bottom = result.bottom
                 myglobal.playerData.rate = result.rate
+                myglobal.playerData.roomid = result.roomid
+                
+                // 保存重连信息到 localStorage
+                myglobal.socket.saveReconnectInfo()
+                
                 cc.director.loadScene("gameScene")
             }
         })

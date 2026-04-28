@@ -110,38 +110,87 @@ cc.Class({
             gameui_node.emit("unchoose_card_event", event)
         }.bind(this))
 
-        myglobal.socket.request_enter_room({}, function(err, result) {
-            console.log("enter_room_resp" + JSON.stringify(result))
-            if (err != 0) {
-                console.log("enter_room_resp err:" + err)
-            } else {
-                var seatid = result.seatindex
-                this.playerdata_list_pos = []
-                this.setPlayerSeatPos(seatid)
+        // 检查是否已经在房间中（通过创建房间进入）
+        var currentRoomCode = myglobal.socket.getCurrentRoomCode()
+        var isInRoom = myglobal.socket.isInRoom()
+        
+        console.log("gameScene: currentRoomCode=" + currentRoomCode + ", isInRoom=" + isInRoom)
+        
+        if (isInRoom && currentRoomCode) {
+            // 已经在房间中（创建房间进入），直接显示房间信息
+            console.log("已在房间中，跳过 enter_room 请求")
+            this._setupRoomUI(myglobal, currentRoomCode)
+            this._setupRoomEventListeners(myglobal, isopen_sound)
+        } else {
+            // 不在房间中，请求进入房间（快速匹配或加入房间）
+            console.log("不在房间中，请求进入房间")
+            myglobal.socket.request_enter_room({}, function(err, result) {
+                console.log("enter_room_resp" + JSON.stringify(result))
+                if (err != 0) {
+                    console.log("enter_room_resp err:" + err)
+                } else {
+                    var seatid = result.seatindex
+                    this.playerdata_list_pos = []
+                    this.setPlayerSeatPos(seatid)
 
-                var playerdata_list = result.playerdata
-                var roomid = result.roomid
-                this.roomid_label.string = "房间号:" + roomid
-                myglobal.playerData.housemanageid = result.housemanageid
+                    var playerdata_list = result.playerdata
+                    var roomid = result.roomid
+                    this.roomid_label.string = "房间号:" + roomid
+                    myglobal.playerData.housemanageid = result.housemanageid
 
-                for (var i = 0; i < playerdata_list.length; i++) {
-                    this.addPlayerNode(playerdata_list[i])
-                }
+                    for (var i = 0; i < playerdata_list.length; i++) {
+                        this.addPlayerNode(playerdata_list[i])
+                    }
 
-                if (isopen_sound) {
-                    try {
-                        cc.audioEngine.stopAll()
-                        cc.audioEngine.play(cc.url.raw("resources/sound/bg.mp3"), true)
-                    } catch(e) {
-                        console.log("播放背景音乐失败:", e)
+                    if (isopen_sound) {
+                        try {
+                            cc.audioEngine.stopAll()
+                            cc.audioEngine.play(cc.url.raw("resources/sound/bg.mp3"), true)
+                        } catch(e) {
+                            console.log("播放背景音乐失败:", e)
+                        }
                     }
                 }
-            }
-            var gamebefore_node = this.node.getChildByName("gamebeforeUI")
-            if (gamebefore_node) {
-                gamebefore_node.emit("init")
-            }
-        }.bind(this))
+                var gamebefore_node = this.node.getChildByName("gamebeforeUI")
+                if (gamebefore_node) {
+                    gamebefore_node.emit("init")
+                }
+            }.bind(this))
+            
+            this._setupRoomEventListeners(myglobal, isopen_sound)
+        }
+
+        console.log("gameScene 初始化完成");
+    },
+    
+    // 设置房间UI
+    _setupRoomUI: function(myglobal, roomCode) {
+        this.playerdata_list_pos = []
+        this.setPlayerSeatPos(1)  // 创建者默认座位1
+        
+        if (this.roomid_label) {
+            this.roomid_label.string = "房间号:" + roomCode
+        }
+        
+        // 添加自己作为玩家
+        var selfPlayerData = {
+            accountid: myglobal.playerData.accountid || myglobal.playerData.playerId,
+            nick_name: myglobal.playerData.nickName,
+            avatarUrl: "avatar_1",
+            goldcount: myglobal.playerData.gobal_count || 1000,
+            seatindex: 1
+        }
+        this.addPlayerNode(selfPlayerData)
+        
+        // 初始化游戏准备界面
+        var gamebefore_node = this.node.getChildByName("gamebeforeUI")
+        if (gamebefore_node) {
+            gamebefore_node.emit("init")
+        }
+    },
+    
+    // 设置房间事件监听
+    _setupRoomEventListeners: function(myglobal, isopen_sound) {
 
         //在进入房间后，注册其他玩家进入房间的事件
         myglobal.socket.onPlayerJoinRoom(function(join_playerdata) {
@@ -208,7 +257,13 @@ cc.Class({
             gameui_node.emit("show_bottom_card_event", event)
         }.bind(this))
         
-        console.log("gameScene 初始化完成");
+        // 监听房间恢复事件（重连后）
+        myglobal.socket.onRoomRestored(function(data) {
+            console.log("房间恢复: " + JSON.stringify(data))
+            if (data.room_code) {
+                this._setupRoomUI(myglobal, data.room_code)
+            }
+        }.bind(this))
     },
 
     //seat_index自己在房间的位置id
