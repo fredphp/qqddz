@@ -248,6 +248,32 @@ func GetPlayerByNickname(nickname string) (*Player, error) {
         return &player, nil
 }
 
+// GetOrCreatePlayerByNickname 根据昵称获取或创建玩家
+// 返回玩家ID，如果出错则返回0
+func GetOrCreatePlayerByNickname(nickname string) uint64 {
+        var player Player
+        
+        // 先尝试查找
+        err := DB().Where("nickname = ?", nickname).First(&player).Error
+        if err == nil {
+                return player.ID
+        }
+        
+        // 不存在则创建
+        player = Player{
+                Nickname: nickname,
+                Gold:     10000, // 初始金币
+                Status:   PlayerStatusNormal,
+        }
+        if err := DB().Create(&player).Error; err != nil {
+                log.Printf("⚠️ 创建玩家失败: %v", err)
+                return 0
+        }
+        
+        log.Printf("✅ 创建新玩家: %s (ID: %d)", nickname, player.ID)
+        return player.ID
+}
+
 // UpdatePlayerGold 更新玩家金币
 func UpdatePlayerGold(playerID uint64, goldChange int64) error {
         return DB().Model(&Player{}).

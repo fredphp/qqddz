@@ -41,28 +41,29 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface) (*Room, error) {
 
         rm.rooms[code] = room
 
-        // 获取创建者玩家ID
-        creatorID := client.GetPlayerID()
+        // 获取或创建数据库玩家记录（使用昵称作为唯一标识）
+        creatorID := database.GetOrCreatePlayerByNickname(client.GetName())
 
-        // 保存到数据库
+        // 保存房间到数据库（即使玩家ID为0也要保存房间）
+        dbRoom := &database.Room{
+                RoomCode:     code,
+                RoomType:     1, // 默认普通场
+                RoomCategory: 1, // 默认普通场
+                CreatorID:    creatorID,
+                PlayerCount:  1,
+                MaxPlayers:   3,
+                Status:       database.RoomStatusWaiting,
+                BaseScore:    1,
+                Multiplier:   1,
+        }
         if creatorID > 0 {
-                dbRoom := &database.Room{
-                        RoomCode:     code,
-                        RoomType:     1, // 默认普通场
-                        RoomCategory: 1, // 默认普通场
-                        CreatorID:    creatorID,
-                        PlayerCount:  1,
-                        MaxPlayers:   3,
-                        Status:       database.RoomStatusWaiting,
-                        BaseScore:    1,
-                        Multiplier:   1,
-                        Player1ID:    &creatorID,
-                }
-                if err := database.CreateRoom(dbRoom); err != nil {
-                        log.Printf("⚠️ 创建房间到数据库失败: %v", err)
-                } else {
-                        log.Printf("💾 房间 %s 已保存到数据库", code)
-                }
+                dbRoom.Player1ID = &creatorID
+        }
+        
+        if err := database.CreateRoom(dbRoom); err != nil {
+                log.Printf("⚠️ 创建房间到数据库失败: %v", err)
+        } else {
+                log.Printf("💾 房间 %s 已保存到数据库，创建者ID: %d", code, creatorID)
         }
 
         // 保存到 Redis
@@ -136,18 +137,16 @@ func (rm *RoomManager) JoinRoom(client types.ClientInterface, code string) (*Roo
                 Player: room.GetPlayerInfo(client.GetID()),
         }))
 
-        // 获取加入者玩家ID，更新数据库
-        joinerID := client.GetPlayerID()
-        if joinerID > 0 {
-                if err := database.AddPlayerToRoom(code, joinerID, seat); err != nil {
-                        log.Printf("⚠️ 更新房间数据库失败: %v", err)
-                } else {
-                        log.Printf("💾 房间 %s 玩家已更新到数据库", code)
-                }
-                // 如果房间满了，更新状态
-                if playerCount >= 3 {
-                        go database.UpdateRoomStatus(code, database.RoomStatusPlaying)
-                }
+        // 获取或创建数据库玩家记录，并更新数据库
+        joinerID := database.GetOrCreatePlayerByNickname(client.GetName())
+        if err := database.AddPlayerToRoom(code, joinerID, seat); err != nil {
+                log.Printf("⚠️ 更新房间数据库失败: %v", err)
+        } else {
+                log.Printf("💾 房间 %s 玩家 %s 已更新到数据库", code, client.GetName())
+        }
+        // 如果房间满了，更新状态
+        if playerCount >= 3 {
+                go database.UpdateRoomStatus(code, database.RoomStatusPlaying)
         }
 
         // 保存到 Redis
