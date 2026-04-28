@@ -20,7 +20,8 @@ window.playerData = function(){
     that.nickName = "玩家" + getRandomStr(3);
     var str = "avatar_" + (Math.floor(Math.random() * 3) + 1);
     that.avatarUrl = str;
-    that.gobal_count = 0;
+    that.gobal_count = 0;       // 金币
+    that.arena_coin = 0;      // 竞技币
     that.master_accountid = 0;
     that.bottom = 100;
     that.rate = 1;
@@ -106,6 +107,7 @@ window.playerData = function(){
             nickName: this.nickName,
             avatarUrl: this.avatarUrl,
             gobal_count: this.gobal_count,
+            arena_coin: this.arena_coin,
             master_accountid: this.master_accountid,
             bottom: this.bottom,
             rate: this.rate,
@@ -156,6 +158,7 @@ window.playerData = function(){
         this.nickName = data.nickName || this.nickName;
         this.avatarUrl = data.avatarUrl || this.avatarUrl;
         this.gobal_count = data.gobal_count || 0;
+        this.arena_coin = data.arena_coin || 0;
         this.master_accountid = data.master_accountid || 0;
         this.bottom = data.bottom || 100;
         this.rate = data.rate || 1;
@@ -232,6 +235,7 @@ window.playerData = function(){
         this.nickName = loginData.nickName || loginData.nickname || this.nickName;
         this.avatarUrl = loginData.avatarUrl || loginData.avatar || this.avatarUrl;
         this.gobal_count = loginData.goldCount || loginData.gold || loginData.goldcount || this.gobal_count;
+        this.arena_coin = loginData.arenaCoin || loginData.arena_coin || this.arena_coin;
         this.token = loginData.token || this.token;
         this.loginType = loginData.loginType || this.loginType;
         
@@ -301,6 +305,18 @@ window.playerData = function(){
     // 设置金币
     this.setGold = function(amount) {
         this.gobal_count = amount;
+        this.saveToLocal();
+    };
+    
+    // 更新竞技币
+    that.updateArenaCoin = function(amount) {
+        this.arena_coin += amount;
+        this.saveToLocal();
+    };
+    
+    // 设置竞技币
+    that.setArenaCoin = function(amount) {
+        this.arena_coin = amount;
         this.saveToLocal();
     };
 
