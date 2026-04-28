@@ -31,6 +31,28 @@ func EncodeToJSON(msg *protocol.Message) ([]byte, error) {
         return json.Marshal(jsonData)
 }
 
+// EncodeToJSONWithCallIndex 将 Protobuf 消息编码为 JSON 格式（包含 callIndex）
+func EncodeToJSONWithCallIndex(msg *protocol.Message, callIndex int64) ([]byte, error) {
+        jsonData := JSONMessage{
+                Type:      string(msg.Type),
+                CallIndex: callIndex,
+        }
+
+        // 根据消息类型解析 payload
+        if len(msg.Payload) > 0 {
+                data, err := decodePayloadToJSON(msg.Type, msg.Payload)
+                if err != nil {
+                        log.Printf("[JSON] 解码 payload 失败: %v", err)
+                        // 失败时直接使用原始 payload
+                        jsonData.Data = msg.Payload
+                } else {
+                        jsonData.Data = data
+                }
+        }
+
+        return json.Marshal(jsonData)
+}
+
 // decodePayloadToJSON 将 Protobuf payload 解码为 JSON 格式
 func decodePayloadToJSON(msgType protocol.MessageType, payload []byte) (json.RawMessage, error) {
         switch msgType {
@@ -199,6 +221,13 @@ func decodePayloadToJSON(msgType protocol.MessageType, payload []byte) (json.Raw
                 }
                 return json.Marshal(p)
 
+        case protocol.MsgRoomListResult:
+                var p protocol.RoomListResultPayload
+                if err := payloadconv.DecodePayload(msgType, payload, &p); err != nil {
+                        return nil, err
+                }
+                return json.Marshal(p)
+
         default:
                 // 未知类型，尝试解码为通用 map
                 var p map[string]interface{}
@@ -274,6 +303,8 @@ func (j *JSONMode) handleJSONMessage(msg *JSONMessage) {
                 j.handlePass(msg)
         case "chat":
                 j.handleChat(msg)
+        case "get_room_list":
+                j.handleGetRoomList(msg)
         default:
                 log.Printf("[JSON] 未知消息类型: %s", msg.Type)
         }
@@ -285,8 +316,21 @@ func (j *JSONMode) handlePing(msg *JSONMessage) {
         log.Printf("[JSON] 收到 ping 消息，服务器已切换到 JSON 模式")
 }
 
+// handleGetRoomList 获取房间列表
+func (j *JSONMode) handleGetRoomList(msg *JSONMessage) {
+        protoMsg, err := codec.NewMessage(protocol.MsgGetRoomList, nil)
+        if err != nil {
+                log.Printf("[JSON] 创建消息失败: %v", err)
+                return
+        }
+        // 保存 callIndex 以便响应时使用
+        j.client.SetCallIndex(msg.CallIndex)
+        j.client.server.handler.Handle(j.client, protoMsg)
+}
+
 // handleCreateRoom 创建房间
 func (j *JSONMode) handleCreateRoom(msg *JSONMessage) {
+        j.client.SetCallIndex(msg.CallIndex)
         protoMsg, err := codec.NewMessage(protocol.MsgCreateRoom, nil)
         if err != nil {
                 log.Printf("[JSON] 创建消息失败: %v", err)
@@ -304,6 +348,7 @@ func (j *JSONMode) handleJoinRoom(msg *JSONMessage) {
                 _ = json.Unmarshal(msg.Data, &data)
         }
 
+        j.client.SetCallIndex(msg.CallIndex)
         protoMsg, err := codec.NewMessage(protocol.MsgJoinRoom, &protocol.JoinRoomPayload{
                 RoomCode: data.RoomCode,
         })
@@ -326,6 +371,7 @@ func (j *JSONMode) handleLeaveRoom(msg *JSONMessage) {
 
 // handleQuickMatch 快速匹配
 func (j *JSONMode) handleQuickMatch(msg *JSONMessage) {
+        j.client.SetCallIndex(msg.CallIndex)
         protoMsg, err := codec.NewMessage(protocol.MsgQuickMatch, nil)
         if err != nil {
                 log.Printf("[JSON] 创建消息失败: %v", err)

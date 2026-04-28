@@ -3059,14 +3059,13 @@ cc.Class({
         var myglobal = window.myglobal;
         var socket = myglobal && myglobal.socket ? myglobal.socket : null;
         
-        // 检查WebSocket是否已连接
-        var isConnected = socket && socket.isConnected && socket.isConnected();
+        // 检查WebSocket物理连接是否打开
         var isWebSocketOpen = socket && socket.isWebSocketOpen && socket.isWebSocketOpen();
         
         this._showMessageCenter("正在智能匹配...");
         
-        // 如果WebSocket未连接，等待连接
-        if (!socket || !isConnected || !isWebSocketOpen) {
+        // 如果WebSocket未打开，等待连接
+        if (!socket || !isWebSocketOpen) {
             console.log("WebSocket未连接，尝试初始化连接...");
             
             // 尝试初始化WebSocket连接
@@ -3212,14 +3211,13 @@ cc.Class({
         var myglobal = window.myglobal;
         var socket = myglobal && myglobal.socket ? myglobal.socket : null;
         
-        // 检查WebSocket是否已连接
-        var isConnected = socket && socket.isConnected && socket.isConnected();
+        // 检查WebSocket物理连接是否打开
         var isWebSocketOpen = socket && socket.isWebSocketOpen && socket.isWebSocketOpen();
         
         this._showMessageCenter("正在创建房间...");
         
-        // 如果WebSocket未连接，尝试连接
-        if (!socket || !isConnected || !isWebSocketOpen) {
+        // 如果WebSocket未打开，尝试连接
+        if (!socket || !isWebSocketOpen) {
             console.log("WebSocket未连接，尝试初始化连接...");
             if (socket && socket.initSocket) {
                 socket.initSocket();
@@ -3303,14 +3301,13 @@ cc.Class({
         var myglobal = window.myglobal;
         var socket = myglobal && myglobal.socket ? myglobal.socket : null;
         
-        // 检查WebSocket是否已连接
-        var isConnected = socket && socket.isConnected && socket.isConnected();
+        // 检查WebSocket物理连接是否打开
         var isWebSocketOpen = socket && socket.isWebSocketOpen && socket.isWebSocketOpen();
         
         this._showMessageCenter("正在加入房间 " + roomCode + "...");
         
-        // 如果WebSocket未连接，尝试连接
-        if (!socket || !isConnected || !isWebSocketOpen) {
+        // 如果WebSocket未打开，尝试连接
+        if (!socket || !isWebSocketOpen) {
             console.log("WebSocket未连接，尝试初始化连接...");
             if (socket && socket.initSocket) {
                 socket.initSocket();

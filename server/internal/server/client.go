@@ -68,6 +68,7 @@ type Client struct {
         useJSON          bool                     // 是否使用JSON模式
         pendingConnected bool                     // 是否需要发送 connected 消息
         playerSession    *session.PlayerSession   // 会话信息（延迟发送 connected 时使用）
+        callIndex        int64                    // 当前请求的 callIndex（用于 JSON 模式响应）
 }
 
 // NewClient 创建新客户端
@@ -218,8 +219,8 @@ func (c *Client) SendMessage(msg *protocol.Message) {
         isJSON := c.useJSON
 
         if isJSON {
-                // JSON 模式：使用 JSON 编码
-                data, err = EncodeToJSON(msg)
+                // JSON 模式：使用 JSON 编码（包含 callIndex）
+                data, err = EncodeToJSONWithCallIndex(msg, c.callIndex)
                 if err != nil {
                         log.Printf("JSON 编码错误: %v", err)
                         return
@@ -287,3 +288,17 @@ func (c *Client) GetRoom() string {
 // Interface implementations for types.ClientInterface
 func (c *Client) GetID() string   { return c.ID }
 func (c *Client) GetName() string { return c.Name }
+
+// SetCallIndex 设置当前请求的 callIndex（用于 JSON 模式响应）
+func (c *Client) SetCallIndex(index int64) {
+        c.mu.Lock()
+        defer c.mu.Unlock()
+        c.callIndex = index
+}
+
+// GetCallIndex 获取当前请求的 callIndex
+func (c *Client) GetCallIndex() int64 {
+        c.mu.RLock()
+        defer c.mu.RUnlock()
+        return c.callIndex
+}

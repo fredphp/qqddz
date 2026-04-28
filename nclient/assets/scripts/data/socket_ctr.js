@@ -331,6 +331,10 @@ window.socketCtr = function(){
                 }
                 _socket.send(JSON.stringify(initMsg))
                 console.log("发送 JSON 初始化消息，切换服务器到 JSON 模式")
+                
+                // 标记为已连接（乐观设置，服务器确认后会再次设置）
+                _isConnected = true
+                _setConnectionState("connected")
             }
             
             _socket.onmessage = function(evt){
