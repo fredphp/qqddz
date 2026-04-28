@@ -741,7 +741,7 @@ cc.Class({
             // 竞技场 - 使用 min_arena_coin 字段
             minValue = config.min_arena_coin || config.minArenaCoin || 0;
             currencyName = "币";
-            goldLabelNode.color = cc.color(200, 220, 255);  // 竞技场：淡蓝色
+            goldLabelNode.color = cc.color(255, 215, 0);    // 竞技场：金色
         } else {
             // 普通场 - 使用 min_gold 字段
             minValue = config.min_gold || config.minGold || 0;
@@ -755,8 +755,8 @@ cc.Class({
         // 按钮高度 375px，底部蓝色渐变条约占 1/4（约在75%-100%位置）
         // 图标在底部左侧约10%-20%宽度位置，文字应偏右显示
         var btnHeight = btnNode.height || 375;
-        // Y坐标：从底部边缘向上约12%的位置（在渐变条内）
-        var yOffset = -btnHeight/2 + btnHeight * 0.12;
+        // Y坐标：从底部边缘向上约18%的位置（在渐变条内，上调一点）
+        var yOffset = -btnHeight/2 + btnHeight * 0.18;
         // X坐标：稍微向右偏移，以显示在图标后面（图标在左侧约15%位置）
         var xOffset = btnNode.width * 0.08;  // 向右偏移8%宽度
         goldLabelNode.setPosition(xOffset, yOffset);
