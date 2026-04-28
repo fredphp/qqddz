@@ -3294,7 +3294,7 @@ cc.Class({
                 myglobal.roomData = roomData;
                 myglobal.playerData.bottom = roomConfig.base_score || 1;
                 myglobal.playerData.rate = roomConfig.multiplier || 1;
-                self._showMessageCenter("创建房间成功，等待其他玩家...");
+                self._showMessageCenter("进入游戏成功");
                 self._enterGameScene(roomData);
             } else {
                 self._showMessageCenter("创建房间失败，请稍后重试");
@@ -3497,15 +3497,42 @@ cc.Class({
         tipNode.zIndex = 2000;
         tipNode.parent = this.node;
         
-        // 添加半透明背景
+        // 添加橙色渐变背景（两端透明效果）
         var bgNode = new cc.Node("Bg");
         var bg = bgNode.addComponent(cc.Graphics);
-        bg.fillColor = cc.color(0, 0, 0, 200);
-        bg.roundRect(-200, -30, 400, 60, 10);
-        bg.fill();
+        
+        // 绘制橙色渐变背景（两端透明，中间不透明）
+        // 分段绘制，模拟渐变效果
+        var totalWidth = 400;
+        var totalHeight = 60;
+        var startX = -200;
+        var startY = -30;
+        var segments = 20;  // 分成20段
+        var segmentWidth = totalWidth / segments;
+        
+        // 橙色基础色 RGB(255, 140, 0)
+        var baseR = 255;
+        var baseG = 140;
+        var baseB = 0;
+        var maxAlpha = 230;  // 中间最大透明度
+        
+        for (var i = 0; i < segments; i++) {
+            // 计算当前段的透明度：两端透明，中间不透明（高斯分布效果）
+            var progress = i / (segments - 1);  // 0 到 1
+            var alpha = maxAlpha * Math.sin(progress * Math.PI);  // 使用正弦函数实现平滑渐变
+            
+            bg.fillColor = cc.color(baseR, baseG, baseB, Math.round(alpha));
+            bg.rect(startX + i * segmentWidth, startY, segmentWidth + 1, totalHeight);
+            bg.fill();
+        }
+        
+        // 添加圆角遮罩
+        bg.fillColor = cc.color(0, 0, 0, 0);
+        bg.roundRect(startX, startY, totalWidth, totalHeight, 10);
+        
         bgNode.parent = tipNode;
         
-        // 添加文字
+        // 添加文字（居中显示）
         var labelNode = new cc.Node("Label");
         var label = labelNode.addComponent(cc.Label);
         label.string = message;
