@@ -704,7 +704,7 @@ cc.Class({
     },
     
     // 更新最低豆子/竞技币显示（根据 room_category 判断）
-    // room_category: 1-普通场(显示豆), 2-竞技场(显示竞技币)
+    // room_category: 1-普通场(使用min_gold字段显示豆), 2-竞技场(使用min_arena_coin字段显示竞技币)
     _updateMinGoldLabel: function(btnNode, config) {
         var goldLabelNode = btnNode.getChildByName("min_gold_label");
         
@@ -731,19 +731,25 @@ cc.Class({
         }
         
         var label = goldLabelNode.getComponent(cc.Label);
-        var minGold = config.min_gold || config.minGold || 0;
         
-        // 根据房间类型显示不同货币
-        // room_category: 1-普通场(显示豆), 2-竞技场(显示竞技币)
-        var currencyName = (roomCategory === 2) ? "竞技币" : "豆";
-        label.string = "最低 " + this._formatGold(minGold) + " " + currencyName;
+        // 根据房间类型获取不同的字段值
+        // room_category: 1-普通场(使用min_gold), 2-竞技场(使用min_arena_coin)
+        var minValue;
+        var currencyName;
         
-        // 竞技场使用不同颜色（银白色），普通场使用金色
         if (roomCategory === 2) {
+            // 竞技场 - 使用 min_arena_coin 字段
+            minValue = config.min_arena_coin || config.minArenaCoin || 0;
+            currencyName = "竞技币";
             goldLabelNode.color = cc.color(200, 220, 255);  // 竞技场：淡蓝色
         } else {
+            // 普通场 - 使用 min_gold 字段
+            minValue = config.min_gold || config.minGold || 0;
+            currencyName = "豆";
             goldLabelNode.color = cc.color(255, 215, 0);    // 普通场：金色
         }
+        
+        label.string = "最低 " + this._formatGold(minValue) + " " + currencyName;
         
         // 修正位置：按钮图片底部蓝色渐变条在 75%-90% 高度位置
         // 按钮高度 375，底部渐变条中心约在 80% 位置
