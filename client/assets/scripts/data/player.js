@@ -16,12 +16,13 @@ window.playerData = function(){
     that.nickName = "玩家" + getRandomStr(3)
     var str = "avatar_" + (Math.floor(Math.random() * 3) + 1)
     that.avatarUrl = str
-    that.gobal_count = 0
+    that.gobal_count = 0      // 金币
+    that.arena_coin = 0       // 竞技币（新增）
     that.master_accountid = 0
     that.bottom = 100
     that.rate = 1
     that.housemanageid = ""
-    
+
     return that;
 }
 

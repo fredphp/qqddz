@@ -15,6 +15,7 @@ type Player struct {
         Avatar       string         `gorm:"type:varchar(256);default:'';comment:头像URL" json:"avatar"`
         Gender       uint8          `gorm:"type:tinyint unsigned;default:0;comment:性别:0-未知,1-男,2-女" json:"gender"`
         Gold         int64          `gorm:"type:bigint;not null;default:0;comment:金币余额" json:"gold"`
+        ArenaCoin    int64          `gorm:"type:bigint;not null;default:0;comment:竞技币余额" json:"arena_coin"`
         Diamond      int            `gorm:"type:int;not null;default:0;comment:钻石余额" json:"diamond"`
         Experience   int            `gorm:"type:int;not null;default:0;comment:经验值" json:"experience"`
         Level        int            `gorm:"type:int;not null;default:1;comment:等级" json:"level"`
@@ -46,6 +47,8 @@ type RoomConfig struct {
         Multiplier     int            `gorm:"type:int;not null;default:1;comment:初始倍数" json:"multiplier"`
         MinGold        int64          `gorm:"type:bigint;not null;default:0;comment:最低入场金币" json:"min_gold"`
         MaxGold        int64          `gorm:"type:bigint;not null;default:0;comment:最高入场金币(0表示无限制)" json:"max_gold"`
+        MinArenaCoin   int64          `gorm:"type:bigint;not null;default:0;comment:最低入场竞技币(竞技场房间使用)" json:"min_arena_coin"`
+        MaxArenaCoin   int64          `gorm:"type:bigint;not null;default:0;comment:最高入场竞技币(竞技场房间使用,0表示无限制)" json:"max_arena_coin"`
         BgImageNum     uint8          `gorm:"type:tinyint;not null;default:2;comment:背景图编号" json:"bg_image_num"`
         BotEnabled     uint8          `gorm:"type:tinyint;not null;default:1;comment:是否允许机器人:0-否,1-是" json:"bot_enabled"`
         BotCount       int            `gorm:"type:int;not null;default:0;comment:房间机器人数量" json:"bot_count"`
@@ -67,25 +70,29 @@ func (RoomConfig) TableName() string {
 
 // GameRecord 游戏记录表模型
 type GameRecord struct {
-        ID               uint64     `gorm:"primaryKey;autoIncrement;comment:游戏记录ID" json:"id"`
-        GameID           string     `gorm:"type:varchar(64);uniqueIndex;not null;comment:游戏唯一标识" json:"game_id"`
-        RoomID           string     `gorm:"type:varchar(64);index;not null;comment:房间ID" json:"room_id"`
-        RoomType         uint8      `gorm:"type:tinyint;not null;default:1;comment:房间类型" json:"room_type"`
-        LandlordID       uint64     `gorm:"type:bigint unsigned;index;not null;comment:地主玩家ID" json:"landlord_id"`
-        Farmer1ID        uint64     `gorm:"type:bigint unsigned;index;not null;comment:农民1玩家ID" json:"farmer1_id"`
-        Farmer2ID        uint64     `gorm:"type:bigint unsigned;index;not null;comment:农民2玩家ID" json:"farmer2_id"`
-        BaseScore        int        `gorm:"type:int;not null;default:1;comment:底分" json:"base_score"`
-        Multiplier       int        `gorm:"type:int;not null;default:1;comment:最终倍数" json:"multiplier"`
-        BombCount        int        `gorm:"type:int;not null;default:0;comment:炸弹数量" json:"bomb_count"`
-        Spring           uint8      `gorm:"type:tinyint;not null;default:0;comment:是否春天:0-否,1-地主春天,2-反春天" json:"spring"`
-        Result           uint8      `gorm:"type:tinyint;not null;index;comment:结果:1-地主胜,2-农民胜" json:"result"`
-        LandlordWinGold  int64      `gorm:"type:bigint;not null;default:0;comment:地主输赢金币" json:"landlord_win_gold"`
-        Farmer1WinGold   int64      `gorm:"type:bigint;not null;default:0;comment:农民1输赢金币" json:"farmer1_win_gold"`
-        Farmer2WinGold   int64      `gorm:"type:bigint;not null;default:0;comment:农民2输赢金币" json:"farmer2_win_gold"`
-        StartedAt        time.Time  `gorm:"type:datetime;not null;index;comment:开始时间" json:"started_at"`
-        EndedAt          *time.Time `gorm:"type:datetime;comment:结束时间" json:"ended_at"`
-        DurationSeconds  int        `gorm:"type:int;not null;default:0;comment:游戏时长(秒)" json:"duration_seconds"`
-        CreatedAt        time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
+        ID                  uint64     `gorm:"primaryKey;autoIncrement;comment:游戏记录ID" json:"id"`
+        GameID              string     `gorm:"type:varchar(64);uniqueIndex;not null;comment:游戏唯一标识" json:"game_id"`
+        RoomID              string     `gorm:"type:varchar(64);index;not null;comment:房间ID" json:"room_id"`
+        RoomType            uint8      `gorm:"type:tinyint;not null;default:1;comment:房间类型" json:"room_type"`
+        RoomCategory        uint8      `gorm:"type:tinyint;not null;default:1;comment:房间分类:1-普通场,2-竞技场" json:"room_category"`
+        LandlordID          uint64     `gorm:"type:bigint unsigned;index;not null;comment:地主玩家ID" json:"landlord_id"`
+        Farmer1ID           uint64     `gorm:"type:bigint unsigned;index;not null;comment:农民1玩家ID" json:"farmer1_id"`
+        Farmer2ID           uint64     `gorm:"type:bigint unsigned;index;not null;comment:农民2玩家ID" json:"farmer2_id"`
+        BaseScore           int        `gorm:"type:int;not null;default:1;comment:底分" json:"base_score"`
+        Multiplier          int        `gorm:"type:int;not null;default:1;comment:最终倍数" json:"multiplier"`
+        BombCount           int        `gorm:"type:int;not null;default:0;comment:炸弹数量" json:"bomb_count"`
+        Spring              uint8      `gorm:"type:tinyint;not null;default:0;comment:是否春天:0-否,1-地主春天,2-反春天" json:"spring"`
+        Result              uint8      `gorm:"type:tinyint;not null;index;comment:结果:1-地主胜,2-农民胜" json:"result"`
+        LandlordWinGold     int64      `gorm:"type:bigint;not null;default:0;comment:地主输赢金币" json:"landlord_win_gold"`
+        Farmer1WinGold      int64      `gorm:"type:bigint;not null;default:0;comment:农民1输赢金币" json:"farmer1_win_gold"`
+        Farmer2WinGold      int64      `gorm:"type:bigint;not null;default:0;comment:农民2输赢金币" json:"farmer2_win_gold"`
+        LandlordWinArenaCoin int64     `gorm:"type:bigint;not null;default:0;comment:地主输赢竞技币" json:"landlord_win_arena_coin"`
+        Farmer1WinArenaCoin int64      `gorm:"type:bigint;not null;default:0;comment:农民1输赢竞技币" json:"farmer1_win_arena_coin"`
+        Farmer2WinArenaCoin int64      `gorm:"type:bigint;not null;default:0;comment:农民2输赢竞技币" json:"farmer2_win_arena_coin"`
+        StartedAt           time.Time  `gorm:"type:datetime;not null;index;comment:开始时间" json:"started_at"`
+        EndedAt             *time.Time `gorm:"type:datetime;comment:结束时间" json:"ended_at"`
+        DurationSeconds     int        `gorm:"type:int;not null;default:0;comment:游戏时长(秒)" json:"duration_seconds"`
+        CreatedAt           time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
 
         // 关联关系
         Landlord Player `gorm:"foreignKey:LandlordID" json:"landlord_info"`
@@ -228,6 +235,12 @@ const (
         RoomTypeVIP      uint8 = 4 // 至尊场
 )
 
+// RoomCategory 房间分类
+const (
+        RoomCategoryNormal uint8 = 1 // 普通场（使用金币）
+        RoomCategoryArena  uint8 = 2 // 竞技场（使用竞技币）
+)
+
 // PlayerRole 玩家角色
 const (
         PlayerRoleLandlord uint8 = 1 // 地主
@@ -303,17 +316,26 @@ func (p *Player) CanEnterRoom(room *RoomConfig) (bool, string) {
         if p.Status != PlayerStatusNormal {
                 return false, "玩家状态异常"
         }
-        
-        // 检查金币是否足够
-        if p.Gold < room.MinGold {
-                return false, "金币不足"
+
+        // 根据房间分类检查不同币种
+        if room.RoomCategory == RoomCategoryArena {
+                // 竞技场房间，检查竞技币
+                if p.ArenaCoin < room.MinArenaCoin {
+                        return false, "竞技币不足"
+                }
+                if room.MaxArenaCoin > 0 && p.ArenaCoin > room.MaxArenaCoin {
+                        return false, "竞技币超过上限"
+                }
+        } else {
+                // 普通场房间，检查金币
+                if p.Gold < room.MinGold {
+                        return false, "金币不足"
+                }
+                if room.MaxGold > 0 && p.Gold > room.MaxGold {
+                        return false, "金币超过上限"
+                }
         }
-        
-        // 检查金币是否超过上限
-        if room.MaxGold > 0 && p.Gold > room.MaxGold {
-                return false, "金币超过上限"
-        }
-        
+
         return true, ""
 }
 
@@ -509,4 +531,49 @@ func (u *UserAccount) IsRefreshTokenValid() bool {
 // IsNormal 是否正常状态
 func (u *UserAccount) IsNormal() bool {
         return u.Status == PlayerStatusNormal
+}
+
+// =============================================
+// 竞技币相关模型
+// =============================================
+
+// ArenaCoinLog 竞技币流水记录表模型
+type ArenaCoinLog struct {
+        ID            uint64     `gorm:"primaryKey;autoIncrement;comment:日志ID" json:"id"`
+        PlayerID      uint64     `gorm:"type:bigint unsigned;not null;index;comment:玩家ID" json:"player_id"`
+        ChangeAmount  int64      `gorm:"type:bigint;not null;comment:变化金额(正数为获得,负数为消耗)" json:"change_amount"`
+        BalanceAfter  int64      `gorm:"type:bigint;not null;comment:变化后余额" json:"balance_after"`
+        ChangeType    uint8      `gorm:"type:tinyint;not null;comment:变化类型:1-游戏结算,2-系统赠送,3-兑换,4-其他" json:"change_type"`
+        RelatedID     string     `gorm:"type:varchar(64);default:'';comment:关联ID(游戏ID等)" json:"related_id"`
+        Remark        string     `gorm:"type:varchar(256);default:'';comment:备注" json:"remark"`
+        CreatedAt     time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;index;comment:创建时间" json:"created_at"`
+
+        // 关联关系
+        Player Player `gorm:"foreignKey:PlayerID" json:"player"`
+}
+
+// TableName 指定竞技币流水记录表名
+func (ArenaCoinLog) TableName() string {
+        return "ddz_arena_coin_logs"
+}
+
+// =============================================
+// 竞技币变化类型常量
+// =============================================
+
+const (
+        ArenaCoinChangeGame    uint8 = 1 // 游戏结算
+        ArenaCoinChangeGift    uint8 = 2 // 系统赠送
+        ArenaCoinChangeExchange uint8 = 3 // 兑换
+        ArenaCoinChangeOther   uint8 = 4 // 其他
+)
+
+// IsGain 是否获得（正数）
+func (l *ArenaCoinLog) IsGain() bool {
+        return l.ChangeAmount > 0
+}
+
+// IsCost 是否消耗（负数）
+func (l *ArenaCoinLog) IsCost() bool {
+        return l.ChangeAmount < 0
 }

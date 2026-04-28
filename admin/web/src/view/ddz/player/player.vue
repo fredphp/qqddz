@@ -40,6 +40,11 @@
             <span :class="scope.row.coins >= 0 ? 'text-success' : 'text-danger'">{{ formatNumber(scope.row.coins) }}</span>
           </template>
         </el-table-column>
+        <el-table-column align="center" label="竞技币" min-width="120" prop="arenaCoin">
+          <template #default="scope">
+            <span class="text-warning">{{ formatNumber(scope.row.arenaCoin) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column align="center" label="钻石" min-width="100" prop="diamonds">
           <template #default="scope">
             {{ formatNumber(scope.row.diamonds) }}
@@ -94,6 +99,7 @@
         <el-descriptions-item label="玩家ID">{{ currentPlayer.playerId }}</el-descriptions-item>
         <el-descriptions-item label="昵称">{{ currentPlayer.nickname }}</el-descriptions-item>
         <el-descriptions-item label="金币">{{ formatNumber(currentPlayer.coins) }}</el-descriptions-item>
+        <el-descriptions-item label="竞技币">{{ formatNumber(currentPlayer.arenaCoin) }}</el-descriptions-item>
         <el-descriptions-item label="钻石">{{ formatNumber(currentPlayer.diamonds) }}</el-descriptions-item>
         <el-descriptions-item label="等级">{{ currentPlayer.level }}</el-descriptions-item>
         <el-descriptions-item label="VIP等级">VIP{{ currentPlayer.vipLevel }}</el-descriptions-item>
@@ -143,6 +149,9 @@
         </el-form-item>
         <el-form-item label="金币">
           <el-input-number v-model="editForm.coins" :min="-999999999" :max="999999999" />
+        </el-form-item>
+        <el-form-item label="竞技币">
+          <el-input-number v-model="editForm.arenaCoin" :min="0" :max="999999999" />
         </el-form-item>
         <el-form-item label="钻石">
           <el-input-number v-model="editForm.diamonds" :min="0" :max="999999999" />
@@ -213,6 +222,7 @@ const editForm = ref({
   gender: 0,
   vipLevel: 0,
   coins: 0,
+  arenaCoin: 0,
   diamonds: 0
 })
 const banForm = ref({
@@ -283,6 +293,7 @@ const editPlayer = (row) => {
     gender: row.gender,
     vipLevel: row.vipLevel,
     coins: row.coins,
+    arenaCoin: row.arenaCoin || 0,
     diamonds: row.diamonds
   }
   editDialog.value = true
@@ -342,5 +353,8 @@ getTableData()
 }
 .text-danger {
   color: #f56c6c;
+}
+.text-warning {
+  color: #e6a23c;
 }
 </style>

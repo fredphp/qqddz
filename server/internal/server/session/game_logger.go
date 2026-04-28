@@ -43,13 +43,14 @@ type PlayLogRecord struct {
 
 // GameLogger 游戏日志记录器
 type GameLogger struct {
-        gameID      string
-        roomID      string
-        roomType    uint8
-        startedAt   time.Time
-        bombCount   int
-        roundNum    int
-        playOrder   int // 当前回合内的出牌顺序
+        gameID       string
+        roomID       string
+        roomType     uint8
+        roomCategory uint8 // 房间分类: 1-普通场, 2-竞技场
+        startedAt    time.Time
+        bombCount    int
+        roundNum     int
+        playOrder    int // 当前回合内的出牌顺序
 
         dealLogs []DealLogRecord
         bidLogs  []BidLogRecord
@@ -57,14 +58,15 @@ type GameLogger struct {
 }
 
 // NewGameLogger 创建游戏日志记录器
-func NewGameLogger(roomID string, roomType uint8) *GameLogger {
+func NewGameLogger(roomID string, roomType uint8, roomCategory uint8) *GameLogger {
         return &GameLogger{
-                gameID:    generateGameID(),
-                roomID:    roomID,
-                roomType:  roomType,
-                startedAt: time.Now(),
-                roundNum:  0,
-                playOrder: 0,
+                gameID:       generateGameID(),
+                roomID:       roomID,
+                roomType:     roomType,
+                roomCategory: roomCategory,
+                startedAt:    time.Now(),
+                roundNum:     0,
+                playOrder:    0,
         }
 }
 
@@ -164,6 +166,7 @@ func (l *GameLogger) SaveGameResult(
         spring uint8,
         result uint8,
         landlordWinGold, farmer1WinGold, farmer2WinGold int64,
+        landlordWinArenaCoin, farmer1WinArenaCoin, farmer2WinArenaCoin int64,
 ) error {
         // 检查数据库是否可用
         if !database.GetInstance().IsConnected() {
@@ -176,23 +179,27 @@ func (l *GameLogger) SaveGameResult(
 
         // 创建游戏记录
         record := &database.GameRecord{
-                GameID:          l.gameID,
-                RoomID:          l.roomID,
-                RoomType:        l.roomType,
-                LandlordID:      landlordID,
-                Farmer1ID:       farmer1ID,
-                Farmer2ID:       farmer2ID,
-                BaseScore:       baseScore,
-                Multiplier:      multiplier,
-                BombCount:       l.bombCount,
-                Spring:          spring,
-                Result:          result,
-                LandlordWinGold: landlordWinGold,
-                Farmer1WinGold:  farmer1WinGold,
-                Farmer2WinGold:  farmer2WinGold,
-                StartedAt:       l.startedAt,
-                EndedAt:         &endedAt,
-                DurationSeconds: durationSeconds,
+                GameID:               l.gameID,
+                RoomID:               l.roomID,
+                RoomType:             l.roomType,
+                RoomCategory:         l.roomCategory,
+                LandlordID:           landlordID,
+                Farmer1ID:            farmer1ID,
+                Farmer2ID:            farmer2ID,
+                BaseScore:            baseScore,
+                Multiplier:           multiplier,
+                BombCount:            l.bombCount,
+                Spring:               spring,
+                Result:               result,
+                LandlordWinGold:      landlordWinGold,
+                Farmer1WinGold:       farmer1WinGold,
+                Farmer2WinGold:       farmer2WinGold,
+                LandlordWinArenaCoin: landlordWinArenaCoin,
+                Farmer1WinArenaCoin:  farmer1WinArenaCoin,
+                Farmer2WinArenaCoin:  farmer2WinArenaCoin,
+                StartedAt:            l.startedAt,
+                EndedAt:              &endedAt,
+                DurationSeconds:      durationSeconds,
         }
 
         // 转换日志记录

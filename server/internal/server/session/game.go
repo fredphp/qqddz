@@ -80,7 +80,7 @@ func NewGameSession(r *room.Room, lb *storage.LeaderboardManager, gameCfg config
         }
 
         // 初始化游戏日志记录器
-        gameLogger := NewGameLogger(r.Code, 1) // 默认房间类型为普通场
+        gameLogger := NewGameLogger(r.Code, 1, 1) // 默认房间类型为普通场，房间分类为普通场
 
         return &GameSession{
                 room:          r,

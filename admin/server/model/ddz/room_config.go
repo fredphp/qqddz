@@ -15,6 +15,8 @@ type DDZRoomConfig struct {
         Multiplier     int     `json:"multiplier" gorm:"type:int;not null;default:1;comment:初始倍数"`
         MinGold        int64   `json:"minGold" gorm:"type:bigint;not null;default:0;comment:最低入场金币"`
         MaxGold        int64   `json:"maxGold" gorm:"type:bigint;not null;default:0;comment:最高入场金币(0表示无限制)"`
+        MinArenaCoin   int64   `json:"minArenaCoin" gorm:"type:bigint;not null;default:0;comment:最低入场竞技币(竞技场房间使用)"`
+        MaxArenaCoin   int64   `json:"maxArenaCoin" gorm:"type:bigint;not null;default:0;comment:最高入场竞技币(竞技场房间使用,0表示无限制)"`
         BgImageNum     int     `json:"bgImageNum" gorm:"type:tinyint;not null;default:2;comment:背景图编号(对应btn_happy_{编号}.png,如:2->btn_happy_2.png)"`
         BotEnabled     int     `json:"botEnabled" gorm:"type:tinyint;not null;default:1;comment:是否允许机器人:0-否,1-是"`
         BotCount       int     `json:"botCount" gorm:"type:int;not null;default:0;comment:房间机器人数量"`

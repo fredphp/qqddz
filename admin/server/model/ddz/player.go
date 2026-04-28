@@ -15,6 +15,7 @@ type DDZPlayer struct {
         Avatar        string         `gorm:"type:varchar(256);default:'';comment:头像URL" json:"avatar"`
         Gender        uint8          `gorm:"type:tinyint unsigned;default:0;comment:性别:0-未知,1-男,2-女" json:"gender"`
         Gold          int64          `gorm:"type:bigint;not null;default:0;comment:金币余额" json:"gold"`
+        ArenaCoin     int64          `gorm:"type:bigint;not null;default:0;comment:竞技币余额" json:"arenaCoin"`
         Diamond       int            `gorm:"type:int;not null;default:0;comment:钻石余额" json:"diamond"`
         Experience    int            `gorm:"type:int;not null;default:0;comment:经验值" json:"experience"`
         Level         int            `gorm:"type:int;not null;default:1;comment:等级" json:"level"`

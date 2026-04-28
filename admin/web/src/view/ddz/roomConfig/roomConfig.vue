@@ -103,6 +103,20 @@
             {{ scope.row.maxGold > 0 ? formatGold(scope.row.maxGold) : '无限制' }}
           </template>
         </el-table-column>
+        <el-table-column align="center" label="最低竞技币" min-width="100">
+          <template #default="scope">
+            <span v-if="scope.row.roomCategory === 2" class="text-warning">{{ formatGold(scope.row.minArenaCoin) }}</span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" label="最高竞技币" min-width="100">
+          <template #default="scope">
+            <span v-if="scope.row.roomCategory === 2">
+              {{ scope.row.maxArenaCoin > 0 ? formatGold(scope.row.maxArenaCoin) : '无限制' }}
+            </span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+        </el-table-column>
         <el-table-column align="center" label="机器人" min-width="80">
           <template #default="scope">
             {{ scope.row.botEnabled ? '是(' + scope.row.botCount + ')' : '否' }}
@@ -230,6 +244,20 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <!-- 竞技场配置（仅竞技场房间显示） -->
+        <el-divider v-if="formData.roomCategory === 2" content-position="left">竞技场配置</el-divider>
+        <el-row v-if="formData.roomCategory === 2" :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="最低竞技币" prop="minArenaCoin" required>
+              <el-input-number v-model="formData.minArenaCoin" :min="0" :step="1000" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="最高竞技币" prop="maxArenaCoin">
+              <el-input-number v-model="formData.maxArenaCoin" :min="0" :step="1000" placeholder="0表示无限制" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="允许机器人" prop="botEnabled">
@@ -302,6 +330,8 @@ const formData = ref({
   multiplier: 1,
   minGold: 1000,
   maxGold: 0,
+  minArenaCoin: 0,
+  maxArenaCoin: 0,
   bgImageNum: 2,  // 默认背景图编号
   botEnabled: 1,
   botCount: 5,
@@ -413,6 +443,8 @@ const openDialog = (type, row = null) => {
       multiplier: 1,
       minGold: 1000,
       maxGold: 0,
+      minArenaCoin: 0,
+      maxArenaCoin: 0,
       bgImageNum: 2,  // 默认背景图编号
       botEnabled: 1,
       botCount: 5,
@@ -459,5 +491,11 @@ getTableData()
 <style scoped>
 .mb-4 {
   margin-bottom: 16px;
+}
+.text-warning {
+  color: #e6a23c;
+}
+.text-gray-400 {
+  color: #9ca3af;
 }
 </style>

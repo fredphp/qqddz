@@ -206,16 +206,24 @@ func (gs *GameSession) saveGameResultToDatabase(winner *GamePlayer) {
         baseGold := int64(baseScore * multiplier)
 
         var landlordWinGold, farmer1WinGold, farmer2WinGold int64
+        var landlordWinArenaCoin, farmer1WinArenaCoin, farmer2WinArenaCoin int64
+
         if result == database.GameResultLandlordWin {
-                // 地主胜，地主获得两个农民的金币
+                // 地主胜，地主获得两个农民的金币/竞技币
                 landlordWinGold = baseGold * 2
                 farmer1WinGold = -baseGold
                 farmer2WinGold = -baseGold
+                landlordWinArenaCoin = baseGold * 2
+                farmer1WinArenaCoin = -baseGold
+                farmer2WinArenaCoin = -baseGold
         } else {
-                // 农民胜，每个农民获得地主的金币
+                // 农民胜，每个农民获得地主的金币/竞技币
                 landlordWinGold = -baseGold * 2
                 farmer1WinGold = baseGold
                 farmer2WinGold = baseGold
+                landlordWinArenaCoin = -baseGold * 2
+                farmer1WinArenaCoin = baseGold
+                farmer2WinArenaCoin = baseGold
         }
 
         // 保存游戏结果
@@ -224,6 +232,7 @@ func (gs *GameSession) saveGameResultToDatabase(winner *GamePlayer) {
                 baseScore, multiplier,
                 spring, result,
                 landlordWinGold, farmer1WinGold, farmer2WinGold,
+                landlordWinArenaCoin, farmer1WinArenaCoin, farmer2WinArenaCoin,
         )
         if err != nil {
                 log.Printf("保存游戏结果到数据库失败: %v", err)
