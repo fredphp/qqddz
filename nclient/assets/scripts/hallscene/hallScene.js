@@ -3053,7 +3053,7 @@ cc.Class({
         }
     },
     
-    // 快速匹配
+    // 快速匹配 - 只使用真实socket连接，不使用模拟数据
     _quickMatch: function(roomConfig, playerGold) {
         var self = this;
         var myglobal = window.myglobal;
@@ -3065,37 +3065,73 @@ cc.Class({
         
         this._showMessageCenter("正在快速匹配...");
         
-        // 如果WebSocket未连接，直接使用模拟数据
+        // 如果WebSocket未连接，等待连接
         if (!socket || !isConnected || !isWebSocketOpen) {
-            console.log("WebSocket未连接，使用模拟数据进入游戏");
-            this.scheduleOnce(function() {
-                self._showMessageCenter("使用模拟数据进入游戏");
-                self._enterGameSceneWithMockData(roomConfig, playerGold);
-            }, 1);
+            console.log("WebSocket未连接，尝试初始化连接...");
+            
+            // 尝试初始化WebSocket连接
+            if (socket && socket.initSocket) {
+                socket.initSocket();
+            }
+            
+            // 等待WebSocket连接后进入房间
+            this._waitForConnectionAndEnterRoom(roomConfig, socket, playerGold);
             return;
         }
         
-        if (socket.request_enter_room) {
-            socket.request_enter_room({ room_level: roomConfig.room_type }, function(result, data) {
-                if (result === 0 && data && data.roomid) {
-                    if (myglobal) myglobal.roomData = data;
-                    self._enterGameScene(data);
-                } else {
-                    self._showMessageCenter("匹配失败，创建新房间");
-                    self._enterGameSceneWithMockData(roomConfig, playerGold);
-                }
-            });
-            
-            this._enterRoomTimeout = setTimeout(function() {
-                self._showMessageCenter("匹配超时，创建新房间");
-                self._enterGameSceneWithMockData(roomConfig, playerGold);
-            }, 5000);
-        } else {
-            this._enterGameSceneWithMockData(roomConfig, playerGold);
-        }
+        // WebSocket已连接，直接发送快速匹配请求
+        this._sendQuickMatchRequest(roomConfig, playerGold);
     },
     
-    // 创建房间
+    // 发送快速匹配请求
+    _sendQuickMatchRequest: function(roomConfig, playerGold) {
+        var self = this;
+        var myglobal = window.myglobal;
+        var socket = myglobal && myglobal.socket ? myglobal.socket : null;
+        
+        if (!socket || !socket.request_enter_room) {
+            self._showMessageCenter("服务器连接异常，请稍后重试");
+            return;
+        }
+        
+        console.log("发送快速匹配请求，房间类型:", roomConfig.room_type);
+        
+        // 清除之前的超时计时器
+        if (this._enterRoomTimeout) {
+            clearTimeout(this._enterRoomTimeout);
+            this._enterRoomTimeout = null;
+        }
+        
+        socket.request_enter_room({ room_level: roomConfig.room_type }, function(result, data) {
+            // 清除超时计时器
+            if (self._enterRoomTimeout) {
+                clearTimeout(self._enterRoomTimeout);
+                self._enterRoomTimeout = null;
+            }
+            
+            console.log("快速匹配响应:", result, JSON.stringify(data));
+            
+            if (result === 0 && data) {
+                if (myglobal) {
+                    myglobal.roomData = data;
+                    myglobal.playerData.bottom = roomConfig.base_score || 1;
+                    myglobal.playerData.rate = roomConfig.multiplier || 1;
+                }
+                self._showMessageCenter("匹配成功，进入游戏...");
+                self._enterGameScene(data);
+            } else {
+                self._showMessageCenter("匹配失败，请稍后重试");
+            }
+        });
+        
+        // 设置超时
+        this._enterRoomTimeout = setTimeout(function() {
+            self._enterRoomTimeout = null;
+            self._showMessageCenter("匹配超时，请检查网络连接");
+        }, 15000);  // 增加超时时间到15秒
+    },
+    
+    // 创建房间 - 只使用真实socket连接
     _createRoom: function(roomConfig, playerGold) {
         var self = this;
         var myglobal = window.myglobal;
@@ -3107,52 +3143,86 @@ cc.Class({
         
         this._showMessageCenter("正在创建房间...");
         
-        // 如果WebSocket未连接，直接使用模拟数据
+        // 如果WebSocket未连接，尝试连接
         if (!socket || !isConnected || !isWebSocketOpen) {
-            console.log("WebSocket未连接，使用模拟数据创建房间");
-            this.scheduleOnce(function() {
-                self._showMessageCenter("创建模拟房间成功");
-                self._enterGameSceneWithMockData(roomConfig, playerGold);
-            }, 1);
+            console.log("WebSocket未连接，尝试初始化连接...");
+            if (socket && socket.initSocket) {
+                socket.initSocket();
+            }
+            this._waitForConnectionAndCreateRoom(roomConfig, playerGold);
             return;
         }
         
-        if (socket.createRoom) {
-            socket.createRoom(function(result, data) {
-                console.log("创建房间结果:", result, JSON.stringify(data));
-                if (result === 0 && data) {
-                    // 转换数据格式
-                    var roomData = {
-                        roomid: data.room_code || data.roomCode || "NEW_ROOM",
-                        seatindex: 1,
-                        playerdata: [{
-                            accountid: myglobal.playerData.accountID,
-                            nick_name: myglobal.playerData.nickName,
-                            avatarUrl: myglobal.playerData.avatarUrl || "avatar_1",
-                            goldcount: playerGold,
-                            seatindex: 1
-                        }],
-                        housemanageid: myglobal.playerData.accountID
-                    };
-                    myglobal.roomData = roomData;
-                    self._enterGameScene(roomData);
-                } else {
-                    self._showMessageCenter("创建失败，使用模拟房间");
-                    self._enterGameSceneWithMockData(roomConfig, playerGold);
-                }
-            });
-            
-            // 设置超时
-            setTimeout(function() {
-                self._showMessageCenter("创建超时，使用模拟房间");
-                self._enterGameSceneWithMockData(roomConfig, playerGold);
-            }, 5000);
-        } else {
-            this._enterGameSceneWithMockData(roomConfig, playerGold);
-        }
+        // 发送创建房间请求
+        this._sendCreateRoomRequest(roomConfig, playerGold);
     },
     
-    // 加入房间
+    // 发送创建房间请求
+    _sendCreateRoomRequest: function(roomConfig, playerGold) {
+        var self = this;
+        var myglobal = window.myglobal;
+        var socket = myglobal && myglobal.socket ? myglobal.socket : null;
+        
+        if (!socket || !socket.createRoom) {
+            self._showMessageCenter("服务器连接异常，请稍后重试");
+            return;
+        }
+        
+        console.log("发送创建房间请求");
+        
+        socket.createRoom(function(result, data) {
+            console.log("创建房间结果:", result, JSON.stringify(data));
+            if (result === 0 && data) {
+                // 转换数据格式
+                var roomData = {
+                    roomid: data.room_code || data.roomCode || "NEW_ROOM",
+                    seatindex: 1,
+                    playerdata: [{
+                        accountid: myglobal.playerData.accountID || myglobal.playerData.uniqueID,
+                        nick_name: myglobal.playerData.nickName,
+                        avatarUrl: myglobal.playerData.avatarUrl || "avatar_1",
+                        goldcount: playerGold,
+                        seatindex: 1
+                    }],
+                    housemanageid: myglobal.playerData.accountID || myglobal.playerData.uniqueID
+                };
+                myglobal.roomData = roomData;
+                myglobal.playerData.bottom = roomConfig.base_score || 1;
+                myglobal.playerData.rate = roomConfig.multiplier || 1;
+                self._showMessageCenter("创建房间成功，等待其他玩家...");
+                self._enterGameScene(roomData);
+            } else {
+                self._showMessageCenter("创建房间失败，请稍后重试");
+            }
+        });
+    },
+    
+    // 等待连接后创建房间
+    _waitForConnectionAndCreateRoom: function(roomConfig, playerGold) {
+        var self = this;
+        var socket = window.myglobal && window.myglobal.socket ? window.myglobal.socket : null;
+        var attempts = 0;
+        var maxAttempts = 10;  // 最多等待5秒
+        
+        var tryConnect = function() {
+            attempts++;
+            var isWebSocketOpen = socket && socket.isWebSocketOpen ? socket.isWebSocketOpen() : false;
+            
+            console.log("尝试连接 WebSocket, 第" + attempts + "次, 物理连接状态:", isWebSocketOpen);
+            
+            if (isWebSocketOpen) {
+                self._sendCreateRoomRequest(roomConfig, playerGold);
+            } else if (attempts < maxAttempts) {
+                setTimeout(tryConnect, 500);
+            } else {
+                self._showMessageCenter("连接服务器失败，请检查网络后重试");
+            }
+        };
+        
+        setTimeout(tryConnect, 500);
+    },
+    
+    // 加入房间 - 只使用真实socket连接
     _joinRoom: function(roomCode, roomConfig, playerGold) {
         var self = this;
         var myglobal = window.myglobal;
@@ -3164,116 +3234,111 @@ cc.Class({
         
         this._showMessageCenter("正在加入房间 " + roomCode + "...");
         
-        // 如果WebSocket未连接，直接使用模拟数据
+        // 如果WebSocket未连接，尝试连接
         if (!socket || !isConnected || !isWebSocketOpen) {
-            console.log("WebSocket未连接，使用模拟数据加入房间");
-            this.scheduleOnce(function() {
-                self._showMessageCenter("加入模拟房间成功");
-                self._enterGameSceneWithMockData(roomConfig, playerGold);
-            }, 1);
+            console.log("WebSocket未连接，尝试初始化连接...");
+            if (socket && socket.initSocket) {
+                socket.initSocket();
+            }
+            this._waitForConnectionAndJoinRoom(roomCode, roomConfig, playerGold);
             return;
         }
         
-        if (socket.joinRoom) {
-            socket.joinRoom(roomCode, function(result, data) {
-                console.log("加入房间结果:", result, JSON.stringify(data));
-                if (result === 0 && data) {
-                    // 转换数据格式
-                    var roomData = {
-                        roomid: data.room_code || data.roomCode || roomCode,
-                        seatindex: data.player ? data.player.seat : 1,
-                        playerdata: (data.players || []).map(function(p, idx) {
-                            return {
-                                accountid: p.id,
-                                nick_name: p.name,
-                                avatarUrl: "avatar_1",
-                                goldcount: 1000,
-                                seatindex: p.seat || idx + 1
-                            };
-                        }),
-                        housemanageid: ""
-                    };
-                    myglobal.roomData = roomData;
-                    self._enterGameScene(roomData);
-                } else {
-                    self._showMessageCenter("加入房间失败，使用模拟房间");
-                    self._enterGameSceneWithMockData(roomConfig, playerGold);
-                }
-            });
-        } else {
-            this._showMessageCenter("无法连接服务器");
-        }
+        // 发送加入房间请求
+        this._sendJoinRoomRequest(roomCode, roomConfig, playerGold);
     },
     
-    // 使用模拟数据进入游戏场景
-    _enterGameSceneWithMockData: function(roomConfig, playerGold) {
-        var myglobal = window.myglobal;
-        
-        // 清除超时计时器
-        if (this._enterRoomTimeout) {
-            clearTimeout(this._enterRoomTimeout);
-            this._enterRoomTimeout = null;
-        }
-        
-        var mockData = {
-            roomid: "ROOM_" + roomConfig.room_type,
-            room_config: roomConfig,
-            seatindex: 1,
-            playerdata: [{
-                accountid: "player_1",
-                nick_name: myglobal ? myglobal.playerData.nickName : "测试玩家",
-                avatarUrl: "avatar_1",
-                goldcount: playerGold || 1000,
-                seatindex: 1
-            }]
-        };
-        
-        if (myglobal) myglobal.roomData = mockData;
-        
-        console.log("使用模拟数据进入游戏场景:", JSON.stringify(mockData));
-        this._enterGameScene(mockData);
-    },
-    
-    // 等待 WebSocket 连接后进入房间
-    _waitForConnectionAndEnterRoom: function(roomConfig, socket, playerGold) {
+    // 发送加入房间请求
+    _sendJoinRoomRequest: function(roomCode, roomConfig, playerGold) {
         var self = this;
         var myglobal = window.myglobal;
-        var attempts = 0;
-        var maxAttempts = 6;  // 最多等待3秒
+        var socket = myglobal && myglobal.socket ? myglobal.socket : null;
         
-        var tryEnter = function() {
+        if (!socket || !socket.joinRoom) {
+            self._showMessageCenter("服务器连接异常，请稍后重试");
+            return;
+        }
+        
+        console.log("发送加入房间请求:", roomCode);
+        
+        socket.joinRoom(roomCode, function(result, data) {
+            console.log("加入房间结果:", result, JSON.stringify(data));
+            if (result === 0 && data) {
+                // 转换数据格式
+                var roomData = {
+                    roomid: data.room_code || data.roomCode || roomCode,
+                    seatindex: data.player ? data.player.seat : 1,
+                    playerdata: (data.players || []).map(function(p, idx) {
+                        return {
+                            accountid: p.id,
+                            nick_name: p.name,
+                            avatarUrl: "avatar_1",
+                            goldcount: 1000,
+                            seatindex: p.seat || idx + 1
+                        };
+                    }),
+                    housemanageid: ""
+                };
+                myglobal.roomData = roomData;
+                myglobal.playerData.bottom = roomConfig.base_score || 1;
+                myglobal.playerData.rate = roomConfig.multiplier || 1;
+                self._showMessageCenter("加入房间成功");
+                self._enterGameScene(roomData);
+            } else {
+                self._showMessageCenter("加入房间失败，房间可能不存在");
+            }
+        });
+    },
+    
+    // 等待连接后加入房间
+    _waitForConnectionAndJoinRoom: function(roomCode, roomConfig, playerGold) {
+        var self = this;
+        var socket = window.myglobal && window.myglobal.socket ? window.myglobal.socket : null;
+        var attempts = 0;
+        var maxAttempts = 10;  // 最多等待5秒
+        
+        var tryConnect = function() {
             attempts++;
-            var isWebSocketOpen = socket.isWebSocketOpen ? socket.isWebSocketOpen() : false;
+            var isWebSocketOpen = socket && socket.isWebSocketOpen ? socket.isWebSocketOpen() : false;
             
             console.log("尝试连接 WebSocket, 第" + attempts + "次, 物理连接状态:", isWebSocketOpen);
             
             if (isWebSocketOpen) {
-                console.log("WebSocket 已连接，发送进入房间请求");
-                socket.request_enter_room({ room_level: roomConfig.room_type }, function(result, data) {
-                    console.log("进入房间响应:", result, JSON.stringify(data));
-                    if (result === 0 && data && data.roomid) {
-                        if (myglobal) myglobal.roomData = data;
-                        self._enterGameScene(data);
-                    } else {
-                        // 服务器返回失败，使用模拟数据
-                        console.log("服务器返回失败，使用模拟数据");
-                        self._enterGameSceneWithMockData(roomConfig, playerGold);
-                    }
-                });
-                
-                // 设置超时，如果3秒内没有响应，使用模拟数据
-                setTimeout(function() {
-                    if (self._enterRoomTimeout !== null) {
-                        console.log("进入房间响应超时，使用模拟数据");
-                        self._enterGameSceneWithMockData(roomConfig, playerGold);
-                    }
-                }, 3000);
+                self._sendJoinRoomRequest(roomCode, roomConfig, playerGold);
+            } else if (attempts < maxAttempts) {
+                setTimeout(tryConnect, 500);
+            } else {
+                self._showMessageCenter("连接服务器失败，请检查网络后重试");
+            }
+        };
+        
+        setTimeout(tryConnect, 500);
+    },
+    
+    // 等待 WebSocket 连接后进入房间（只使用真实socket连接）
+    _waitForConnectionAndEnterRoom: function(roomConfig, socket, playerGold) {
+        var self = this;
+        var myglobal = window.myglobal;
+        var attempts = 0;
+        var maxAttempts = 10;  // 最多等待5秒
+        
+        this._showMessageCenter("正在连接服务器...");
+        
+        var tryEnter = function() {
+            attempts++;
+            var isWebSocketOpen = socket && socket.isWebSocketOpen ? socket.isWebSocketOpen() : false;
+            
+            console.log("尝试连接 WebSocket, 第" + attempts + "次, 物理连接状态:", isWebSocketOpen);
+            
+            if (isWebSocketOpen) {
+                console.log("WebSocket 已连接，发送快速匹配请求");
+                self._sendQuickMatchRequest(roomConfig, playerGold);
             } else if (attempts < maxAttempts) {
                 setTimeout(tryEnter, 500);
             } else {
-                // 超时后使用模拟数据进入游戏
-                console.log("WebSocket 连接超时，使用模拟数据");
-                self._enterGameSceneWithMockData(roomConfig, playerGold);
+                // 连接超时，提示用户检查网络
+                console.error("WebSocket 连接超时");
+                self._showMessageCenter("连接服务器超时，请检查网络设置");
             }
         };
         
