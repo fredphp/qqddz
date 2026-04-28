@@ -74,6 +74,7 @@ CREATE TABLE IF NOT EXISTS `ddz_room_config` (
 CREATE TABLE IF NOT EXISTS `ddz_rooms` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '房间ID',
     `room_code` VARCHAR(10) NOT NULL COMMENT '房间号',
+    `room_name` VARCHAR(64) NOT NULL DEFAULT '' COMMENT '房间名称',
     `room_type` TINYINT NOT NULL DEFAULT 1 COMMENT '房间类型: 1-普通场, 2-高级场, 3-富豪场, 4-至尊场',
     `room_category` TINYINT NOT NULL DEFAULT 1 COMMENT '房间分类: 1-普通场, 2-竞技场',
     `creator_id` BIGINT UNSIGNED NOT NULL COMMENT '创建者玩家ID',

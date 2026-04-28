@@ -72,6 +72,7 @@ func (RoomConfig) TableName() string {
 type Room struct {
         ID           uint64     `gorm:"primaryKey;autoIncrement;comment:房间ID" json:"id"`
         RoomCode     string     `gorm:"type:varchar(10);uniqueIndex;not null;comment:房间号" json:"room_code"`
+        RoomName     string     `gorm:"type:varchar(64);not null;default:'';comment:房间名称" json:"room_name"`
         RoomType     uint8      `gorm:"type:tinyint;not null;default:1;index;comment:房间类型:1-普通场,2-高级场,3-富豪场,4-至尊场" json:"room_type"`
         RoomCategory uint8      `gorm:"type:tinyint;not null;default:1;comment:房间分类:1-普通场,2-竞技场" json:"room_category"`
         CreatorID    uint64     `gorm:"type:bigint unsigned;not null;index;comment:创建者玩家ID" json:"creator_id"`

@@ -2,6 +2,7 @@ package room
 
 import (
         "context"
+        "fmt"
         "log"
         "time"
 
@@ -48,8 +49,12 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface) (*Room, error) {
         }
 
         // 保存房间到数据库
+        // 生成房间名称：房{房间号}
+        roomName := fmt.Sprintf("房%s", code)
+
         dbRoom := &database.Room{
                 RoomCode:     code,
+                RoomName:     roomName,
                 RoomType:     1, // 默认普通场
                 RoomCategory: 1, // 默认普通场
                 CreatorID:    creatorID,
@@ -66,7 +71,7 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface) (*Room, error) {
         if err := database.CreateRoom(dbRoom); err != nil {
                 log.Printf("⚠️ 创建房间到数据库失败: %v", err)
         } else {
-                log.Printf("💾 房间 %s 已保存到数据库，创建者ID: %d, 昵称: %s", code, creatorID, client.GetName())
+                log.Printf("💾 房间 %s (名称: %s) 已保存到数据库，创建者ID: %d, 昵称: %s", code, roomName, creatorID, client.GetName())
         }
 
         // 保存到 Redis
