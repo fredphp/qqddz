@@ -20,19 +20,21 @@ const (
 
 // RoomConfigResponse 房间配置响应（用于API返回）
 type RoomConfigResponse struct {
-        ID           uint64 `json:"id"`
-        RoomName     string `json:"room_name"`
-        RoomType     uint8  `json:"room_type"`
-        RoomCategory uint8  `json:"room_category"` // 房间分类: 1-普通场, 2-竞技场
-        BaseScore    int    `json:"base_score"`
-        Multiplier   int    `json:"multiplier"`
-        MinGold      int64  `json:"min_gold"`
-        MaxGold      int64  `json:"max_gold"`
-        EntryGold    int64  `json:"entry_gold"`    // 进入房间需要的豆子/金币
-        BgImageNum   int    `json:"bg_image_num"`  // 背景图编号（前端根据此编号匹配 btn_happy_{编号}.png）
-        Description  string `json:"description"`
-        Status       uint8  `json:"status"`
-        SortOrder    int    `json:"sort_order"`
+        ID            uint64 `json:"id"`
+        RoomName      string `json:"room_name"`
+        RoomType      uint8  `json:"room_type"`
+        RoomCategory  uint8  `json:"room_category"`  // 房间分类: 1-普通场, 2-竞技场
+        BaseScore     int    `json:"base_score"`
+        Multiplier    int    `json:"multiplier"`
+        MinGold       int64  `json:"min_gold"`        // 普通场最低入场豆子
+        MaxGold       int64  `json:"max_gold"`        // 普通场最高入场豆子
+        MinArenaCoin  int64  `json:"min_arena_coin"`  // 竞技场最低入场竞技币
+        MaxArenaCoin  int64  `json:"max_arena_coin"`  // 竞技场最高入场竞技币
+        EntryGold     int64  `json:"entry_gold"`      // 进入房间需要的豆子/金币（兼容旧字段）
+        BgImageNum    int    `json:"bg_image_num"`    // 背景图编号（前端根据此编号匹配 btn_happy_{编号}.png）
+        Description   string `json:"description"`
+        Status        uint8  `json:"status"`
+        SortOrder     int    `json:"sort_order"`
 }
 
 // RoomConfigHandler 房间配置处理器
@@ -231,8 +233,10 @@ func (h *RoomConfigHandler) getRoomConfigsFromGORM() ([]RoomConfigResponse, erro
                         Multiplier:   rc.Multiplier,
                         MinGold:      rc.MinGold,
                         MaxGold:      rc.MaxGold,
-                        EntryGold:    rc.MinGold, // 入场豆子等于最低入场金币
-                        BgImageNum:   bgImageNum, // 背景图编号
+                        MinArenaCoin: rc.MinArenaCoin, // 竞技场最低入场竞技币
+                        MaxArenaCoin: rc.MaxArenaCoin, // 竞技场最高入场竞技币
+                        EntryGold:    rc.MinGold,      // 入场豆子等于最低入场金币
+                        BgImageNum:   bgImageNum,      // 背景图编号
                         Description:  rc.Description,
                         Status:       rc.Status,
                         SortOrder:    rc.SortOrder,
@@ -249,7 +253,7 @@ func (h *RoomConfigHandler) getRoomConfigsFromGORM() ([]RoomConfigResponse, erro
 // getRoomConfigsFromSQL 从原始 SQL 获取房间配置
 func (h *RoomConfigHandler) getRoomConfigsFromSQL() ([]RoomConfigResponse, error) {
         query := `SELECT id, room_name, room_type, room_category, base_score, multiplier, min_gold, max_gold,
-                  bg_image_num, description, status, sort_order
+                  min_arena_coin, max_arena_coin, bg_image_num, description, status, sort_order
                   FROM ddz_room_config
                   WHERE status = 1 AND deleted_at IS NULL
                   ORDER BY sort_order ASC`
@@ -273,6 +277,8 @@ func (h *RoomConfigHandler) getRoomConfigsFromSQL() ([]RoomConfigResponse, error
                         &config.Multiplier,
                         &config.MinGold,
                         &config.MaxGold,
+                        &config.MinArenaCoin,
+                        &config.MaxArenaCoin,
                         &bgImageNum,
                         &config.Description,
                         &config.Status,

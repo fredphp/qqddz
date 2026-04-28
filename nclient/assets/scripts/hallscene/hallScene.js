@@ -714,8 +714,8 @@ cc.Class({
         if (!goldLabelNode) {
             goldLabelNode = new cc.Node("min_gold_label");
             var label = goldLabelNode.addComponent(cc.Label);
-            label.fontSize = 24;       // 字体大小
-            label.lineHeight = 30;      // 行高
+            label.fontSize = 22;       // 字体大小
+            label.lineHeight = 28;      // 行高
             label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
             goldLabelNode.anchorX = 0.5;
             goldLabelNode.anchorY = 0.5;
@@ -751,11 +751,15 @@ cc.Class({
         
         label.string = "最低 " + this._formatGold(minValue) + " " + currencyName;
         
-        // 修正位置：按钮图片底部蓝色渐变条在 75%-90% 高度位置
-        // 按钮高度 375，底部渐变条中心约在 80% 位置
-        // Y坐标：-btnNode.height/2 是底部边缘，加上偏移量使其显示在渐变条内
-        var yOffset = -btnNode.height/2 + 50;  // 从底部边缘向上50像素
-        goldLabelNode.setPosition(0, yOffset);
+        // 修正位置：按钮图片底部有豆子图标在左侧，文字应显示在图标右侧
+        // 按钮高度 375px，底部蓝色渐变条约占 1/4（约在75%-100%位置）
+        // 图标在底部左侧约10%-20%宽度位置，文字应偏右显示
+        var btnHeight = btnNode.height || 375;
+        // Y坐标：从底部边缘向上约12%的位置（在渐变条内）
+        var yOffset = -btnHeight/2 + btnHeight * 0.12;
+        // X坐标：稍微向右偏移，以显示在图标后面（图标在左侧约15%位置）
+        var xOffset = btnNode.width * 0.08;  // 向右偏移8%宽度
+        goldLabelNode.setPosition(xOffset, yOffset);
     },
     
     // 房间按钮点击处理 - 直接快速匹配进入游戏（跳过房间列表）
