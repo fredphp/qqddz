@@ -130,10 +130,17 @@ cc.Class({
     
     _initScene: function(myglobal, RoomState, isopen_sound) {
         this.playerNodeList = []
-        this.di_label.string = "底:" + myglobal.playerData.bottom
-        this.beishu_label.string = "倍数:" + myglobal.playerData.rate
+        
+        // 确保底分和倍数有默认值
+        var bottom = myglobal.playerData.bottom || 1
+        var rate = myglobal.playerData.rate || 1
+        
+        this.di_label.string = "底:" + bottom
+        this.beishu_label.string = "倍数:" + rate
         this.roomstate = RoomState.ROOM_INVALID
         this._isWaitingForPlayers = false  // 是否正在等待玩家
+
+        console.log("游戏场景初始化 - 底分:", bottom, "倍数:", rate)
 
         //监听，给其他玩家发牌(内部事件)
         this.node.on("pushcard_other_event", function() {
@@ -412,18 +419,31 @@ cc.Class({
     
     // 处理房间数据
     _processRoomData: function(result, myglobal, isopen_sound) {
-        var seatid = result.seatindex
+        console.log("_processRoomData 收到数据:", JSON.stringify(result))
+        
+        var seatid = result.seatindex || 1
         this.playerdata_list_pos = []
         this.setPlayerSeatPos(seatid)
 
         var playerdata_list = result.playerdata || []
-        var roomid = result.roomid || result.room_code || "WAITING"
-        this.roomid_label.string = "房间号:" + roomid
+        var roomid = result.roomid || result.room_code || result.roomCode || "WAITING"
+        
+        // 确保房间号显示
+        if (this.roomid_label) {
+            this.roomid_label.string = "房间号:" + roomid
+            console.log("设置房间号标签:", this.roomid_label.string)
+        } else {
+            console.error("roomid_label 未绑定！")
+        }
+        
         myglobal.playerData.housemanageid = result.housemanageid
 
+        // 添加玩家节点
         for (var i = 0; i < playerdata_list.length; i++) {
             this.addPlayerNode(playerdata_list[i])
         }
+        
+        console.log("当前玩家数量:", playerdata_list.length)
 
         // 播放背景音乐
         if (isopen_sound) {
@@ -435,19 +455,18 @@ cc.Class({
             }
         }
         
+        // 隐藏 gamebeforeUI（不再需要开始/准备按钮）
+        var gamebefore_node = this.node.getChildByName("gamebeforeUI")
+        if (gamebefore_node) {
+            gamebefore_node.active = false
+            console.log("隐藏 gamebeforeUI")
+        }
+        
         // 检查是否需要显示等待界面
         if (playerdata_list.length < 3) {
             console.log("⏳ 房间人数不足3人，显示等待界面")
-            // 延迟显示等待界面，确保在其他UI初始化之后
-            this.scheduleOnce(function() {
-                this._showWaitingUI(3 - playerdata_list.length)
-            }, 0.1)
-        }
-        
-        // 初始化游戏前UI
-        var gamebefore_node = this.node.getChildByName("gamebeforeUI")
-        if (gamebefore_node) {
-            gamebefore_node.emit("init")
+            // 显示等待界面
+            this._showWaitingUI(3 - playerdata_list.length)
         }
     },
     
