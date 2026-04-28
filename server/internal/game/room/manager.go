@@ -6,6 +6,7 @@ import (
         "time"
 
         "github.com/palemoky/fight-the-landlord/internal/apperrors"
+        "github.com/palemoky/fight-the-landlord/internal/game/database"
         "github.com/palemoky/fight-the-landlord/internal/protocol"
         "github.com/palemoky/fight-the-landlord/internal/protocol/codec"
         "github.com/palemoky/fight-the-landlord/internal/server/storage"
@@ -39,6 +40,30 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface) (*Room, error) {
         client.SetRoom(code)
 
         rm.rooms[code] = room
+
+        // 获取创建者玩家ID
+        creatorID := client.GetPlayerID()
+
+        // 保存到数据库
+        if creatorID > 0 {
+                dbRoom := &database.Room{
+                        RoomCode:     code,
+                        RoomType:     1, // 默认普通场
+                        RoomCategory: 1, // 默认普通场
+                        CreatorID:    creatorID,
+                        PlayerCount:  1,
+                        MaxPlayers:   3,
+                        Status:       database.RoomStatusWaiting,
+                        BaseScore:    1,
+                        Multiplier:   1,
+                        Player1ID:    &creatorID,
+                }
+                if err := database.CreateRoom(dbRoom); err != nil {
+                        log.Printf("⚠️ 创建房间到数据库失败: %v", err)
+                } else {
+                        log.Printf("💾 房间 %s 已保存到数据库", code)
+                }
+        }
 
         // 保存到 Redis
         if rm.redisStore != nil && rm.redisStore.IsReady() {
@@ -110,6 +135,20 @@ func (rm *RoomManager) JoinRoom(client types.ClientInterface, code string) (*Roo
         room.BroadcastExcept(client.GetID(), codec.MustNewMessage(protocol.MsgPlayerJoined, protocol.PlayerJoinedPayload{
                 Player: room.GetPlayerInfo(client.GetID()),
         }))
+
+        // 获取加入者玩家ID，更新数据库
+        joinerID := client.GetPlayerID()
+        if joinerID > 0 {
+                if err := database.AddPlayerToRoom(code, joinerID, seat); err != nil {
+                        log.Printf("⚠️ 更新房间数据库失败: %v", err)
+                } else {
+                        log.Printf("💾 房间 %s 玩家已更新到数据库", code)
+                }
+                // 如果房间满了，更新状态
+                if playerCount >= 3 {
+                        go database.UpdateRoomStatus(code, database.RoomStatusPlaying)
+                }
+        }
 
         // 保存到 Redis
         if rm.redisStore != nil && rm.redisStore.IsReady() {

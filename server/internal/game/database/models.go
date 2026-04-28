@@ -68,6 +68,45 @@ func (RoomConfig) TableName() string {
         return "ddz_room_config"
 }
 
+// Room 房间表模型
+type Room struct {
+        ID           uint64     `gorm:"primaryKey;autoIncrement;comment:房间ID" json:"id"`
+        RoomCode     string     `gorm:"type:varchar(10);uniqueIndex;not null;comment:房间号" json:"room_code"`
+        RoomType     uint8      `gorm:"type:tinyint;not null;default:1;index;comment:房间类型:1-普通场,2-高级场,3-富豪场,4-至尊场" json:"room_type"`
+        RoomCategory uint8      `gorm:"type:tinyint;not null;default:1;comment:房间分类:1-普通场,2-竞技场" json:"room_category"`
+        CreatorID    uint64     `gorm:"type:bigint unsigned;not null;index;comment:创建者玩家ID" json:"creator_id"`
+        PlayerCount  int        `gorm:"type:int;not null;default:0;comment:当前玩家数量" json:"player_count"`
+        MaxPlayers   int        `gorm:"type:int;not null;default:3;comment:最大玩家数量" json:"max_players"`
+        Status       uint8      `gorm:"type:tinyint;not null;default:1;index;comment:状态:0-已关闭,1-等待中,2-游戏中,3-已结束" json:"status"`
+        BaseScore    int        `gorm:"type:int;not null;default:1;comment:底分" json:"base_score"`
+        Multiplier   int        `gorm:"type:int;not null;default:1;comment:倍数" json:"multiplier"`
+        Player1ID    *uint64    `gorm:"type:bigint unsigned;comment:玩家1 ID" json:"player1_id"`
+        Player2ID    *uint64    `gorm:"type:bigint unsigned;comment:玩家2 ID" json:"player2_id"`
+        Player3ID    *uint64    `gorm:"type:bigint unsigned;comment:玩家3 ID" json:"player3_id"`
+        CreatedAt    time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
+        UpdatedAt    time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`
+        EndedAt      *time.Time `gorm:"type:datetime;comment:结束时间" json:"ended_at"`
+
+        // 关联关系
+        Creator Player `gorm:"foreignKey:CreatorID" json:"creator_info"`
+        Player1 Player `gorm:"foreignKey:Player1ID" json:"player1_info"`
+        Player2 Player `gorm:"foreignKey:Player2ID" json:"player2_info"`
+        Player3 Player `gorm:"foreignKey:Player3ID" json:"player3_info"`
+}
+
+// TableName 指定房间表名
+func (Room) TableName() string {
+        return "ddz_rooms"
+}
+
+// RoomStatus 房间状态常量
+const (
+        RoomStatusClosed   uint8 = 0 // 已关闭
+        RoomStatusWaiting  uint8 = 1 // 等待中
+        RoomStatusPlaying  uint8 = 2 // 游戏中
+        RoomStatusFinished uint8 = 3 // 已结束
+)
+
 // GameRecord 游戏记录表模型
 type GameRecord struct {
         ID                  uint64     `gorm:"primaryKey;autoIncrement;comment:游戏记录ID" json:"id"`

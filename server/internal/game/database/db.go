@@ -188,6 +188,7 @@ func (d *Database) AutoMigrate() error {
         return d.db.AutoMigrate(
                 &Player{},
                 &RoomConfig{},
+                &Room{},
                 &GameRecord{},
                 &DealLog{},
                 &BidLog{},
@@ -338,6 +339,112 @@ func GetActiveRoomConfigs() ([]RoomConfig, error) {
                 return nil, err
         }
         return configs, nil
+}
+
+// =============================================
+// 房间相关操作
+// =============================================
+
+// CreateRoom 创建房间
+func CreateRoom(room *Room) error {
+        return DB().Create(room).Error
+}
+
+// GetRoomByCode 根据房间号获取房间
+func GetRoomByCode(roomCode string) (*Room, error) {
+        var room Room
+        err := DB().Where("room_code = ?", roomCode).First(&room).Error
+        if err != nil {
+                return nil, err
+        }
+        return &room, nil
+}
+
+// GetRoomByID 根据ID获取房间
+func GetRoomByID(id uint64) (*Room, error) {
+        var room Room
+        err := DB().First(&room, id).Error
+        if err != nil {
+                return nil, err
+        }
+        return &room, nil
+}
+
+// UpdateRoom 更新房间
+func UpdateRoom(room *Room) error {
+        return DB().Save(room).Error
+}
+
+// UpdateRoomStatus 更新房间状态
+func UpdateRoomStatus(roomCode string, status uint8) error {
+        updates := map[string]interface{}{
+                "status": status,
+        }
+        if status == RoomStatusFinished || status == RoomStatusClosed {
+                now := time.Now()
+                updates["ended_at"] = &now
+        }
+        return DB().Model(&Room{}).Where("room_code = ?", roomCode).Updates(updates).Error
+}
+
+// AddPlayerToRoom 添加玩家到房间
+func AddPlayerToRoom(roomCode string, playerID uint64, seatIndex int) error {
+        var field string
+        switch seatIndex {
+        case 0:
+                field = "player1_id"
+        case 1:
+                field = "player2_id"
+        case 2:
+                field = "player3_id"
+        default:
+                return fmt.Errorf("invalid seat index: %d", seatIndex)
+        }
+
+        return DB().Model(&Room{}).Where("room_code = ?", roomCode).
+                Updates(map[string]interface{}{
+                        field:         playerID,
+                        "player_count": gorm.Expr("player_count + 1"),
+                }).Error
+}
+
+// RemovePlayerFromRoom 从房间移除玩家
+func RemovePlayerFromRoom(roomCode string, seatIndex int) error {
+        var field string
+        switch seatIndex {
+        case 0:
+                field = "player1_id"
+        case 1:
+                field = "player2_id"
+        case 2:
+                field = "player3_id"
+        default:
+                return fmt.Errorf("invalid seat index: %d", seatIndex)
+        }
+
+        return DB().Model(&Room{}).Where("room_code = ?", roomCode).
+                Updates(map[string]interface{}{
+                        field:         nil,
+                        "player_count": gorm.Expr("GREATEST(player_count - 1, 0)"),
+                }).Error
+}
+
+// GetWaitingRooms 获取等待中的房间列表
+func GetWaitingRooms(limit int) ([]Room, error) {
+        var rooms []Room
+        err := DB().Where("status = ?", RoomStatusWaiting).
+                Order("created_at DESC").
+                Limit(limit).
+                Find(&rooms).Error
+        if err != nil {
+                return nil, err
+        }
+        return rooms, nil
+}
+
+// DeleteRoom 删除房间
+func DeleteRoom(roomCode string) error {
+        return DB().Where("room_code = ?", roomCode).Delete(&Room{}).Error
 }
 
 // =============================================

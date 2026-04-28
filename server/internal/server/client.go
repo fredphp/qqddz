@@ -53,10 +53,11 @@ type outgoingMessage struct {
 
 // Client 代表一个连接的玩家
 type Client struct {
-        ID     string // 玩家唯一 ID
-        Name   string // 玩家昵称
-        RoomID string // 当前所在房间 ID
-        IP     string // 客户端 IP 地址
+        ID         string // 玩家唯一 ID
+        Name       string // 玩家昵称
+        RoomID     string // 当前所在房间 ID
+        IP         string // 客户端 IP 地址
+        PlayerID   uint64 // 数据库玩家ID
 
         server *Server
         conn   *websocket.Conn
@@ -286,8 +287,9 @@ func (c *Client) GetRoom() string {
 }
 
 // Interface implementations for types.ClientInterface
-func (c *Client) GetID() string   { return c.ID }
-func (c *Client) GetName() string { return c.Name }
+func (c *Client) GetID() string     { return c.ID }
+func (c *Client) GetName() string   { return c.Name }
+func (c *Client) GetPlayerID() uint64 { return c.PlayerID }
 
 // SetCallIndex 设置当前请求的 callIndex（用于 JSON 模式响应）
 func (c *Client) SetCallIndex(index int64) {

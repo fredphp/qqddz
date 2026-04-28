@@ -24,6 +24,7 @@ type ClientInterface interface {
         Close()
         GetCallIndex() int64
         SetCallIndex(index int64)
+        GetPlayerID() uint64 // 获取数据库玩家ID
 }
 
 // ChatLimiter 聊天速率限制器接口
