@@ -1,0 +1,3 @@
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-03 19:27:34.305	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:87	register table success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-03 19:27:34.312	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:62	register swagger handler
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-03 19:27:34.335	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:116	router register success

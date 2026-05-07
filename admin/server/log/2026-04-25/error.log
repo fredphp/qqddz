@@ -1,0 +1,132 @@
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-25 19:06:49.974	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/user_account.go:213	获取登录日志列表失败!	{"error": "Error 1054 (42S22): Unknown column 'ddz_login_logs.deleted_at' in 'where clause'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZUserAccountApi).GetLoginLogList
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/user_account.go:213
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-25 19:06:59.556	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/user_account.go:213	获取登录日志列表失败!	{"error": "Error 1054 (42S22): Unknown column 'ddz_login_logs.deleted_at' in 'where clause'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZUserAccountApi).GetLoginLogList
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/user_account.go:213
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-25 19:07:02.286	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/user_account.go:213	获取登录日志列表失败!	{"error": "Error 1054 (42S22): Unknown column 'ddz_login_logs.deleted_at' in 'where clause'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZUserAccountApi).GetLoginLogList
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/user_account.go:213
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-25 19:52:08.201	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:84	register biz_table failed	{"error": "Error 3780 (HY000): Referencing column 'landlord_id' and referenced column 'id' in foreign key constraint 'fk_ddz_game_records_landlord' are incompatible."}
+github.com/flipped-aurora/gin-vue-admin/server/initialize.RegisterTables
+	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:84
+main.initializeSystem
+	/mnt/d/game/hlddz/ddz/admin/server/main.go:49
+main.main
+	/mnt/d/game/hlddz/ddz/admin/server/main.go:32
+runtime.main
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/runtime/proc.go:283
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-25 19:54:16.195	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:84	register biz_table failed	{"error": "Error 3780 (HY000): Referencing column 'landlord_id' and referenced column 'id' in foreign key constraint 'fk_ddz_game_records_landlord' are incompatible."}
+github.com/flipped-aurora/gin-vue-admin/server/initialize.RegisterTables
+	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:84
+main.initializeSystem
+	/mnt/d/game/hlddz/ddz/admin/server/main.go:49
+main.main
+	/mnt/d/game/hlddz/ddz/admin/server/main.go:32
+runtime.main
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/runtime/proc.go:283
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-25 19:57:42.378	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:84	register biz_table failed	{"error": "Error 1061 (42000): Duplicate key name 'idx_ddz_user_accounts_wx_open_id'"}
+github.com/flipped-aurora/gin-vue-admin/server/initialize.RegisterTables
+	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:84
+main.initializeSystem
+	/mnt/d/game/hlddz/ddz/admin/server/main.go:49
+main.main
+	/mnt/d/game/hlddz/ddz/admin/server/main.go:32
+runtime.main
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/runtime/proc.go:283
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-25 20:01:05.121	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:84	register biz_table failed	{"error": "Error 1062 (23000): Duplicate entry '' for key 'ddz_user_accounts.idx_ddz_user_accounts_wx_open_id'"}
+github.com/flipped-aurora/gin-vue-admin/server/initialize.RegisterTables
+	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:84
+main.initializeSystem
+	/mnt/d/game/hlddz/ddz/admin/server/main.go:49
+main.main
+	/mnt/d/game/hlddz/ddz/admin/server/main.go:32
+runtime.main
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/runtime/proc.go:283
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-25 20:03:43.957	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:84	register biz_table failed	{"error": "Error 1553 (HY000): Cannot drop index 'idx_ddz_user_accounts_player_id': needed in a foreign key constraint"}
+github.com/flipped-aurora/gin-vue-admin/server/initialize.RegisterTables
+	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:84
+main.initializeSystem
+	/mnt/d/game/hlddz/ddz/admin/server/main.go:49
+main.main
+	/mnt/d/game/hlddz/ddz/admin/server/main.go:32
+runtime.main
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/runtime/proc.go:283

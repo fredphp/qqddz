@@ -1,0 +1,8 @@
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-05 16:18:36.465	[33mwarn[0m	/mnt/d/game/hlddz/ddz/admin/server/service/ddz/game_log.go:478	Redis未配置，无法同步房间配置缓存
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-05 16:32:24.248	[33mwarn[0m	/mnt/d/game/hlddz/ddz/admin/server/service/ddz/game_log.go:478	Redis未配置，无法同步房间配置缓存
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-05 16:32:25.115	[33mwarn[0m	/mnt/d/game/hlddz/ddz/admin/server/service/ddz/game_log.go:478	Redis未配置，无法同步房间配置缓存
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-05 16:32:25.622	[33mwarn[0m	/mnt/d/game/hlddz/ddz/admin/server/service/ddz/game_log.go:478	Redis未配置，无法同步房间配置缓存
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-05 16:32:55.406	[33mwarn[0m	/mnt/d/game/hlddz/ddz/admin/server/service/ddz/game_log.go:478	Redis未配置，无法同步房间配置缓存
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-05 16:42:49.029	[33mwarn[0m	/mnt/d/game/hlddz/ddz/admin/server/service/ddz/game_log.go:478	Redis未配置，无法同步房间配置缓存
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-05 16:43:24.215	[33mwarn[0m	/mnt/d/game/hlddz/ddz/admin/server/service/ddz/game_log.go:478	Redis未配置，无法同步房间配置缓存
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-05 16:52:22.950	[33mwarn[0m	/mnt/d/game/hlddz/ddz/admin/server/service/ddz/game_log.go:478	Redis未配置，无法同步房间配置缓存

@@ -1,0 +1,65 @@
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 07:14:34.951	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 07:14:34.972	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 07:14:46.486	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:87	register table success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 07:14:46.493	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:62	register swagger handler
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 07:14:46.516	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:116	router register success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 07:48:02.662	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 07:48:02.668	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 07:48:13.349	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:87	register table success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 07:48:13.355	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:62	register swagger handler
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 07:48:13.375	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:116	router register success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 07:53:26.106	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 07:53:26.110	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 07:53:34.096	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:87	register table success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 07:53:34.100	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:62	register swagger handler
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 07:53:34.119	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:116	router register success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 11:12:38.909	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 11:12:38.927	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 11:19:37.895	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:87	register table success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 11:19:37.899	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:62	register swagger handler
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 11:19:37.922	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:116	router register success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 12:30:04.739	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 12:30:04.750	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 12:30:12.301	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:87	register table success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 12:30:12.307	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:62	register swagger handler
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 12:30:12.329	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:116	router register success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:00:55.562	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:00:55.573	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:01:02.757	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:87	register table success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:01:02.763	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:62	register swagger handler
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:01:02.788	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:116	router register success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:12:34.820	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:12:34.825	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:12:41.669	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:87	register table success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:12:41.674	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:62	register swagger handler
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:12:41.693	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:116	router register success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:19:11.666	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:19:11.669	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:19:21.150	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:87	register table success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:19:21.153	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:62	register swagger handler
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:19:21.174	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:116	router register success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:23:28.544	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:23:28.548	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:23:34.015	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:87	register table success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:23:34.021	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:62	register swagger handler
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:23:34.047	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:116	router register success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:27:03.820	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:27:03.824	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:27:07.509	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:87	register table success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:27:07.514	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:62	register swagger handler
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 13:27:07.538	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:116	router register success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 16:07:16.711	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 16:07:16.720	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 16:07:34.758	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:87	register table success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 16:07:34.764	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:62	register swagger handler
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 16:07:34.802	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:116	router register success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 16:14:19.036	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 16:14:19.042	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 16:20:05.492	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:87	register table success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 16:20:05.497	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:62	register swagger handler
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 16:20:05.521	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:116	router register success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 20:36:55.495	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 20:36:55.521	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 20:42:01.381	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/gorm.go:87	register table success
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 20:42:01.387	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:62	register swagger handler
+[github.com/flipped-aurora/gin-vue-admin/server]2026-05-04 20:42:01.416	[34minfo[0m	/mnt/d/game/hlddz/ddz/admin/server/initialize/router.go:116	router register success

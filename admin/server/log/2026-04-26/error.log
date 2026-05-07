@@ -1,0 +1,561 @@
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:00:08.587	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341	更新房间配置失败!	{"error": "Error 1062 (23000): Duplicate entry '2' for key 'ddz_room_config.idx_ddz_room_config_room_type'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZGameLogApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZGameLogRouter).InitDDZGameLogRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:00:10.475	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341	更新房间配置失败!	{"error": "Error 1062 (23000): Duplicate entry '2' for key 'ddz_room_config.idx_ddz_room_config_room_type'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZGameLogApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZGameLogRouter).InitDDZGameLogRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:00:10.705	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341	更新房间配置失败!	{"error": "Error 1062 (23000): Duplicate entry '2' for key 'ddz_room_config.idx_ddz_room_config_room_type'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZGameLogApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZGameLogRouter).InitDDZGameLogRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:00:10.979	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341	更新房间配置失败!	{"error": "Error 1062 (23000): Duplicate entry '2' for key 'ddz_room_config.idx_ddz_room_config_room_type'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZGameLogApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZGameLogRouter).InitDDZGameLogRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:00:11.225	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341	更新房间配置失败!	{"error": "Error 1062 (23000): Duplicate entry '2' for key 'ddz_room_config.idx_ddz_room_config_room_type'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZGameLogApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZGameLogRouter).InitDDZGameLogRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:02:47.987	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341	更新房间配置失败!	{"error": "Error 1062 (23000): Duplicate entry '2' for key 'ddz_room_config.idx_ddz_room_config_room_type'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZGameLogApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZGameLogRouter).InitDDZGameLogRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:02:51.775	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341	更新房间配置失败!	{"error": "Error 1062 (23000): Duplicate entry '2' for key 'ddz_room_config.idx_ddz_room_config_room_type'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZGameLogApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZGameLogRouter).InitDDZGameLogRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:02:49.590	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341	更新房间配置失败!	{"error": "Error 1062 (23000): Duplicate entry '2' for key 'ddz_room_config.idx_ddz_room_config_room_type'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZGameLogApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZGameLogRouter).InitDDZGameLogRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:02:50.073	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341	更新房间配置失败!	{"error": "Error 1062 (23000): Duplicate entry '2' for key 'ddz_room_config.idx_ddz_room_config_room_type'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZGameLogApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZGameLogRouter).InitDDZGameLogRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:03:03.784	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341	更新房间配置失败!	{"error": "Error 1062 (23000): Duplicate entry '3' for key 'ddz_room_config.idx_ddz_room_config_room_type'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZGameLogApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZGameLogRouter).InitDDZGameLogRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:03:05.277	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341	更新房间配置失败!	{"error": "Error 1062 (23000): Duplicate entry '3' for key 'ddz_room_config.idx_ddz_room_config_room_type'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZGameLogApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZGameLogRouter).InitDDZGameLogRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:03:05.609	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341	更新房间配置失败!	{"error": "Error 1062 (23000): Duplicate entry '3' for key 'ddz_room_config.idx_ddz_room_config_room_type'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZGameLogApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZGameLogRouter).InitDDZGameLogRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:03:06.201	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341	更新房间配置失败!	{"error": "Error 1062 (23000): Duplicate entry '3' for key 'ddz_room_config.idx_ddz_room_config_room_type'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZGameLogApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZGameLogRouter).InitDDZGameLogRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:03:06.492	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341	更新房间配置失败!	{"error": "Error 1062 (23000): Duplicate entry '3' for key 'ddz_room_config.idx_ddz_room_config_room_type'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZGameLogApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZGameLogRouter).InitDDZGameLogRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:04:19.901	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341	更新房间配置失败!	{"error": "Error 1062 (23000): Duplicate entry '5' for key 'ddz_room_config.idx_ddz_room_config_room_type'"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZGameLogApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/game_log.go:341
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZGameLogRouter).InitDDZGameLogRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:57:37.141	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/config.go:100	更新房间配置失败!	{"error": "房间配置不存在"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZConfigApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/config.go:100
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZConfigRouter).InitDDZConfigRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102
+[github.com/flipped-aurora/gin-vue-admin/server]2026-04-26 21:57:42.026	[31merror[0m	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/config.go:100	更新房间配置失败!	{"error": "房间配置不存在"}
+github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZConfigApi).UpdateRoomConfig
+	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/config.go:100
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/router/ddz.(*DDZConfigRouter).InitDDZConfigRouter.OperationRecord.func1
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/operation.go:93
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:30
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102

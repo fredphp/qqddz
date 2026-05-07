@@ -1,6 +1,6 @@
 
 (function () {
-var scripts = [{"deps":{"./assets/scripts/hallscene/prefabs_script/joinroom":3,"./assets/scripts/data/arenaData":1,"./assets/scripts/hallscene/prefabs_script/creatroom":2},"path":"preview-scripts/__qc_index__.js"},{"deps":{},"path":"preview-scripts/assets/scripts/data/arenaData.js"},{"deps":{},"path":"preview-scripts/assets/scripts/hallscene/prefabs_script/creatroom.js"},{"deps":{},"path":"preview-scripts/assets/scripts/hallscene/prefabs_script/joinroom.js"}];
+var scripts = [{"deps":{"./assets/scripts/hallscene/prefabs_script/creatroom":1,"./assets/scripts/hallscene/prefabs_script/joinroom":3,"./assets/scripts/data/arenaData":2},"path":"preview-scripts/__qc_index__.js"},{"deps":{},"path":"preview-scripts/assets/scripts/hallscene/prefabs_script/creatroom.js"},{"deps":{},"path":"preview-scripts/assets/scripts/data/arenaData.js"},{"deps":{},"path":"preview-scripts/assets/scripts/hallscene/prefabs_script/joinroom.js"}];
 var entries = ["preview-scripts/__qc_index__.js"];
 var bundleScript = 'preview-scripts/__qc_bundle__.js';
 
