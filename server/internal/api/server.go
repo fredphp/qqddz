@@ -1,0 +1,199 @@
+package api
+
+import (
+        "context"
+        "log"
+        "net/http"
+        "strconv"
+        "time"
+
+        "github.com/palemoky/fight-the-landlord/internal/cdnutil"
+        "github.com/palemoky/fight-the-landlord/internal/config"
+)
+
+// Server HTTP API服务器
+type Server struct {
+        server  *http.Server
+        handler *Handler
+}
+
+// NewServer 创建HTTP API服务器
+func NewServer(cfg *config.Config) (*Server, error) {
+        // 初始化CDN管理器
+        cdnutil.InitManager(cfg.CDN.URL)
+        if cfg.CDN.URL != "" {
+                log.Printf("📦 CDN已配置: %s", cfg.CDN.URL)
+        } else {
+                log.Printf("📦 CDN未配置，图片URL将保持原样")
+        }
+
+        // 打印MySQL配置信息用于调试
+        log.Printf("📋 MySQL配置: Host=%s, Port=%d, User=%s, Database=%s", 
+                cfg.MySQL.Host, cfg.MySQL.Port, cfg.MySQL.User, cfg.MySQL.Database)
+        
+        // 创建数据库配置
+        var dbConfig *DBConfig
+        if cfg.MySQL.Host != "" {
+                dbConfig = &DBConfig{
+                        Host:      cfg.MySQL.Host,
+                        Port:      cfg.MySQL.Port,
+                        User:      cfg.MySQL.User,
+                        Password:  cfg.MySQL.Password,
+                        Database:  cfg.MySQL.Database,
+                        Charset:   "utf8mb4",
+                        Collation: "utf8mb4_unicode_ci",
+                }
+                log.Printf("📋 创建dbConfig: %+v", dbConfig)
+        } else {
+                log.Printf("⚠️ cfg.MySQL.Host 为空，不创建dbConfig")
+        }
+
+        // 创建处理器
+        handler, err := NewHandler(cfg.API.CryptoKey, cfg.API.EnableCrypto, dbConfig)
+        if err != nil {
+                return nil, err
+        }
+
+        // 创建路由
+        mux := http.NewServeMux()
+
+        // 注册路由
+        RegisterRoutes(mux, handler)
+
+        // 创建服务器
+        addr := ":" + intToStr(cfg.API.Port)
+        server := &http.Server{
+                Addr:         addr,
+                Handler:      mux,
+                ReadTimeout:  10 * time.Second,
+                WriteTimeout: 10 * time.Second,
+                IdleTimeout:  60 * time.Second,
+        }
+
+        return &Server{
+                server:  server,
+                handler: handler,
+        }, nil
+}
+
+// Start 启动HTTP API服务器
+func (s *Server) Start() error {
+        log.Printf("🚀 HTTP API服务器启动，监听端口: %s", s.server.Addr)
+        return s.server.ListenAndServe()
+}
+
+// SetRedis 设置Redis客户端（用于共享缓存）
+func (s *Server) SetRedis(client RedisClient) {
+        if s.handler.roomConfig != nil {
+                s.handler.roomConfig.SetRedis(client)
+        }
+        if s.handler.adConfig != nil {
+                s.handler.adConfig.SetRedis(client)
+        }
+        if s.handler.adReward != nil {
+                s.handler.adReward.SetRedis(client)
+        }
+        if s.handler.arena != nil {
+                s.handler.arena.SetRedis(client)
+        }
+        log.Println("✅ API服务器Redis客户端已设置")
+}
+
+// Shutdown 优雅关闭
+func (s *Server) Shutdown(ctx context.Context) error {
+        log.Println("📢 正在关闭HTTP API服务器...")
+        if err := s.handler.Close(); err != nil {
+                log.Printf("关闭数据库连接失败: %v", err)
+        }
+        return s.server.Shutdown(ctx)
+}
+
+// RegisterRoutes 注册路由
+func RegisterRoutes(mux *http.ServeMux, h *Handler) {
+        log.Println("📝 注册API路由...")
+
+        // 认证接口（加密响应）
+        // 注意：CORS由外层代理(ddzapi.qqddz.local)处理，这里不设置
+        log.Println("📝 注册路由: /api/v1/auth/send-code")
+        mux.HandleFunc("/api/v1/auth/send-code", h.EncryptMiddleware(h.auth.SendVerificationCode))
+        log.Println("📝 注册路由: /api/v1/auth/phone-login")
+        mux.HandleFunc("/api/v1/auth/phone-login", h.EncryptMiddleware(h.auth.PhoneLogin))
+        log.Println("📝 注册路由: /api/v1/auth/wx-login")
+        mux.HandleFunc("/api/v1/auth/wx-login", h.EncryptMiddleware(h.auth.WxLogin))
+        log.Println("📝 注册路由: /api/v1/auth/wx-app-login")
+        mux.HandleFunc("/api/v1/auth/wx-app-login", h.EncryptMiddleware(h.auth.WxAppLogin))
+
+        // Token 验证和登出接口
+        log.Println("📝 注册路由: /api/v1/auth/verify-token")
+        mux.HandleFunc("/api/v1/auth/verify-token", h.EncryptMiddleware(h.auth.VerifyToken))
+        log.Println("📝 注册路由: /api/v1/auth/logout")
+        mux.HandleFunc("/api/v1/auth/logout", h.EncryptMiddleware(h.auth.Logout))
+
+        // 玩家余额接口
+        log.Println("📝 注册路由: /api/v1/player/balance")
+        mux.HandleFunc("/api/v1/player/balance", h.EncryptMiddleware(h.auth.GetBalance))
+
+        // 强制下线接口（管理员调用）
+        log.Println("📝 注册路由: /api/v1/auth/force-logout")
+        mux.HandleFunc("/api/v1/auth/force-logout", h.EncryptMiddleware(h.auth.ForceLogout))
+
+        // 公开接口（加密响应）
+        log.Println("📝 注册路由: /api/v1/user-agreement/latest")
+        mux.HandleFunc("/api/v1/user-agreement/latest", h.EncryptMiddleware(h.agreement.GetLatest))
+        log.Println("📝 注册路由: /api/v1/user-agreement/get")
+        mux.HandleFunc("/api/v1/user-agreement/get", h.EncryptMiddleware(h.agreement.GetByID))
+        log.Println("📝 注册路由: /api/v1/user-agreement/list")
+        mux.HandleFunc("/api/v1/user-agreement/list", h.EncryptMiddleware(h.agreement.List))
+
+        // 内部接口（用于后台管理调用，刷新缓存，不加密）
+        log.Println("📝 注册路由: /api/internal/cache/refresh/user-agreement")
+        mux.HandleFunc("/api/internal/cache/refresh/user-agreement", h.agreement.RefreshCache)
+        log.Println("📝 注册路由: /api/internal/cache/refresh/room-config")
+        mux.HandleFunc("/api/internal/cache/refresh/room-config", h.roomConfig.RefreshCache)
+
+        // 房间配置接口（加密响应）
+        log.Println("📝 注册路由: /api/v1/room/config/list")
+        mux.HandleFunc("/api/v1/room/config/list", h.EncryptMiddleware(h.roomConfig.GetActiveRoomConfigs))
+        log.Println("📝 注册路由: /api/v1/room/config/get")
+        mux.HandleFunc("/api/v1/room/config/get", h.EncryptMiddleware(h.roomConfig.GetRoomConfigByType))
+        log.Println("📝 注册路由: /api/v1/room/check-entry")
+        mux.HandleFunc("/api/v1/room/check-entry", h.EncryptMiddleware(h.roomConfig.CheckPlayerEntry))
+
+        // 广告配置接口（加密响应）
+        log.Println("📝 注册路由: /api/v1/ad/config/get")
+        mux.HandleFunc("/api/v1/ad/config/get", h.EncryptMiddleware(h.adConfig.GetAdConfig))
+
+        // 广告奖励接口（加密响应）
+        log.Println("📝 注册路由: /api/ad/reward")
+        mux.HandleFunc("/api/ad/reward", h.EncryptMiddleware(h.adReward.ClaimReward))
+
+        // 竞技场接口（加密响应）
+        log.Println("📝 注册路由: /api/v1/arena/signup")
+        mux.HandleFunc("/api/v1/arena/signup", h.EncryptMiddleware(h.arena.Signup))
+        log.Println("📝 注册路由: /api/v1/arena/cancel")
+        mux.HandleFunc("/api/v1/arena/cancel", h.EncryptMiddleware(h.arena.Cancel))
+        log.Println("📝 注册路由: /api/v1/arena/list")
+        mux.HandleFunc("/api/v1/arena/list", h.EncryptMiddleware(h.arena.List))
+        log.Println("📝 注册路由: /api/v1/arena/signup-status")
+        mux.HandleFunc("/api/v1/arena/signup-status", h.EncryptMiddleware(h.arena.SignupStatus))
+
+        // 内部接口（用于后台管理调用，刷新缓存/同步配置，不加密）
+        log.Println("📝 注册路由: /api/internal/cache/refresh/ad-config")
+        mux.HandleFunc("/api/internal/cache/refresh/ad-config", h.adConfig.RefreshCache)
+        log.Println("📝 注册路由: /api/internal/cache/sync/ad-config")
+        mux.HandleFunc("/api/internal/cache/sync/ad-config", h.adConfig.SyncAdConfig)
+
+        // 健康检查（不加密）
+        log.Println("📝 注册路由: /api/health")
+        mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
+                w.WriteHeader(http.StatusOK)
+                w.Write([]byte("OK"))
+        })
+
+        log.Println("✅ API路由注册完成")
+}
+
+// intToStr 整数转字符串
+func intToStr(n int) string {
+        return strconv.Itoa(n)
+}

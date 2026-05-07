@@ -1,0 +1,45 @@
+services:
+  # 游戏服务器
+  poker-server:
+    image: palemoky/fight-the-landlord:latest
+    container_name: poker-server
+    restart: unless-stopped
+    stop_grace_period: ${GAME_SHUTDOWN_TIMEOUT:-30}m
+    stop_signal: SIGTERM
+    env_file: .env
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "${SERVER_PORT:-1780}:1780"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - poker-network
+
+  # Redis 数据库
+  redis:
+    image: redis:8-alpine
+    container_name: poker-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - poker-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+networks:
+  poker-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+    driver: local

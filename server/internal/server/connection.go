@@ -1,0 +1,192 @@
+package server
+
+import (
+        "log"
+        "net/http"
+        "time"
+
+        "github.com/palemoky/fight-the-landlord/internal/game/database"
+        "github.com/palemoky/fight-the-landlord/internal/types"
+)
+
+// handleWebSocket 处理 WebSocket 连接
+func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+        // 获取真实客户端IP
+        clientIP := GetClientIP(r)
+
+        // 维护模式检查（最优先）
+        if s.IsMaintenanceMode() {
+                log.Printf("🔧 维护模式，拒绝新连接: %s", clientIP)
+                http.Error(w, "Server is under maintenance, please try again later",
+                        http.StatusServiceUnavailable)
+                return
+        }
+
+        // 连接数限制检查
+        select {
+        case s.semaphore <- struct{}{}:
+                // 成功获取信号量，连接建立后释放
+                defer func() { <-s.semaphore }()
+        default:
+                log.Printf("🚫 达到最大连接数限制 (%d), IP: %s", s.maxConnections, clientIP)
+                http.Error(w, "Server Full", http.StatusServiceUnavailable)
+                return
+        }
+
+        // IP 过滤检查
+        if !s.ipFilter.IsAllowed(clientIP) {
+                log.Printf("🚫 IP %s 被过滤器拒绝", clientIP)
+                http.Error(w, "Forbidden", http.StatusForbidden)
+                return
+        }
+
+        // 来源验证
+        if !s.originChecker.Check(r) {
+                log.Printf("🚫 来源验证失败: %s (IP: %s)", r.Header.Get("Origin"), clientIP)
+                http.Error(w, "Origin not allowed", http.StatusForbidden)
+                return
+        }
+
+        // 速率限制检查
+        if !s.rateLimiter.Allow(clientIP) {
+                log.Printf("🚫 IP %s 请求过于频繁", clientIP)
+                http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+                return
+        }
+
+        conn, err := upgrader.Upgrade(w, r, nil)
+        if err != nil {
+                log.Printf("WebSocket 升级失败: %v", err)
+                return
+        }
+
+        // 创建客户端
+        client := NewClient(s, conn)
+        client.IP = clientIP // 记录客户端 IP
+
+        // 尝试从请求中获取 Token 并验证用户身份
+        token := r.URL.Query().Get("token")
+        if token != "" {
+                log.Printf("🔑 [handleWebSocket] 收到 Token: %s...", truncateString(token, 10))
+                s.authenticateClient(client, token)
+        } else {
+                log.Printf("⚠️ [handleWebSocket] 未收到 Token，跳过认证，客户端ID: %s", client.ID)
+        }
+
+        s.registerClient(client)
+
+        // 创建会话
+        playerSession := s.sessionManager.CreateSession(client.ID, client.Name)
+
+        // 注意：不在这里发送 connected 消息
+        // 等待客户端发送第一条消息后，在 ReadPump 中根据消息格式发送
+        // 这样可以确保服务器使用正确的格式（JSON 或 Protobuf）
+        client.pendingConnected = true
+        client.playerSession = playerSession
+
+        log.Printf("✅ 玩家 %s (%s) 已连接, PlayerID: %d", client.Name, client.ID, client.PlayerID)
+
+        // 启动客户端读写协程
+        go client.ReadPump()
+        go client.WritePump()
+
+        // 🔧【新增】通知竞技场广播器有新客户端连接，推送竞技场状态
+        if s.arenaBroadcaster != nil && client.PlayerID > 0 {
+                s.arenaBroadcaster.OnNewClient(client.PlayerID)
+        }
+}
+
+// authenticateClient 验证客户端 Token 并设置用户信息
+func (s *Server) authenticateClient(client *Client, token string) {
+        log.Printf("🔐 [authenticateClient] 开始验证 Token: %s...", truncateString(token, 10))
+        
+        db := database.DB()
+        if db == nil {
+                log.Printf("⚠️ [authenticateClient] 数据库未连接，跳过 Token 验证")
+                return
+        }
+
+        // 查询账户
+        var account database.UserAccount
+        result := db.Where("token = ?", token).First(&account)
+        if result.Error != nil {
+                log.Printf("⚠️ [authenticateClient] Token 验证失败: %v, Token: %s", result.Error, truncateString(token, 10))
+                return
+        }
+
+        log.Printf("✅ [authenticateClient] Token 验证成功, PlayerID: %d", account.PlayerID)
+
+        // 检查 Token 是否过期
+        if account.TokenExpireAt != nil && account.TokenExpireAt.Before(time.Now()) {
+                log.Printf("⚠️ [authenticateClient] Token 已过期, 过期时间: %v", account.TokenExpireAt)
+                return
+        }
+
+        // 获取玩家信息
+        var player database.Player
+        if err := db.First(&player, account.PlayerID).Error; err != nil {
+                log.Printf("⚠️ [authenticateClient] 获取玩家信息失败: %v, PlayerID: %d", err, account.PlayerID)
+                return
+        }
+
+        // 设置客户端信息
+        client.SetPlayerID(player.ID)
+        client.SetName(player.Nickname)
+        client.SetGold(player.Gold) // 🔧【新增】设置玩家金币数量
+
+        log.Printf("✅ [authenticateClient] 认证成功 - PlayerID: %d, 昵称: %s, 金币: %d", player.ID, player.Nickname, player.Gold)
+}
+
+// truncateString 截断字符串用于日志显示
+func truncateString(s string, maxLen int) string {
+        if len(s) <= maxLen {
+                return s
+        }
+        return s[:maxLen] + "..."
+}
+
+// handleHealth 健康检查接口
+func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+        w.WriteHeader(http.StatusOK)
+        _, _ = w.Write([]byte("OK"))
+}
+
+// registerClient 注册客户端
+func (s *Server) registerClient(client *Client) {
+        s.clientsMu.Lock()
+        defer s.clientsMu.Unlock()
+        s.clients[client.ID] = client
+}
+
+// unregisterClient 注销客户端
+func (s *Server) unregisterClient(client *Client) {
+        s.clientsMu.Lock()
+        defer s.clientsMu.Unlock()
+
+        if _, ok := s.clients[client.ID]; ok {
+                delete(s.clients, client.ID)
+                log.Printf("❌ 玩家 %s (%s) 已断开", client.Name, client.ID)
+        }
+}
+
+// Interface implementations for types.ServerContext
+
+func (s *Server) GetClientByID(id string) types.ClientInterface {
+        s.clientsMu.RLock()
+        defer s.clientsMu.RUnlock()
+        return s.clients[id]
+}
+
+func (s *Server) RegisterClient(id string, client types.ClientInterface) {
+        s.clientsMu.Lock()
+        defer s.clientsMu.Unlock()
+        if c, ok := client.(*Client); ok {
+                s.clients[id] = c
+        }
+}
+
+func (s *Server) UnregisterClient(id string) {
+        s.clientsMu.Lock()
+        defer s.clientsMu.Unlock()
+        delete(s.clients, id)
+}
