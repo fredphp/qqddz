@@ -11,6 +11,7 @@ import (
         "time"
 
         "github.com/palemoky/fight-the-landlord/internal/game/database"
+        "github.com/palemoky/fight-the-landlord/internal/game/room"
         "github.com/palemoky/fight-the-landlord/internal/protocol"
         "github.com/palemoky/fight-the-landlord/internal/protocol/codec"
         "github.com/palemoky/fight-the-landlord/internal/types"
@@ -568,8 +569,44 @@ func (b *ArenaStatusBroadcaster) HandlePlayerEnter(periodNo string, playerID uin
                         return err
                 }
         } else {
-                // 房间已创建，将玩家加入现有房间并发送 room_joined
-                b.sendRoomJoinedToPlayer(enterPhase, playerID)
+                // 房间已创建，将玩家加入现有房间
+                gameRoom := b.server.roomManager.GetRoom(enterPhase.RoomCode)
+                if gameRoom == nil {
+                        return fmt.Errorf("房间不存在: %s", enterPhase.RoomCode)
+                }
+                
+                // 获取客户端连接
+                var client *Client
+                b.server.clientsMu.RLock()
+                for _, c := range b.server.clients {
+                        if c.PlayerID == playerID {
+                                client = c
+                                break
+                        }
+                }
+                b.server.clientsMu.RUnlock()
+                
+                if client != nil {
+                        // 加入房间
+                        _, err := b.server.roomManager.JoinRoom(client, enterPhase.RoomCode)
+                        if err != nil {
+                                log.Printf("[ArenaStatus] 玩家 %d 加入房间失败: %v", playerID, err)
+                                return err
+                        }
+                        log.Printf("[ArenaStatus] 玩家 %d 加入房间成功: roomCode=%s", playerID, enterPhase.RoomCode)
+                        
+                        // 设置玩家为准备状态
+                        gameRoom.SetPlayerReady(client, true)
+                }
+                
+                // 发送 room_joined 并检查是否所有玩家都已进入
+                allEntered := b.sendRoomJoinedToPlayer(enterPhase, playerID)
+                if allEntered {
+                        log.Printf("[ArenaStatus] 🎮 所有真人玩家已进入，开始游戏: roomCode=%s", enterPhase.RoomCode)
+                        if err := b.startArenaGame(gameRoom); err != nil {
+                                log.Printf("[ArenaStatus] ❌ 开始游戏失败: %v", err)
+                        }
+                }
         }
 
         return nil
@@ -699,20 +736,24 @@ func (b *ArenaStatusBroadcaster) createArenaGameRoomImmediate(enterPhase *EnterP
         // 设置所有玩家为已准备状态
         gameRoom.SetAllPlayersReady()
 
-        // 🔧【关键修复】自动开始游戏
-        // 所有玩家都已准备，直接开始发牌
-        log.Printf("[ArenaStatus] 🎮 所有玩家已准备，自动开始游戏: roomCode=%s", gameRoom.Code)
-        if err := gameRoom.StartGame(); err != nil {
-                log.Printf("[ArenaStatus] ❌ 自动开始游戏失败: %v", err)
-        } else {
-                log.Printf("[ArenaStatus] ✅ 游戏已开始（广播 game_start）: roomCode=%s", gameRoom.Code)
-                
-                // 🔧【关键】触发游戏会话创建（发牌）
-                // StartGame() 只广播了 game_start 消息，需要手动触发游戏会话来发牌
-                if b.server.roomManager != nil {
-                        b.server.roomManager.TriggerOnGameStart(gameRoom)
-                        log.Printf("[ArenaStatus] 🎯 已触发游戏会话创建: roomCode=%s", gameRoom.Code)
+        // 🔧【关键修复】不立即开始游戏，等所有报名玩家都进入后再开始
+        // 检查是否所有真人玩家都已进入
+        allRealPlayersEntered := true
+        for _, status := range enterPhase.PlayerStatuses {
+                if !status.IsRobot && !status.HasEntered && !status.HasCancelled {
+                        allRealPlayersEntered = false
+                        break
                 }
+        }
+
+        if allRealPlayersEntered {
+                // 所有真人玩家都已进入，开始游戏
+                log.Printf("[ArenaStatus] 🎮 所有真人玩家已进入，开始游戏: roomCode=%s", gameRoom.Code)
+                if err := b.startArenaGame(gameRoom); err != nil {
+                        log.Printf("[ArenaStatus] ❌ 开始游戏失败: %v", err)
+                }
+        } else {
+                log.Printf("[ArenaStatus] ⏳ 等待其他玩家进入: roomCode=%s", gameRoom.Code)
         }
 
         // 发送 room_joined 消息给所有真人玩家
@@ -748,15 +789,16 @@ func (b *ArenaStatusBroadcaster) createArenaGameRoomImmediate(enterPhase *EnterP
 }
 
 // 🔧【新增】发送 room_joined 给单个玩家
-func (b *ArenaStatusBroadcaster) sendRoomJoinedToPlayer(enterPhase *EnterPhaseInfo, playerID uint64) {
+// 返回是否所有玩家都已进入
+func (b *ArenaStatusBroadcaster) sendRoomJoinedToPlayer(enterPhase *EnterPhaseInfo, playerID uint64) bool {
         if enterPhase.RoomCode == "" {
-                return
+                return false
         }
 
         gameRoom := b.server.roomManager.GetRoom(enterPhase.RoomCode)
         if gameRoom == nil {
                 log.Printf("[ArenaStatus] 房间不存在: roomCode=%s", enterPhase.RoomCode)
-                return
+                return false
         }
 
         b.server.clientsMu.RLock()
@@ -767,14 +809,48 @@ func (b *ArenaStatusBroadcaster) sendRoomJoinedToPlayer(enterPhase *EnterPhaseIn
                                 RoomCode:  gameRoom.Code,
                                 Player:    gameRoom.GetPlayerInfo(client.GetID()),
                                 Players:   players,
-                                CreatorID: client.GetID(),
+                                CreatorID: enterPhase.RoomCode, // 使用房间号作为标识
                         }
                         client.SendMessage(codec.MustNewMessage(protocol.MsgRoomJoined, payload))
-                        log.Printf("[ArenaStatus] 重新发送 room_joined 给玩家 %d, roomCode=%s", playerID, gameRoom.Code)
+                        log.Printf("[ArenaStatus] 发送 room_joined 给玩家 %d, roomCode=%s, players=%d", playerID, gameRoom.Code, len(players))
                         break
                 }
         }
         b.server.clientsMu.RUnlock()
+
+        // 检查是否所有真人玩家都已进入
+        allRealPlayersEntered := true
+        for _, status := range enterPhase.PlayerStatuses {
+                if !status.IsRobot && !status.HasEntered && !status.HasCancelled {
+                        allRealPlayersEntered = false
+                        break
+                }
+        }
+        
+        return allRealPlayersEntered
+}
+
+// 🔧【新增】开始竞技场游戏
+func (b *ArenaStatusBroadcaster) startArenaGame(gameRoom *room.Room) error {
+        if gameRoom == nil {
+                return fmt.Errorf("房间为空")
+        }
+
+        // 开始游戏
+        log.Printf("[ArenaStatus] 🎮 开始竞技场游戏: roomCode=%s", gameRoom.Code)
+        if err := gameRoom.StartGame(); err != nil {
+                return fmt.Errorf("开始游戏失败: %v", err)
+        }
+        
+        log.Printf("[ArenaStatus] ✅ 游戏已开始（广播 game_start）: roomCode=%s", gameRoom.Code)
+        
+        // 触发游戏会话创建（发牌）
+        if b.server.roomManager != nil {
+                b.server.roomManager.TriggerOnGameStart(gameRoom)
+                log.Printf("[ArenaStatus] 🎯 已触发游戏会话创建: roomCode=%s", gameRoom.Code)
+        }
+        
+        return nil
 }
 
 // 🔧【新增】处理玩家点击"取消"按钮
