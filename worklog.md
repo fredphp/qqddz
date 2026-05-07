@@ -69,3 +69,25 @@ Stage Summary:
   - 超时未响应 → 自动取消并返还竞技币
   - 发送关闭弹窗消息，通知客户端关闭弹窗
   - 机器人玩家默认已进入（不需要点击按钮）
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: 修复竞技场进入游戏后玩家不显示的问题
+
+Work Log:
+- 分析问题：用户报告竞技场进入游戏后显示"您不在房间中"错误，看不到玩家头像和用户名
+- 对比普通场和竞技场流程，发现数据格式差异：
+  - 普通场：收到 room_joined 后将 players 转换为 playerdata
+  - 竞技场：直接保存原始数据，缺少转换步骤
+- 修改 nclient/assets/scripts/hallscene/hallScene.js：
+  - 在竞技场的 room_joined 处理器中添加数据格式转换
+  - 将 players 数组映射为 playerdata 数组
+  - 添加 seatindex、housemanageid、creator_id 等必要字段
+  - 确保与游戏场景期望的数据格式一致
+
+Stage Summary:
+- 修改文件：nclient/assets/scripts/hallscene/hallScene.js
+- 问题根因：客户端收到 room_joined 后直接保存原始数据，没有进行 players → playerdata 的格式转换
+- 修复方案：添加与普通场一致的数据格式转换逻辑
+- 提交：6581861 "fix: 修复竞技场进入游戏后玩家不显示的问题"
