@@ -388,7 +388,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
                 playerMap[players[i].ID] = &players[i]
         }
 
-        // 初始化玩家状态 - 🔧【修复】所有玩家都标记为"已进入"，因为我们要自动分配房间
+        // 初始化玩家状态 - 🔧【修复】玩家初始状态为未进入，等点击"进入"按钮后标记
         var realPlayers []uint64
         var robotPlayers []uint64
         for _, playerID := range playerIDs {
@@ -404,7 +404,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
                 enterPhase.PlayerStatuses[playerID] = &PlayerEnterStatus{
                         PlayerID:     playerID,
                         IsRobot:      isRobot,
-                        HasEntered:   true, // 🔧【关键修复】所有玩家都标记为已进入
+                        HasEntered:   isRobot, // 🔧【修复】只有机器人标记为已进入，真人玩家需要点击"进入"
                         HasCancelled: false,
                         SignupFee:    signupFee,
                 }
@@ -415,19 +415,10 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
         b.enterPhases[periodNo] = enterPhase
         b.enterPhasesMu.Unlock()
 
-        // 🔧【关键重构】立即为所有玩家分配房间并开始游戏
-        // 不再等待玩家点击"进入"按钮
-        log.Printf("[ArenaStatus] 🔥 报名结束，立即为 %d 个玩家分配房间: periodNo=%s, realPlayers=%d, robots=%d", 
-                len(playerIDs), periodNo, len(realPlayers), len(robotPlayers))
-        
-        // 调用房间创建逻辑
-        err = b.createArenaGameRoomImmediate(enterPhase, periodNo)
-        if err != nil {
-                log.Printf("[ArenaStatus] ❌ 自动分配房间失败: %v", err)
-                return
-        }
-        
-        log.Printf("[ArenaStatus] ✅ 自动分配房间成功: periodNo=%s", periodNo)
+        // 🔧【关键修复】先发送弹窗通知，再创建房间
+        // 这样无论房间创建是否成功，弹窗都会显示
+        log.Printf("[ArenaStatus] 🔥 报名结束，发送比赛开始弹窗: periodNo=%s, realPlayers=%d, robots=%d", 
+                periodNo, len(realPlayers), len(robotPlayers))
 
         // 构建比赛开始通知（通知玩家可以进入已创建好的房间）
         payload := protocol.ArenaMatchStartPayload{
@@ -460,8 +451,12 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
         }
         b.server.clientsMu.RUnlock()
 
-        log.Printf("[ArenaStatus] 比赛开始通知发送完成: roomID=%d, periodNo=%s, totalPlayers=%d, sentCount=%d", 
+        log.Printf("[ArenaStatus] 比赛开始通知发送完成: roomID=%d, periodNo=%s, totalPlayers=%d, sentCount=%d",
                 roomID, periodNo, len(playerIDs), sentCount)
+
+        // 🔧【修复】不再自动创建房间，等玩家点击"进入"按钮时再创建
+        // 这样可以确保弹窗一定会显示，房间创建在玩家主动点击时进行
+        log.Printf("[ArenaStatus] 弹窗已发送，等待玩家点击'进入'按钮: periodNo=%s, sentCount=%d", periodNo, sentCount)
 
         // 🔧【新增】启动进入阶段倒计时定时器
         enterPhase.timer = time.AfterFunc(time.Duration(EnterPhaseCountdown)*time.Second, func() {
