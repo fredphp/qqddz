@@ -1855,25 +1855,43 @@ cc.Class({
         // 按钮区域
         var btnY = -cardHeight/2 + 55;
         
-        // 进入游戏按钮
+        // ========== 进入游戏按钮 ==========
         var enterBtn = new cc.Node("EnterBtn");
         enterBtn.setContentSize(cc.size(180, 50));
         enterBtn.setPosition(-100, btnY);
+        enterBtn.anchorX = 0.5;
+        enterBtn.anchorY = 0.5;
+        
+        // 绘制按钮背景
         var enterBg = enterBtn.addComponent(cc.Graphics);
-        enterBg.fillColor = cc.color(76, 175, 80);
+        enterBg.fillColor = cc.color(76, 175, 80);  // 绿色
         enterBg.roundRect(-90, -25, 180, 50, 8);
         enterBg.fill();
-        var enterBtnLabel = enterBtn.addComponent(cc.Label);
+        
+        // 创建文字子节点
+        var enterLabelNode = new cc.Node("Label");
+        enterLabelNode.anchorX = 0.5;
+        enterLabelNode.anchorY = 0.5;
+        var enterBtnLabel = enterLabelNode.addComponent(cc.Label);
         enterBtnLabel.string = "进入比赛";
         enterBtnLabel.fontSize = 22;
+        enterBtnLabel.lineHeight = 28;
         enterBtnLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        enterBtn.color = cc.color(255, 255, 255);
+        enterLabelNode.color = cc.color(255, 255, 255);
+        enterLabelNode.parent = enterBtn;
+        
+        // 添加 Button 组件提供交互反馈
+        var enterButtonComp = enterBtn.addComponent(cc.Button);
+        enterButtonComp.transition = cc.Button.Transition.SCALE;
+        enterButtonComp.duration = 0.1;
+        enterButtonComp.zoomScale = 1.1;
+        
         enterBtn.parent = cardNode;
         
         // 添加点击事件
         enterBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
             event.stopPropagation();
-            // 🔧【修复】清除弹窗引用后再销毁
+            // 清除弹窗引用后再销毁
             self._arenaMatchStartDialog = null;
             self._arenaMatchStartDialogRoomId = null;
             self._arenaMatchStartDialogPeriodNo = null;
@@ -1881,26 +1899,44 @@ cc.Class({
             self._enterArenaMatch(data);
         });
         
-        // 取消按钮
+        // ========== 取消按钮 ==========
         var cancelBtn = new cc.Node("CancelBtn");
         cancelBtn.setContentSize(cc.size(120, 50));
-        cancelBtn.setPosition(120, btnY);
+        cancelBtn.setPosition(100, btnY);  // 修正位置，两按钮间距合理
+        cancelBtn.anchorX = 0.5;
+        cancelBtn.anchorY = 0.5;
+        
+        // 绘制按钮背景
         var cancelBg = cancelBtn.addComponent(cc.Graphics);
-        cancelBg.fillColor = cc.color(120, 120, 140);
+        cancelBg.fillColor = cc.color(180, 80, 80);  // 红色
         cancelBg.roundRect(-60, -25, 120, 50, 8);
         cancelBg.fill();
-        var cancelBtnLabel = cancelBtn.addComponent(cc.Label);
+        
+        // 创建文字子节点
+        var cancelLabelNode = new cc.Node("Label");
+        cancelLabelNode.anchorX = 0.5;
+        cancelLabelNode.anchorY = 0.5;
+        var cancelBtnLabel = cancelLabelNode.addComponent(cc.Label);
         cancelBtnLabel.string = "取消";
         cancelBtnLabel.fontSize = 20;
+        cancelBtnLabel.lineHeight = 26;
         cancelBtnLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        cancelBtn.color = cc.color(255, 255, 255);
+        cancelLabelNode.color = cc.color(255, 255, 255);
+        cancelLabelNode.parent = cancelBtn;
+        
+        // 添加 Button 组件提供交互反馈
+        var cancelButtonComp = cancelBtn.addComponent(cc.Button);
+        cancelButtonComp.transition = cc.Button.Transition.SCALE;
+        cancelButtonComp.duration = 0.1;
+        cancelButtonComp.zoomScale = 1.1;
+        
         cancelBtn.parent = cardNode;
         
         // 添加点击事件
         cancelBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
             event.stopPropagation();
             
-            // 🔧【修复】取消按钮：取消报名并退还竞技币
+            // 取消按钮：取消报名并退还竞技币
             self._cancelArenaSignup(data);
             
             // 清除弹窗引用后再销毁
