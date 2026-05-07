@@ -11,4 +11,5 @@ type ServiceGroup struct {
         DDZArenaRegistrationService
         DDZArenaPeriodService
         DDZRobotConfigService
+        DDZRobotService
 }
