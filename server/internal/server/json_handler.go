@@ -347,6 +347,15 @@ func (j *JSONMode) handleJSONMessage(msg *JSONMessage) {
                 j.handleChat(msg)
         case "get_room_list":
                 j.handleGetRoomList(msg)
+        // 🔧【新增】竞技场相关消息
+        case "arena_signup":
+                j.handleArenaSignup(msg)
+        case "arena_cancel_signup":
+                j.handleArenaCancelSignup(msg)
+        case "arena_enter":
+                j.handleArenaEnter(msg)
+        case "arena_cancel_enter":
+                j.handleArenaCancelEnter(msg)
         default:
                 log.Printf("[JSON] 未知消息类型: %s", msg.Type)
         }
@@ -915,4 +924,104 @@ func (h *JSONHandler) SendJSONResult(client *Client, msgType string, result int6
         }
 
         client.send <- outgoingMessage{data: msgBytes, isJSON: true}
+}
+
+// =============================================
+// 🔧【新增】竞技场消息处理函数
+// =============================================
+
+// handleArenaSignup 处理竞技场报名
+func (j *JSONMode) handleArenaSignup(msg *JSONMessage) {
+        var data struct {
+                RoomID uint64 `json:"room_id"`
+        }
+        msgData := msg.GetData()
+        if len(msgData) > 0 {
+                _ = json.Unmarshal(msgData, &data)
+        }
+
+        log.Printf("[JSON] handleArenaSignup: room_id=%d", data.RoomID)
+
+        j.client.SetCallIndex(msg.CallIndex)
+        protoMsg, err := codec.NewMessage(protocol.MsgArenaSignup, &protocol.ArenaSignupPayload{
+                RoomID: data.RoomID,
+        })
+        if err != nil {
+                log.Printf("[JSON] 创建消息失败: %v", err)
+                return
+        }
+        j.client.server.handler.Handle(j.client, protoMsg)
+}
+
+// handleArenaCancelSignup 处理取消报名
+func (j *JSONMode) handleArenaCancelSignup(msg *JSONMessage) {
+        var data struct {
+                RoomID uint64 `json:"room_id"`
+        }
+        msgData := msg.GetData()
+        if len(msgData) > 0 {
+                _ = json.Unmarshal(msgData, &data)
+        }
+
+        log.Printf("[JSON] handleArenaCancelSignup: room_id=%d", data.RoomID)
+
+        j.client.SetCallIndex(msg.CallIndex)
+        protoMsg, err := codec.NewMessage(protocol.MsgArenaCancelSignup, &protocol.ArenaCancelSignupPayload{
+                RoomID: data.RoomID,
+        })
+        if err != nil {
+                log.Printf("[JSON] 创建消息失败: %v", err)
+                return
+        }
+        j.client.server.handler.Handle(j.client, protoMsg)
+}
+
+// handleArenaEnter 处理进入游戏
+func (j *JSONMode) handleArenaEnter(msg *JSONMessage) {
+        var data struct {
+                PeriodNo string `json:"period_no"`
+                RoomID   uint64 `json:"room_id"`
+        }
+        msgData := msg.GetData()
+        if len(msgData) > 0 {
+                _ = json.Unmarshal(msgData, &data)
+        }
+
+        log.Printf("[JSON] handleArenaEnter: period_no=%s, room_id=%d", data.PeriodNo, data.RoomID)
+
+        j.client.SetCallIndex(msg.CallIndex)
+        protoMsg, err := codec.NewMessage(protocol.MsgArenaEnter, &protocol.ArenaEnterPayload{
+                PeriodNo: data.PeriodNo,
+                RoomID:   data.RoomID,
+        })
+        if err != nil {
+                log.Printf("[JSON] 创建消息失败: %v", err)
+                return
+        }
+        j.client.server.handler.Handle(j.client, protoMsg)
+}
+
+// handleArenaCancelEnter 处理取消进入
+func (j *JSONMode) handleArenaCancelEnter(msg *JSONMessage) {
+        var data struct {
+                PeriodNo string `json:"period_no"`
+                RoomID   uint64 `json:"room_id"`
+        }
+        msgData := msg.GetData()
+        if len(msgData) > 0 {
+                _ = json.Unmarshal(msgData, &data)
+        }
+
+        log.Printf("[JSON] handleArenaCancelEnter: period_no=%s, room_id=%d", data.PeriodNo, data.RoomID)
+
+        j.client.SetCallIndex(msg.CallIndex)
+        protoMsg, err := codec.NewMessage(protocol.MsgArenaCancelEnter, &protocol.ArenaCancelEnterPayload{
+                PeriodNo: data.PeriodNo,
+                RoomID:   data.RoomID,
+        })
+        if err != nil {
+                log.Printf("[JSON] 创建消息失败: %v", err)
+                return
+        }
+        j.client.server.handler.Handle(j.client, protoMsg)
 }

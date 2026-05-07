@@ -40,6 +40,12 @@ const (
         MsgGetOnlineCount       MessageType = "get_online_count"       // 获取在线人数
         MsgGetMaintenanceStatus MessageType = "get_maintenance_status" // 获取维护状态
         MsgChat                 MessageType = "chat"                   // 聊天消息
+
+        // 🔧【新增】竞技场操作
+        MsgArenaSignup       MessageType = "arena_signup"        // 竞技场报名
+        MsgArenaCancelSignup MessageType = "arena_cancel_signup" // 取消报名
+        MsgArenaEnter        MessageType = "arena_enter"         // 进入游戏
+        MsgArenaCancelEnter  MessageType = "arena_cancel_enter"  // 取消进入
 )
 
 // 服务端 → 客户端 消息类型
