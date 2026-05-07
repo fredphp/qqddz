@@ -1700,11 +1700,25 @@ cc.Class({
     _onArenaMatchStart: function(data) {
         var self = this;
         
+        // 🔧【修复】先关闭之前可能存在的弹窗
+        this._closeArenaMatchStartDialog();
+        
         // 保存比赛信息供后续使用
         this._currentMatchData = data;
         
         // 弹出进入游戏弹窗
         this._showArenaMatchStartDialog(data);
+    },
+    
+    // 🔧【新增】关闭竞技场弹窗
+    _closeArenaMatchStartDialog: function() {
+        // 关闭并销毁之前显示的弹窗
+        if (this._arenaMatchStartDialog && this._arenaMatchStartDialog.isValid) {
+            this._arenaMatchStartDialog.destroy();
+            this._arenaMatchStartDialog = null;
+        }
+        // 清除当前比赛数据
+        this._currentMatchData = null;
     },
 
     // 🔧【新增】显示竞技场比赛开始弹窗
@@ -1725,6 +1739,11 @@ cc.Class({
         dialogNode.y = 0;
         dialogNode.zIndex = 5000;
         dialogNode.parent = this.node;
+        
+        // 🔧【修复】保存弹窗引用，用于后续关闭
+        this._arenaMatchStartDialog = dialogNode;
+        this._arenaMatchStartDialogRoomId = data.room_id;  // 保存对应的房间ID
+        this._arenaMatchStartDialogPeriodNo = data.period_no;  // 保存对应的期号
         
         // 半透明黑色背景
         var bgNode = new cc.Node("Bg");
@@ -1837,6 +1856,10 @@ cc.Class({
         // 添加点击事件
         enterBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
             event.stopPropagation();
+            // 🔧【修复】清除弹窗引用后再销毁
+            self._arenaMatchStartDialog = null;
+            self._arenaMatchStartDialogRoomId = null;
+            self._arenaMatchStartDialogPeriodNo = null;
             dialogNode.destroy();
             self._enterArenaMatch(data);
         });
@@ -1859,6 +1882,10 @@ cc.Class({
         // 添加点击事件
         cancelBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
             event.stopPropagation();
+            // 🔧【修复】清除弹窗引用后再销毁
+            self._arenaMatchStartDialog = null;
+            self._arenaMatchStartDialogRoomId = null;
+            self._arenaMatchStartDialogPeriodNo = null;
             dialogNode.destroy();
         });
     },
@@ -1958,6 +1985,14 @@ cc.Class({
             var oldStatus = this._localArenaStatus[roomId];
             if (oldStatus && oldStatus.periodNoStr && newPeriodNoStr && oldStatus.periodNoStr !== newPeriodNoStr) {
                 
+                // 🔧【修复】期号变化时，关闭上一轮的弹窗
+                // 如果当前有弹窗且是同一个房间的，关闭它
+                if (this._arenaMatchStartDialog && this._arenaMatchStartDialog.isValid) {
+                    if (this._arenaMatchStartDialogRoomId === roomId) {
+                        this._closeArenaMatchStartDialog();
+                    }
+                }
+                
                 // 清除用户在该房间的报名状态
                 if (window.arenaData && window.arenaData._signedUpArenas && window.arenaData._signedUpArenas[roomId]) {
                     var oldPeriodNo = window.arenaData._signedUpArenas[roomId].periodNo;
@@ -2006,6 +2041,13 @@ cc.Class({
                     if (status.periodNoStr !== phaseInfo.periodNoStr && phaseInfo.periodNoStr !== "") {
                         status.totalPlayers = 0;  // 期号变化，重置报名人数
                         
+                        // 🔧【修复】期号变化时，关闭上一轮的弹窗
+                        if (this._arenaMatchStartDialog && this._arenaMatchStartDialog.isValid) {
+                            if (this._arenaMatchStartDialogRoomId === parseInt(roomId)) {
+                                this._closeArenaMatchStartDialog();
+                            }
+                        }
+                        
                         // 🔧【新增】清除用户在该房间的报名状态
                         if (window.arenaData && window.arenaData._signedUpArenas && window.arenaData._signedUpArenas[roomId]) {
                             var oldPeriodNo = window.arenaData._signedUpArenas[roomId].periodNo;
@@ -2037,6 +2079,13 @@ cc.Class({
                         // 🔧【修复】检查期号是否变化，如果变化则重置报名人数和用户报名状态
                         if (status.periodNoStr !== phaseInfo.periodNoStr && phaseInfo.periodNoStr !== "") {
                             status.totalPlayers = 0;  // 期号变化，重置报名人数
+                            
+                            // 🔧【修复】期号变化时，关闭上一轮的弹窗
+                            if (this._arenaMatchStartDialog && this._arenaMatchStartDialog.isValid) {
+                                if (this._arenaMatchStartDialogRoomId === parseInt(roomId)) {
+                                    this._closeArenaMatchStartDialog();
+                                }
+                            }
                             
                             // 🔧【新增】清除用户在该房间的报名状态
                             if (window.arenaData && window.arenaData._signedUpArenas && window.arenaData._signedUpArenas[roomId]) {
