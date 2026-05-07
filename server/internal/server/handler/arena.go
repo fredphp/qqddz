@@ -18,6 +18,9 @@ import (
 const (
         MsgArenaSignup       protocol.MessageType = "arena_signup"
         MsgArenaCancelSignup protocol.MessageType = "arena_cancel_signup"
+        // 🔧【新增】进入阶段按钮消息类型
+        MsgArenaEnter       protocol.MessageType = "arena_enter"        // 玩家点击"进入"按钮
+        MsgArenaCancelEnter protocol.MessageType = "arena_cancel_enter" // 玩家点击"取消"按钮
 )
 
 // =============================================
@@ -279,4 +282,116 @@ func (h *Handler) triggerArenaBroadcast(roomID uint64) {
         if broadcaster, ok := h.server.(ArenaBroadcaster); ok {
                 broadcaster.TriggerArenaBroadcast(roomID)
         }
+}
+
+// =============================================
+// 🔧【新增】进入阶段按钮处理器
+// =============================================
+
+// handleArenaEnter 处理玩家点击"进入"按钮
+func (h *Handler) handleArenaEnter(client types.ClientInterface, msg *protocol.Message) {
+        // 解析请求
+        payload, err := codec.ParsePayload[protocol.ArenaEnterPayload](msg)
+        if err != nil || payload == nil {
+                client.SendMessage(codec.NewErrorMessage(protocol.ErrCodeInvalidMsg))
+                return
+        }
+
+        playerID := client.GetPlayerID()
+        if playerID == 0 {
+                client.SendMessage(codec.NewErrorMessage(protocol.ErrCodeNotLogin))
+                return
+        }
+
+        // 获取服务器实例（通过接口）
+        arenaSrv, ok := h.server.(types.ArenaServer)
+        if !ok {
+                client.SendMessage(codec.NewErrorMessage(protocol.ErrCodeInternal))
+                return
+        }
+
+        // 获取竞技场广播器
+        arena := arenaSrv.GetArenaBroadcaster()
+        if arena == nil {
+                client.SendMessage(codec.NewErrorMessage(protocol.ErrCodeInternal))
+                return
+        }
+
+        // 调用进入阶段处理器
+        err = arena.HandlePlayerEnter(payload.PeriodNo, playerID)
+        if err != nil {
+                client.SendMessage(codec.MustNewMessage("arena_enter_failed", map[string]interface{}{
+                        "code":    1,
+                        "message": err.Error(),
+                }))
+                return
+        }
+
+        // 发送进入成功消息
+        client.SendMessage(codec.MustNewMessage("arena_enter_success", protocol.ArenaEnterSuccessPayload{
+                PeriodNo: payload.PeriodNo,
+                RoomID:   payload.RoomID,
+                Message:  "正在进入游戏...",
+        }))
+
+        log.Printf("[ArenaEnter] 玩家 %d 点击进入游戏，期号=%s", playerID, payload.PeriodNo)
+}
+
+// handleArenaCancelEnter 处理玩家点击"取消"按钮
+// 取消 = 取消进入游戏，返还报名竞技币
+func (h *Handler) handleArenaCancelEnter(client types.ClientInterface, msg *protocol.Message) {
+        // 解析请求
+        payload, err := codec.ParsePayload[protocol.ArenaCancelEnterPayload](msg)
+        if err != nil || payload == nil {
+                client.SendMessage(codec.NewErrorMessage(protocol.ErrCodeInvalidMsg))
+                return
+        }
+
+        playerID := client.GetPlayerID()
+        if playerID == 0 {
+                client.SendMessage(codec.NewErrorMessage(protocol.ErrCodeNotLogin))
+                return
+        }
+
+        // 获取服务器实例（通过接口）
+        arenaSrv, ok := h.server.(types.ArenaServer)
+        if !ok {
+                client.SendMessage(codec.NewErrorMessage(protocol.ErrCodeInternal))
+                return
+        }
+
+        // 获取竞技场广播器
+        arena := arenaSrv.GetArenaBroadcaster()
+        if arena == nil {
+                client.SendMessage(codec.NewErrorMessage(protocol.ErrCodeInternal))
+                return
+        }
+
+        // 调用取消进入处理器
+        refundAmount, err := arena.HandlePlayerCancelEnter(payload.PeriodNo, playerID)
+        if err != nil {
+                client.SendMessage(codec.MustNewMessage("arena_cancel_enter_failed", map[string]interface{}{
+                        "code":    1,
+                        "message": err.Error(),
+                }))
+                return
+        }
+
+        // 获取玩家最新余额
+        player, err := database.GetPlayerByID(playerID)
+        var balanceAfter int64
+        if err == nil {
+                balanceAfter = player.ArenaCoin
+        }
+
+        // 发送取消成功消息
+        client.SendMessage(codec.MustNewMessage("arena_cancel_enter_success", protocol.ArenaCancelEnterSuccessPayload{
+                PeriodNo:     payload.PeriodNo,
+                RoomID:       payload.RoomID,
+                RefundAmount: refundAmount,
+                BalanceAfter: balanceAfter,
+                Message:      fmt.Sprintf("已取消进入游戏，返还 %d 竞技币", refundAmount),
+        }))
+
+        log.Printf("[ArenaCancelEnter] 玩家 %d 取消进入游戏，期号=%s，返还竞技币=%d", playerID, payload.PeriodNo, refundAmount)
 }

@@ -115,6 +115,9 @@ func (h *Handler) initHandlers() {
                 // 竞技场操作
                 MsgArenaSignup:       h.handleArenaSignup,
                 MsgArenaCancelSignup: h.handleArenaCancelSignup,
+                // 🔧【新增】进入阶段按钮操作
+                MsgArenaEnter:       h.handleArenaEnter,
+                MsgArenaCancelEnter: h.handleArenaCancelEnter,
         }
 }
 

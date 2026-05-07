@@ -70,6 +70,11 @@ type ArenaProvider interface {
         AddPlayerToSignupList(periodNo string, playerID uint64) error
         // RemovePlayerFromSignupList 从报名列表移除玩家
         RemovePlayerFromSignupList(periodNo string, playerID uint64) error
+        // 🔧【新增】进入阶段相关方法
+        // HandlePlayerEnter 处理玩家点击"进入"按钮
+        HandlePlayerEnter(periodNo string, playerID uint64) error
+        // HandlePlayerCancelEnter 处理玩家点击"取消"按钮（返还竞技币）
+        HandlePlayerCancelEnter(periodNo string, playerID uint64) (int64, error)
 }
 
 // ArenaQueueProvider 竞技场队列提供者接口

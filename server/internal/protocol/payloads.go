@@ -614,6 +614,36 @@ type ArenaCancelSignupPayload struct {
         RoomID uint64 `json:"room_id"` // 房间配置ID
 }
 
+// 🔧【新增】进入阶段相关 Payload
+
+// ArenaEnterPayload 玩家点击"进入"按钮请求
+type ArenaEnterPayload struct {
+        PeriodNo string `json:"period_no"` // 期号
+        RoomID   uint64 `json:"room_id"`   // 房间配置ID
+}
+
+// ArenaCancelEnterPayload 玩家点击"取消"按钮请求
+type ArenaCancelEnterPayload struct {
+        PeriodNo string `json:"period_no"` // 期号
+        RoomID   uint64 `json:"room_id"`   // 房间配置ID
+}
+
+// ArenaEnterSuccessPayload 进入成功响应
+type ArenaEnterSuccessPayload struct {
+        PeriodNo string `json:"period_no"` // 期号
+        RoomID   uint64 `json:"room_id"`   // 房间配置ID
+        Message  string `json:"message"`   // 提示消息
+}
+
+// ArenaCancelEnterSuccessPayload 取消进入成功响应
+type ArenaCancelEnterSuccessPayload struct {
+        PeriodNo     string `json:"period_no"`     // 期号
+        RoomID       uint64 `json:"room_id"`       // 房间配置ID
+        RefundAmount int64  `json:"refund_amount"` // 退还的竞技币
+        BalanceAfter int64  `json:"balance_after"` // 退还后余额
+        Message      string `json:"message"`       // 提示消息
+}
+
 // ============================================================
 // 【新增】竞技场比赛开始通知 Payload
 // ============================================================

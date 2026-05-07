@@ -2042,14 +2042,11 @@ cc.Class({
             // 🔧【新增】检查期号是否变化，如果变化则清除用户报名状态
             var oldStatus = this._localArenaStatus[roomId];
             if (oldStatus && oldStatus.periodNoStr && newPeriodNoStr && oldStatus.periodNoStr !== newPeriodNoStr) {
-                
-                // 🔧【修复】期号变化时，关闭上一轮的弹窗
-                // 如果当前有弹窗且是同一个房间的，关闭它
-                if (this._arenaMatchStartDialog && this._arenaMatchStartDialog.isValid) {
-                    if (this._arenaMatchStartDialogRoomId === roomId) {
-                        this._closeArenaMatchStartDialog();
-                    }
-                }
+                // 🔧【修复】不在期号变化时关闭弹窗
+                // 弹窗应该只在以下情况关闭：
+                // 1. 玩家点击"进入"或"取消"按钮
+                // 2. 服务端发送 arena_close_dialog 消息（进入阶段倒计时结束）
+                // 3. 玩家手动关闭弹窗
                 
                 // 清除用户在该房间的报名状态
                 if (window.arenaData && window.arenaData._signedUpArenas && window.arenaData._signedUpArenas[roomId]) {
@@ -2099,12 +2096,8 @@ cc.Class({
                     if (status.periodNoStr !== phaseInfo.periodNoStr && phaseInfo.periodNoStr !== "") {
                         status.totalPlayers = 0;  // 期号变化，重置报名人数
                         
-                        // 🔧【修复】期号变化时，关闭上一轮的弹窗
-                        if (this._arenaMatchStartDialog && this._arenaMatchStartDialog.isValid) {
-                            if (this._arenaMatchStartDialogRoomId === parseInt(roomId)) {
-                                this._closeArenaMatchStartDialog();
-                            }
-                        }
+                        // 🔧【修复】不在期号变化时关闭弹窗
+                        // 弹窗应该只在进入阶段倒计时结束后由服务端的 arena_close_dialog 消息关闭
                         
                         // 🔧【新增】清除用户在该房间的报名状态
                         if (window.arenaData && window.arenaData._signedUpArenas && window.arenaData._signedUpArenas[roomId]) {
@@ -2138,12 +2131,8 @@ cc.Class({
                         if (status.periodNoStr !== phaseInfo.periodNoStr && phaseInfo.periodNoStr !== "") {
                             status.totalPlayers = 0;  // 期号变化，重置报名人数
                             
-                            // 🔧【修复】期号变化时，关闭上一轮的弹窗
-                            if (this._arenaMatchStartDialog && this._arenaMatchStartDialog.isValid) {
-                                if (this._arenaMatchStartDialogRoomId === parseInt(roomId)) {
-                                    this._closeArenaMatchStartDialog();
-                                }
-                            }
+                            // 🔧【修复】不在期号变化时关闭弹窗
+                            // 弹窗应该只在进入阶段倒计时结束后由服务端的 arena_close_dialog 消息关闭
                             
                             // 🔧【新增】清除用户在该房间的报名状态
                             if (window.arenaData && window.arenaData._signedUpArenas && window.arenaData._signedUpArenas[roomId]) {

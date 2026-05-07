@@ -67,7 +67,38 @@ type ArenaStatusBroadcaster struct {
 
         // 消息队列
         queue *ArenaMessageQueue
+
+        // 🔧【新增】进入阶段管理
+        // 记录进入阶段的信息：periodNo -> *EnterPhaseInfo
+        enterPhases   map[string]*EnterPhaseInfo
+        enterPhasesMu sync.RWMutex
 }
+
+// 🔧【新增】进入阶段信息
+// 用于跟踪玩家是否在进入阶段点击了"进入"或"取消"
+type EnterPhaseInfo struct {
+        PeriodNo       string         // 期号
+        RoomID         uint64         // 房间ID
+        SignupFee      int64          // 报名费（用于退还）
+        PlayerStatuses map[uint64]*PlayerEnterStatus // playerID -> status
+        StartTime      time.Time      // 进入阶段开始时间
+        Countdown      int            // 倒计时秒数
+        timer          *time.Timer    // 定时器
+}
+
+// 🔧【新增】玩家进入状态
+type PlayerEnterStatus struct {
+        PlayerID    uint64 // 玩家ID
+        IsRobot     bool   // 是否是机器人
+        HasEntered  bool   // 是否已点击进入
+        HasCancelled bool  // 是否已点击取消
+        SignupFee   int64  // 报名费（用于退还）
+}
+
+// 🔧【新增】进入阶段倒计时秒数
+// 进入阶段应该与准备阶段一致（1分钟 = 60秒）
+// 弹窗在准备阶段显示，准备阶段结束后关闭
+const EnterPhaseCountdown = 60
 
 // PeriodInfo 期号信息
 type PeriodInfo struct {
@@ -92,6 +123,7 @@ func NewArenaStatusBroadcaster(server *Server) *ArenaStatusBroadcaster {
                 lastBroadcastTime: time.Now(),
                 periodCache:       make(map[uint64]*PeriodInfo),
                 processedPeriods:  make(map[uint64]string),
+                enterPhases:       make(map[string]*EnterPhaseInfo),
         }
         // 创建消息队列（3个工作线程，1000缓冲区）
         b.queue = NewArenaMessageQueue(server, 3, 1000)
@@ -310,11 +342,9 @@ func (b *ArenaStatusBroadcaster) handlePeriodChange(roomID uint64, oldPeriodNo, 
                 EndTime:         periodInfo.StartTime.Add(PeriodTotalMinutes * time.Minute),
         })
         
-        // 🔧【新增】新期号开始时，发送关闭弹窗消息给上一期的报名玩家
-        // 这样客户端可以关闭上一轮的进入游戏弹窗
-        if oldPeriodNo != "" {
-                b.sendCloseDialogNotification(roomID, oldPeriodNo)
-        }
+        // 🔧【修复】不立即发送关闭弹窗消息
+        // 而是启动一个进入阶段倒计时，倒计时结束后处理未响应的玩家
+        // 关闭弹窗消息将在进入阶段结束时发送
 
         // 标记已处理
         b.processedPeriods[roomID] = newPeriodNo
@@ -322,6 +352,7 @@ func (b *ArenaStatusBroadcaster) handlePeriodChange(roomID uint64, oldPeriodNo, 
 }
 
 // sendMatchStartNotification 发送比赛开始通知给已报名玩家
+// 🔧【修复】同时启动进入阶段倒计时，超时未响应的玩家自动取消并返还竞技币
 func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, periodNo string, playerIDs []uint64) {
         if len(playerIDs) == 0 {
                 return
@@ -334,6 +365,46 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
                 return
         }
 
+        // 🔧【新增】创建进入阶段信息
+        enterPhase := &EnterPhaseInfo{
+                PeriodNo:       periodNo,
+                RoomID:         roomID,
+                SignupFee:      roomConfig.MinArenaCoin,
+                PlayerStatuses: make(map[uint64]*PlayerEnterStatus),
+                StartTime:      time.Now(),
+                Countdown:      EnterPhaseCountdown,
+        }
+
+        // 获取所有玩家信息，区分机器人和真人
+        var players []database.Player
+        database.DB().Where("id IN ?", playerIDs).Find(&players)
+        playerMap := make(map[uint64]*database.Player)
+        for i := range players {
+                playerMap[players[i].ID] = &players[i]
+        }
+
+        // 初始化玩家状态
+        for _, playerID := range playerIDs {
+                player, exists := playerMap[playerID]
+                isRobot := exists && player.PlayerType == database.PlayerTypeRobot
+                signupFee := roomConfig.MinArenaCoin
+                if isRobot {
+                        signupFee = 0 // 机器人报名不需要竞技币
+                }
+                enterPhase.PlayerStatuses[playerID] = &PlayerEnterStatus{
+                        PlayerID:    playerID,
+                        IsRobot:     isRobot,
+                        HasEntered:  isRobot, // 机器人默认已进入
+                        HasCancelled: false,
+                        SignupFee:   signupFee,
+                }
+        }
+
+        // 保存进入阶段信息
+        b.enterPhasesMu.Lock()
+        b.enterPhases[periodNo] = enterPhase
+        b.enterPhasesMu.Unlock()
+
         // 构建比赛开始通知
         payload := protocol.ArenaMatchStartPayload{
                 PeriodNo:      periodNo,
@@ -344,7 +415,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
                 TotalPlayers:  len(playerIDs),
                 MatchDuration: roomConfig.MatchRoundDuration,
                 MatchRounds:   roomConfig.MatchRoundCount,
-                Countdown:     10, // 10秒倒计时进入游戏
+                Countdown:     EnterPhaseCountdown, // 进入游戏倒计时
                 Message:       fmt.Sprintf("期号 %s 比赛即将开始，共 %d 人参赛，请准备进入游戏！", periodNo, len(playerIDs)),
         }
 
@@ -367,6 +438,143 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
 
         log.Printf("[ArenaStatus] 比赛开始通知发送完成: roomID=%d, periodNo=%s, totalPlayers=%d, sentCount=%d", 
                 roomID, periodNo, len(playerIDs), sentCount)
+
+        // 🔧【新增】启动进入阶段倒计时定时器
+        enterPhase.timer = time.AfterFunc(time.Duration(EnterPhaseCountdown)*time.Second, func() {
+                b.handleEnterPhaseTimeout(periodNo)
+        })
+        log.Printf("[ArenaStatus] 进入阶段倒计时已启动: periodNo=%s, countdown=%d秒", periodNo, EnterPhaseCountdown)
+}
+
+// 🔧【新增】处理进入阶段超时
+// 倒计时结束后，检查哪些玩家没有响应，自动取消并返还竞技币
+func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
+        b.enterPhasesMu.Lock()
+        enterPhase, exists := b.enterPhases[periodNo]
+        if !exists {
+                b.enterPhasesMu.Unlock()
+                return
+        }
+        // 清理进入阶段信息
+        delete(b.enterPhases, periodNo)
+        b.enterPhasesMu.Unlock()
+
+        log.Printf("[ArenaStatus] 进入阶段超时处理开始: periodNo=%s", periodNo)
+
+        // 统计玩家状态
+        var enteredPlayers []uint64
+        var timeoutPlayers []uint64
+        var totalRefund int64
+
+        for playerID, status := range enterPhase.PlayerStatuses {
+                if status.HasEntered {
+                        enteredPlayers = append(enteredPlayers, playerID)
+                } else if !status.HasCancelled {
+                        // 未进入也未取消的玩家 = 超时未响应
+                        timeoutPlayers = append(timeoutPlayers, playerID)
+                        if status.SignupFee > 0 {
+                                totalRefund += status.SignupFee
+                        }
+                }
+        }
+
+        // 🔧【关键】对于超时未响应的玩家，自动取消并返还竞技币
+        for _, playerID := range timeoutPlayers {
+                status := enterPhase.PlayerStatuses[playerID]
+                if status.SignupFee > 0 {
+                        // 返还竞技币
+                        err := database.UpdatePlayerArenaCoin(playerID, status.SignupFee)
+                        if err != nil {
+                                log.Printf("[ArenaStatus] 返还竞技币失败: playerID=%d, fee=%d, err=%v", 
+                                        playerID, status.SignupFee, err)
+                        } else {
+                                log.Printf("[ArenaStatus] 进入阶段超时，自动取消并返还竞技币: playerID=%d, fee=%d, periodNo=%s", 
+                                        playerID, status.SignupFee, periodNo)
+                        }
+                } else {
+                        log.Printf("[ArenaStatus] 进入阶段超时，玩家未响应（无报名费）: playerID=%d, periodNo=%s", 
+                                playerID, periodNo)
+                }
+        }
+
+        // 发送关闭弹窗消息
+        b.sendCloseDialogNotification(enterPhase.RoomID, periodNo)
+
+        log.Printf("[ArenaStatus] 进入阶段超时处理完成: periodNo=%s, entered=%d, timeout=%d, totalRefund=%d",
+                periodNo, len(enteredPlayers), len(timeoutPlayers), totalRefund)
+}
+
+// 🔧【新增】处理玩家点击"进入"按钮
+func (b *ArenaStatusBroadcaster) HandlePlayerEnter(periodNo string, playerID uint64) error {
+        b.enterPhasesMu.Lock()
+        defer b.enterPhasesMu.Unlock()
+
+        enterPhase, exists := b.enterPhases[periodNo]
+        if !exists {
+                return fmt.Errorf("进入阶段不存在或已结束")
+        }
+
+        status, exists := enterPhase.PlayerStatuses[playerID]
+        if !exists {
+                return fmt.Errorf("玩家未报名此期号")
+        }
+
+        if status.HasCancelled {
+                return fmt.Errorf("玩家已取消报名")
+        }
+
+        if status.HasEntered {
+                return fmt.Errorf("玩家已点击进入")
+        }
+
+        status.HasEntered = true
+        log.Printf("[ArenaStatus] 玩家点击进入: playerID=%d, periodNo=%s", playerID, periodNo)
+
+        return nil
+}
+
+// 🔧【新增】处理玩家点击"取消"按钮
+// 取消 = 取消进入游戏，返还报名竞技币
+func (b *ArenaStatusBroadcaster) HandlePlayerCancelEnter(periodNo string, playerID uint64) (int64, error) {
+        b.enterPhasesMu.Lock()
+        defer b.enterPhasesMu.Unlock()
+
+        enterPhase, exists := b.enterPhases[periodNo]
+        if !exists {
+                return 0, fmt.Errorf("进入阶段不存在或已结束")
+        }
+
+        status, exists := enterPhase.PlayerStatuses[playerID]
+        if !exists {
+                return 0, fmt.Errorf("玩家未报名此期号")
+        }
+
+        if status.HasEntered {
+                return 0, fmt.Errorf("玩家已进入游戏，无法取消")
+        }
+
+        if status.HasCancelled {
+                return 0, fmt.Errorf("玩家已取消")
+        }
+
+        // 标记为已取消
+        status.HasCancelled = true
+
+        // 返还报名费
+        var refundAmount int64
+        if status.SignupFee > 0 {
+                err := database.UpdatePlayerArenaCoin(playerID, status.SignupFee)
+                if err != nil {
+                        log.Printf("[ArenaStatus] 取消进入返还竞技币失败: playerID=%d, fee=%d, err=%v",
+                                playerID, status.SignupFee, err)
+                        return 0, err
+                }
+                refundAmount = status.SignupFee
+                log.Printf("[ArenaStatus] 玩家取消进入，返还竞技币: playerID=%d, fee=%d, periodNo=%s",
+                        playerID, status.SignupFee, periodNo)
+        }
+
+        return refundAmount, nil
 }
 
 // 🔧【新增】添加机器人到报名列表

@@ -28,3 +28,44 @@ Stage Summary:
   - Token使用16位（正常用户32位）
   - 初始金币：1000-10000随机
   - 自动创建微信授权类型的用户账户
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: 实现竞技场进入阶段超时自动取消并返还竞技币功能
+
+Work Log:
+- 分析竞技场流程：报名阶段 → 准备阶段 → 发送比赛开始通知 → 进入阶段
+- 理解问题：进入阶段玩家如果没有点击"进入"或"取消"，需要默认取消并返还竞技币
+- 修改 server/internal/server/arena_status.go：
+  - 添加 EnterPhaseInfo 结构体，记录进入阶段玩家状态
+  - 添加 PlayerEnterStatus 结构体，跟踪玩家是否已进入/取消
+  - 修改 sendMatchStartNotification 函数，启动进入阶段倒计时
+  - 添加 handleEnterPhaseTimeout 函数，处理超时自动取消并返还竞技币
+  - 添加 HandlePlayerEnter 函数，处理玩家点击"进入"按钮
+  - 添加 HandlePlayerCancelEnter 函数，处理玩家点击"取消"按钮
+- 修改 server/internal/server/handler/arena.go：
+  - 添加 MsgArenaEnter 和 MsgArenaCancelEnter 消息类型
+  - 添加 handleArenaEnter 处理器，处理玩家点击"进入"按钮
+  - 添加 handleArenaCancelEnter 处理器，处理玩家点击"取消"按钮
+- 修改 server/internal/server/handler/handler.go：
+  - 注册新的消息处理器
+- 修改 server/internal/protocol/payloads.go：
+  - 添加 ArenaEnterPayload、ArenaCancelEnterPayload 等 Payload 定义
+- 修改 server/internal/types/interfaces.go：
+  - 在 ArenaProvider 接口中添加 HandlePlayerEnter 和 HandlePlayerCancelEnter 方法
+
+Stage Summary:
+- 修改文件：
+  - server/internal/server/arena_status.go（核心逻辑）
+  - server/internal/server/handler/arena.go（消息处理器）
+  - server/internal/server/handler/handler.go（注册处理器）
+  - server/internal/protocol/payloads.go（Payload 定义）
+  - server/internal/types/interfaces.go（接口定义）
+- 功能实现：
+  - 进入阶段倒计时 10 秒（EnterPhaseCountdown = 10）
+  - 玩家点击"进入"按钮 → 标记已进入，准备开始游戏
+  - 玩家点击"取消"按钮 → 返还竞技币，取消进入游戏
+  - 超时未响应 → 自动取消并返还竞技币
+  - 发送关闭弹窗消息，通知客户端关闭弹窗
+  - 机器人玩家默认已进入（不需要点击按钮）
