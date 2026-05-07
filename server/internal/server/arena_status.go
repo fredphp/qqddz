@@ -321,19 +321,25 @@ func (b *ArenaStatusBroadcaster) handlePeriodChange(roomID uint64, oldPeriodNo, 
                 // 获取上一期的报名玩家列表
                 signupPlayers := b.GetSignupList(oldPeriodNo)
                 
-                // 🔧【修复】如果报名人数不足3人，自动添加机器人补位
+                // 🔧【重构】如果报名人数不是3的倍数，自动添加机器人补位
+                // 例如：31人 -> 补2个机器人 -> 33人（11桌）
+                //       32人 -> 补1个机器人 -> 33人（11桌）
+                //       34人 -> 补2个机器人 -> 36人（12桌）
                 // 机器人报名不需要竞技币
-                if len(signupPlayers) > 0 && len(signupPlayers) < 3 {
-                        fillCount := 3 - len(signupPlayers)
-                        log.Printf("[ArenaStatus] 报名人数不足3人，需要补位 %d 个机器人: roomID=%d, periodNo=%s", 
-                                fillCount, roomID, oldPeriodNo)
-                        
-                        // 添加机器人到报名列表
-                        robots := b.fillRobotsToSignupList(oldPeriodNo, roomID, fillCount)
-                        if len(robots) > 0 {
-                                signupPlayers = append(signupPlayers, robots...)
-                                log.Printf("[ArenaStatus] 机器人补位成功: 新增 %d 个机器人，总人数 %d", 
-                                        len(robots), len(signupPlayers))
+                if len(signupPlayers) > 0 {
+                        remainder := len(signupPlayers) % 3
+                        if remainder != 0 {
+                                fillCount := 3 - remainder
+                                log.Printf("[ArenaStatus] 报名人数 %d 不是3的倍数，需要补位 %d 个机器人: roomID=%d, periodNo=%s", 
+                                        len(signupPlayers), fillCount, roomID, oldPeriodNo)
+                                
+                                // 添加机器人到报名列表
+                                robots := b.fillRobotsToSignupList(oldPeriodNo, roomID, fillCount)
+                                if len(robots) > 0 {
+                                        signupPlayers = append(signupPlayers, robots...)
+                                        log.Printf("[ArenaStatus] 机器人补位成功: 新增 %d 个机器人，总人数 %d", 
+                                                len(robots), len(signupPlayers))
+                                }
                         }
                 }
                 
@@ -581,11 +587,13 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
         }
 
         // 如果没有在线的真人玩家，使用第一个机器人作为房主
+        var hostRobotID uint64 = 0 // 记录作为房主的机器人ID
         if len(onlineClients) == 0 {
                 log.Printf("[ArenaStatus] ⚠️ 桌号 %d 没有在线的真人玩家，使用机器人作为房主", table.TableID)
                 // 使用机器人作为房主
                 if len(table.RobotPlayers) > 0 {
-                        robotClient := NewRobotClient(table.RobotPlayers[0], b.server)
+                        hostRobotID = table.RobotPlayers[0]
+                        robotClient := NewRobotClient(hostRobotID, b.server)
                         if robotClient != nil {
                                 onlineClients = append(onlineClients, robotClient)
                         }
@@ -636,9 +644,14 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
         }
 
         // ============================================================
-        // 5. 将机器人加入房间
+        // 5. 将机器人加入房间（跳过已经是房主的机器人）
         // ============================================================
         for _, robotID := range table.RobotPlayers {
+                // 跳过已经是房主的机器人
+                if robotID == hostRobotID {
+                        log.Printf("[ArenaStatus] ⏭️ 机器人 %d 是房主，已自动加入，跳过", robotID)
+                        continue
+                }
                 robotClient := NewRobotClient(robotID, b.server)
                 if robotClient != nil {
                         _, err := b.server.roomManager.JoinRoom(robotClient, gameRoom.Code)
