@@ -268,6 +268,23 @@ func (b *ArenaStatusBroadcaster) handlePeriodChange(roomID uint64, oldPeriodNo, 
                 // 🔧【新增】在结算之前，先获取上一期的报名玩家并发送比赛开始通知
                 // 获取上一期的报名玩家列表
                 signupPlayers := b.GetSignupList(oldPeriodNo)
+                
+                // 🔧【修复】如果报名人数不足3人，自动添加机器人补位
+                // 机器人报名不需要竞技币
+                if len(signupPlayers) > 0 && len(signupPlayers) < 3 {
+                        fillCount := 3 - len(signupPlayers)
+                        log.Printf("[ArenaStatus] 报名人数不足3人，需要补位 %d 个机器人: roomID=%d, periodNo=%s", 
+                                fillCount, roomID, oldPeriodNo)
+                        
+                        // 添加机器人到报名列表
+                        robots := b.fillRobotsToSignupList(oldPeriodNo, roomID, fillCount)
+                        if len(robots) > 0 {
+                                signupPlayers = append(signupPlayers, robots...)
+                                log.Printf("[ArenaStatus] 机器人补位成功: 新增 %d 个机器人，总人数 %d", 
+                                        len(robots), len(signupPlayers))
+                        }
+                }
+                
                 if len(signupPlayers) > 0 {
                         log.Printf("[ArenaStatus] 上一期报名玩家: roomID=%d, periodNo=%s, players=%d", roomID, oldPeriodNo, len(signupPlayers))
                         // 发送比赛开始通知给已报名玩家
@@ -292,6 +309,12 @@ func (b *ArenaStatusBroadcaster) handlePeriodChange(roomID uint64, oldPeriodNo, 
                 SignupEndTime:   periodInfo.SignupEndTime,
                 EndTime:         periodInfo.StartTime.Add(PeriodTotalMinutes * time.Minute),
         })
+        
+        // 🔧【新增】新期号开始时，发送关闭弹窗消息给上一期的报名玩家
+        // 这样客户端可以关闭上一轮的进入游戏弹窗
+        if oldPeriodNo != "" {
+                b.sendCloseDialogNotification(roomID, oldPeriodNo)
+        }
 
         // 标记已处理
         b.processedPeriods[roomID] = newPeriodNo
@@ -344,6 +367,84 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
 
         log.Printf("[ArenaStatus] 比赛开始通知发送完成: roomID=%d, periodNo=%s, totalPlayers=%d, sentCount=%d", 
                 roomID, periodNo, len(playerIDs), sentCount)
+}
+
+// 🔧【新增】添加机器人到报名列表
+// 机器人报名不需要竞技币
+func (b *ArenaStatusBroadcaster) fillRobotsToSignupList(periodNo string, roomID uint64, count int) []uint64 {
+        if count <= 0 {
+                return nil
+        }
+        
+        // 从数据库获取可用机器人
+        var robots []database.Player
+        err := database.DB().Where("player_type = ? AND robot_status = ?", 
+                database.PlayerTypeRobot, database.RobotStatusIdle).
+                Order("RAND()").
+                Limit(count).
+                Find(&robots).Error
+        
+        if err != nil {
+                log.Printf("[ArenaStatus] 获取可用机器人失败: %v", err)
+                return nil
+        }
+        
+        if len(robots) == 0 {
+                log.Printf("[ArenaStatus] 没有可用的机器人")
+                return nil
+        }
+        
+        var robotIDs []uint64
+        now := time.Now()
+        
+        for _, robot := range robots {
+                // 添加机器人到Redis报名列表
+                if b.server.redis != nil {
+                        ctx := context.Background()
+                        key := getSignupListKey(periodNo)
+                        b.server.redis.SAdd(ctx, key, robot.ID)
+                }
+                
+                // 更新机器人状态为竞技场中
+                database.DB().Model(&database.Player{}).Where("id = ?", robot.ID).Updates(map[string]interface{}{
+                        "robot_status":             database.RobotStatusInArena,
+                        "robot_current_session_id": nil, // 暂时不设置session，等比赛开始时再设置
+                        "robot_locked_at":          now,
+                })
+                
+                robotIDs = append(robotIDs, robot.ID)
+                log.Printf("[ArenaStatus] 机器人 %d (%s) 已自动报名，期号=%s", robot.ID, robot.Nickname, periodNo)
+        }
+        
+        return robotIDs
+}
+
+// 🔧【新增】发送关闭弹窗消息给客户端
+// 新期号开始时，关闭上一轮的进入游戏弹窗
+func (b *ArenaStatusBroadcaster) sendCloseDialogNotification(roomID uint64, oldPeriodNo string) {
+        // 构建关闭弹窗消息
+        payload := protocol.ArenaCloseDialogPayload{
+                RoomID:    roomID,
+                PeriodNo:  oldPeriodNo,
+                Reason:    "new_period_started",
+                Message:   "新一轮已开始，上一轮的弹窗已关闭",
+        }
+        
+        msg := codec.MustNewMessage(protocol.MsgArenaCloseDialog, payload)
+        
+        // 向所有连接的客户端发送（只有相关客户端会处理）
+        b.server.clientsMu.RLock()
+        sentCount := 0
+        for _, client := range b.server.clients {
+                if client.GetRoom() == "" {
+                        client.SendMessage(msg)
+                        sentCount++
+                }
+        }
+        b.server.clientsMu.RUnlock()
+        
+        log.Printf("[ArenaStatus] 发送关闭弹窗通知: roomID=%d, periodNo=%s, sentCount=%d", 
+                roomID, oldPeriodNo, sentCount)
 }
 
 // handlePhaseChange 处理阶段变化

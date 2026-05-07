@@ -150,6 +150,9 @@ const (
         // 🔧【新增】竞技场比赛开始通知（给已报名玩家发送进入游戏弹窗）
         MsgArenaMatchStart MessageType = "arena_match_start" // 竞技场比赛开始通知
 
+        // 🔧【新增】竞技场关闭弹窗通知（新期号开始时关闭上一轮弹窗）
+        MsgArenaCloseDialog MessageType = "arena_close_dialog" // 竞技场关闭弹窗通知
+
         // 错误
         MsgError MessageType = "error" // 错误消息
 )

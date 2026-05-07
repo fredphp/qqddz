@@ -1685,6 +1685,15 @@ cc.Class({
             });
         }
 
+        // 🔧【新增】监听竞技场关闭弹窗通知（新期号开始时关闭上一轮弹窗）
+        if (socket && socket.onArenaCloseDialog) {
+            socket.onArenaCloseDialog(function(data) {
+                if (self.node && self.node.isValid) {
+                    self._onArenaCloseDialog(data);
+                }
+            });
+        }
+
         // 🔧【新增】立即初始化本地状态（使用本地计算作为初始值）
         this._initLocalArenaStatusFromConfig();
 
@@ -1719,6 +1728,26 @@ cc.Class({
         }
         // 清除当前比赛数据
         this._currentMatchData = null;
+    },
+
+    // 🔧【新增】处理服务端发送的关闭弹窗通知
+    _onArenaCloseDialog: function(data) {
+        console.log("🏟️ [Arena] 收到关闭弹窗通知:", JSON.stringify(data));
+        
+        // 检查是否与当前弹窗匹配
+        if (this._arenaMatchStartDialog && this._arenaMatchStartDialog.isValid) {
+            // 如果指定了房间ID，检查是否匹配
+            if (data.room_id && this._arenaMatchStartDialogRoomId) {
+                if (data.room_id === this._arenaMatchStartDialogRoomId) {
+                    console.log("🏟️ [Arena] 关闭匹配的弹窗，room_id:", data.room_id);
+                    this._closeArenaMatchStartDialog();
+                }
+            } else {
+                // 没有指定房间ID，关闭所有弹窗
+                console.log("🏟️ [Arena] 关闭所有竞技场弹窗");
+                this._closeArenaMatchStartDialog();
+            }
+        }
     },
 
     // 🔧【新增】显示竞技场比赛开始弹窗
@@ -1882,12 +1911,41 @@ cc.Class({
         // 添加点击事件
         cancelBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
             event.stopPropagation();
-            // 🔧【修复】清除弹窗引用后再销毁
+            
+            // 🔧【修复】取消按钮：取消报名并退还竞技币
+            self._cancelArenaSignup(data);
+            
+            // 清除弹窗引用后再销毁
             self._arenaMatchStartDialog = null;
             self._arenaMatchStartDialogRoomId = null;
             self._arenaMatchStartDialogPeriodNo = null;
             dialogNode.destroy();
         });
+    },
+
+    // 🔧【新增】取消竞技场报名并退还竞技币
+    _cancelArenaSignup: function(data) {
+        var self = this;
+        var myglobal = window.myglobal;
+        
+        console.log("🏟️ [Arena] 取消报名，退还竞技币，room_id:", data.room_id);
+        
+        // 发送取消报名请求到服务端
+        var socket = myglobal && myglobal.socket;
+        if (socket && socket.sendArenaCancelSignup) {
+            socket.sendArenaCancelSignup({
+                room_id: data.room_id
+            });
+        }
+        
+        // 清除本地报名状态
+        if (window.arenaData && window.arenaData._signedUpArenas) {
+            delete window.arenaData._signedUpArenas[data.room_id];
+            window.arenaData.saveToLocal && window.arenaData.saveToLocal();
+        }
+        
+        // 清除当前比赛数据
+        this._currentMatchData = null;
     },
 
     // 🔧【新增】进入竞技场比赛

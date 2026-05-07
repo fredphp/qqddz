@@ -632,3 +632,16 @@ type ArenaMatchStartPayload struct {
         Countdown     int    `json:"countdown"`       // 进入比赛倒计时（秒）
         Message       string `json:"message"`         // 提示消息
 }
+
+// ============================================================
+// 【新增】竞技场关闭弹窗通知 Payload
+// ============================================================
+
+// ArenaCloseDialogPayload 竞技场关闭弹窗通知
+// 新期号开始时，通知客户端关闭上一轮的进入游戏弹窗
+type ArenaCloseDialogPayload struct {
+        RoomID   uint64 `json:"room_id"`   // 房间配置ID
+        PeriodNo string `json:"period_no"` // 上一期的期号
+        Reason   string `json:"reason"`    // 关闭原因: "new_period_started", "match_cancelled", etc.
+        Message  string `json:"message"`   // 提示消息
+}

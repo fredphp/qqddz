@@ -128,6 +128,7 @@ window.socketCtr = function(){
         // ============================================================
         ARENA_STATUS: "arena_status",             // 竞技场状态推送（期号、倒计时）
         ARENA_MATCH_START: "arena_match_start",   // 🔧【新增】竞技场比赛开始通知
+        ARENA_CLOSE_DIALOG: "arena_close_dialog", // 🔧【新增】竞技场关闭弹窗通知
         COMPETITION_STATUS: "competition_status",
         COMPETITION_COUNTDOWN: "competition_countdown",
         MATCH_COIN_UPDATE: "match_coin_update",
@@ -528,6 +529,16 @@ window.socketCtr = function(){
                     match_duration: data.match_duration || 0,
                     match_rounds: data.match_rounds || 0,
                     countdown: data.countdown || 10,
+                    message: data.message || ""
+                })
+                break
+
+            // 🔧【新增】竞技场关闭弹窗通知（新期号开始时关闭上一轮弹窗）
+            case MessageType.ARENA_CLOSE_DIALOG:
+                evt.fire("arena_close_dialog_notify", {
+                    room_id: data.room_id || 0,
+                    period_no: data.period_no || "",
+                    reason: data.reason || "",
                     message: data.message || ""
                 })
                 break
@@ -1039,6 +1050,15 @@ window.socketCtr = function(){
     }
 
     /**
+     * 🔧【新增】监听竞技场关闭弹窗通知
+     * @param {Function} callback - 回调函数，接收 { room_id, period_no, reason, message }
+     */
+    that.onArenaCloseDialog = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("arena_close_dialog_notify", callback)
+    }
+
+    /**
      * 监听竞技场状态更新
      * @param {Function} callback - 回调函数，接收 { room_category, round, total_rounds, match_coin, ... }
      */
@@ -1090,6 +1110,18 @@ window.socketCtr = function(){
     that.onCompetitionChampion = function(callback){
         var evt = _getEvent()
         if (evt) evt.on("competition_champion_notify", callback)
+    }
+
+    // ============================================================
+    // 【竞技场】发送请求方法
+    // ============================================================
+
+    /**
+     * 🔧【新增】发送竞技场取消报名请求
+     * @param {Object} data - 请求数据 { room_id: number }
+     */
+    that.sendArenaCancelSignup = function(data){
+        _sendmsg("arena_cancel_signup", data, null)
     }
 
     // ========== 房间状态相关 ==========
