@@ -403,6 +403,18 @@ func (rm *RoomManager) SetOnGameStart(callback func(*Room)) {
         rm.onGameStart = callback
 }
 
+// 🔧【新增】触发游戏开始回调（用于竞技场自动开始游戏）
+func (rm *RoomManager) TriggerOnGameStart(room *Room) {
+        rm.mu.RLock()
+        callback := rm.onGameStart
+        rm.mu.RUnlock()
+        
+        if callback != nil {
+                log.Printf("🎮 [TriggerOnGameStart] 触发游戏会话创建: roomCode=%s", room.Code)
+                callback(room)
+        }
+}
+
 // GetRoom 获取房间
 func (rm *RoomManager) GetRoom(code string) *Room {
         rm.mu.RLock()
