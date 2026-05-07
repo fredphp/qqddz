@@ -221,9 +221,9 @@ func (h *ArenaHandler) Signup(w http.ResponseWriter, r *http.Request) {
         // 记录报名前余额
         balanceBefore := player.ArenaCoin
 
-        // 扣除报名费（如果有）
+        // 扣除报名费（如果有）- 使用带流水的函数
         if signupFee > 0 {
-                if err := database.UpdatePlayerArenaCoin(player.ID, -signupFee); err != nil {
+                if err := database.UpdatePlayerArenaCoinWithLog(player.ID, -signupFee, database.ArenaCoinChangeSignup, periodInfo.PeriodNo, "竞技场报名扣除"); err != nil {
                         writeJSONError(w, http.StatusInternalServerError, "扣除报名费失败")
                         return
                 }
@@ -255,9 +255,9 @@ func (h *ArenaHandler) Signup(w http.ResponseWriter, r *http.Request) {
                         writeJSONError(w, http.StatusBadRequest, "您已报名，请勿重复报名")
                         return
                 }
-                // 回滚报名费
+                // 回滚报名费 - 使用带流水的函数
                 if signupFee > 0 {
-                        database.UpdatePlayerArenaCoin(player.ID, signupFee)
+                        database.UpdatePlayerArenaCoinWithLog(player.ID, signupFee, database.ArenaCoinChangeRefund, periodInfo.PeriodNo, "报名失败回滚")
                 }
                 writeJSONError(w, http.StatusInternalServerError, "报名失败，请重试")
                 return
@@ -417,9 +417,9 @@ func (h *ArenaHandler) Cancel(w http.ResponseWriter, r *http.Request) {
                 return
         }
 
-        // 退还报名费
+        // 退还报名费 - 使用带流水的函数
         if periodPlayer.SignupFee > 0 {
-                if err := database.UpdatePlayerArenaCoin(player.ID, periodPlayer.SignupFee); err != nil {
+                if err := database.UpdatePlayerArenaCoinWithLog(player.ID, periodPlayer.SignupFee, database.ArenaCoinChangeRefund, periodInfo.PeriodNo, "取消报名退还"); err != nil {
                         log.Printf("⚠️ 退还报名费失败: %v", err)
                 }
         }
