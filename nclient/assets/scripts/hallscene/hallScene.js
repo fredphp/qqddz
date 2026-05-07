@@ -1842,18 +1842,6 @@ cc.Class({
         playersNode.color = cc.color(100, 200, 100);
         playersNode.parent = cardNode;
         
-        // 比赛信息
-        var infoNode = new cc.Node("Info");
-        infoNode.y = cardHeight/2 - 200;
-        var infoLabel = infoNode.addComponent(cc.Label);
-        var matchRounds = data.match_rounds || 3;
-        var matchDuration = data.match_duration || 5;
-        infoLabel.string = "每轮 " + matchDuration + " 分钟，共 " + matchRounds + " 轮";
-        infoLabel.fontSize = 18;
-        infoLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        infoNode.color = cc.color(150, 150, 170);
-        infoNode.parent = cardNode;
-        
         // 提示消息
         var msgNode = new cc.Node("Message");
         msgNode.y = cardHeight/2 - 240;

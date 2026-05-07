@@ -123,9 +123,16 @@ func (h *Handler) handleArenaSignup(client types.ClientInterface, msg *protocol.
         // 记录报名前余额
         balanceBefore := player.ArenaCoin
 
-        // 扣除报名费（如果有）
+        // 扣除报名费（如果有）并记录流水
         if signupFee > 0 {
-                if err := database.UpdatePlayerArenaCoin(playerID, -signupFee); err != nil {
+                err := database.UpdatePlayerArenaCoinWithLog(
+                        playerID,
+                        -signupFee,
+                        database.ArenaCoinChangeSignup,
+                        periodInfo.PeriodNo,
+                        fmt.Sprintf("竞技场报名，期号:%s", periodInfo.PeriodNo),
+                )
+                if err != nil {
                         client.SendMessage(codec.NewErrorMessage(protocol.ErrCodeInternal))
                         return
                 }
@@ -135,7 +142,13 @@ func (h *Handler) handleArenaSignup(client types.ClientInterface, msg *protocol.
         if err := arena.AddPlayerToSignupList(periodInfo.PeriodNo, playerID); err != nil {
                 // 回滚报名费
                 if signupFee > 0 {
-                        database.UpdatePlayerArenaCoin(playerID, signupFee)
+                        database.UpdatePlayerArenaCoinWithLog(
+                                playerID,
+                                signupFee,
+                                database.ArenaCoinChangeRefund,
+                                periodInfo.PeriodNo,
+                                fmt.Sprintf("报名失败回滚，期号:%s", periodInfo.PeriodNo),
+                        )
                 }
                 client.SendMessage(codec.MustNewMessage("arena_signup_failed", map[string]interface{}{
                         "code":    5,
@@ -239,13 +252,23 @@ func (h *Handler) handleArenaCancelSignup(client types.ClientInterface, msg *pro
         // 注意：管理后台将报名费配置在 ddz_room_config.min_arena_coin 字段
         signupFee := roomConfig.MinArenaCoin
 
-        // 退还报名费（如果有）
-        if signupFee > 0 {
-                database.UpdatePlayerArenaCoin(playerID, signupFee)
-        }
-
         // 记录取消前余额
         balanceBefore := player.ArenaCoin
+
+        // 退还报名费（如果有）并记录流水
+        if signupFee > 0 {
+                err := database.UpdatePlayerArenaCoinWithLog(
+                        playerID,
+                        signupFee,
+                        database.ArenaCoinChangeRefund,
+                        periodInfo.PeriodNo,
+                        fmt.Sprintf("取消报名返还，期号:%s", periodInfo.PeriodNo),
+                )
+                if err != nil {
+                        log.Printf("[ArenaCancel] 返还竞技币失败: %v", err)
+                }
+        }
+
         balanceAfter := balanceBefore + signupFee
 
         // 异步记录取消日志（通过队列接口）

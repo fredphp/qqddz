@@ -655,6 +655,10 @@ const (
         ArenaCoinChangeGift    uint8 = 2 // 系统赠送
         ArenaCoinChangeExchange uint8 = 3 // 兑换
         ArenaCoinChangeOther   uint8 = 4 // 其他
+        // 🔧【新增】竞技场报名相关
+        ArenaCoinChangeSignup  uint8 = 5 // 竞技场报名扣除
+        ArenaCoinChangeRefund  uint8 = 6 // 竞技场取消报名/超时返还
+        ArenaCoinChangeReward  uint8 = 7 // 竞技场奖励
 )
 
 // IsGain 是否获得（正数）

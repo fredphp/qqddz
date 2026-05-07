@@ -482,8 +482,14 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
         for _, playerID := range timeoutPlayers {
                 status := enterPhase.PlayerStatuses[playerID]
                 if status.SignupFee > 0 {
-                        // 返还竞技币
-                        err := database.UpdatePlayerArenaCoin(playerID, status.SignupFee)
+                        // 返还竞技币并记录流水
+                        err := database.UpdatePlayerArenaCoinWithLog(
+                                playerID,
+                                status.SignupFee,
+                                database.ArenaCoinChangeRefund,
+                                periodNo,
+                                fmt.Sprintf("进入阶段超时返还，期号:%s", periodNo),
+                        )
                         if err != nil {
                                 log.Printf("[ArenaStatus] 返还竞技币失败: playerID=%d, fee=%d, err=%v", 
                                         playerID, status.SignupFee, err)
@@ -560,10 +566,16 @@ func (b *ArenaStatusBroadcaster) HandlePlayerCancelEnter(periodNo string, player
         // 标记为已取消
         status.HasCancelled = true
 
-        // 返还报名费
+        // 返还报名费并记录流水
         var refundAmount int64
         if status.SignupFee > 0 {
-                err := database.UpdatePlayerArenaCoin(playerID, status.SignupFee)
+                err := database.UpdatePlayerArenaCoinWithLog(
+                        playerID,
+                        status.SignupFee,
+                        database.ArenaCoinChangeRefund,
+                        periodNo,
+                        fmt.Sprintf("玩家取消进入返还，期号:%s", periodNo),
+                )
                 if err != nil {
                         log.Printf("[ArenaStatus] 取消进入返还竞技币失败: playerID=%d, fee=%d, err=%v",
                                 playerID, status.SignupFee, err)
