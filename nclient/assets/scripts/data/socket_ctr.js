@@ -127,6 +127,7 @@ window.socketCtr = function(){
         // 【竞技场】相关消息类型
         // ============================================================
         ARENA_STATUS: "arena_status",             // 竞技场状态推送（期号、倒计时）
+        ARENA_MATCH_START: "arena_match_start",   // 🔧【新增】竞技场比赛开始通知
         COMPETITION_STATUS: "competition_status",
         COMPETITION_COUNTDOWN: "competition_countdown",
         MATCH_COIN_UPDATE: "match_coin_update",
@@ -513,6 +514,22 @@ window.socketCtr = function(){
             // 竞技场大厅状态推送（期号、倒计时）
             case MessageType.ARENA_STATUS:
                 evt.fire("arena_status_notify", data)
+                break
+
+            // 🔧【新增】竞技场比赛开始通知
+            case MessageType.ARENA_MATCH_START:
+                evt.fire("arena_match_start_notify", {
+                    period_no: data.period_no || "",
+                    room_id: data.room_id || 0,
+                    room_name: data.room_name || "",
+                    room_config_id: data.room_config_id || 0,
+                    signup_fee: data.signup_fee || 0,
+                    total_players: data.total_players || 0,
+                    match_duration: data.match_duration || 0,
+                    match_rounds: data.match_rounds || 0,
+                    countdown: data.countdown || 10,
+                    message: data.message || ""
+                })
                 break
 
             // 竞技场状态更新
@@ -1010,6 +1027,15 @@ window.socketCtr = function(){
     that.onArenaStatus = function(callback){
         var evt = _getEvent()
         if (evt) evt.on("arena_status_notify", callback)
+    }
+
+    /**
+     * 🔧【新增】监听竞技场比赛开始通知
+     * @param {Function} callback - 回调函数，接收 { period_no, room_id, room_name, ... }
+     */
+    that.onArenaMatchStart = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("arena_match_start_notify", callback)
     }
 
     /**

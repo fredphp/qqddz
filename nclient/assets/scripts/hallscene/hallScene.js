@@ -1676,6 +1676,15 @@ cc.Class({
             console.warn("🏟️ [Arena] socket 或 onArenaStatus 方法不可用，无法监听竞技场状态");
         }
 
+        // 🔧【新增】监听竞技场比赛开始通知
+        if (socket && socket.onArenaMatchStart) {
+            socket.onArenaMatchStart(function(data) {
+                if (self.node && self.node.isValid) {
+                    self._onArenaMatchStart(data);
+                }
+            });
+        }
+
         // 🔧【新增】立即初始化本地状态（使用本地计算作为初始值）
         this._initLocalArenaStatusFromConfig();
 
@@ -1685,6 +1694,214 @@ cc.Class({
                 self._updateLocalCountdown();
             }
         }, 1000);
+    },
+
+    // 🔧【新增】处理竞技场比赛开始通知
+    _onArenaMatchStart: function(data) {
+        var self = this;
+        
+        // 保存比赛信息供后续使用
+        this._currentMatchData = data;
+        
+        // 弹出进入游戏弹窗
+        this._showArenaMatchStartDialog(data);
+    },
+
+    // 🔧【新增】显示竞技场比赛开始弹窗
+    _showArenaMatchStartDialog: function(data) {
+        var self = this;
+        
+        // 获取画布尺寸
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
+        var screenHeight = canvas ? canvas.designResolution.height : 720;
+        var screenWidth = canvas ? canvas.designResolution.width : 1280;
+        
+        // 创建弹窗容器
+        var dialogNode = new cc.Node("ArenaMatchStartDialog");
+        dialogNode.setContentSize(cc.size(screenWidth, screenHeight));
+        dialogNode.anchorX = 0.5;
+        dialogNode.anchorY = 0.5;
+        dialogNode.x = 0;
+        dialogNode.y = 0;
+        dialogNode.zIndex = 5000;
+        dialogNode.parent = this.node;
+        
+        // 半透明黑色背景
+        var bgNode = new cc.Node("Bg");
+        bgNode.setContentSize(cc.size(screenWidth, screenHeight));
+        var bgGraphics = bgNode.addComponent(cc.Graphics);
+        bgGraphics.fillColor = cc.color(0, 0, 0, 180);
+        bgGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight);
+        bgGraphics.fill();
+        bgNode.parent = dialogNode;
+        
+        // 弹窗卡片
+        var cardWidth = 450;
+        var cardHeight = 380;
+        var cardNode = new cc.Node("Card");
+        cardNode.setContentSize(cc.size(cardWidth, cardHeight));
+        var cardGraphics = cardNode.addComponent(cc.Graphics);
+        cardGraphics.fillColor = cc.color(40, 45, 65, 255);
+        cardGraphics.roundRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15);
+        cardGraphics.fill();
+        cardGraphics.strokeColor = cc.color(255, 215, 0);
+        cardGraphics.lineWidth = 3;
+        cardGraphics.roundRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15);
+        cardGraphics.stroke();
+        cardNode.parent = dialogNode;
+        
+        // 标题
+        var titleNode = new cc.Node("Title");
+        titleNode.y = cardHeight/2 - 45;
+        var titleLabel = titleNode.addComponent(cc.Label);
+        titleLabel.string = "🏆 竞技场比赛开始";
+        titleLabel.fontSize = 32;
+        titleLabel.lineHeight = 40;
+        titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        titleNode.color = cc.color(255, 215, 0);
+        var titleOutline = titleNode.addComponent(cc.LabelOutline);
+        titleOutline.color = cc.color(100, 80, 0);
+        titleOutline.width = 2;
+        titleNode.parent = cardNode;
+        
+        // 期号信息
+        var periodNode = new cc.Node("Period");
+        periodNode.y = cardHeight/2 - 95;
+        var periodLabel = periodNode.addComponent(cc.Label);
+        periodLabel.string = "期号: " + (data.period_no || "--");
+        periodLabel.fontSize = 22;
+        periodLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        periodNode.color = cc.color(200, 200, 220);
+        periodNode.parent = cardNode;
+        
+        // 房间信息
+        var roomNode = new cc.Node("Room");
+        roomNode.y = cardHeight/2 - 130;
+        var roomLabel = roomNode.addComponent(cc.Label);
+        roomLabel.string = "房间: " + (data.room_name || "未知房间");
+        roomLabel.fontSize = 20;
+        roomLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        roomNode.color = cc.color(180, 180, 200);
+        roomNode.parent = cardNode;
+        
+        // 参赛人数
+        var playersNode = new cc.Node("Players");
+        playersNode.y = cardHeight/2 - 165;
+        var playersLabel = playersNode.addComponent(cc.Label);
+        playersLabel.string = "参赛人数: " + (data.total_players || 0) + " 人";
+        playersLabel.fontSize = 20;
+        playersLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        playersNode.color = cc.color(100, 200, 100);
+        playersNode.parent = cardNode;
+        
+        // 比赛信息
+        var infoNode = new cc.Node("Info");
+        infoNode.y = cardHeight/2 - 200;
+        var infoLabel = infoNode.addComponent(cc.Label);
+        var matchRounds = data.match_rounds || 3;
+        var matchDuration = data.match_duration || 5;
+        infoLabel.string = "每轮 " + matchDuration + " 分钟，共 " + matchRounds + " 轮";
+        infoLabel.fontSize = 18;
+        infoLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        infoNode.color = cc.color(150, 150, 170);
+        infoNode.parent = cardNode;
+        
+        // 提示消息
+        var msgNode = new cc.Node("Message");
+        msgNode.y = cardHeight/2 - 240;
+        var msgLabel = msgNode.addComponent(cc.Label);
+        msgLabel.string = data.message || "比赛即将开始，请准备进入游戏！";
+        msgLabel.fontSize = 16;
+        msgLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        msgNode.color = cc.color(255, 200, 100);
+        msgNode.parent = cardNode;
+        
+        // 按钮区域
+        var btnY = -cardHeight/2 + 55;
+        
+        // 进入游戏按钮
+        var enterBtn = new cc.Node("EnterBtn");
+        enterBtn.setContentSize(cc.size(180, 50));
+        enterBtn.setPosition(-100, btnY);
+        var enterBg = enterBtn.addComponent(cc.Graphics);
+        enterBg.fillColor = cc.color(76, 175, 80);
+        enterBg.roundRect(-90, -25, 180, 50, 8);
+        enterBg.fill();
+        var enterBtnLabel = enterBtn.addComponent(cc.Label);
+        enterBtnLabel.string = "进入比赛";
+        enterBtnLabel.fontSize = 22;
+        enterBtnLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        enterBtn.color = cc.color(255, 255, 255);
+        enterBtn.parent = cardNode;
+        
+        // 添加点击事件
+        enterBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            dialogNode.destroy();
+            self._enterArenaMatch(data);
+        });
+        
+        // 取消按钮
+        var cancelBtn = new cc.Node("CancelBtn");
+        cancelBtn.setContentSize(cc.size(120, 50));
+        cancelBtn.setPosition(120, btnY);
+        var cancelBg = cancelBtn.addComponent(cc.Graphics);
+        cancelBg.fillColor = cc.color(120, 120, 140);
+        cancelBg.roundRect(-60, -25, 120, 50, 8);
+        cancelBg.fill();
+        var cancelBtnLabel = cancelBtn.addComponent(cc.Label);
+        cancelBtnLabel.string = "取消";
+        cancelBtnLabel.fontSize = 20;
+        cancelBtnLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        cancelBtn.color = cc.color(255, 255, 255);
+        cancelBtn.parent = cardNode;
+        
+        // 添加点击事件
+        cancelBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            dialogNode.destroy();
+        });
+    },
+
+    // 🔧【新增】进入竞技场比赛
+    _enterArenaMatch: function(data) {
+        var self = this;
+        var myglobal = window.myglobal;
+        
+        // 保存比赛信息
+        if (myglobal) {
+            myglobal.currentArenaMatch = data;
+        }
+        
+        // 清除报名状态
+        if (window.arenaData && window.arenaData._signedUpArenas) {
+            delete window.arenaData._signedUpArenas[data.room_id];
+            window.arenaData.saveToLocal && window.arenaData.saveToLocal();
+        }
+        
+        // 构造房间配置
+        var roomConfig = {
+            id: data.room_id,
+            room_name: data.room_name,
+            room_config_id: data.room_config_id,
+            room_category: 2,  // 竞技场
+            min_arena_coin: data.signup_fee,
+            match_rounds: data.match_rounds,
+            match_duration: data.match_duration
+        };
+        
+        // 保存当前房间配置
+        if (myglobal) {
+            myglobal.currentRoomConfig = roomConfig;
+            myglobal.currentRoomLevel = data.room_id;
+            myglobal.currentRoomName = data.room_name;
+        }
+        
+        // 获取玩家竞技币
+        var playerArenaCoin = myglobal && myglobal.playerData ? myglobal.playerData.arena_coin : 0;
+        
+        // 显示加载界面并进入快速匹配
+        this._showLoadingProgress(roomConfig, playerArenaCoin);
     },
 
     // 🔧【新增】从配置初始化本地状态（作为备用）

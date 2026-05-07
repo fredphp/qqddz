@@ -613,3 +613,22 @@ type ArenaSignupPayload struct {
 type ArenaCancelSignupPayload struct {
         RoomID uint64 `json:"room_id"` // 房间配置ID
 }
+
+// ============================================================
+// 【新增】竞技场比赛开始通知 Payload
+// ============================================================
+
+// ArenaMatchStartPayload 竞技场比赛开始通知
+// 当报名阶段结束时，向所有已报名玩家发送此通知，提示玩家进入游戏
+type ArenaMatchStartPayload struct {
+        PeriodNo      string `json:"period_no"`       // 期号（字符串格式，如 260507010181）
+        RoomID        uint64 `json:"room_id"`         // 房间配置ID
+        RoomName      string `json:"room_name"`       // 房间名称
+        RoomConfigID  uint64 `json:"room_config_id"`  // 房间配置ID（用于获取房间配置信息）
+        SignupFee     int64  `json:"signup_fee"`      // 报名费（竞技币）
+        TotalPlayers  int    `json:"total_players"`   // 总报名人数
+        MatchDuration int    `json:"match_duration"`  // 每轮时长（分钟）
+        MatchRounds   int    `json:"match_rounds"`    // 需要打的轮次数
+        Countdown     int    `json:"countdown"`       // 进入比赛倒计时（秒）
+        Message       string `json:"message"`         // 提示消息
+}

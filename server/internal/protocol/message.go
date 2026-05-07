@@ -147,6 +147,9 @@ const (
         MsgSignupSuccess        MessageType = "signup_success"        // 报名成功通知
         MsgCompetitionStart     MessageType = "competition_start"     // 比赛开始广播
 
+        // 🔧【新增】竞技场比赛开始通知（给已报名玩家发送进入游戏弹窗）
+        MsgArenaMatchStart MessageType = "arena_match_start" // 竞技场比赛开始通知
+
         // 错误
         MsgError MessageType = "error" // 错误消息
 )

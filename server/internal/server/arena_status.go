@@ -265,6 +265,15 @@ func (b *ArenaStatusBroadcaster) handlePeriodChange(roomID uint64, oldPeriodNo, 
 
         // 1. 结算上一期（如果存在）- 结算任务会自动清理缓存
         if oldPeriodNo != "" {
+                // 🔧【新增】在结算之前，先获取上一期的报名玩家并发送比赛开始通知
+                // 获取上一期的报名玩家列表
+                signupPlayers := b.GetSignupList(oldPeriodNo)
+                if len(signupPlayers) > 0 {
+                        log.Printf("[ArenaStatus] 上一期报名玩家: roomID=%d, periodNo=%s, players=%d", roomID, oldPeriodNo, len(signupPlayers))
+                        // 发送比赛开始通知给已报名玩家
+                        b.sendMatchStartNotification(roomID, oldPeriodNo, signupPlayers)
+                }
+
                 b.queue.PushPeriodFinalize(PeriodFinalizeData{
                         PeriodNo: oldPeriodNo,
                         RoomID:   roomID,
@@ -287,6 +296,54 @@ func (b *ArenaStatusBroadcaster) handlePeriodChange(roomID uint64, oldPeriodNo, 
         // 标记已处理
         b.processedPeriods[roomID] = newPeriodNo
         log.Printf("[ArenaStatus] 触发新期号创建: roomID=%d, periodNo=%s", roomID, newPeriodNo)
+}
+
+// sendMatchStartNotification 发送比赛开始通知给已报名玩家
+func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, periodNo string, playerIDs []uint64) {
+        if len(playerIDs) == 0 {
+                return
+        }
+
+        // 获取房间配置
+        roomConfig, err := database.GetRoomConfigByID(roomID)
+        if err != nil {
+                log.Printf("[ArenaStatus] 获取房间配置失败: roomID=%d, err=%v", roomID, err)
+                return
+        }
+
+        // 构建比赛开始通知
+        payload := protocol.ArenaMatchStartPayload{
+                PeriodNo:      periodNo,
+                RoomID:        roomID,
+                RoomName:      roomConfig.RoomName,
+                RoomConfigID:  roomID,
+                SignupFee:     roomConfig.MinArenaCoin,
+                TotalPlayers:  len(playerIDs),
+                MatchDuration: roomConfig.MatchRoundDuration,
+                MatchRounds:   roomConfig.MatchRoundCount,
+                Countdown:     10, // 10秒倒计时进入游戏
+                Message:       fmt.Sprintf("期号 %s 比赛即将开始，共 %d 人参赛，请准备进入游戏！", periodNo, len(playerIDs)),
+        }
+
+        msg := codec.MustNewMessage(protocol.MsgArenaMatchStart, payload)
+
+        // 向所有已报名玩家发送通知
+        b.server.clientsMu.RLock()
+        sentCount := 0
+        for _, playerID := range playerIDs {
+                for _, client := range b.server.clients {
+                        if client.PlayerID == playerID && client.GetRoom() == "" {
+                                client.SendMessage(msg)
+                                sentCount++
+                                log.Printf("[ArenaStatus] 发送比赛开始通知: playerID=%d, periodNo=%s", playerID, periodNo)
+                                break
+                        }
+                }
+        }
+        b.server.clientsMu.RUnlock()
+
+        log.Printf("[ArenaStatus] 比赛开始通知发送完成: roomID=%d, periodNo=%s, totalPlayers=%d, sentCount=%d", 
+                roomID, periodNo, len(playerIDs), sentCount)
 }
 
 // handlePhaseChange 处理阶段变化
