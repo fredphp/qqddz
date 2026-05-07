@@ -1990,26 +1990,81 @@ cc.Class({
             window.arenaData.saveToLocal && window.arenaData.saveToLocal();
         }
         
-        // 构造房间配置
-        var roomConfig = {
-            id: data.room_id,
-            room_name: data.room_name,
-            room_config_id: data.room_config_id,
-            room_category: 2,  // 竞技场
-            min_arena_coin: data.signup_fee,
-            match_rounds: data.match_rounds,
-            match_duration: data.match_duration
-        };
-        
-        // 保存当前房间配置
-        if (myglobal) {
-            myglobal.currentRoomConfig = roomConfig;
-            myglobal.currentRoomLevel = data.room_id;
-            myglobal.currentRoomName = data.room_name;
+        // 🔧【关键修复】发送 arena_enter 请求，等待 room_joined 消息后再进入游戏场景
+        var socket = myglobal && myglobal.socket;
+        if (socket && socket.sendArenaEnter) {
+            // 显示加载提示
+            this._showMessageCenter("正在进入竞技场...");
+            
+            // 注册一次性 room_joined 监听器
+            var roomJoinedHandler = function(roomData) {
+                console.log("🏟️ [Arena] 收到 room_joined，准备进入游戏场景:", JSON.stringify(roomData));
+                
+                // 取消超时定时器
+                if (self._arenaEnterTimeout) {
+                    clearTimeout(self._arenaEnterTimeout);
+                    self._arenaEnterTimeout = null;
+                }
+                
+                // 保存房间数据
+                if (myglobal) {
+                    myglobal.roomData = roomData;
+                }
+                
+                // 进入游戏场景
+                self._enterGameScene(roomData);
+            };
+            
+            // 注册监听器
+            socket.onRoomJoined(roomJoinedHandler);
+            
+            // 设置超时（10秒后如果没收到 room_joined，也进入场景）
+            this._arenaEnterTimeout = setTimeout(function() {
+                console.log("🏟️ [Arena] 等待 room_joined 超时，直接进入游戏场景");
+                self._arenaEnterTimeout = null;
+                
+                // 构造临时房间数据
+                var tempRoomData = {
+                    room_code: "arena_" + data.period_no,
+                    room_id: data.room_id,
+                    room_name: data.room_name,
+                    room_category: 2,
+                    period_no: data.period_no
+                };
+                
+                if (myglobal) {
+                    myglobal.roomData = tempRoomData;
+                }
+                
+                self._enterGameScene(tempRoomData);
+            }, 10000);
+            
+            // 发送 arena_enter 请求
+            socket.sendArenaEnter({
+                period_no: data.period_no,
+                room_id: data.room_id
+            });
+        } else {
+            console.warn("🏟️ [Arena] socket 或 sendArenaEnter 方法不可用");
+            // 降级处理：直接进入游戏场景
+            var roomConfig = {
+                id: data.room_id,
+                room_name: data.room_name,
+                room_config_id: data.room_config_id,
+                room_category: 2,
+                min_arena_coin: data.signup_fee,
+                match_rounds: data.match_rounds,
+                match_duration: data.match_duration
+            };
+            
+            if (myglobal) {
+                myglobal.currentRoomConfig = roomConfig;
+                myglobal.currentRoomLevel = data.room_id;
+                myglobal.currentRoomName = data.room_name;
+            }
+            
+            this._enterArenaGameScene(data, roomConfig);
         }
-        
-        // 🔧【修复】竞技场直接进入游戏场景，最多等待2秒
-        this._enterArenaGameScene(data, roomConfig);
     },
     
     // 🔧【新增】竞技场直接进入游戏场景（最多等待2秒）

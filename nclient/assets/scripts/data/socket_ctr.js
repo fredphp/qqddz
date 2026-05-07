@@ -1124,6 +1124,15 @@ window.socketCtr = function(){
         _sendmsg("arena_cancel_signup", data, null)
     }
 
+    /**
+     * 🔧【新增】发送竞技场进入游戏请求
+     * @param {Object} data - 请求数据 { period_no: string, room_id: number }
+     */
+    that.sendArenaEnter = function(data){
+        console.log("🏟️ [Arena] 发送 arena_enter 请求:", JSON.stringify(data));
+        _sendmsg("arena_enter", data, null)
+    }
+
     // ========== 房间状态相关 ==========
     
     that.onShowBottomCard = function(callback){
