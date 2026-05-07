@@ -91,3 +91,29 @@ Stage Summary:
 - 问题根因：客户端收到 room_joined 后直接保存原始数据，没有进行 players → playerdata 的格式转换
 - 修复方案：添加与普通场一致的数据格式转换逻辑
 - 提交：6581861 "fix: 修复竞技场进入游戏后玩家不显示的问题"
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: 重构竞技场房间分配逻辑：报名结束后自动分配房间并开始游戏
+
+Work Log:
+- 分析问题：用户反馈竞技场进入游戏后没有自动准备，看不到玩家头像和昵称
+- 理解正确流程：同一期报名的玩家一起玩，3人一桌，随机选人创房，其他人加入，自动准备，开始发牌
+- 修改 server/internal/server/arena_status.go：
+  - 重构 sendMatchStartNotification：报名结束后立即创建房间，不再等待玩家点击"进入"
+  - 所有报名玩家标记为"已进入"状态
+  - 调用 createArenaGameRoomImmediate 立即创建房间
+  - 调用 gameRoom.StartGame() 自动开始游戏
+  - 调用 TriggerOnGameStart 触发游戏会话创建（发牌）
+- 修改 server/internal/game/room/manager.go：
+  - 添加 TriggerOnGameStart 方法，用于竞技场自动触发游戏会话
+
+Stage Summary:
+- 修改文件：
+  - server/internal/server/arena_status.go（核心逻辑）
+  - server/internal/game/room/manager.go（新增方法）
+- 流程变更：
+  - 旧：报名结束 → 发送通知 → 等待玩家点击进入 → 创建房间
+  - 新：报名结束 → 立即创建房间 → 自动准备 → 自动开始发牌 → 发送通知
+- 提交：374de5e "fix: 竞技场报名结束后自动分配房间并开始游戏"
