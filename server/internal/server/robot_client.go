@@ -2,6 +2,7 @@ package server
 
 import (
 	"log"
+	"strconv"
 
 	"github.com/palemoky/fight-the-landlord/internal/game/database"
 	"github.com/palemoky/fight-the-landlord/internal/protocol"
@@ -9,13 +10,13 @@ import (
 
 // RobotClient 机器人客户端（用于竞技场机器人加入房间）
 type RobotClient struct {
-	ID         string // 玩家唯一 ID
-	Name       string // 玩家昵称
-	PlayerID   uint64 // 数据库玩家ID
-	Gold       int64  // 金币数量
-	server     *Server
-	roomCode   string  // 当前所在房间
-	callIndex  int64   // 请求索引
+	ID        string // 玩家唯一 ID
+	Name      string // 玩家昵称
+	PlayerID  uint64 // 数据库玩家ID
+	Gold      int64  // 金币数量
+	server    *Server
+	roomCode  string // 当前所在房间
+	callIndex int64  // 请求索引
 }
 
 // NewRobotClient 创建机器人客户端
@@ -28,17 +29,12 @@ func NewRobotClient(playerID uint64, server *Server) *RobotClient {
 	}
 
 	return &RobotClient{
-		ID:       formatPlayerID(playerID),
+		ID:       strconv.FormatUint(playerID, 10),
 		Name:     player.Nickname,
 		PlayerID: playerID,
-		Gold:     player.GoldCount,
+		Gold:     player.Gold,
 		server:   server,
 	}
-}
-
-// formatPlayerID 格式化玩家ID为字符串
-func formatPlayerID(id uint64) string {
-	return formatUint64(id)
 }
 
 // GetID 获取客户端ID
