@@ -31,6 +31,20 @@ cc.Class({
             // 标记 init 已处理
             this._initProcessed = true
             
+            // 🔧【新增】检查是否是竞技场模式
+            var roomData = myglobal.roomData || {}
+            var isArenaMode = roomData.room_category === 2
+            
+            if (isArenaMode) {
+                // 🔧【竞技场模式】不需要准备按钮和换房按钮
+                // 所有玩家自动准备，游戏自动开始
+                console.log("🏟️ [gamebeforeUI] 竞技场模式：隐藏所有按钮，等待游戏自动开始")
+                this.btn_gamestart.active = false
+                this.btn_ready.active = false
+                this._hideChangeRoomButton()
+                return
+            }
+            
             // 获取房主ID（服务端返回的 creator_id）
             var houseId = myglobal.playerData.housemanageid
             
@@ -64,6 +78,18 @@ cc.Class({
         //监听服务器发送来的消息
         myglobal.socket.onChangeHouseManage(function(data){
             myglobal.playerData.housemanageid = data
+            
+            // 🔧【新增】检查是否是竞技场模式
+            var roomData = myglobal.roomData || {}
+            var isArenaMode = roomData.room_category === 2
+            
+            if (isArenaMode) {
+                // 竞技场模式不需要显示任何按钮
+                this.btn_gamestart.active = false
+                this.btn_ready.active = false
+                this._hideChangeRoomButton()
+                return
+            }
             
             var houseId = myglobal.playerData.housemanageid
             
@@ -149,6 +175,12 @@ cc.Class({
         
     },
     
+    // 🔧【新增】隐藏换房按钮（竞技场模式使用）
+    _hideChangeRoomButton: function() {
+        if (!this._btnChangeRoom) return
+        this._btnChangeRoom.active = false
+    },
+    
     // 显示换房按钮
     // centered: true = 居中显示（准备按钮隐藏时）, false = 左侧显示（准备按钮显示时）
     _showChangeRoomButton: function(centered) {
@@ -210,6 +242,19 @@ cc.Class({
             
             // 如果 init 事件已经处理过，跳过
             if (this._initProcessed) {
+                return
+            }
+            
+            // 🔧【新增】检查是否是竞技场模式
+            var roomData = myglobal.roomData || {}
+            var isArenaMode = roomData.room_category === 2
+            
+            if (isArenaMode) {
+                // 竞技场模式不需要显示任何按钮
+                console.log("🏟️ [gamebeforeUI] start: 竞技场模式，隐藏所有按钮")
+                this.btn_gamestart.active = false
+                this.btn_ready.active = false
+                this._hideChangeRoomButton()
                 return
             }
             

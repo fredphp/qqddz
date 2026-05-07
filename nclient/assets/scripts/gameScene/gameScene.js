@@ -454,6 +454,8 @@ cc.Class({
     
     _processRoomData: function(result, myglobal, isopen_sound) {
         
+        console.log("🎮 [_processRoomData] 接收到的数据:", JSON.stringify(result))
+        
         var seatid = result.seatindex || 1
         
         this.playerdata_list_pos = []
@@ -461,6 +463,12 @@ cc.Class({
 
         var playerdata_list = result.playerdata || []
         var roomid = result.roomid || result.room_code || result.roomCode || "WAITING"
+        
+        // 🔧【新增】检查是否是竞技场模式
+        var isArenaMode = result.room_category === 2
+        if (isArenaMode) {
+            console.log("🏟️ [_processRoomData] 竞技场模式: room_category=2, playerdata数量=" + playerdata_list.length)
+        }
 
         this._playerdataList = playerdata_list
 
@@ -478,6 +486,7 @@ cc.Class({
         }
 
         for (var i = 0; i < playerdata_list.length; i++) {
+            console.log("🎮 [_processRoomData] 添加玩家节点: " + JSON.stringify(playerdata_list[i]))
             this.addPlayerNode(playerdata_list[i])
         }
         
@@ -499,7 +508,11 @@ cc.Class({
             gamebefore_node.emit("init")
         }
         
-        if (playerdata_list.length < 3) {
+        // 🔧【修复】竞技场模式下不显示等待玩家UI（所有玩家已分配好）
+        if (isArenaMode) {
+            console.log("🏟️ [_processRoomData] 竞技场模式：不显示等待玩家UI")
+            // 竞技场模式下所有玩家应该已经准备好，直接等待游戏开始
+        } else if (playerdata_list.length < 3) {
             this._showWaitingUI(3 - playerdata_list.length, roomid)
         }
     },
