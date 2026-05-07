@@ -510,7 +510,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
                 PlayerToTable:  playerToTable,
         }
 
-        // 初始化玩家状态（所有玩家标记为已进入）
+        // 初始化玩家状态（机器人标记为已进入，真人需要点击进入）
         for _, playerID := range playerIDs {
                 player, exists := playerMap[playerID]
                 isRobot := exists && player.PlayerType == database.PlayerTypeRobot
@@ -523,7 +523,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
                 enterPhase.PlayerStatuses[playerID] = &PlayerEnterStatus{
                         PlayerID:     playerID,
                         IsRobot:      isRobot,
-                        HasEntered:   true, // 所有玩家标记为已进入
+                        HasEntered:   isRobot, // 只有机器人标记为已进入，真人需要点击
                         HasCancelled: false,
                         SignupFee:    signupFee,
                         TableID:      tableID,
@@ -535,12 +535,53 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
         b.enterPhases[periodNo] = enterPhase
         b.enterPhasesMu.Unlock()
 
-        // 🔧【关键】为每桌创建房间并让玩家加入
-        for _, table := range tables {
-                b.createAndStartTableGame(enterPhase, table, roomID, playerMap)
+        // 🔧【修复】发送弹窗消息给所有真人玩家
+        b.sendMatchStartPopup(roomID, periodNo, roomConfig, realPlayers, playerMap)
+
+        // 🔧【关键】机器人自动进入房间
+        for _, robotID := range robotPlayers {
+                log.Printf("[ArenaStatus] 🤖 机器人 %d 自动进入比赛", robotID)
+                b.HandlePlayerEnter(periodNo, robotID)
         }
 
-        log.Printf("[ArenaStatus] ✅ 竞技场分组完成: periodNo=%s, tables=%d", periodNo, len(tables))
+        log.Printf("[ArenaStatus] ✅ 竞技场分组完成: periodNo=%s, tables=%d, 已发送弹窗通知", periodNo, len(tables))
+}
+
+// 🔧【新增】发送比赛开始弹窗通知给真人玩家
+func (b *ArenaStatusBroadcaster) sendMatchStartPopup(roomID uint64, periodNo string, roomConfig *database.RoomConfig, realPlayers []uint64, playerMap map[uint64]*database.Player) {
+        // 构建弹窗消息
+        payload := &protocol.ArenaMatchStartPayload{
+                PeriodNo:      periodNo,
+                RoomID:        roomID,
+                RoomName:      roomConfig.RoomName,
+                RoomConfigID:  roomID,
+                SignupFee:     roomConfig.MinArenaCoin,
+                TotalPlayers:  len(realPlayers),
+                MatchDuration: PeriodTotalMinutes,
+                MatchRounds:   1, // 默认打1轮
+                Countdown:     EnterPhaseCountdown,
+                Message:       "比赛即将开始，请点击进入！",
+        }
+        
+        msg := codec.MustNewMessage(protocol.MsgArenaMatchStart, payload)
+        
+        // 发送给所有在线的真人玩家
+        b.server.clientsMu.RLock()
+        sentCount := 0
+        for _, playerID := range realPlayers {
+                for _, client := range b.server.clients {
+                        if client.PlayerID == playerID && client.GetRoom() == "" {
+                                client.SendMessage(msg)
+                                sentCount++
+                                log.Printf("[ArenaStatus] 📢 发送比赛开始弹窗给玩家 %d", playerID)
+                                break
+                        }
+                }
+        }
+        b.server.clientsMu.RUnlock()
+        
+        log.Printf("[ArenaStatus] 📢 比赛开始弹窗已发送: periodNo=%s, totalPlayers=%d, sentCount=%d", 
+                periodNo, len(realPlayers), sentCount)
 }
 
 // 🔧【重构】为一桌玩家创建房间并开始游戏
