@@ -448,6 +448,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
 
 // 🔧【新增】处理进入阶段超时
 // 倒计时结束后，检查哪些玩家没有响应，自动取消并返还竞技币
+// 如果有足够的玩家确认进入，创建游戏房间
 func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
         b.enterPhasesMu.Lock()
         enterPhase, exists := b.enterPhases[periodNo]
@@ -463,12 +464,19 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
 
         // 统计玩家状态
         var enteredPlayers []uint64
+        var enteredRealPlayers []uint64 // 真人玩家
+        var enteredRobots []uint64      // 机器人玩家
         var timeoutPlayers []uint64
         var totalRefund int64
 
         for playerID, status := range enterPhase.PlayerStatuses {
                 if status.HasEntered {
                         enteredPlayers = append(enteredPlayers, playerID)
+                        if status.IsRobot {
+                                enteredRobots = append(enteredRobots, playerID)
+                        } else {
+                                enteredRealPlayers = append(enteredRealPlayers, playerID)
+                        }
                 } else if !status.HasCancelled {
                         // 未进入也未取消的玩家 = 超时未响应
                         timeoutPlayers = append(timeoutPlayers, playerID)
@@ -501,6 +509,15 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
                         log.Printf("[ArenaStatus] 进入阶段超时，玩家未响应（无报名费）: playerID=%d, periodNo=%s", 
                                 playerID, periodNo)
                 }
+        }
+
+        // 🔧【新增】如果有玩家确认进入，创建游戏房间
+        if len(enteredPlayers) > 0 {
+                log.Printf("[ArenaStatus] 为确认进入的玩家创建游戏房间: periodNo=%s, totalPlayers=%d, realPlayers=%d, robots=%d", 
+                        periodNo, len(enteredPlayers), len(enteredRealPlayers), len(enteredRobots))
+                
+                // 创建竞技场房间并发送 room_joined 消息
+                b.createArenaGameRoom(enterPhase, enteredPlayers, enteredRealPlayers, enteredRobots, periodNo)
         }
 
         // 发送关闭弹窗消息
@@ -537,6 +554,133 @@ func (b *ArenaStatusBroadcaster) HandlePlayerEnter(periodNo string, playerID uin
         log.Printf("[ArenaStatus] 玩家点击进入: playerID=%d, periodNo=%s", playerID, periodNo)
 
         return nil
+}
+
+// 🔧【新增】创建竞技场游戏房间
+// 为确认进入的玩家创建游戏房间并发送 room_joined 消息
+func (b *ArenaStatusBroadcaster) createArenaGameRoom(enterPhase *EnterPhaseInfo, allPlayers []uint64, realPlayers []uint64, robotPlayers []uint64, periodNo string) {
+        if b.server.roomManager == nil {
+                log.Printf("[ArenaStatus] roomManager 未初始化，无法创建房间")
+                return
+        }
+
+        // 如果玩家不足3人，补机器人
+        if len(allPlayers) < 3 {
+                needRobots := 3 - len(allPlayers)
+                log.Printf("[ArenaStatus] 玩家不足3人，需要补位 %d 个机器人", needRobots)
+                
+                // 从数据库获取空闲机器人
+                var robots []database.Player
+                err := database.DB().Where("player_type = ? AND robot_status = ?", 
+                        database.PlayerTypeRobot, database.RobotStatusIdle).
+                        Order("RAND()").
+                        Limit(needRobots).
+                        Find(&robots).Error
+                
+                if err == nil && len(robots) > 0 {
+                        for _, robot := range robots {
+                                robotPlayers = append(robotPlayers, robot.ID)
+                                allPlayers = append(allPlayers, robot.ID)
+                                log.Printf("[ArenaStatus] 机器人 %d (%s) 自动补位", robot.ID, robot.Nickname)
+                        }
+                }
+        }
+
+        // 获取第一个真人玩家作为房主
+        var firstClient types.ClientInterface
+        if len(realPlayers) > 0 {
+                // 从服务器客户端列表中找到该玩家的连接
+                b.server.clientsMu.RLock()
+                for _, client := range b.server.clients {
+                        if client.PlayerID == realPlayers[0] {
+                                firstClient = client
+                                break
+                        }
+                }
+                b.server.clientsMu.RUnlock()
+        }
+
+        // 如果没有真人玩家在线，无法创建房间
+        if firstClient == nil {
+                log.Printf("[ArenaStatus] 没有真人玩家在线，无法创建房间")
+                return
+        }
+
+        // 创建房间
+        gameRoom, err := b.server.roomManager.CreateRoom(firstClient, enterPhase.RoomID)
+        if err != nil {
+                log.Printf("[ArenaStatus] 创建竞技场房间失败: %v", err)
+                return
+        }
+
+        log.Printf("[ArenaStatus] 竞技场房间创建成功: roomCode=%s, 房主=%d", gameRoom.Code, realPlayers[0])
+
+        // 将其他真人玩家加入房间
+        for i := 1; i < len(realPlayers); i++ {
+                playerID := realPlayers[i]
+                
+                // 找到该玩家的客户端连接
+                b.server.clientsMu.RLock()
+                var client *Client
+                for _, c := range b.server.clients {
+                        if c.PlayerID == playerID {
+                                client = c
+                                break
+                        }
+                }
+                b.server.clientsMu.RUnlock()
+                
+                if client != nil {
+                        _, err := b.server.roomManager.JoinRoom(client, gameRoom.Code)
+                        if err != nil {
+                                log.Printf("[ArenaStatus] 玩家 %d 加入房间失败: %v", playerID, err)
+                        } else {
+                                log.Printf("[ArenaStatus] 玩家 %d 加入房间成功", playerID)
+                        }
+                }
+        }
+
+        // 添加机器人玩家到房间
+        for _, robotID := range robotPlayers {
+                // 创建机器人客户端
+                robotClient := NewRobotClient(robotID, b.server)
+                if robotClient != nil {
+                        _, err := b.server.roomManager.JoinRoom(robotClient, gameRoom.Code)
+                        if err != nil {
+                                log.Printf("[ArenaStatus] 机器人 %d 加入房间失败: %v", robotID, err)
+                        } else {
+                                log.Printf("[ArenaStatus] 机器人 %d 加入房间成功", robotID)
+                        }
+                }
+        }
+
+        // 获取房间内所有玩家信息
+        players := gameRoom.GetAllPlayersInfo()
+
+        // 发送 room_joined 消息给所有真人玩家
+        b.server.clientsMu.RLock()
+        for _, playerID := range realPlayers {
+                for _, client := range b.server.clients {
+                        if client.PlayerID == playerID {
+                                // 发送 room_joined 消息
+                                payload := &protocol.RoomJoinedPayload{
+                                        RoomCode:  gameRoom.Code,
+                                        Player:    gameRoom.GetPlayerInfo(client.GetID()),
+                                        Players:   players,
+                                        CreatorID: fmt.Sprintf("%d", realPlayers[0]),
+                                }
+                                client.SendMessage(codec.MustNewMessage(protocol.MsgRoomJoined, payload))
+                                log.Printf("[ArenaStatus] 发送 room_joined 给玩家 %d, roomCode=%s", playerID, gameRoom.Code)
+                                break
+                        }
+                }
+        }
+        b.server.clientsMu.RUnlock()
+
+        // 设置所有玩家为已准备状态
+        gameRoom.SetAllPlayersReady()
+        
+        log.Printf("[ArenaStatus] 竞技场房间创建完成: roomCode=%s, players=%d", gameRoom.Code, len(players))
 }
 
 // 🔧【新增】处理玩家点击"取消"按钮
