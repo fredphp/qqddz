@@ -588,33 +588,40 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
 
         // 如果没有在线的真人玩家，使用第一个机器人作为房主
         var hostRobotID uint64 = 0 // 记录作为房主的机器人ID
+        var robotHostClient *RobotClient // 机器人房主客户端
         if len(onlineClients) == 0 {
                 log.Printf("[ArenaStatus] ⚠️ 桌号 %d 没有在线的真人玩家，使用机器人作为房主", table.TableID)
                 // 使用机器人作为房主
                 if len(table.RobotPlayers) > 0 {
                         hostRobotID = table.RobotPlayers[0]
-                        robotClient := NewRobotClient(hostRobotID, b.server)
-                        if robotClient != nil {
-                                onlineClients = append(onlineClients, robotClient)
-                        }
+                        robotHostClient = NewRobotClient(hostRobotID, b.server)
                 }
-                if len(onlineClients) == 0 {
+                if robotHostClient == nil {
                         log.Printf("[ArenaStatus] ❌ 桌号 %d 无法创建房间：没有可用玩家", table.TableID)
                         return
                 }
         }
 
         // ============================================================
-        // 2. 随机选择房主（从在线真人玩家中随机选择）
+        // 2. 随机选择房主并创建房间
         // ============================================================
-        hostIdx := rand.Intn(len(onlineClients))
-        hostClient := onlineClients[hostIdx]
-        
-        // 从在线列表中移除房主（房主创建房间时已自动加入）
-        onlineClients = append(onlineClients[:hostIdx], onlineClients[hostIdx+1:]...)
-        
-        log.Printf("[ArenaStatus] 🏠 桌号 %d 随机选择房主: PlayerID=%d, Name=%s", 
-                table.TableID, hostClient.PlayerID, hostClient.GetName())
+        var hostClient types.ClientInterface
+        if robotHostClient != nil {
+                // 使用机器人作为房主
+                hostClient = robotHostClient
+                log.Printf("[ArenaStatus] 🏠 桌号 %d 使用机器人作为房主: PlayerID=%d, Name=%s", 
+                        table.TableID, hostRobotID, robotHostClient.GetName())
+        } else {
+                // 从在线真人玩家中随机选择房主
+                hostIdx := rand.Intn(len(onlineClients))
+                hostClient = onlineClients[hostIdx]
+                
+                // 从在线列表中移除房主（房主创建房间时已自动加入）
+                onlineClients = append(onlineClients[:hostIdx], onlineClients[hostIdx+1:]...)
+                
+                log.Printf("[ArenaStatus] 🏠 桌号 %d 随机选择房主: PlayerID=%d, Name=%s", 
+                        table.TableID, hostClient.GetPlayerID(), hostClient.GetName())
+        }
 
         // ============================================================
         // 3. 创建房间（房主自动加入，座位0）
@@ -629,7 +636,7 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
         table.RoomCreated = true
         table.RoomCode = gameRoom.Code
         
-        log.Printf("[ArenaStatus] ✅ 房间创建成功: roomCode=%s, 房主=%d", gameRoom.Code, hostClient.PlayerID)
+        log.Printf("[ArenaStatus] ✅ 房间创建成功: roomCode=%s, 房主=%d", gameRoom.Code, hostClient.GetPlayerID())
 
         // ============================================================
         // 4. 将其他真人玩家加入房间（座位1、2）
