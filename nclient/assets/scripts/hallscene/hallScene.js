@@ -1977,6 +1977,8 @@ cc.Class({
         var self = this;
         var myglobal = window.myglobal;
         
+        console.log("🏟️ [Arena] 进入竞技场比赛，data:", JSON.stringify(data));
+        
         // 保存比赛信息
         if (myglobal) {
             myglobal.currentArenaMatch = data;
@@ -2006,11 +2008,54 @@ cc.Class({
             myglobal.currentRoomName = data.room_name;
         }
         
-        // 获取玩家竞技币
-        var playerArenaCoin = myglobal && myglobal.playerData ? myglobal.playerData.arena_coin : 0;
+        // 🔧【修复】竞技场直接进入游戏场景，最多等待2秒
+        this._enterArenaGameScene(data, roomConfig);
+    },
+    
+    // 🔧【新增】竞技场直接进入游戏场景（最多等待2秒）
+    _enterArenaGameScene: function(matchData, roomConfig) {
+        var self = this;
+        var myglobal = window.myglobal;
         
-        // 显示加载界面并进入快速匹配
-        this._showLoadingProgress(roomConfig, playerArenaCoin);
+        // 显示简短加载提示
+        this._showMessageCenter("正在进入竞技场...");
+        
+        // 构造房间数据
+        var roomData = {
+            room_code: matchData.room_code || ("arena_" + matchData.period_no),
+            room_id: matchData.room_id,
+            room_name: matchData.room_name,
+            room_category: 2,  // 竞技场
+            base_score: roomConfig.base_score || 1,
+            multiplier: roomConfig.multiplier || 1,
+            period_no: matchData.period_no,
+            match_rounds: matchData.match_rounds
+        };
+        
+        // 保存房间数据
+        if (myglobal) {
+            myglobal.roomData = roomData;
+            myglobal.playerData = myglobal.playerData || {};
+            myglobal.playerData.bottom = roomConfig.base_score || 1;
+            myglobal.playerData.rate = roomConfig.multiplier || 1;
+        }
+        
+        // 🔧【关键】最多等待2秒后直接进入游戏场景
+        var enterDelay = 500;  // 默认等待500ms
+        
+        // 如果有等待数据，可以适当延长
+        if (matchData.wait_time && matchData.wait_time > 0) {
+            enterDelay = Math.min(matchData.wait_time * 1000, 2000);  // 最多2秒
+        }
+        
+        console.log("🏟️ [Arena] 将在 " + enterDelay + "ms 后进入游戏场景");
+        
+        // 设置定时器，延迟进入游戏场景
+        this._arenaEnterTimer = setTimeout(function() {
+            self._arenaEnterTimer = null;
+            console.log("🏟️ [Arena] 进入游戏场景");
+            self._enterGameScene(roomData);
+        }, enterDelay);
     },
 
     // 🔧【新增】从配置初始化本地状态（作为备用）
