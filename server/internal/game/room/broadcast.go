@@ -67,6 +67,7 @@ func (r *Room) GetPlayerInfo(playerID string) protocol.PlayerInfo {
                 return protocol.PlayerInfo{
                         ID:         playerID,
                         Name:       "未知玩家",
+                        Avatar:     "",
                         Seat:       0,
                         Ready:      false,
                         IsLandlord: false,
@@ -80,6 +81,7 @@ func (r *Room) GetPlayerInfo(playerID string) protocol.PlayerInfo {
                 return protocol.PlayerInfo{
                         ID:         playerID,
                         Name:       "已断开玩家",
+                        Avatar:     "",
                         Seat:       player.Seat,
                         Ready:      player.Ready,
                         IsLandlord: player.IsLandlord,
@@ -88,14 +90,15 @@ func (r *Room) GetPlayerInfo(playerID string) protocol.PlayerInfo {
                 }
         }
 
-        // 获取玩家金币数量
+        // 获取玩家基本信息
         goldCount := player.Client.GetGold()
         playerName := player.Client.GetName()
         playerDBID := player.Client.GetPlayerID()
+        var avatar string
         
         log.Printf("🔍 [GetPlayerInfo] 玩家UUID=%s, 昵称=%s, PlayerID=%d, 当前缓存金币=%d", playerID, playerName, playerDBID, goldCount)
         
-        // 🔧【修复】始终尝试从数据库获取最新金币（确保数据准确）
+        // 🔧【修复】从数据库获取最新玩家信息（金币、头像等）
         db := database.DB()
         if db != nil {
                 // 优先通过 PlayerID 查询
@@ -105,8 +108,9 @@ func (r *Room) GetPlayerInfo(playerID string) protocol.PlayerInfo {
                                 log.Printf("⚠️ [GetPlayerInfo] 通过PlayerID查询失败: %v, PlayerID: %d", err, playerDBID)
                         } else {
                                 goldCount = dbPlayer.Gold
+                                avatar = dbPlayer.Avatar
                                 player.Client.SetGold(goldCount)
-                                log.Printf("✅ [GetPlayerInfo] 通过PlayerID=%d 获取玩家金币: %d", playerDBID, goldCount)
+                                log.Printf("✅ [GetPlayerInfo] 通过PlayerID=%d 获取玩家信息: 金币=%d, 头像=%s", playerDBID, goldCount, avatar)
                         }
                 } else if playerName != "" {
                         // PlayerID 为 0 时，通过昵称查询
@@ -115,21 +119,23 @@ func (r *Room) GetPlayerInfo(playerID string) protocol.PlayerInfo {
                                 log.Printf("⚠️ [GetPlayerInfo] 通过昵称查询失败: %v, 昵称: %s", err, playerName)
                         } else {
                                 goldCount = dbPlayer.Gold
+                                avatar = dbPlayer.Avatar
                                 player.Client.SetPlayerID(dbPlayer.ID)
                                 player.Client.SetGold(goldCount)
-                                log.Printf("✅ [GetPlayerInfo] 通过昵称=%s 获取玩家金币: %d, PlayerID: %d", playerName, goldCount, dbPlayer.ID)
+                                log.Printf("✅ [GetPlayerInfo] 通过昵称=%s 获取玩家信息: 金币=%d, 头像=%s, PlayerID: %d", playerName, goldCount, avatar, dbPlayer.ID)
                         }
                 }
         } else {
                 log.Printf("⚠️ [GetPlayerInfo] 数据库连接为空，使用缓存金币: %d", goldCount)
         }
         
-        log.Printf("📤 [GetPlayerInfo] 返回玩家信息: UUID=%s, 昵称=%s, 金币=%d", playerID, playerName, goldCount)
+        log.Printf("📤 [GetPlayerInfo] 返回玩家信息: UUID=%s, 昵称=%s, 头像=%s, 金币=%d", playerID, playerName, avatar, goldCount)
 
         // 游戏会话由外部调用方管理，此处暂不传入
         return protocol.PlayerInfo{
                 ID:         player.Client.GetID(),
                 Name:       playerName,
+                Avatar:     avatar,
                 Seat:       player.Seat,
                 Ready:      player.Ready,
                 IsLandlord: player.IsLandlord,

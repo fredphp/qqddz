@@ -463,13 +463,14 @@ type AssetUpdatePayload struct {
 type PlayerInfo struct {
         ID         string `json:"id"`
         Name       string `json:"name"`
+        Avatar     string `json:"avatar"`      // 🔧【新增】玩家头像URL
         Seat       int    `json:"seat"`        // 座位号 0-2
         Ready      bool   `json:"ready"`       // 是否准备
         IsLandlord bool   `json:"is_landlord"` // 是否是地主
         CardsCount int    `json:"cards_count"` // 手牌数量
         Online     bool   `json:"online"`      // 是否在线（兼容旧客户端）
         State      string `json:"state"`       // 玩家状态: online/offline/robot
-        GoldCount  int64  `json:"gold_count"`  // 🔧【新增】玩家金币数量
+        GoldCount  int64  `json:"gold_count"`  // 玩家金币数量
 }
 
 // CardInfo 牌信息

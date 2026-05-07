@@ -1123,12 +1123,13 @@ func (b *ArenaStatusBroadcaster) HandlePlayerCancelEnter(periodNo string, player
 
 // 🔧【新增】添加机器人到报名列表
 // 机器人报名不需要竞技币
+// 注意：机器人必须预先存在于 ddz_players 表中，server服务不创建机器人
 func (b *ArenaStatusBroadcaster) fillRobotsToSignupList(periodNo string, roomID uint64, count int) []uint64 {
         if count <= 0 {
                 return nil
         }
         
-        // 从数据库获取可用机器人
+        // 从数据库获取可用机器人（player_type=2 且 robot_status=0）
         var robots []database.Player
         err := database.DB().Where("player_type = ? AND robot_status = ?", 
                 database.PlayerTypeRobot, database.RobotStatusIdle).
@@ -1141,21 +1142,13 @@ func (b *ArenaStatusBroadcaster) fillRobotsToSignupList(periodNo string, roomID 
                 return nil
         }
         
-        // 🔧【修复】如果没有可用机器人，自动创建
-        if len(robots) < count {
-                needCreate := count - len(robots)
-                log.Printf("[ArenaStatus] 可用机器人不足，需要创建 %d 个新机器人", needCreate)
-                
-                newRobots := b.createRobots(needCreate)
-                if len(newRobots) > 0 {
-                        robots = append(robots, newRobots...)
-                        log.Printf("[ArenaStatus] 成功创建 %d 个新机器人", len(newRobots))
-                }
+        if len(robots) == 0 {
+                log.Printf("[ArenaStatus] ⚠️ 没有可用的机器人，请在 ddz_players 表中添加机器人")
+                return nil
         }
         
-        if len(robots) == 0 {
-                log.Printf("[ArenaStatus] 没有可用的机器人，且创建失败")
-                return nil
+        if len(robots) < count {
+                log.Printf("[ArenaStatus] ⚠️ 可用机器人不足，需要 %d 个，只有 %d 个", count, len(robots))
         }
         
         var robotIDs []uint64
@@ -1181,56 +1174,6 @@ func (b *ArenaStatusBroadcaster) fillRobotsToSignupList(periodNo string, roomID 
         }
         
         return robotIDs
-}
-
-// 🔧【新增】创建机器人玩家
-func (b *ArenaStatusBroadcaster) createRobots(count int) []database.Player {
-        if count <= 0 {
-                return nil
-        }
-        
-        var robots []database.Player
-        robotNames := []string{"小明", "小红", "小华", "小李", "小王", "小张", "小刘", "小陈", "小杨", "小赵"}
-        avatarList := []string{
-                "https://api.dicebear.com/7.x/adventurer/svg?seed=robot1",
-                "https://api.dicebear.com/7.x/adventurer/svg?seed=robot2",
-                "https://api.dicebear.com/7.x/adventurer/svg?seed=robot3",
-                "https://api.dicebear.com/7.x/adventurer/svg?seed=robot4",
-                "https://api.dicebear.com/7.x/adventurer/svg?seed=robot5",
-        }
-        
-        for i := 0; i < count; i++ {
-                // 生成唯一的机器人用户名
-                timestamp := time.Now().UnixNano() / 1000000
-                username := fmt.Sprintf("robot_%d_%d", timestamp, i)
-                nickname := robotNames[i%len(robotNames)]
-                if i >= len(robotNames) {
-                        nickname = fmt.Sprintf("机器人%d", i+1)
-                }
-                avatar := avatarList[i%len(avatarList)]
-                
-                robot := database.Player{
-                        Username:     username,
-                        Nickname:     nickname,
-                        Avatar:       avatar,
-                        Gender:       uint8(1 + (i % 2)), // 1=男, 2=女
-                        PlayerType:   database.PlayerTypeRobot,
-                        Gold:         100000,    // 机器人默认金币
-                        ArenaCoin:    1000,      // 机器人默认竞技币
-                        Status:       database.PlayerStatusNormal,
-                        RobotStatus:  database.RobotStatusIdle,
-                }
-                
-                if err := database.DB().Create(&robot).Error; err != nil {
-                        log.Printf("[ArenaStatus] 创建机器人失败: %v", err)
-                        continue
-                }
-                
-                robots = append(robots, robot)
-                log.Printf("[ArenaStatus] 创建机器人成功: ID=%d, Name=%s", robot.ID, robot.Nickname)
-        }
-        
-        return robots
 }
 
 // 🔧【新增】发送关闭弹窗消息给客户端
