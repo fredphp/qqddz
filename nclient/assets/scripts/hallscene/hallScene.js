@@ -2006,13 +2006,39 @@ cc.Class({
                     self._arenaEnterTimeout = null;
                 }
                 
-                // 保存房间数据
+                // 🔧【关键修复】转换数据格式：players → playerdata
+                // 游戏场景期望的数据格式与普通场一致
+                var players = roomData.players || [];
+                var convertedRoomData = {
+                    roomid: roomData.room_code || "ARENA",
+                    room_code: roomData.room_code || "ARENA",
+                    seatindex: roomData.player ? roomData.player.seat + 1 : 1,
+                    playerdata: players.map(function(p, idx) {
+                        return {
+                            accountid: p.id,
+                            nick_name: p.name,
+                            avatarUrl: "avatar_1",
+                            gold_count: p.gold_count || 0,
+                            goldcount: p.gold_count || 0,
+                            seatindex: (p.seat !== undefined ? p.seat : idx) + 1,
+                            isready: p.ready || false
+                        };
+                    }),
+                    housemanageid: roomData.creator_id || "",
+                    creator_id: roomData.creator_id || "",
+                    room_category: 2,  // 竞技场
+                    period_no: data.period_no
+                };
+                
+                console.log("🏟️ [Arena] 转换后的房间数据:", JSON.stringify(convertedRoomData));
+                
+                // 保存转换后的房间数据
                 if (myglobal) {
-                    myglobal.roomData = roomData;
+                    myglobal.roomData = convertedRoomData;
                 }
                 
                 // 进入游戏场景
-                self._enterGameScene(roomData);
+                self._enterGameScene(convertedRoomData);
             };
             
             // 注册监听器
