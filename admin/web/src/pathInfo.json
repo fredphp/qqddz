@@ -31,6 +31,7 @@
   "/src/view/ddz/stats/overview.vue": "DDZOverview",
   "/src/view/ddz/stats/stats.vue": "DDZStats",
   "/src/view/ddz/userAccount/userAccount.vue": "DDZUserAccount",
+  "/src/view/ddz/arenaRegistration/arenaRegistration.vue": "DDZArenaRegistration",
   "/src/view/error/index.vue": "Error",
   "/src/view/error/reload.vue": "Reload",
   "/src/view/example/breakpoint/breakpoint.vue": "BreakPoint",
