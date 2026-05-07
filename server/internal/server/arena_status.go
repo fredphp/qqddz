@@ -611,8 +611,16 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
         // 发送关闭弹窗消息
         b.sendCloseDialogNotification(enterPhase.RoomID, periodNo)
 
-        log.Printf("[ArenaStatus] 进入阶段超时处理完成: periodNo=%s, timeout=%d, totalRefund=%d, roomCreated=%v",
-                periodNo, len(timeoutPlayers), totalRefund, enterPhase.RoomCreated)
+        // 统计已创建的房间数
+        createdRooms := 0
+        for _, table := range enterPhase.Tables {
+                if table.RoomCreated {
+                        createdRooms++
+                }
+        }
+
+        log.Printf("[ArenaStatus] 进入阶段超时处理完成: periodNo=%s, timeout=%d, totalRefund=%d, tables=%d, roomsCreated=%d",
+                periodNo, len(timeoutPlayers), totalRefund, len(enterPhase.Tables), createdRooms)
 }
 
 // 🔧【新增】处理玩家点击"进入"按钮
@@ -703,7 +711,7 @@ func (b *ArenaStatusBroadcaster) HandlePlayerEnter(periodNo string, playerID uin
                 log.Printf("[ArenaStatus] 玩家 %d 加入房间成功: roomCode=%s", playerID, table.RoomCode)
                 
                 // 设置玩家为准备状态
-                gameRoom.SetPlayerReady(client, true)
+                b.server.roomManager.SetPlayerReady(client, true)
         }
 
         // 发送 room_joined 消息
