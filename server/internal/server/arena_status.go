@@ -537,42 +537,80 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
         log.Printf("[ArenaStatus] ✅ 竞技场分组完成: periodNo=%s, tables=%d", periodNo, len(tables))
 }
 
-// 🔧【新增】为一桌玩家创建房间并开始游戏
-// 参考普通场的实现流程
+// 🔧【重构】为一桌玩家创建房间并开始游戏
+// 流程：3人同时分配 → 随机选房主 → 创建房间 → 三人同时加入 → 自动准备 → 开始游戏
 func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseInfo, table *GameTable, roomConfigID uint64, playerMap map[uint64]*database.Player) {
         if b.server.roomManager == nil {
                 log.Printf("[ArenaStatus] ❌ roomManager 未初始化")
                 return
         }
 
-        // 1. 找到房主（第一个在线的真人玩家）
-        var hostClient *Client
+        log.Printf("[ArenaStatus] 🎲 桌号 %d 开始创建房间，玩家列表: %v", table.TableID, table.Players)
+
+        // ============================================================
+        // 1. 收集所有在线玩家客户端（真人）
+        // ============================================================
+        onlineClients := make([]*Client, 0) // 在线的真人玩家
+        var offlineRealPlayerCount int // 不在线的真人玩家数量
+        
         b.server.clientsMu.RLock()
         for _, playerID := range table.Players {
-                if playerMap[playerID] == nil || playerMap[playerID].PlayerType != database.PlayerTypeRobot {
-                        // 真人玩家
-                        for _, client := range b.server.clients {
-                                if client.PlayerID == playerID && client.GetRoom() == "" {
-                                        hostClient = client
-                                        break
-                                }
+                // 跳过机器人
+                if playerMap[playerID] != nil && playerMap[playerID].PlayerType == database.PlayerTypeRobot {
+                        continue
+                }
+                
+                // 查找真人玩家的客户端连接
+                foundClient := false
+                for _, client := range b.server.clients {
+                        if client.PlayerID == playerID && client.GetRoom() == "" {
+                                onlineClients = append(onlineClients, client)
+                                foundClient = true
+                                break
                         }
                 }
-                if hostClient != nil {
-                        break
+                
+                if !foundClient {
+                        offlineRealPlayerCount++
                 }
         }
         b.server.clientsMu.RUnlock()
-
-        // 如果没有在线的真人玩家，跳过这桌
-        if hostClient == nil {
-                log.Printf("[ArenaStatus] ⚠️ 桌号 %d 没有在线的真人玩家，跳过", table.TableID)
-                return
+        
+        if offlineRealPlayerCount > 0 {
+                log.Printf("[ArenaStatus] ⚠️ 桌号 %d 有 %d 个真人玩家不在线", table.TableID, offlineRealPlayerCount)
         }
 
-        log.Printf("[ArenaStatus] 🏠 桌号 %d 创建房间，房主: %d (%s)", table.TableID, hostClient.PlayerID, hostClient.GetName())
+        // 如果没有在线的真人玩家，使用第一个机器人作为房主
+        if len(onlineClients) == 0 {
+                log.Printf("[ArenaStatus] ⚠️ 桌号 %d 没有在线的真人玩家，使用机器人作为房主", table.TableID)
+                // 使用机器人作为房主
+                if len(table.RobotPlayers) > 0 {
+                        robotClient := NewRobotClient(table.RobotPlayers[0], b.server)
+                        if robotClient != nil {
+                                onlineClients = append(onlineClients, robotClient)
+                        }
+                }
+                if len(onlineClients) == 0 {
+                        log.Printf("[ArenaStatus] ❌ 桌号 %d 无法创建房间：没有可用玩家", table.TableID)
+                        return
+                }
+        }
 
-        // 2. 创建房间
+        // ============================================================
+        // 2. 随机选择房主（从在线真人玩家中随机选择）
+        // ============================================================
+        hostIdx := rand.Intn(len(onlineClients))
+        hostClient := onlineClients[hostIdx]
+        
+        // 从在线列表中移除房主（房主创建房间时已自动加入）
+        onlineClients = append(onlineClients[:hostIdx], onlineClients[hostIdx+1:]...)
+        
+        log.Printf("[ArenaStatus] 🏠 桌号 %d 随机选择房主: PlayerID=%d, Name=%s", 
+                table.TableID, hostClient.PlayerID, hostClient.GetName())
+
+        // ============================================================
+        // 3. 创建房间（房主自动加入，座位0）
+        // ============================================================
         gameRoom, err := b.server.roomManager.CreateRoom(hostClient, roomConfigID)
         if err != nil {
                 log.Printf("[ArenaStatus] ❌ 创建房间失败: %v", err)
@@ -582,33 +620,24 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
         // 记录房间信息
         table.RoomCreated = true
         table.RoomCode = gameRoom.Code
+        
+        log.Printf("[ArenaStatus] ✅ 房间创建成功: roomCode=%s, 房主=%d", gameRoom.Code, hostClient.PlayerID)
 
-        // 3. 将其他真人玩家加入房间
-        b.server.clientsMu.RLock()
-        for _, playerID := range table.Players {
-                if playerID == hostClient.PlayerID {
-                        continue // 房主已经在房间里
-                }
-                
-                // 检查是否是真人玩家
-                if playerMap[playerID] == nil || playerMap[playerID].PlayerType != database.PlayerTypeRobot {
-                        // 真人玩家，找到对应的客户端
-                        for _, client := range b.server.clients {
-                                if client.PlayerID == playerID && client.GetRoom() == "" {
-                                        _, err := b.server.roomManager.JoinRoom(client, gameRoom.Code)
-                                        if err != nil {
-                                                log.Printf("[ArenaStatus] ⚠️ 玩家 %d 加入房间失败: %v", playerID, err)
-                                        } else {
-                                                log.Printf("[ArenaStatus] ✅ 玩家 %d 加入房间成功", playerID)
-                                        }
-                                        break
-                                }
-                        }
+        // ============================================================
+        // 4. 将其他真人玩家加入房间（座位1、2）
+        // ============================================================
+        for _, client := range onlineClients {
+                _, err := b.server.roomManager.JoinRoom(client, gameRoom.Code)
+                if err != nil {
+                        log.Printf("[ArenaStatus] ⚠️ 玩家 %d 加入房间失败: %v", client.PlayerID, err)
+                } else {
+                        log.Printf("[ArenaStatus] ✅ 玩家 %d (%s) 加入房间成功", client.PlayerID, client.GetName())
                 }
         }
-        b.server.clientsMu.RUnlock()
 
-        // 4. 将机器人加入房间
+        // ============================================================
+        // 5. 将机器人加入房间
+        // ============================================================
         for _, robotID := range table.RobotPlayers {
                 robotClient := NewRobotClient(robotID, b.server)
                 if robotClient != nil {
@@ -621,10 +650,15 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
                 }
         }
 
-        // 5. 设置所有玩家为已准备状态
+        // ============================================================
+        // 6. 设置所有玩家为已准备状态
+        // ============================================================
         gameRoom.SetAllPlayersReady()
+        log.Printf("[ArenaStatus] 📋 桌号 %d 所有玩家已准备", table.TableID)
 
-        // 6. 发送 room_joined 消息给所有真人玩家（参考普通场）
+        // ============================================================
+        // 7. 获取房间内所有玩家信息（用于广播）
+        // ============================================================
         players := gameRoom.GetAllPlayersInfo()
         log.Printf("[ArenaStatus] 📋 桌号 %d 房间内玩家列表: %d 人", table.TableID, len(players))
         for i, p := range players {
@@ -632,30 +666,37 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
                         i, p.ID, p.Name, p.Seat, p.Ready, p.GoldCount)
         }
 
+        // ============================================================
+        // 8. 发送 room_joined 消息给所有真人玩家
+        // ============================================================
         b.server.clientsMu.RLock()
         for _, playerID := range table.Players {
                 // 只给真人玩家发送消息
-                if playerMap[playerID] == nil || playerMap[playerID].PlayerType != database.PlayerTypeRobot {
-                        for _, client := range b.server.clients {
-                                if client.PlayerID == playerID {
-                                        playerInfo := gameRoom.GetPlayerInfo(client.GetID())
-                                        payload := &protocol.RoomJoinedPayload{
-                                                RoomCode:  gameRoom.Code,
-                                                Player:    playerInfo,
-                                                Players:   players,
-                                                CreatorID: gameRoom.CreatorID,
-                                        }
-                                        client.SendMessage(codec.MustNewMessage(protocol.MsgRoomJoined, payload))
-                                        log.Printf("[ArenaStatus] ✅ 发送 room_joined 给玩家 %d (%s), roomCode=%s, seat=%d", 
-                                                playerID, playerInfo.Name, gameRoom.Code, playerInfo.Seat)
-                                        break
+                if playerMap[playerID] != nil && playerMap[playerID].PlayerType == database.PlayerTypeRobot {
+                        continue
+                }
+                
+                for _, client := range b.server.clients {
+                        if client.PlayerID == playerID {
+                                playerInfo := gameRoom.GetPlayerInfo(client.GetID())
+                                payload := &protocol.RoomJoinedPayload{
+                                        RoomCode:  gameRoom.Code,
+                                        Player:    playerInfo,
+                                        Players:   players,
+                                        CreatorID: gameRoom.CreatorID,
                                 }
+                                client.SendMessage(codec.MustNewMessage(protocol.MsgRoomJoined, payload))
+                                log.Printf("[ArenaStatus] ✅ 发送 room_joined 给玩家 %d (%s), roomCode=%s, seat=%d", 
+                                        playerID, playerInfo.Name, gameRoom.Code, playerInfo.Seat)
+                                break
                         }
                 }
         }
         b.server.clientsMu.RUnlock()
 
-        // 7. 广播所有玩家准备状态
+        // ============================================================
+        // 9. 广播所有玩家准备状态
+        // ============================================================
         for _, player := range gameRoom.Players {
                 if player.Client != nil {
                         gameRoom.Broadcast(codec.MustNewMessage(protocol.MsgPlayerReady, &protocol.PlayerReadyPayload{
@@ -664,15 +705,20 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
                         }))
                 }
         }
+        log.Printf("[ArenaStatus] 📢 桌号 %d 已广播准备状态", table.TableID)
 
-        // 8. 开始游戏
+        // ============================================================
+        // 10. 开始游戏
+        // ============================================================
         log.Printf("[ArenaStatus] 🎮 桌号 %d 开始游戏: roomCode=%s", table.TableID, gameRoom.Code)
         if err := gameRoom.StartGame(); err != nil {
                 log.Printf("[ArenaStatus] ❌ 开始游戏失败: %v", err)
                 return
         }
 
-        // 9. 触发游戏会话创建（发牌）
+        // ============================================================
+        // 11. 触发游戏会话创建（发牌）
+        // ============================================================
         if b.server.roomManager != nil {
                 b.server.roomManager.TriggerOnGameStart(gameRoom)
                 log.Printf("[ArenaStatus] 🎯 已触发游戏会话创建: roomCode=%s", gameRoom.Code)
