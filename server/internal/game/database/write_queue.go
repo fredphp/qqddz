@@ -955,7 +955,7 @@ func (WriteQueueErrorLog) TableName() string {
 // 🔧【新增】持久化待处理数据，服务器异常重启后可恢复
 type PendingGameData struct {
         ID        uint64    `gorm:"primaryKey;autoIncrement" json:"id"`
-        GameID    string    `gorm:"type:varchar(64);uniqueIndex;index" json:"game_id"` // 游戏ID，唯一标识
+        GameID    string    `gorm:"type:varchar(64);uniqueIndex" json:"game_id"` // 游戏ID，唯一标识
         DataJSON  string    `gorm:"type:text" json:"data_json"`                         // 序列化的游戏数据（JSON格式）
         Status    uint8     `gorm:"default:0;index" json:"status"`                      // 状态: 0-待处理, 1-处理中, 2-处理成功, 3-处理失败
         RetryCount int       `gorm:"default:0" json:"retry_count"`                       // 重试次数
