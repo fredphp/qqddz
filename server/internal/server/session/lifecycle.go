@@ -332,6 +332,7 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 // 🔧【修复】查询当前金币，计算变化后的金币值
                 // 实现界面"同步加减"效果，无需等待数据库异步更新
                 var goldAfter int64 = -1
+                var matchCoin int64 = 0 // 🔧【新增】竞技场模式下的竞技币
                 if p.DBID > 0 && database.GetInstance().IsConnected() {
                         if player, err := database.GetPlayerByID(p.DBID); err == nil {
                                 goldAfter = int64(player.Gold) + winGold
@@ -340,8 +341,21 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                         } else {
                                 log.Printf("⚠️ [GoldCalc] 查询玩家金币失败: DBID=%d, err=%v", p.DBID, err)
                         }
+
+                        // 🔧【新增】竞技场模式下获取玩家竞技币
+                        if gs.room.RoomCategory == 2 && gs.room.ArenaSessionID > 0 {
+                                var participation database.ArenaParticipation
+                                if err := database.DB().Where("session_id = ? AND player_id = ?", gs.room.ArenaSessionID, p.DBID).First(&participation).Error; err != nil {
+                                        log.Printf("⚠️ [MatchCoin] 获取竞技币失败: session_id=%d, player_id=%d, err=%v", gs.room.ArenaSessionID, p.DBID, err)
+                                } else {
+                                        // 竞技币 = 当前竞技币 + 本局输赢
+                                        matchCoin = participation.MatchCoin + winGold
+                                        log.Printf("🏟️ [MatchCoin] 玩家 %s (DBID=%d): 当前竞技币=%d, 本局变化=%d, 结算后=%d",
+                                                p.Name, p.DBID, participation.MatchCoin, winGold, matchCoin)
+                                }
+                        }
                 }
-                
+
                 players[i] = protocol.PlayerResult{
                         PlayerID:   p.ID,
                         PlayerName: p.Name,
@@ -349,11 +363,12 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                         Role:       role,
                         IsWinner:   isWinner,
                         WinGold:    winGold,
-                        GoldAfter:  goldAfter, // 🔧【修复】显示计算后的金币值
+                        GoldAfter:  goldAfter,  // 🔧【修复】显示计算后的金币值
+                        MatchCoin:  matchCoin, // 🔧【新增】竞技场模式下的竞技币
                 }
-                
-                log.Printf("📊 [PlayerResult] %s(%s): winGold=%d, goldAfter=%d, isWinner=%v",
-                        p.Name, role, winGold, goldAfter, isWinner)
+
+                log.Printf("📊 [PlayerResult] %s(%s): winGold=%d, goldAfter=%d, matchCoin=%d, isWinner=%v",
+                        p.Name, role, winGold, goldAfter, matchCoin, isWinner)
         }
 
         // 收集所有玩家剩余手牌

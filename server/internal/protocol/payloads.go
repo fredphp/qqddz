@@ -346,6 +346,7 @@ type PlayerResult struct {
         IsWinner   bool   `json:"is_winner"`   // 是否获胜
         WinGold    int64  `json:"win_gold"`    // 输赢豆子（正=赢，负=输）
         GoldAfter  int64  `json:"gold_after"`  // 结算后豆子（如果有的话）
+        MatchCoin  int64  `json:"match_coin"`  // 🔧【新增】竞技场模式下的竞技币
 }
 
 // PlayerHand 玩家手牌信息（用于游戏结束展示）

@@ -4790,6 +4790,43 @@ cc.Class({
         }
     },
 
+    /**
+     * 🔧【新增】更新玩家节点的竞技币显示（竞技场模式专用）
+     * @param {String} playerId - 玩家ID
+     * @param {Number} matchCoin - 新的竞技币数量
+     */
+    _updatePlayerMatchCoinDisplay: function(playerId, matchCoin) {
+        console.log("🏟️ [_updatePlayerMatchCoinDisplay] 更新玩家竞技币: playerId=", playerId, "matchCoin=", matchCoin)
+
+        // 获取 gameScene 脚本
+        var gameScene_script = this.node.parent ? this.node.parent.getComponent("gameScene") : null
+        if (!gameScene_script || !gameScene_script.playerNodeList) {
+            console.warn("🏟️ [_updatePlayerMatchCoinDisplay] 无法获取 gameScene 或 playerNodeList")
+            return
+        }
+
+        // 遍历所有玩家节点，找到匹配的玩家并更新竞技币显示
+        for (var i = 0; i < gameScene_script.playerNodeList.length; i++) {
+            var playerNode = gameScene_script.playerNodeList[i]
+            if (!playerNode) continue
+
+            var playerScript = playerNode.getComponent("player_node")
+            if (!playerScript) continue
+
+            // 匹配玩家ID
+            if (String(playerScript.accountid) === String(playerId)) {
+                // 更新竞技币显示
+                if (playerScript.globalcount_label) {
+                    playerScript.globalcount_label.string = String(matchCoin)
+                    console.log("🏟️ [_updatePlayerMatchCoinDisplay] 已更新玩家 ", playerId, " 的竞技币显示为 ", matchCoin)
+                }
+                // 🔧【新增】保存竞技币到玩家脚本实例
+                playerScript._matchCoin = matchCoin
+                break
+            }
+        }
+    },
+
     // ============================================================
     // 【竞技场】功能函数
     // ============================================================
@@ -4827,7 +4864,21 @@ cc.Class({
         if (data.match_coin !== undefined) {
             this._matchCoin = data.match_coin
         }
-        
+
+        // 🔧【新增】更新所有玩家的竞技币显示
+        if (data.players && data.players.length > 0) {
+            for (var i = 0; i < data.players.length; i++) {
+                var player = data.players[i]
+                var playerId = player.player_id
+                var matchCoin = player.match_coin
+
+                // 🔧【修复】竞技场模式下更新玩家的竞技币显示
+                if (matchCoin !== undefined && matchCoin >= 0) {
+                    this._updatePlayerMatchCoinDisplay(playerId, matchCoin)
+                }
+            }
+        }
+
         var canvas = cc.find("Canvas") || cc.find("UI_ROOT") || this.node.parent
         if (!canvas) canvas = this.node
         

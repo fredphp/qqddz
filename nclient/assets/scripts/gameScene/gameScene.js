@@ -369,25 +369,31 @@ cc.Class({
     },
 
     addPlayerNode(player_data) {
-        
+
         if (!this.player_node_prefabs) {
             console.error("player_node_prefabs 未绑定！");
             return;
         }
-        
+
         if (!this.players_seat_pos) {
             console.error("players_seat_pos 未绑定！");
             return;
         }
-        
+
         var playernode_inst = cc.instantiate(this.player_node_prefabs);
         if (!playernode_inst) {
             console.error("无法实例化 player_node_prefabs");
             return;
         }
-        
+
         playernode_inst.parent = this.node;
         this.playerNodeList.push(playernode_inst);
+
+        // 🔧【修复】将房间类型传递给 player_node（用于区分普通场和竞技场）
+        if (!player_data.room_category) {
+            player_data.room_category = this._roomCategory || 1
+            console.log("🏟️ [addPlayerNode] 设置 player_data.room_category =", player_data.room_category)
+        }
 
         var index = this.playerdata_list_pos[player_data.seatindex];
         
@@ -469,6 +475,10 @@ cc.Class({
         if (isArenaMode) {
             console.log("🏟️ [_processRoomData] 竞技场模式: room_category=2, playerdata数量=" + playerdata_list.length)
         }
+
+        // 🔧【修复】保存房间类型到实例变量，供 player_node 使用
+        this._roomCategory = result.room_category || 1
+        this._isArenaMode = isArenaMode
 
         this._playerdataList = playerdata_list
 
