@@ -19,35 +19,35 @@ import (
 // WriteQueueConfig 写入队列配置
 type WriteQueueConfig struct {
 	// 队列配置
-	QueueSize         int           // 队列大小（缓冲的游戏结果数量）
-	BatchSize         int           // 批量写入大小
-	BatchTimeout      time.Duration // 批量写入超时时间
+	QueueSize    int           // 队列大小（缓冲的游戏结果数量）
+	BatchSize    int           // 批量写入大小
+	BatchTimeout time.Duration // 批量写入超时时间
 
 	// 限流配置
-	MaxWriteRate      int           // 最大写入速率（每秒）
-	WriteBurst        int           // 写入突发大小
+	MaxWriteRate int // 最大写入速率（每秒）
+	WriteBurst   int // 写入突发大小
 
 	// 重试配置
-	MaxRetries        int           // 最大重试次数
-	RetryBaseDelay    time.Duration // 重试基础延迟
-	RetryMaxDelay     time.Duration // 重试最大延迟
+	MaxRetries     int           // 最大重试次数
+	RetryBaseDelay time.Duration // 重试基础延迟
+	RetryMaxDelay  time.Duration // 重试最大延迟
 
 	// 监控配置
-	MetricsInterval   time.Duration // 指标上报间隔
+	MetricsInterval time.Duration // 指标上报间隔
 }
 
 // DefaultWriteQueueConfig 返回默认配置
 func DefaultWriteQueueConfig() *WriteQueueConfig {
 	return &WriteQueueConfig{
-		QueueSize:       1000,              // 队列缓冲1000个游戏结果
-		BatchSize:       10,                // 每批处理10个
+		QueueSize:       1000,                   // 队列缓冲1000个游戏结果
+		BatchSize:       10,                     // 每批处理10个
 		BatchTimeout:    500 * time.Millisecond, // 500ms超时触发批量写入
-		MaxWriteRate:    100,               // 每秒最多100次写入
-		WriteBurst:      20,                // 突发20次
-		MaxRetries:      3,                 // 最多重试3次
-		RetryBaseDelay:  1 * time.Second,   // 基础延迟1秒
-		RetryMaxDelay:   10 * time.Second,  // 最大延迟10秒
-		MetricsInterval: 30 * time.Second,  // 30秒上报一次指标
+		MaxWriteRate:    100,                    // 每秒最多100次写入
+		WriteBurst:      20,                     // 突发20次
+		MaxRetries:      3,                      // 最多重试3次
+		RetryBaseDelay:  1 * time.Second,        // 基础延迟1秒
+		RetryMaxDelay:   10 * time.Second,       // 最大延迟10秒
+		MetricsInterval: 30 * time.Second,       // 30秒上报一次指标
 	}
 }
 
@@ -58,32 +58,32 @@ func DefaultWriteQueueConfig() *WriteQueueConfig {
 // GameResultData 游戏结果数据
 type GameResultData struct {
 	// 基本信息
-	RoomCode    string
-	GameID      string
-	RoomID      string
-	RoomType    uint8
+	RoomCode     string
+	GameID       string
+	RoomID       string
+	RoomType     uint8
 	RoomCategory uint8
 
 	// 玩家信息
-	LandlordID  uint64
-	Farmer1ID   uint64
-	Farmer2ID   uint64
+	LandlordID uint64
+	Farmer1ID  uint64
+	Farmer2ID  uint64
 
 	// 游戏数据
-	BaseScore        int
-	Multiplier       int
-	BombCount        int
-	Spring           uint8
-	Result           uint8
-	LandlordWinGold  int64
-	Farmer1WinGold   int64
-	Farmer2WinGold   int64
+	BaseScore            int
+	Multiplier           int
+	BombCount            int
+	Spring               uint8
+	Result               uint8
+	LandlordWinGold      int64
+	Farmer1WinGold       int64
+	Farmer2WinGold       int64
 	LandlordWinArenaCoin int64
 	Farmer1WinArenaCoin  int64
 	Farmer2WinArenaCoin  int64
-	DurationSeconds  int
-	StartedAt        time.Time
-	EndedAt          *time.Time
+	DurationSeconds      int
+	StartedAt            time.Time
+	EndedAt              *time.Time
 
 	// 日志数据
 	DealLogs []DealLog
@@ -91,9 +91,79 @@ type GameResultData struct {
 	PlayLogs []PlayLog
 
 	// 元数据
-	CreatedAt   time.Time
-	RetryCount  int
-	SubmitTime  time.Time
+	CreatedAt  time.Time
+	RetryCount int
+	SubmitTime time.Time
+}
+
+// =============================================
+// 令牌桶限流器
+// =============================================
+
+// TokenBucket 令牌桶限流器
+type TokenBucket struct {
+	tokens     int64 // 当前令牌数
+	maxTokens  int64 // 最大令牌数
+	refillRate int64 // 每秒填充令牌数
+	lastRefill int64 // 上次填充时间（Unix纳秒）
+
+	// 用于原子更新的互斥锁
+	mu sync.Mutex
+}
+
+// NewTokenBucket 创建令牌桶
+func NewTokenBucket(maxTokens, refillRate int64) *TokenBucket {
+	return &TokenBucket{
+		tokens:     maxTokens,
+		maxTokens:  maxTokens,
+		refillRate: refillRate,
+		lastRefill: time.Now().UnixNano(),
+	}
+}
+
+// Wait 等待指定数量的令牌
+func (tb *TokenBucket) Wait(count int) {
+	for {
+		if tb.tryAcquire(int64(count)) {
+			return
+		}
+		// 等待一小段时间后重试
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// tryAcquire 尝试获取令牌
+func (tb *TokenBucket) tryAcquire(count int64) bool {
+	tb.mu.Lock()
+	defer tb.mu.Unlock()
+
+	// 先填充令牌
+	now := time.Now().UnixNano()
+	elapsed := float64(now-tb.lastRefill) / 1e9 // 转换为秒
+	if elapsed > 0 {
+		tokensToAdd := int64(elapsed * float64(tb.refillRate))
+		if tokensToAdd > 0 {
+			tb.tokens += tokensToAdd
+			if tb.tokens > tb.maxTokens {
+				tb.tokens = tb.maxTokens
+			}
+			tb.lastRefill = now
+		}
+	}
+
+	// 尝试获取令牌
+	if tb.tokens >= count {
+		tb.tokens -= count
+		return true
+	}
+	return false
+}
+
+// Available 返回当前可用令牌数
+func (tb *TokenBucket) Available() int64 {
+	tb.mu.Lock()
+	defer tb.mu.Unlock()
+	return tb.tokens
 }
 
 // =============================================
@@ -102,9 +172,9 @@ type GameResultData struct {
 
 // WriteQueue 写入队列
 type WriteQueue struct {
-	config     *WriteQueueConfig
-	queue      chan *GameResultData
-	db         *gorm.DB
+	config *WriteQueueConfig
+	queue  chan *GameResultData
+	db     *gorm.DB
 
 	// 控制信号
 	ctx    context.Context
@@ -112,10 +182,7 @@ type WriteQueue struct {
 	wg     sync.WaitGroup
 
 	// 限流器
-	tokens      int64 // 当前令牌数
-	maxTokens   int64 // 最大令牌数
-	refillRate  int64 // 每秒填充令牌数
-	lastRefill  time.Time
+	tokenBucket *TokenBucket
 
 	// 统计指标
 	totalSubmitted  uint64 // 总提交数
@@ -129,11 +196,15 @@ type WriteQueue struct {
 	// 批量处理缓冲区
 	batchBuffer []*GameResultData
 	batchMutex  sync.Mutex
+
+	// 启动状态
+	started bool
 }
 
 var (
 	writeQueueInstance *WriteQueue
 	writeQueueOnce     sync.Once
+	writeQueueMutex    sync.Mutex
 )
 
 // GetWriteQueue 获取写入队列单例
@@ -156,11 +227,8 @@ func InitWriteQueue(config *WriteQueueConfig) error {
 	q.queue = make(chan *GameResultData, q.config.QueueSize)
 	q.batchBuffer = make([]*GameResultData, 0, q.config.BatchSize)
 
-	// 初始化限流器
-	q.tokens = int64(q.config.WriteBurst)
-	q.maxTokens = int64(q.config.WriteBurst)
-	q.refillRate = int64(q.config.MaxWriteRate)
-	q.lastRefill = time.Now()
+	// 初始化令牌桶限流器
+	q.tokenBucket = NewTokenBucket(int64(q.config.WriteBurst), int64(q.config.MaxWriteRate))
 
 	// 初始化统计
 	q.lastMetricsTime = time.Now()
@@ -170,8 +238,17 @@ func InitWriteQueue(config *WriteQueueConfig) error {
 
 // Start 启动写入队列
 func (q *WriteQueue) Start(db *gorm.DB) {
+	writeQueueMutex.Lock()
+	defer writeQueueMutex.Unlock()
+
+	if q.started {
+		log.Println("⚠️ [WriteQueue] 写入队列已经启动，跳过重复启动")
+		return
+	}
+
 	q.db = db
 	q.ctx, q.cancel = context.WithCancel(context.Background())
+	q.started = true
 
 	// 启动工作协程
 	q.wg.Add(2)
@@ -187,13 +264,22 @@ func (q *WriteQueue) Start(db *gorm.DB) {
 
 // Stop 停止写入队列
 func (q *WriteQueue) Stop() {
+	writeQueueMutex.Lock()
+	defer writeQueueMutex.Unlock()
+
+	if !q.started {
+		return
+	}
+
 	if q.cancel != nil {
 		q.cancel()
 	}
 	q.wg.Wait()
 
 	// 处理剩余数据
-	q.flushBatch()
+	q.flushRemaining()
+
+	q.started = false
 
 	log.Println("✅ [WriteQueue] 写入队列已停止")
 	log.Printf("   📊 统计: 提交=%d, 处理=%d, 成功=%d, 失败=%d, 重试=%d",
@@ -207,6 +293,10 @@ func (q *WriteQueue) Stop() {
 // Submit 提交游戏结果到队列
 // 非阻塞模式：如果队列满，返回错误
 func (q *WriteQueue) Submit(data *GameResultData) error {
+	if data == nil {
+		return nil
+	}
+
 	data.SubmitTime = time.Now()
 	data.CreatedAt = time.Now()
 
@@ -225,12 +315,21 @@ func (q *WriteQueue) Submit(data *GameResultData) error {
 // SubmitBlocking 阻塞式提交游戏结果
 // 会等待队列有空间
 func (q *WriteQueue) SubmitBlocking(data *GameResultData) {
+	if data == nil {
+		return
+	}
+
 	data.SubmitTime = time.Now()
 	data.CreatedAt = time.Now()
 
 	q.queue <- data
 	atomic.AddUint64(&q.totalSubmitted, 1)
 	atomic.StoreUint64(&q.currentQueueLen, uint64(len(q.queue)))
+}
+
+// IsStarted 检查队列是否已启动
+func (q *WriteQueue) IsStarted() bool {
+	return q.started
 }
 
 // =============================================
@@ -250,6 +349,9 @@ func (q *WriteQueue) worker() {
 			return
 
 		case data := <-q.queue:
+			if data == nil {
+				continue
+			}
 			// 添加到批量缓冲区
 			q.batchMutex.Lock()
 			q.batchBuffer = append(q.batchBuffer, data)
@@ -258,6 +360,12 @@ func (q *WriteQueue) worker() {
 
 			if shouldFlush {
 				q.flushBatch()
+				if !batchTimer.Stop() {
+					select {
+					case <-batchTimer.C:
+					default:
+					}
+				}
 				batchTimer.Reset(q.config.BatchTimeout)
 			}
 
@@ -283,40 +391,39 @@ func (q *WriteQueue) flushBatch() {
 	q.batchMutex.Unlock()
 
 	// 等待令牌
-	q.waitForToken(len(batch))
+	q.tokenBucket.Wait(len(batch))
 
 	// 批量写入
 	q.writeBatch(batch)
 }
 
-// waitForToken 等待令牌（限流）
-func (q *WriteQueue) waitForToken(count int) {
+// flushRemaining 刷新剩余数据（停止时调用）
+func (q *WriteQueue) flushRemaining() {
+	q.batchMutex.Lock()
+	if len(q.batchBuffer) == 0 {
+		q.batchMutex.Unlock()
+		return
+	}
+
+	// 取出数据
+	batch := q.batchBuffer
+	q.batchBuffer = make([]*GameResultData, 0, q.config.BatchSize)
+	q.batchMutex.Unlock()
+
+	// 直接写入，不限流
+	log.Printf("📝 [WriteQueue] 处理剩余数据: %d 条", len(batch))
+	q.writeBatch(batch)
+
+	// 处理队列中剩余的数据
 	for {
-		// 填充令牌
-		now := time.Now()
-		elapsed := now.Sub(q.lastRefill).Seconds()
-		if elapsed > 0 {
-			tokensToAdd := int64(elapsed * float64(q.refillRate))
-			if tokensToAdd > 0 {
-				newTokens := atomic.LoadInt64(&q.tokens) + tokensToAdd
-				if newTokens > q.maxTokens {
-					newTokens = q.maxTokens
-				}
-				atomic.StoreInt64(&q.tokens, newTokens)
-				q.lastRefill = now
+		select {
+		case data := <-q.queue:
+			if data != nil {
+				q.writeSingle(data)
 			}
+		default:
+			return
 		}
-
-		// 尝试获取令牌
-		current := atomic.LoadInt64(&q.tokens)
-		if current >= int64(count) {
-			if atomic.CompareAndSwapInt64(&q.tokens, current, current-int64(count)) {
-				return
-			}
-		}
-
-		// 等待一段时间
-		time.Sleep(10 * time.Millisecond)
 	}
 }
 
@@ -336,6 +443,10 @@ func (q *WriteQueue) writeBatch(batch []*GameResultData) {
 	// 使用事务批量写入
 	err := q.db.Transaction(func(tx *gorm.DB) error {
 		for _, data := range batch {
+			if data == nil {
+				continue
+			}
+
 			// 创建游戏记录
 			record := &GameRecord{
 				GameID:              data.GameID,
@@ -418,9 +529,11 @@ func (q *WriteQueue) writeBatch(batch []*GameResultData) {
 		log.Printf("❌ [WriteQueue] 批量写入失败: %v, 数量: %d, 耗时: %v", err, len(batch), elapsed)
 		atomic.AddUint64(&q.totalFailed, uint64(len(batch)))
 
-		// 重试逻辑
+		// 重试逻辑 - 单独重试每条数据
 		for _, data := range batch {
-			q.retryOrDrop(data)
+			if data != nil {
+				q.retryOrDrop(data)
+			}
 		}
 	} else {
 		atomic.AddUint64(&q.totalSuccess, uint64(len(batch)))
@@ -430,7 +543,11 @@ func (q *WriteQueue) writeBatch(batch []*GameResultData) {
 
 // writeSingle 单条写入
 func (q *WriteQueue) writeSingle(data *GameResultData) error {
-	q.waitForToken(1)
+	if data == nil {
+		return nil
+	}
+
+	q.tokenBucket.Wait(1)
 
 	atomic.AddUint64(&q.totalProcessed, 1)
 
@@ -476,10 +593,15 @@ func (q *WriteQueue) writeSingle(data *GameResultData) error {
 
 // retryOrDrop 重试或丢弃
 func (q *WriteQueue) retryOrDrop(data *GameResultData) {
+	if data == nil {
+		return
+	}
+
 	data.RetryCount++
 
 	if data.RetryCount >= q.config.MaxRetries {
-		log.Printf("❌ [WriteQueue] 数据丢弃，超过最大重试次数: %s", data.GameID)
+		log.Printf("❌ [WriteQueue] 数据丢弃，超过最大重试次数(%d): GameID=%s, RoomID=%s",
+			data.RetryCount, data.GameID, data.RoomID)
 		return
 	}
 
@@ -491,11 +613,15 @@ func (q *WriteQueue) retryOrDrop(data *GameResultData) {
 		delay = q.config.RetryMaxDelay
 	}
 
+	log.Printf("🔄 [WriteQueue] 准备重试: GameID=%s, 第%d次重试, 延迟=%v",
+		data.GameID, data.RetryCount, delay)
+
 	// 异步重试
 	go func() {
 		time.Sleep(delay)
-		if err := q.Submit(data); err != nil {
-			log.Printf("❌ [WriteQueue] 重试提交失败: %v", err)
+		// 重试时直接写入，避免队列循环
+		if err := q.writeSingle(data); err != nil {
+			log.Printf("❌ [WriteQueue] 重试写入失败: %v, GameID=%s", err, data.GameID)
 		}
 	}()
 }
@@ -538,14 +664,19 @@ func (q *WriteQueue) reportMetrics() {
 	// 计算速率
 	submitRate := float64(submitted) / elapsed.Seconds()
 	processRate := float64(processed) / elapsed.Seconds()
-	successRate := float64(success) / float64(processed) * 100
+
+	var successRate float64
+	if processed > 0 {
+		successRate = float64(success) / float64(processed) * 100
+	}
 
 	log.Printf("📊 [WriteQueue] 指标报告:")
 	log.Printf("   📈 提交速率: %.1f/s, 处理速率: %.1f/s", submitRate, processRate)
 	log.Printf("   📈 成功率: %.1f%%, 失败数: %d, 重试数: %d", successRate, failed, retries)
-	log.Printf("   📈 队列长度: %d/%d", queueLen, q.config.QueueSize)
+	log.Printf("   📈 队列长度: %d/%d, 可用令牌: %d",
+		queueLen, q.config.QueueSize, q.tokenBucket.Available())
 
-	// 重置计数器（保留累计值）
+	// 更新时间
 	q.lastMetricsTime = time.Now()
 }
 
@@ -559,7 +690,8 @@ func (q *WriteQueue) GetMetrics() map[string]interface{} {
 		"total_retries":    atomic.LoadUint64(&q.totalRetries),
 		"queue_length":     atomic.LoadUint64(&q.currentQueueLen),
 		"queue_capacity":   q.config.QueueSize,
-		"tokens_available": atomic.LoadInt64(&q.tokens),
+		"tokens_available": q.tokenBucket.Available(),
+		"started":          q.started,
 	}
 }
 
@@ -589,4 +721,10 @@ func SubmitGameResult(data *GameResultData) error {
 func SubmitGameResultBlocking(data *GameResultData) {
 	q := GetWriteQueue()
 	q.SubmitBlocking(data)
+}
+
+// GetWriteQueueMetrics 获取写入队列指标
+func GetWriteQueueMetrics() map[string]interface{} {
+	q := GetWriteQueue()
+	return q.GetMetrics()
 }

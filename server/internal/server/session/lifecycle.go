@@ -677,8 +677,9 @@ func (gs *GameSession) saveGameResultToDatabase(winner *GamePlayer, baseScore, t
 
 // saveGameResultToDatabaseAsync 异步保存游戏结果到数据库（使用写入队列）
 // 🔧【优化】使用写入队列减轻高并发下的数据库压力
+// 注意：此函数已经在 goroutine 中调用，内部不需要再创建 goroutine
 func (gs *GameSession) saveGameResultToDatabaseAsync(winner *GamePlayer, baseScore, totalMulti int, spring uint8, players []protocol.PlayerResult) {
-        // 🔧【重要】复制必要的数据，避免在 goroutine 中访问可能已被修改的数据
+        // 🔧【重要】复制必要的数据，避免数据竞争
         // 复制玩家信息
         type playerInfo struct {
                 ID         string
@@ -716,100 +717,118 @@ func (gs *GameSession) saveGameResultToDatabaseAsync(winner *GamePlayer, baseSco
 
         log.Printf("📊 [AsyncSave] 开始准备游戏结果数据，房间: %s", roomCode)
 
-        // 🔧【优化】使用 goroutine 准备数据，不阻塞主流程
-        go func() {
-                // 检查数据库连接
-                if !database.GetInstance().IsConnected() {
-                        log.Printf("❌ [AsyncSave] 数据库未连接！游戏结果将丢失！房间: %s", roomCode)
-                        log.Printf("❌ [AsyncSave] 请检查: 1.MySQL服务是否启动 2.数据库配置是否正确 3.数据库连接是否成功初始化")
-                        return
-                }
+        // 检查数据库连接
+        if !database.GetInstance().IsConnected() {
+                log.Printf("❌ [AsyncSave] 数据库未连接！游戏结果将丢失！房间: %s", roomCode)
+                log.Printf("❌ [AsyncSave] 请检查: 1.MySQL服务是否启动 2.数据库配置是否正确 3.数据库连接是否成功初始化")
+                return
+        }
 
-                // 查找地主和农民
-                var landlordID, farmer1ID, farmer2ID uint64
-                var landlordName, farmer1Name, farmer2Name string
-                farmerCount := 0
+        // 检查写入队列是否可用
+        if !database.GetWriteQueue().IsStarted() {
+                log.Printf("⚠️ [AsyncSave] 写入队列未启动，使用直接保存")
+                gs.saveGameResultDirectly(winner, baseScore, totalMulti, spring, players)
+                return
+        }
 
-                for _, p := range playerInfos {
-                        if p.IsLandlord {
-                                landlordID = p.DBID
-                                landlordName = p.Name
+        // 查找地主和农民
+        var landlordID, farmer1ID, farmer2ID uint64
+        var landlordName, farmer1Name, farmer2Name string
+        farmerCount := 0
+
+        for _, p := range playerInfos {
+                if p.IsLandlord {
+                        landlordID = p.DBID
+                        landlordName = p.Name
+                } else {
+                        if farmerCount == 0 {
+                                farmer1ID = p.DBID
+                                farmer1Name = p.Name
                         } else {
-                                if farmerCount == 0 {
-                                        farmer1ID = p.DBID
-                                        farmer1Name = p.Name
-                                } else {
-                                        farmer2ID = p.DBID
-                                        farmer2Name = p.Name
-                                }
-                                farmerCount++
+                                farmer2ID = p.DBID
+                                farmer2Name = p.Name
                         }
+                        farmerCount++
                 }
+        }
 
-                // 如果 DBID 为 0，尝试通过昵称查找或创建玩家
-                if landlordID == 0 && landlordName != "" {
-                        log.Printf("⚠️ [AsyncSave] 地主DBID为0，尝试通过昵称查找/创建: %s", landlordName)
-                        landlordID = database.GetOrCreatePlayerByNickname(landlordName)
-                }
-                if farmer1ID == 0 && farmer1Name != "" {
-                        log.Printf("⚠️ [AsyncSave] 农民1 DBID为0，尝试通过昵称查找/创建: %s", farmer1Name)
-                        farmer1ID = database.GetOrCreatePlayerByNickname(farmer1Name)
-                }
-                if farmer2ID == 0 && farmer2Name != "" {
-                        log.Printf("⚠️ [AsyncSave] 农民2 DBID为0，尝试通过昵称查找/创建: %s", farmer2Name)
-                        farmer2ID = database.GetOrCreatePlayerByNickname(farmer2Name)
-                }
+        // 如果 DBID 为 0，尝试通过昵称查找或创建玩家
+        if landlordID == 0 && landlordName != "" {
+                log.Printf("⚠️ [AsyncSave] 地主DBID为0，尝试通过昵称查找/创建: %s", landlordName)
+                landlordID = database.GetOrCreatePlayerByNickname(landlordName)
+        }
+        if farmer1ID == 0 && farmer1Name != "" {
+                log.Printf("⚠️ [AsyncSave] 农民1 DBID为0，尝试通过昵称查找/创建: %s", farmer1Name)
+                farmer1ID = database.GetOrCreatePlayerByNickname(farmer1Name)
+        }
+        if farmer2ID == 0 && farmer2Name != "" {
+                log.Printf("⚠️ [AsyncSave] 农民2 DBID为0，尝试通过昵称查找/创建: %s", farmer2Name)
+                farmer2ID = database.GetOrCreatePlayerByNickname(farmer2Name)
+        }
 
-                // 检查数据库ID是否有效
-                if landlordID == 0 || farmer1ID == 0 || farmer2ID == 0 {
-                        log.Printf("⚠️ [AsyncSave] 数据库ID无效，跳过保存")
-                        return
-                }
+        // 检查数据库ID是否有效
+        if landlordID == 0 || farmer1ID == 0 || farmer2ID == 0 {
+                log.Printf("⚠️ [AsyncSave] 数据库ID无效，跳过保存")
+                return
+        }
 
-                // 计算游戏结果
-                result := database.GameResultFarmerWin
-                if winnerInfo.IsLandlord {
-                        result = database.GameResultLandlordWin
-                }
+        // 计算游戏结果
+        result := database.GameResultFarmerWin
+        if winnerInfo.IsLandlord {
+                result = database.GameResultLandlordWin
+        }
 
-                // 从 players 数组中获取已计算好的金币变化
-                var landlordWinGold, farmer1WinGold, farmer2WinGold int64
-                var landlordWinArenaCoin, farmer1WinArenaCoin, farmer2WinArenaCoin int64
+        // 从 players 数组中获取已计算好的金币变化
+        var landlordWinGold, farmer1WinGold, farmer2WinGold int64
+        var landlordWinArenaCoin, farmer1WinArenaCoin, farmer2WinArenaCoin int64
 
-                for i := range playerResults {
-                        var dbID uint64
-                        for _, p := range playerInfos {
-                                if p.ID == playerResults[i].PlayerID {
-                                        dbID = p.DBID
-                                        break
-                                }
-                        }
-
-                        if dbID == landlordID {
-                                landlordWinGold = playerResults[i].WinGold
-                                landlordWinArenaCoin = playerResults[i].WinGold
-                        } else if dbID == farmer1ID {
-                                farmer1WinGold = playerResults[i].WinGold
-                                farmer1WinArenaCoin = playerResults[i].WinGold
-                        } else if dbID == farmer2ID {
-                                farmer2WinGold = playerResults[i].WinGold
-                                farmer2WinArenaCoin = playerResults[i].WinGold
-                        }
-                }
-
-                log.Printf("📊 [AsyncSave] 金币变化 - 地主: %d, 农民1: %d, 农民2: %d",
-                        landlordWinGold, farmer1WinGold, farmer2WinGold)
-
-                // 构建 PlayerID -> DBID 映射
-                playerIDMap := make(map[string]uint64)
+        for i := range playerResults {
+                var dbID uint64
                 for _, p := range playerInfos {
-                        if p.DBID > 0 {
-                                playerIDMap[p.ID] = p.DBID
+                        if p.ID == playerResults[i].PlayerID {
+                                dbID = p.DBID
+                                break
                         }
                 }
 
-                // 🔧【优化】构建游戏结果数据
-                gameData := gameLogger.BuildGameResultData(
+                if dbID == landlordID {
+                        landlordWinGold = playerResults[i].WinGold
+                        landlordWinArenaCoin = playerResults[i].WinGold
+                } else if dbID == farmer1ID {
+                        farmer1WinGold = playerResults[i].WinGold
+                        farmer1WinArenaCoin = playerResults[i].WinGold
+                } else if dbID == farmer2ID {
+                        farmer2WinGold = playerResults[i].WinGold
+                        farmer2WinArenaCoin = playerResults[i].WinGold
+                }
+        }
+
+        log.Printf("📊 [AsyncSave] 金币变化 - 地主: %d, 农民1: %d, 农民2: %d",
+                landlordWinGold, farmer1WinGold, farmer2WinGold)
+
+        // 构建 PlayerID -> DBID 映射
+        playerIDMap := make(map[string]uint64)
+        for _, p := range playerInfos {
+                if p.DBID > 0 {
+                        playerIDMap[p.ID] = p.DBID
+                }
+        }
+
+        // 🔧【优化】构建游戏结果数据
+        gameData := gameLogger.BuildGameResultData(
+                landlordID, farmer1ID, farmer2ID,
+                baseScore, totalMulti,
+                spring, result,
+                landlordWinGold, farmer1WinGold, farmer2WinGold,
+                landlordWinArenaCoin, farmer1WinArenaCoin, farmer2WinArenaCoin,
+                playerIDMap,
+        )
+
+        // 🔧【优化】提交到写入队列，非阻塞模式
+        if err := database.SubmitGameResult(gameData); err != nil {
+                log.Printf("❌ [AsyncSave] 提交到写入队列失败: %v，尝试直接保存", err)
+                // 队列满，回退到直接保存
+                err := gameLogger.SaveGameResult(
                         landlordID, farmer1ID, farmer2ID,
                         baseScore, totalMulti,
                         spring, result,
@@ -817,26 +836,129 @@ func (gs *GameSession) saveGameResultToDatabaseAsync(winner *GamePlayer, baseSco
                         landlordWinArenaCoin, farmer1WinArenaCoin, farmer2WinArenaCoin,
                         playerIDMap,
                 )
-
-                // 🔧【优化】提交到写入队列，非阻塞模式
-                if err := database.SubmitGameResult(gameData); err != nil {
-                        log.Printf("❌ [AsyncSave] 提交到写入队列失败: %v，尝试直接保存", err)
-                        // 队列满，回退到直接保存
-                        err := gameLogger.SaveGameResult(
-                                landlordID, farmer1ID, farmer2ID,
-                                baseScore, totalMulti,
-                                spring, result,
-                                landlordWinGold, farmer1WinGold, farmer2WinGold,
-                                landlordWinArenaCoin, farmer1WinArenaCoin, farmer2WinArenaCoin,
-                                playerIDMap,
-                        )
-                        if err != nil {
-                                log.Printf("❌ [AsyncSave] 直接保存也失败: %v", err)
-                        }
-                } else {
-                        log.Printf("✅ [AsyncSave] 游戏结果已提交到写入队列，房间: %s", roomCode)
+                if err != nil {
+                        log.Printf("❌ [AsyncSave] 直接保存也失败: %v", err)
                 }
-        }()
+        } else {
+                log.Printf("✅ [AsyncSave] 游戏结果已提交到写入队列，房间: %s", roomCode)
+        }
+}
+
+// saveGameResultDirectly 直接保存游戏结果（回退方案）
+func (gs *GameSession) saveGameResultDirectly(winner *GamePlayer, baseScore, totalMulti int, spring uint8, players []protocol.PlayerResult) {
+        // 复制玩家信息
+        type playerInfo struct {
+                ID         string
+                Name       string
+                DBID       uint64
+                IsLandlord bool
+        }
+        playerInfos := make([]playerInfo, len(gs.players))
+        for i, p := range gs.players {
+                playerInfos[i] = playerInfo{
+                        ID:         p.ID,
+                        Name:       p.Name,
+                        DBID:       p.DBID,
+                        IsLandlord: p.IsLandlord,
+                }
+        }
+
+        winnerInfo := playerInfo{
+                ID:         winner.ID,
+                Name:       winner.Name,
+                DBID:       winner.DBID,
+                IsLandlord: winner.IsLandlord,
+        }
+
+        gameLogger := gs.gameLogger
+        playerResults := make([]protocol.PlayerResult, len(players))
+        copy(playerResults, players)
+
+        // 查找地主和农民
+        var landlordID, farmer1ID, farmer2ID uint64
+        var landlordName, farmer1Name, farmer2Name string
+        farmerCount := 0
+
+        for _, p := range playerInfos {
+                if p.IsLandlord {
+                        landlordID = p.DBID
+                        landlordName = p.Name
+                } else {
+                        if farmerCount == 0 {
+                                farmer1ID = p.DBID
+                                farmer1Name = p.Name
+                        } else {
+                                farmer2ID = p.DBID
+                                farmer2Name = p.Name
+                        }
+                        farmerCount++
+                }
+        }
+
+        if landlordID == 0 && landlordName != "" {
+                landlordID = database.GetOrCreatePlayerByNickname(landlordName)
+        }
+        if farmer1ID == 0 && farmer1Name != "" {
+                farmer1ID = database.GetOrCreatePlayerByNickname(farmer1Name)
+        }
+        if farmer2ID == 0 && farmer2Name != "" {
+                farmer2ID = database.GetOrCreatePlayerByNickname(farmer2Name)
+        }
+
+        if landlordID == 0 || farmer1ID == 0 || farmer2ID == 0 {
+                log.Printf("⚠️ [DirectSave] 数据库ID无效，跳过保存")
+                return
+        }
+
+        result := database.GameResultFarmerWin
+        if winnerInfo.IsLandlord {
+                result = database.GameResultLandlordWin
+        }
+
+        var landlordWinGold, farmer1WinGold, farmer2WinGold int64
+        var landlordWinArenaCoin, farmer1WinArenaCoin, farmer2WinArenaCoin int64
+
+        for i := range playerResults {
+                var dbID uint64
+                for _, p := range playerInfos {
+                        if p.ID == playerResults[i].PlayerID {
+                                dbID = p.DBID
+                                break
+                        }
+                }
+
+                if dbID == landlordID {
+                        landlordWinGold = playerResults[i].WinGold
+                        landlordWinArenaCoin = playerResults[i].WinGold
+                } else if dbID == farmer1ID {
+                        farmer1WinGold = playerResults[i].WinGold
+                        farmer1WinArenaCoin = playerResults[i].WinGold
+                } else if dbID == farmer2ID {
+                        farmer2WinGold = playerResults[i].WinGold
+                        farmer2WinArenaCoin = playerResults[i].WinGold
+                }
+        }
+
+        playerIDMap := make(map[string]uint64)
+        for _, p := range playerInfos {
+                if p.DBID > 0 {
+                        playerIDMap[p.ID] = p.DBID
+                }
+        }
+
+        err := gameLogger.SaveGameResult(
+                landlordID, farmer1ID, farmer2ID,
+                baseScore, totalMulti,
+                spring, result,
+                landlordWinGold, farmer1WinGold, farmer2WinGold,
+                landlordWinArenaCoin, farmer1WinArenaCoin, farmer2WinArenaCoin,
+                playerIDMap,
+        )
+        if err != nil {
+                log.Printf("❌ [DirectSave] 保存失败: %v", err)
+        } else {
+                log.Printf("✅ [DirectSave] 保存成功")
+        }
 }
 
 // recordGameResults 记录游戏结果到排行榜
