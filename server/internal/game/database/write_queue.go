@@ -56,6 +56,37 @@ func DefaultWriteQueueConfig() *WriteQueueConfig {
 // 游戏结果数据结构
 // =============================================
 
+// toGameRecord 将 GameResultData 转换为 GameRecord
+// 🔧【整合】提取公共转换逻辑，避免重复代码
+func (data *GameResultData) toGameRecord() *GameRecord {
+        if data == nil {
+                return nil
+        }
+        return &GameRecord{
+                GameID:               data.GameID,
+                RoomID:               data.RoomID,
+                RoomType:             data.RoomType,
+                RoomCategory:         data.RoomCategory,
+                LandlordID:           data.LandlordID,
+                Farmer1ID:            data.Farmer1ID,
+                Farmer2ID:            data.Farmer2ID,
+                BaseScore:            data.BaseScore,
+                Multiplier:           data.Multiplier,
+                BombCount:            data.BombCount,
+                Spring:               data.Spring,
+                Result:               data.Result,
+                LandlordWinGold:      data.LandlordWinGold,
+                Farmer1WinGold:       data.Farmer1WinGold,
+                Farmer2WinGold:       data.Farmer2WinGold,
+                LandlordWinArenaCoin: data.LandlordWinArenaCoin,
+                Farmer1WinArenaCoin:  data.Farmer1WinArenaCoin,
+                Farmer2WinArenaCoin:  data.Farmer2WinArenaCoin,
+                StartedAt:            data.StartedAt,
+                EndedAt:              data.EndedAt,
+                DurationSeconds:      data.DurationSeconds,
+        }
+}
+
 // GameResultData 游戏结果数据
 type GameResultData struct {
         // 基本信息
@@ -474,6 +505,7 @@ func (q *WriteQueue) flushRemaining() {
 // =============================================
 
 // writeBatchNoLimit 批量写入（不限流，用于关闭时）
+// 🔧【整合】复用 SaveGameResult 避免重复代码
 func (q *WriteQueue) writeBatchNoLimit(batch []*GameResultData) {
         if len(batch) == 0 {
                 return
@@ -486,108 +518,45 @@ func (q *WriteQueue) writeBatchNoLimit(batch []*GameResultData) {
         }
 
         startTime := time.Now()
-        atomic.AddUint64(&q.totalProcessed, uint64(len(batch)))
 
-        // 使用事务批量写入
-        err := q.db.Transaction(func(tx *gorm.DB) error {
-                for _, data := range batch {
-                        if data == nil {
-                                continue
-                        }
+        var successCount, failCount uint64
 
-                        // 创建游戏记录
-                        record := &GameRecord{
-                                GameID:              data.GameID,
-                                RoomID:              data.RoomID,
-                                RoomType:            data.RoomType,
-                                RoomCategory:        data.RoomCategory,
-                                LandlordID:          data.LandlordID,
-                                Farmer1ID:           data.Farmer1ID,
-                                Farmer2ID:           data.Farmer2ID,
-                                BaseScore:           data.BaseScore,
-                                Multiplier:          data.Multiplier,
-                                BombCount:           data.BombCount,
-                                Spring:              data.Spring,
-                                Result:              data.Result,
-                                LandlordWinGold:     data.LandlordWinGold,
-                                Farmer1WinGold:      data.Farmer1WinGold,
-                                Farmer2WinGold:      data.Farmer2WinGold,
-                                LandlordWinArenaCoin: data.LandlordWinArenaCoin,
-                                Farmer1WinArenaCoin: data.Farmer1WinArenaCoin,
-                                Farmer2WinArenaCoin: data.Farmer2WinArenaCoin,
-                                StartedAt:           data.StartedAt,
-                                EndedAt:             data.EndedAt,
-                                DurationSeconds:     data.DurationSeconds,
-                        }
-
-                        if err := tx.Create(record).Error; err != nil {
-                                return err
-                        }
-
-                        // 保存发牌日志
-                        if len(data.DealLogs) > 0 {
-                                if err := tx.Create(&data.DealLogs).Error; err != nil {
-                                        return err
-                                }
-                        }
-
-                        // 保存叫地主日志
-                        if len(data.BidLogs) > 0 {
-                                if err := tx.Create(&data.BidLogs).Error; err != nil {
-                                        return err
-                                }
-                        }
-
-                        // 保存出牌日志
-                        if len(data.PlayLogs) > 0 {
-                                if err := tx.Create(&data.PlayLogs).Error; err != nil {
-                                        return err
-                                }
-                        }
-
-                        // 更新玩家金币
-                        if err := UpdatePlayerGoldWithTx(tx, data.LandlordID, data.LandlordWinGold); err != nil {
-                                return err
-                        }
-                        if err := UpdatePlayerGoldWithTx(tx, data.Farmer1ID, data.Farmer1WinGold); err != nil {
-                                return err
-                        }
-                        if err := UpdatePlayerGoldWithTx(tx, data.Farmer2ID, data.Farmer2WinGold); err != nil {
-                                return err
-                        }
-
-                        // 更新玩家统计
-                        landlordWin := data.Result == GameResultLandlordWin
-                        if err := UpdatePlayerStatsWithTx(tx, data.LandlordID, landlordWin, true); err != nil {
-                                return err
-                        }
-                        if err := UpdatePlayerStatsWithTx(tx, data.Farmer1ID, !landlordWin, false); err != nil {
-                                return err
-                        }
-                        if err := UpdatePlayerStatsWithTx(tx, data.Farmer2ID, !landlordWin, false); err != nil {
-                                return err
-                        }
+        for _, data := range batch {
+                if data == nil {
+                        continue
                 }
-                return nil
-        })
+
+                atomic.AddUint64(&q.totalProcessed, 1)
+
+                // 🔧【整合】使用统一的 SaveGameResult 函数，避免重复代码
+                record := data.toGameRecord()
+                if record == nil {
+                        continue
+                }
+
+                err := SaveGameResult(record, data.DealLogs, data.BidLogs, data.PlayLogs)
+
+                if err != nil {
+                        failCount++
+                        atomic.AddUint64(&q.totalFailed, 1)
+
+                        // 重试逻辑 - 只在队列启动时才重试
+                        if atomic.LoadInt32(&q.started) == 1 {
+                                q.retryOrDrop(data)
+                        }
+                } else {
+                        successCount++
+                        atomic.AddUint64(&q.totalSuccess, 1)
+                }
+        }
 
         elapsed := time.Since(startTime)
 
-        if err != nil {
-                log.Printf("❌ [WriteQueue] 批量写入失败: %v, 数量: %d, 耗时: %v", err, len(batch), elapsed)
-                atomic.AddUint64(&q.totalFailed, uint64(len(batch)))
-
-                // 重试逻辑 - 只在队列启动时才重试
-                if atomic.LoadInt32(&q.started) == 1 {
-                        for _, data := range batch {
-                                if data != nil {
-                                        q.retryOrDrop(data)
-                                }
-                        }
-                }
+        if failCount > 0 {
+                log.Printf("⚠️ [WriteQueue] 批量写入部分失败: 成功=%d, 失败=%d, 总数=%d, 耗时=%v",
+                        successCount, failCount, len(batch), elapsed)
         } else {
-                atomic.AddUint64(&q.totalSuccess, uint64(len(batch)))
-                log.Printf("✅ [WriteQueue] 批量写入成功: 数量=%d, 耗时=%v", len(batch), elapsed)
+                log.Printf("✅ [WriteQueue] 批量写入成功: 数量=%d, 耗时=%v", successCount, elapsed)
         }
 }
 
@@ -609,6 +578,7 @@ func (q *WriteQueue) writeSingle(data *GameResultData) error {
 }
 
 // writeSingleNoLimit 单条写入（不限流，用于关闭时和回退场景）
+// 🔧【整合】复用 SaveGameResult 和 toGameRecord 避免重复代码
 func (q *WriteQueue) writeSingleNoLimit(data *GameResultData) error {
         if data == nil {
                 return nil
@@ -622,35 +592,13 @@ func (q *WriteQueue) writeSingleNoLimit(data *GameResultData) error {
 
         atomic.AddUint64(&q.totalProcessed, 1)
 
-        // 使用事务写入
-        err := SaveGameResult(
-                &GameRecord{
-                        GameID:              data.GameID,
-                        RoomID:              data.RoomID,
-                        RoomType:            data.RoomType,
-                        RoomCategory:        data.RoomCategory,
-                        LandlordID:          data.LandlordID,
-                        Farmer1ID:           data.Farmer1ID,
-                        Farmer2ID:           data.Farmer2ID,
-                        BaseScore:           data.BaseScore,
-                        Multiplier:          data.Multiplier,
-                        BombCount:           data.BombCount,
-                        Spring:              data.Spring,
-                        Result:              data.Result,
-                        LandlordWinGold:     data.LandlordWinGold,
-                        Farmer1WinGold:      data.Farmer1WinGold,
-                        Farmer2WinGold:      data.Farmer2WinGold,
-                        LandlordWinArenaCoin: data.LandlordWinArenaCoin,
-                        Farmer1WinArenaCoin: data.Farmer1WinArenaCoin,
-                        Farmer2WinArenaCoin: data.Farmer2WinArenaCoin,
-                        StartedAt:           data.StartedAt,
-                        EndedAt:             data.EndedAt,
-                        DurationSeconds:     data.DurationSeconds,
-                },
-                data.DealLogs,
-                data.BidLogs,
-                data.PlayLogs,
-        )
+        // 🔧【整合】使用辅助函数转换数据
+        record := data.toGameRecord()
+        if record == nil {
+                return fmt.Errorf("数据转换失败")
+        }
+
+        err := SaveGameResult(record, data.DealLogs, data.BidLogs, data.PlayLogs)
 
         if err != nil {
                 atomic.AddUint64(&q.totalFailed, 1)
