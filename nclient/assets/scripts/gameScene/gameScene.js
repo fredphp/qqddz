@@ -395,6 +395,11 @@ cc.Class({
             console.log("🏟️ [addPlayerNode] 设置 player_data.room_category =", player_data.room_category)
         }
 
+        // 🔧【新增】将期号传递给 player_node
+        if (!player_data.period_no && this._periodNo) {
+            player_data.period_no = this._periodNo
+        }
+
         var index = this.playerdata_list_pos[player_data.seatindex];
         
         if (index === undefined || index === null) {
@@ -469,16 +474,17 @@ cc.Class({
 
         var playerdata_list = result.playerdata || []
         var roomid = result.roomid || result.room_code || result.roomCode || "WAITING"
-        
+
         // 🔧【新增】检查是否是竞技场模式
         var isArenaMode = result.room_category === 2
         if (isArenaMode) {
-            console.log("🏟️ [_processRoomData] 竞技场模式: room_category=2, playerdata数量=" + playerdata_list.length)
+            console.log("🏟️ [_processRoomData] 竞技场模式: room_category=2, playerdata数量=" + playerdata_list.length + ", 期号=" + result.period_no)
         }
 
         // 🔧【修复】保存房间类型到实例变量，供 player_node 使用
         this._roomCategory = result.room_category || 1
         this._isArenaMode = isArenaMode
+        this._periodNo = result.period_no || "" // 🔧【新增】保存期号
 
         this._playerdataList = playerdata_list
 

@@ -3,6 +3,7 @@ package database
 
 import (
         "fmt"
+        "log"
         "time"
 
         "gorm.io/gorm"
@@ -162,16 +163,25 @@ const (
 // ArenaPeriodPlayer 竞技场期号报名玩家快照表模型
 // 用于记录每个期号的最终报名玩家列表
 type ArenaPeriodPlayer struct {
-        ID           uint64    `gorm:"primaryKey;autoIncrement;comment:记录ID" json:"id"`
-        PeriodNo     string    `gorm:"type:varchar(20);not null;index;comment:期号" json:"period_no"`
-        PeriodID     uint64    `gorm:"type:bigint unsigned;not null;index;comment:期号记录ID" json:"period_id"`
-        RoomID       uint64    `gorm:"type:bigint unsigned;not null;index;comment:房间ID" json:"room_id"`
-        PlayerID     uint64    `gorm:"type:bigint unsigned;not null;index;comment:玩家ID" json:"player_id"`
-        SignupTime   time.Time `gorm:"type:datetime;not null;comment:报名时间" json:"signup_time"`
-        SignupOrder  int       `gorm:"type:int;not null;default:0;comment:报名顺序" json:"signup_order"`
-        SignupFee    int64     `gorm:"type:bigint;not null;default:0;comment:报名费" json:"signup_fee"`
-        Status       uint8     `gorm:"type:tinyint unsigned;not null;default:1;index;comment:状态:1-正常,2-取消,3-超时未进入" json:"status"`
-        CreatedAt    time.Time `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
+        ID              uint64    `gorm:"primaryKey;autoIncrement;comment:记录ID" json:"id"`
+        PeriodNo        string    `gorm:"type:varchar(20);not null;index;comment:期号" json:"period_no"`
+        PeriodID        uint64    `gorm:"type:bigint unsigned;not null;index;comment:期号记录ID" json:"period_id"`
+        RoomID          uint64    `gorm:"type:bigint unsigned;not null;index;comment:房间ID" json:"room_id"`
+        PlayerID        uint64    `gorm:"type:bigint unsigned;not null;index;comment:玩家ID" json:"player_id"`
+        SignupTime      time.Time `gorm:"type:datetime;not null;comment:报名时间" json:"signup_time"`
+        SignupOrder     int       `gorm:"type:int;not null;default:0;comment:报名顺序" json:"signup_order"`
+        SignupFee       int64     `gorm:"type:bigint;not null;default:0;comment:报名费" json:"signup_fee"`
+        Status          uint8     `gorm:"type:tinyint unsigned;not null;default:1;index;comment:状态:1-正常,2-取消,3-超时未进入" json:"status"`
+
+        // 🔧【新增】竞技场赛事金币字段
+        ArenaGold       int64     `gorm:"type:bigint;not null;default:0;comment:当期赛事金币" json:"arena_gold"`
+        IsEliminated    uint8     `gorm:"type:tinyint unsigned;not null;default:0;comment:是否淘汰:0-否,1-是" json:"is_eliminated"`
+        EliminatedRound *int      `gorm:"type:int;comment:淘汰轮次" json:"eliminated_round"`
+        RankNo          *int      `gorm:"type:int;comment:最终排名" json:"rank_no"`
+        PlayerStatus    uint8     `gorm:"type:tinyint unsigned;not null;default:0;index;comment:玩家状态:0-报名,1-比赛中,2-淘汰,3-晋级,4-结束" json:"player_status"`
+
+        CreatedAt       time.Time `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
+        UpdatedAt       time.Time `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`
 
         // 关联关系
         Period  ArenaPeriod `gorm:"foreignKey:PeriodID" json:"period"`
@@ -188,6 +198,47 @@ const (
         ArenaPeriodPlayerStatusNormal   uint8 = 1 // 正常
         ArenaPeriodPlayerStatusCanceled uint8 = 2 // 已取消
         ArenaPeriodPlayerStatusTimeout  uint8 = 3 // 超时未进入
+)
+
+// ArenaPlayerStatus 玩家比赛状态常量（player_status 字段）
+const (
+        ArenaPlayerStatusSignup   uint8 = 0 // 报名
+        ArenaPlayerStatusPlaying  uint8 = 1 // 比赛中
+        ArenaPlayerStatusEliminated uint8 = 2 // 淘汰
+        ArenaPlayerStatusAdvanced uint8 = 3 // 晋级
+        ArenaPlayerStatusFinished uint8 = 4 // 结束
+)
+
+// =============================================
+// 竞技场金币流水表（月分表）
+// =============================================
+
+// ArenaGoldLog 竞技场金币流水表模型
+type ArenaGoldLog struct {
+        ID         uint64    `gorm:"primaryKey;autoIncrement;comment:流水ID" json:"id"`
+        PeriodNo   string    `gorm:"type:varchar(20);not null;index;comment:期号" json:"period_no"`
+        RoomID     uint64    `gorm:"type:bigint unsigned;not null;index;comment:房间ID" json:"room_id"`
+        PlayerID   uint64    `gorm:"type:bigint unsigned;not null;index;comment:玩家ID" json:"player_id"`
+        MatchID    string    `gorm:"type:varchar(64);index;comment:对局ID" json:"match_id"`
+        BeforeGold int64     `gorm:"type:bigint;not null;default:0;comment:变动前金币" json:"before_gold"`
+        ChangeGold int64     `gorm:"type:bigint;not null;default:0;comment:变动金币(正=赢,负=输)" json:"change_gold"`
+        AfterGold  int64     `gorm:"type:bigint;not null;default:0;comment:变动后金币" json:"after_gold"`
+        Reason     string    `gorm:"type:varchar(32);not null;comment:变动原因" json:"reason"`
+        CreatedAt  time.Time `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;index;comment:创建时间" json:"created_at"`
+}
+
+// TableName 指定竞技场金币流水表名
+func (ArenaGoldLog) TableName() string {
+        return "ddz_arena_gold_logs"
+}
+
+// ArenaGoldChangeReason 金币变动原因常量
+const (
+        ArenaGoldReasonInit      = "INIT"      // 初始化（报名时发放）
+        ArenaGoldReasonWin       = "WIN"       // 赢得金币
+        ArenaGoldReasonLose      = "LOSE"      // 输掉金币
+        ArenaGoldReasonSettlement = "SETTLEMENT" // 结算
+        ArenaGoldReasonEliminate = "ELIMINATE" // 淘汰
 )
 
 // =============================================
@@ -601,4 +652,295 @@ func GetArenaMatchConfigByRoomConfigID(roomConfigID uint64) (*ArenaMatchConfig, 
                 return nil, err
         }
         return &config, nil
+}
+
+// =============================================
+// 🔧【新增】竞技场赛事金币操作函数
+// =============================================
+
+// getArenaGoldLogTableNameByTime 根据时间获取竞技场金币流水分表名
+func getArenaGoldLogTableNameByTime(t time.Time) string {
+        return GetPartitionManager().GetArenaGoldLogTableName(t)
+}
+
+// ensureArenaGoldLogTableExists 确保竞技场金币流水分表存在
+func ensureArenaGoldLogTableExists(t time.Time) error {
+        suffix := t.Format("200601")
+        return EnsurePartitionTableExists(PartitionTypeArenaGoldLog, suffix)
+}
+
+// InitArenaGold 初始化玩家当期赛事金币（报名时调用）
+// 从 room_config.min_gold 读取初始金币值
+func InitArenaGold(periodNo string, playerID uint64, initialGold int64) error {
+        t, err := parsePeriodNoToTime(periodNo)
+        if err != nil {
+                t = time.Now()
+        }
+
+        tableName := getArenaPeriodPlayerTableNameByTime(t)
+
+        // 更新玩家的 arena_gold
+        result := DB().Table(tableName).
+                Where("period_no = ? AND player_id = ?", periodNo, playerID).
+                Updates(map[string]interface{}{
+                        "arena_gold":    initialGold,
+                        "player_status": ArenaPlayerStatusSignup,
+                        "updated_at":    time.Now(),
+                })
+
+        if result.Error != nil {
+                return fmt.Errorf("初始化赛事金币失败: %w", result.Error)
+        }
+
+        // 写入金币流水
+        if err := CreateArenaGoldLog(&ArenaGoldLog{
+                PeriodNo:   periodNo,
+                PlayerID:   playerID,
+                BeforeGold: 0,
+                ChangeGold: initialGold,
+                AfterGold:  initialGold,
+                Reason:     ArenaGoldReasonInit,
+        }); err != nil {
+                log.Printf("⚠️ [InitArenaGold] 写入金币流水失败: %v", err)
+        }
+
+        log.Printf("🏟️ [InitArenaGold] 期号=%s, 玩家=%d, 初始金币=%d", periodNo, playerID, initialGold)
+        return nil
+}
+
+// UpdateArenaGold 更新玩家当期赛事金币（对局结算时调用）
+// 只更新 arena_gold，不影响 player.gold
+func UpdateArenaGold(periodNo string, playerID uint64, changeGold int64, matchID string, reason string) (int64, error) {
+        t, err := parsePeriodNoToTime(periodNo)
+        if err != nil {
+                t = time.Now()
+        }
+
+        tableName := getArenaPeriodPlayerTableNameByTime(t)
+
+        // 先查询当前金币
+        var player ArenaPeriodPlayer
+        if err := DB().Table(tableName).
+                Where("period_no = ? AND player_id = ?", periodNo, playerID).
+                First(&player).Error; err != nil {
+                return 0, fmt.Errorf("查询玩家赛事金币失败: %w", err)
+        }
+
+        beforeGold := player.ArenaGold
+        afterGold := beforeGold + changeGold
+        if afterGold < 0 {
+                afterGold = 0 // 金币不能为负
+        }
+
+        // 更新金币
+        if err := DB().Table(tableName).
+                Where("period_no = ? AND player_id = ?", periodNo, playerID).
+                Updates(map[string]interface{}{
+                        "arena_gold": afterGold,
+                        "updated_at": time.Now(),
+                }).Error; err != nil {
+                return afterGold, fmt.Errorf("更新赛事金币失败: %w", err)
+        }
+
+        // 写入金币流水
+        if err := CreateArenaGoldLog(&ArenaGoldLog{
+                PeriodNo:   periodNo,
+                PlayerID:   playerID,
+                MatchID:    matchID,
+                BeforeGold: beforeGold,
+                ChangeGold: changeGold,
+                AfterGold:  afterGold,
+                Reason:     reason,
+        }); err != nil {
+                log.Printf("⚠️ [UpdateArenaGold] 写入金币流水失败: %v", err)
+        }
+
+        log.Printf("🏟️ [UpdateArenaGold] 期号=%s, 玩家=%d, 变动=%d, 前=%d, 后=%d",
+                periodNo, playerID, changeGold, beforeGold, afterGold)
+
+        return afterGold, nil
+}
+
+// GetArenaGold 查询玩家当期赛事金币
+func GetArenaGold(periodNo string, playerID uint64) (int64, error) {
+        t, err := parsePeriodNoToTime(periodNo)
+        if err != nil {
+                t = time.Now()
+        }
+
+        tableName := getArenaPeriodPlayerTableNameByTime(t)
+
+        var player ArenaPeriodPlayer
+        if err := DB().Table(tableName).
+                Where("period_no = ? AND player_id = ?", periodNo, playerID).
+                First(&player).Error; err != nil {
+                if err == gorm.ErrRecordNotFound {
+                        return 0, nil // 未找到记录，返回0
+                }
+                return 0, err
+        }
+
+        return player.ArenaGold, nil
+}
+
+// GetArenaPeriodPlayer 查询玩家期号记录
+func GetArenaPeriodPlayer(periodNo string, playerID uint64) (*ArenaPeriodPlayer, error) {
+        t, err := parsePeriodNoToTime(periodNo)
+        if err != nil {
+                t = time.Now()
+        }
+
+        tableName := getArenaPeriodPlayerTableNameByTime(t)
+
+        var player ArenaPeriodPlayer
+        if err := DB().Table(tableName).
+                Where("period_no = ? AND player_id = ?", periodNo, playerID).
+                First(&player).Error; err != nil {
+                return nil, err
+        }
+
+        return &player, nil
+}
+
+// GetArenaPeriodPlayersByPeriodNoForGame 获取期号的所有参赛玩家（用于游戏结算）
+func GetArenaPeriodPlayersByPeriodNoForGame(periodNo string) ([]ArenaPeriodPlayer, error) {
+        t, err := parsePeriodNoToTime(periodNo)
+        if err != nil {
+                t = time.Now()
+        }
+
+        tableName := getArenaPeriodPlayerTableNameByTime(t)
+
+        var players []ArenaPeriodPlayer
+        err = DB().Table(tableName).
+                Where("period_no = ? AND status = ? AND is_eliminated = 0", periodNo, ArenaPeriodPlayerStatusNormal).
+                Order("arena_gold DESC").
+                Find(&players).Error
+        return players, err
+}
+
+// CreateArenaGoldLog 创建金币流水记录
+func CreateArenaGoldLog(log *ArenaGoldLog) error {
+        t := time.Now()
+
+        // 确保分表存在
+        if err := ensureArenaGoldLogTableExists(t); err != nil {
+                return fmt.Errorf("确保金币流水分表存在失败: %w", err)
+        }
+
+        tableName := getArenaGoldLogTableNameByTime(t)
+
+        // 如果没有指定 RoomID，从 period_players 表查询
+        if log.RoomID == 0 {
+                var player ArenaPeriodPlayer
+                playerTable := getArenaPeriodPlayerTableNameByTime(t)
+                if err := DB().Table(playerTable).
+                        Where("period_no = ? AND player_id = ?", log.PeriodNo, log.PlayerID).
+                        First(&player).Error; err == nil {
+                        log.RoomID = player.RoomID
+                }
+        }
+
+        return DB().Table(tableName).Create(map[string]interface{}{
+                "period_no":   log.PeriodNo,
+                "room_id":     log.RoomID,
+                "player_id":   log.PlayerID,
+                "match_id":    log.MatchID,
+                "before_gold": log.BeforeGold,
+                "change_gold": log.ChangeGold,
+                "after_gold":  log.AfterGold,
+                "reason":      log.Reason,
+        }).Error
+}
+
+// UpdateArenaPeriodPlayerStatus 更新玩家比赛状态
+func UpdateArenaPeriodPlayerStatus(periodNo string, playerID uint64, playerStatus uint8, isEliminated uint8, eliminatedRound *int) error {
+        t, err := parsePeriodNoToTime(periodNo)
+        if err != nil {
+                t = time.Now()
+        }
+
+        tableName := getArenaPeriodPlayerTableNameByTime(t)
+
+        updates := map[string]interface{}{
+                "player_status":  playerStatus,
+                "is_eliminated":  isEliminated,
+                "updated_at":     time.Now(),
+        }
+
+        if eliminatedRound != nil {
+                updates["eliminated_round"] = *eliminatedRound
+        }
+
+        return DB().Table(tableName).
+                Where("period_no = ? AND player_id = ?", periodNo, playerID).
+                Updates(updates).Error
+}
+
+// SetPlayerEliminated 设置玩家淘汰
+func SetPlayerEliminated(periodNo string, playerID uint64, eliminatedRound int, rankNo int) error {
+        t, err := parsePeriodNoToTime(periodNo)
+        if err != nil {
+                t = time.Now()
+        }
+
+        tableName := getArenaPeriodPlayerTableNameByTime(t)
+
+        return DB().Table(tableName).
+                Where("period_no = ? AND player_id = ?", periodNo, playerID).
+                Updates(map[string]interface{}{
+                        "is_eliminated":    1,
+                        "eliminated_round": eliminatedRound,
+                        "rank_no":          rankNo,
+                        "player_status":    ArenaPlayerStatusEliminated,
+                        "updated_at":       time.Now(),
+                }).Error
+}
+
+// GetLowestGoldPlayers 获取金币最低的玩家（用于淘汰）
+func GetLowestGoldPlayers(periodNo string, count int) ([]ArenaPeriodPlayer, error) {
+        t, err := parsePeriodNoToTime(periodNo)
+        if err != nil {
+                t = time.Now()
+        }
+
+        tableName := getArenaPeriodPlayerTableNameByTime(t)
+
+        // 先查询最低金币值
+        var minGold int64
+        if err := DB().Table(tableName).
+                Where("period_no = ? AND status = ? AND is_eliminated = 0 AND arena_gold > 0", periodNo, ArenaPeriodPlayerStatusNormal).
+                Select("MIN(arena_gold)").
+                Scan(&minGold).Error; err != nil {
+                return nil, err
+        }
+
+        // 查询所有金币等于最低值的玩家（可能多人并列）
+        var players []ArenaPeriodPlayer
+        err = DB().Table(tableName).
+                Where("period_no = ? AND status = ? AND is_eliminated = 0 AND arena_gold = ?", periodNo, ArenaPeriodPlayerStatusNormal, minGold).
+                Find(&players).Error
+        return players, err
+}
+
+// GetArenaGoldLogs 查询金币流水
+func GetArenaGoldLogs(periodNo string, playerID uint64, limit int) ([]ArenaGoldLog, error) {
+        t, err := parsePeriodNoToTime(periodNo)
+        if err != nil {
+                t = time.Now()
+        }
+
+        tableName := getArenaGoldLogTableNameByTime(t)
+
+        var logs []ArenaGoldLog
+        query := DB().Table(tableName).Where("period_no = ?", periodNo)
+        if playerID > 0 {
+                query = query.Where("player_id = ?", playerID)
+        }
+        if limit > 0 {
+                query = query.Limit(limit)
+        }
+
+        err = query.Order("created_at DESC").Find(&logs).Error
+        return logs, err
 }

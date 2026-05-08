@@ -482,6 +482,8 @@ type PlayerInfo struct {
         GoldCount  int64  `json:"gold_count"`  // 玩家金币数量
         // 🔧【新增】竞技场专用字段
         MatchCoin  int64  `json:"match_coin"`  // 竞技币（竞技场模式下显示）
+        ArenaGold  int64  `json:"arena_gold"`  // 🔧【新增】当期赛事金币
+        PeriodNo   string `json:"period_no"`   // 🔧【新增】期号
 }
 
 // CardInfo 牌信息

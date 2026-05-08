@@ -333,26 +333,46 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 // 实现界面"同步加减"效果，无需等待数据库异步更新
                 var goldAfter int64 = -1
                 var matchCoin int64 = 0 // 🔧【新增】竞技场模式下的竞技币
-                if p.DBID > 0 && database.GetInstance().IsConnected() {
+
+                // 🔧【关键修复】竞技场模式：使用独立的 arena_gold，不影响 player.gold
+                if gs.room.RoomCategory == 2 && gs.room.PeriodNo != "" {
+                        // 竞技场模式：从 ddz_arena_period_players 获取 arena_gold
+                        arenaGold, err := database.GetArenaGold(gs.room.PeriodNo, p.DBID)
+                        if err != nil {
+                                log.Printf("⚠️ [ArenaGold] 获取赛事金币失败: period_no=%s, player_id=%d, err=%v", gs.room.PeriodNo, p.DBID, err)
+                                arenaGold = 0
+                        }
+
+                        // 计算变化后的赛事金币
+                        matchCoin = arenaGold + winGold
+                        if matchCoin < 0 {
+                                matchCoin = 0
+                        }
+
+                        log.Printf("🏟️ [ArenaGold] 玩家 %s (DBID=%d): 赛事金币=%d, 本局变化=%d, 结算后=%d",
+                                p.Name, p.DBID, arenaGold, winGold, matchCoin)
+
+                        // 更新赛事金币（异步）
+                        go func(playerDBID uint64, change int64, afterGold int64) {
+                                reason := database.ArenaGoldReasonLose
+                                if change > 0 {
+                                        reason = database.ArenaGoldReasonWin
+                                }
+                                if _, err := database.UpdateArenaGold(gs.room.PeriodNo, playerDBID, change, gs.room.Code, reason); err != nil {
+                                        log.Printf("❌ [ArenaGold] 更新赛事金币失败: %v", err)
+                                }
+                        }(p.DBID, winGold, matchCoin)
+
+                        // 竞技场模式：goldAfter 保持 -1，表示不更新 player.gold
+                        goldAfter = -1
+                } else if p.DBID > 0 && database.GetInstance().IsConnected() {
+                        // 普通场模式：使用 player.gold
                         if player, err := database.GetPlayerByID(p.DBID); err == nil {
                                 goldAfter = int64(player.Gold) + winGold
                                 log.Printf("📊 [GoldCalc] 玩家 %s (DBID=%d): 当前金币=%d, 变化=%d, 结算后=%d",
                                         p.Name, p.DBID, player.Gold, winGold, goldAfter)
                         } else {
                                 log.Printf("⚠️ [GoldCalc] 查询玩家金币失败: DBID=%d, err=%v", p.DBID, err)
-                        }
-
-                        // 🔧【新增】竞技场模式下获取玩家竞技币
-                        if gs.room.RoomCategory == 2 && gs.room.ArenaSessionID > 0 {
-                                var participation database.ArenaParticipation
-                                if err := database.DB().Where("session_id = ? AND player_id = ?", gs.room.ArenaSessionID, p.DBID).First(&participation).Error; err != nil {
-                                        log.Printf("⚠️ [MatchCoin] 获取竞技币失败: session_id=%d, player_id=%d, err=%v", gs.room.ArenaSessionID, p.DBID, err)
-                                } else {
-                                        // 竞技币 = 当前竞技币 + 本局输赢
-                                        matchCoin = participation.MatchCoin + winGold
-                                        log.Printf("🏟️ [MatchCoin] 玩家 %s (DBID=%d): 当前竞技币=%d, 本局变化=%d, 结算后=%d",
-                                                p.Name, p.DBID, participation.MatchCoin, winGold, matchCoin)
-                                }
                         }
                 }
 

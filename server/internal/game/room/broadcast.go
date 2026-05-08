@@ -130,19 +130,29 @@ func (r *Room) GetPlayerInfo(playerID string) protocol.PlayerInfo {
                 }
                 
                 // 🔧【新增】竞技场模式下获取玩家竞技币
-                if r.RoomCategory == 2 && r.ArenaSessionID > 0 && playerDBID > 0 {
+                // 🔧【关键修复】优先从 ddz_arena_period_players 获取 arena_gold（当期赛事金币）
+                if r.RoomCategory == 2 && r.PeriodNo != "" && playerDBID > 0 {
+                        // 从期号玩家表获取 arena_gold
+                        if arenaGold, err := database.GetArenaGold(r.PeriodNo, playerDBID); err != nil {
+                                log.Printf("⚠️ [GetPlayerInfo] 获取赛事金币失败: period_no=%s, player_id=%d, err=%v", r.PeriodNo, playerDBID, err)
+                        } else {
+                                matchCoin = arenaGold
+                                log.Printf("✅ [GetPlayerInfo] 竞技场模式: 玩家 %d 的赛事金币=%d (period_no=%s)", playerDBID, matchCoin, r.PeriodNo)
+                        }
+                } else if r.RoomCategory == 2 && r.ArenaSessionID > 0 && playerDBID > 0 {
+                        // 兼容：如果没有 PeriodNo，尝试从 ArenaParticipation 获取
                         var participation database.ArenaParticipation
                         if err := db.Where("session_id = ? AND player_id = ?", r.ArenaSessionID, playerDBID).First(&participation).Error; err != nil {
                                 log.Printf("⚠️ [GetPlayerInfo] 获取竞技币失败: session_id=%d, player_id=%d, err=%v", r.ArenaSessionID, playerDBID, err)
                         } else {
                                 matchCoin = participation.MatchCoin
-                                log.Printf("✅ [GetPlayerInfo] 竞技场模式: 玩家 %d 的竞技币=%d", playerDBID, matchCoin)
+                                log.Printf("✅ [GetPlayerInfo] 竞技场模式(兼容): 玩家 %d 的竞技币=%d", playerDBID, matchCoin)
                         }
                 }
         } else {
                 log.Printf("⚠️ [GetPlayerInfo] 数据库连接为空，使用缓存金币: %d", goldCount)
         }
-        
+
         log.Printf("📤 [GetPlayerInfo] 返回玩家信息: UUID=%s, 昵称=%s, 头像=%s, 金币=%d, 竞技币=%d", playerID, playerName, avatar, goldCount, matchCoin)
 
         // 游戏会话由外部调用方管理，此处暂不传入
@@ -155,7 +165,9 @@ func (r *Room) GetPlayerInfo(playerID string) protocol.PlayerInfo {
                 IsLandlord: player.IsLandlord,
                 CardsCount: cardsCount,
                 GoldCount:  goldCount,
-                MatchCoin:  matchCoin, // 🔧【新增】竞技币
+                MatchCoin:  matchCoin,   // 🔧【新增】竞技币
+                ArenaGold:  matchCoin,   // 🔧【新增】当期赛事金币（与 match_coin 相同，用于客户端显示）
+                PeriodNo:   r.PeriodNo,  // 🔧【新增】期号
         }
 }
 

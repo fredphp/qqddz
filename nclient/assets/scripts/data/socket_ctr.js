@@ -812,11 +812,11 @@ window.socketCtr = function(){
             
             // 🔧【新增】获取房间分类
             var roomCategory = data.room_category || 1
-            
+
             // 转换数据格式
             var players = data.players || []
             var playerdata = players.map(function(p, idx) {
-                console.log("🪙 [request_enter_room] 转换玩家数据:", p.name, "gold_count=", p.gold_count, "match_coin=", p.match_coin)
+                console.log("🪙 [request_enter_room] 转换玩家数据:", p.name, "gold_count=", p.gold_count, "match_coin=", p.match_coin, "arena_gold=", p.arena_gold)
                 return {
                     accountid: p.id,
                     nick_name: p.name,
@@ -824,12 +824,14 @@ window.socketCtr = function(){
                     gold_count: p.gold_count || 0,
                     goldcount: p.gold_count || 0,
                     match_coin: p.match_coin || 0, // 🔧【新增】竞技币
+                    arena_gold: p.arena_gold || p.match_coin || 0, // 🔧【新增】当期赛事金币（优先使用）
+                    period_no: p.period_no || "", // 🔧【新增】期号
                     seatindex: (p.seat !== undefined ? p.seat : idx) + 1,
                     isready: p.ready || false,
                     room_category: roomCategory // 🔧【新增】传递房间分类
                 }
             })
-            
+
             callback(0, {
                 seatindex: data.player ? data.player.seat + 1 : 1,
                 playerdata: playerdata,

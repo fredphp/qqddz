@@ -188,23 +188,26 @@ cc.Class({
 
       this.account_label.node.active = false
       this.nickname_label.string = data.nick_name || ("玩家" + (index + 1))
-      
+
       // 🔧【修复】区分普通场和竞技场的金币显示
-      // 竞技场模式下显示 match_coin（竞技币），普通场显示 gold_count（金币）
+      // 竞技场模式下显示 arena_gold（当期赛事金币），普通场显示 gold_count（欢乐豆）
       var displayValue = 0
       var isArenaMode = data.room_category === 2 || this._isArenaMode
-      
+
       if (isArenaMode) {
-          // 竞技场模式：优先显示竞技币
-          if (data.match_coin !== undefined && data.match_coin !== null) {
+          // 竞技场模式：优先显示 arena_gold（当期赛事金币）
+          if (data.arena_gold !== undefined && data.arena_gold !== null) {
+              displayValue = data.arena_gold
+              console.log("🏟️ [player_node] 竞技场模式 - 昵称:", data.nick_name, "arena_gold:", data.arena_gold, "期号:", data.period_no)
+          } else if (data.match_coin !== undefined && data.match_coin !== null) {
               displayValue = data.match_coin
-              console.log("🏟️ [player_node] 竞技场模式 - 昵称:", data.nick_name, "match_coin:", data.match_coin)
+              console.log("🏟️ [player_node] 竞技场模式(兼容) - 昵称:", data.nick_name, "match_coin:", data.match_coin)
           } else if (data.gold_count !== undefined && data.gold_count !== null) {
               displayValue = data.gold_count
-              console.log("🏟️ [player_node] 竞技场模式（无match_coin）- 使用 gold_count:", data.gold_count)
+              console.log("🏟️ [player_node] 竞技场模式（无arena_gold）- 使用 gold_count:", data.gold_count)
           }
       } else {
-          // 普通场：显示金币
+          // 普通场：显示欢乐豆
           if (data.gold_count !== undefined && data.gold_count !== null) {
               displayValue = data.gold_count
           } else if (data.goldcount !== undefined && data.goldcount !== null) {
@@ -212,9 +215,11 @@ cc.Class({
           }
           console.log("🪙 [player_node] 普通场 - 昵称:", data.nick_name, "gold_count:", data.gold_count, "最终金币:", displayValue)
       }
-      
+
       this.globalcount_label.string = String(displayValue)
       this._isArenaMode = isArenaMode // 保存竞技场模式状态
+      this._arenaGold = displayValue // 🔧【新增】保存当前赛事金币
+      this._periodNo = data.period_no || "" // 🔧【新增】保存期号
       this.cardlist_node = []
 
       // 检查准备状态

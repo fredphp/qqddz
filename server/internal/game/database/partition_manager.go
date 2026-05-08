@@ -29,6 +29,7 @@ const (
         PartitionTypeArenaPeriod = "arena_period"    // 竞技场期号表分表
         PartitionTypeArenaSignupLog = "arena_signup_log" // 竞技场报名日志表分表
         PartitionTypeArenaPeriodPlayer = "arena_period_player" // 竞技场期号玩家表分表
+        PartitionTypeArenaGoldLog = "arena_gold_log" // 🔧【新增】竞技场金币流水表分表
 )
 
 // partitionManager 分表管理器单例
@@ -538,13 +539,20 @@ func (pm *PartitionManager) createArenaPeriodPlayerTable(suffix string) error {
                         signup_order int NOT NULL DEFAULT 0 COMMENT '报名顺序',
                         signup_fee bigint NOT NULL DEFAULT 0 COMMENT '报名费',
                         status tinyint unsigned NOT NULL DEFAULT 1 COMMENT '状态:1-正常,2-取消,3-超时未进入',
+                        arena_gold bigint NOT NULL DEFAULT 0 COMMENT '当期赛事金币',
+                        is_eliminated tinyint unsigned NOT NULL DEFAULT 0 COMMENT '是否淘汰:0-否,1-是',
+                        eliminated_round int DEFAULT NULL COMMENT '淘汰轮次',
+                        rank_no int DEFAULT NULL COMMENT '最终排名',
+                        player_status tinyint unsigned NOT NULL DEFAULT 0 COMMENT '玩家状态:0-报名,1-比赛中,2-淘汰,3-晋级,4-结束',
                         created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                        updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                         PRIMARY KEY (id),
                         KEY idx_period_no (period_no),
                         KEY idx_period_id (period_id),
                         KEY idx_room_id (room_id),
                         KEY idx_player_id (player_id),
-                        KEY idx_status (status)
+                        KEY idx_status (status),
+                        KEY idx_player_status (player_status)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='竞技场期号玩家表(月份分表)'
         `, tableName)
 
@@ -555,6 +563,45 @@ func (pm *PartitionManager) createArenaPeriodPlayerTable(suffix string) error {
         pm.createdTables.Store(tableName, true)
 
         log.Printf("✅ 创建竞技场期号玩家分表: %s", tableName)
+        return nil
+}
+
+// createArenaGoldLogTable 创建竞技场金币流水分表
+func (pm *PartitionManager) createArenaGoldLogTable(suffix string) error {
+        tableName := pm.getTableName("ddz_arena_gold_logs", suffix)
+
+        if pm.isTableExists(tableName) {
+                return nil
+        }
+
+        sql := fmt.Sprintf(`
+                CREATE TABLE IF NOT EXISTS %s (
+                        id bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '流水ID',
+                        period_no varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '期号',
+                        room_id bigint unsigned NOT NULL COMMENT '房间ID',
+                        player_id bigint unsigned NOT NULL COMMENT '玩家ID',
+                        match_id varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '对局ID',
+                        before_gold bigint NOT NULL DEFAULT 0 COMMENT '变动前金币',
+                        change_gold bigint NOT NULL DEFAULT 0 COMMENT '变动金币(正=赢,负=输)',
+                        after_gold bigint NOT NULL DEFAULT 0 COMMENT '变动后金币',
+                        reason varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '变动原因',
+                        created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                        PRIMARY KEY (id),
+                        KEY idx_period_no (period_no),
+                        KEY idx_room_id (room_id),
+                        KEY idx_player_id (player_id),
+                        KEY idx_match_id (match_id),
+                        KEY idx_created_at (created_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='竞技场金币流水表(月份分表)'
+        `, tableName)
+
+        if err := pm.db.Exec(sql).Error; err != nil {
+                return fmt.Errorf("创建竞技场金币流水分表 %s 失败: %w", tableName, err)
+        }
+
+        pm.createdTables.Store(tableName, true)
+
+        log.Printf("✅ 创建竞技场金币流水分表: %s", tableName)
         return nil
 }
 
@@ -581,6 +628,8 @@ func (pm *PartitionManager) EnsureTableExists(tableType, suffix string) error {
                 return pm.createArenaSignupLogTable(suffix)
         case PartitionTypeArenaPeriodPlayer:
                 return pm.createArenaPeriodPlayerTable(suffix)
+        case PartitionTypeArenaGoldLog:
+                return pm.createArenaGoldLogTable(suffix)
         default:
                 return fmt.Errorf("未知的分表类型: %s", tableType)
         }
@@ -644,6 +693,12 @@ func (pm *PartitionManager) GetArenaSignupLogTableName(t time.Time) string {
 func (pm *PartitionManager) GetArenaPeriodPlayerTableName(t time.Time) string {
         suffix := t.Format("200601")
         return pm.getTableName("ddz_arena_period_players", suffix)
+}
+
+// GetArenaGoldLogTableName 获取竞技场金币流水表名（根据时间）
+func (pm *PartitionManager) GetArenaGoldLogTableName(t time.Time) string {
+        suffix := t.Format("200601")
+        return pm.getTableName("ddz_arena_gold_logs", suffix)
 }
 
 // GetCurrentRoomTableName 获取当前月份的房间表名
