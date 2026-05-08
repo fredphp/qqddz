@@ -8,6 +8,7 @@ import (
         "time"
 
         "gorm.io/datatypes"
+        "gorm.io/gorm"
 
         "github.com/flipped-aurora/gin-vue-admin/server/global"
         "github.com/flipped-aurora/gin-vue-admin/server/model/ddz"
@@ -39,22 +40,24 @@ func (s *DDZGameLogService) GetGameRecordList(req ddzReq.DDZGameRecordSearch) (l
         limit := req.PageSize
         offset := req.PageSize * (req.Page - 1)
 
-        // 确定查询的分表
-        month := req.Month
-        if month == "" {
-                month = getCurrentMonth()
+        // 🔧【修复】优先查询主表 ddz_game_records（游戏服务器存储的表）
+        // 如果指定了月份参数，则尝试查询分表
+        var query *gorm.DB
+        if req.Month != "" {
+                // 指定了月份，尝试查询分表
+                tableName := getTableNameWithMonth("ddz_game_records", req.Month)
+                var tableCount int64
+                db.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", tableName).Scan(&tableCount)
+                if tableCount > 0 {
+                        query = db.Table(tableName)
+                } else {
+                        // 分表不存在，返回空结果
+                        return []ddzRes.DDZGameRecordResponse{}, 0, nil
+                }
+        } else {
+                // 未指定月份，查询主表（游戏服务器实际存储的表）
+                query = db.Model(&ddz.DDZGameRecord{})
         }
-        tableName := getTableNameWithMonth("ddz_game_records", month)
-
-        // 检查分表是否存在
-        var tableCount int64
-        db.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", tableName).Scan(&tableCount)
-        if tableCount == 0 {
-                // 分表不存在，返回空结果
-                return []ddzRes.DDZGameRecordResponse{}, 0, nil
-        }
-
-        query := db.Table(tableName)
 
         if req.GameID != "" {
                 query = query.Where("game_id LIKE ?", "%"+req.GameID+"%")
@@ -151,18 +154,51 @@ func (s *DDZGameLogService) DeleteGameRecord(id uint) error {
         return db.Delete(&ddz.DDZGameRecord{}, id).Error
 }
 
-// GetBidLogList 获取叫地主日志列表（暂不实现，当前模型没有叫地主日志表）
+// GetBidLogList 获取叫地主日志列表
+// 🔧【修复】查询 ddz_bid_logs 表（游戏服务器实际存储的表）
 func (s *DDZGameLogService) GetBidLogList(req ddzReq.DDZBidLogSearch) (list interface{}, total int64, err error) {
-        // 当前数据库模型没有单独的叫地主日志表
-        return []interface{}{}, 0, nil
+        db := GetDDZDB()
+        limit := req.PageSize
+        offset := req.PageSize * (req.Page - 1)
+        query := db.Model(&ddz.DDZBidLog{})
+
+        if req.GameID != "" {
+                query = query.Where("game_id = ?", req.GameID)
+        }
+        if req.PlayerID != "" {
+                query = query.Where("player_id = ?", req.PlayerID)
+        }
+        if req.BidType != nil {
+                query = query.Where("bid_type = ?", *req.BidType)
+        }
+
+        err = query.Count(&total).Error
+        if err != nil {
+                return nil, 0, err
+        }
+
+        var logs []ddz.DDZBidLog
+        err = query.Limit(limit).Offset(offset).Order("id desc").Find(&logs).Error
+        if err != nil {
+                return nil, 0, err
+        }
+
+        logList := make([]ddzRes.DDZBidLogResponse, 0, len(logs))
+        for _, l := range logs {
+                logList = append(logList, s.toBidLogResponse(l))
+        }
+
+        return logList, total, nil
 }
 
 // GetDealLogList 获取发牌日志列表
+// 🔧【修复】查询 ddz_deal_logs 表（游戏服务器实际存储的表）
 func (s *DDZGameLogService) GetDealLogList(req ddzReq.DDZDealLogSearch) (list interface{}, total int64, err error) {
         db := GetDDZDB()
         limit := req.PageSize
         offset := req.PageSize * (req.Page - 1)
-        query := db.Model(&ddz.DDZDealRecord{})
+        // 🔧【修复】使用游戏服务器实际存储的表名 ddz_deal_logs
+        query := db.Model(&ddz.DDZDealLog{})
 
         if req.GameID != "" {
                 query = query.Where("game_id = ?", req.GameID)
@@ -173,26 +209,28 @@ func (s *DDZGameLogService) GetDealLogList(req ddzReq.DDZDealLogSearch) (list in
                 return nil, 0, err
         }
 
-        var logs []ddz.DDZDealRecord
+        var logs []ddz.DDZDealLog
         err = query.Limit(limit).Offset(offset).Order("id desc").Find(&logs).Error
         if err != nil {
                 return nil, 0, err
         }
 
-        logList := make([]ddzRes.DDZDealRecordResponse, 0, len(logs))
+        logList := make([]ddzRes.DDZDealLogResponse, 0, len(logs))
         for _, l := range logs {
-                logList = append(logList, s.toDealRecordResponse(l))
+                logList = append(logList, s.toDealLogResponse(l))
         }
 
         return logList, total, nil
 }
 
 // GetPlayLogList 获取出牌日志列表
+// 🔧【修复】查询 ddz_play_logs 表（游戏服务器实际存储的表）
 func (s *DDZGameLogService) GetPlayLogList(req ddzReq.DDZPlayLogSearch) (list interface{}, total int64, err error) {
         db := GetDDZDB()
         limit := req.PageSize
         offset := req.PageSize * (req.Page - 1)
-        query := db.Model(&ddz.DDZGamePlayRecord{})
+        // 🔧【修复】使用游戏服务器实际存储的表名 ddz_play_logs
+        query := db.Model(&ddz.DDZPlayLog{})
 
         if req.GameID != "" {
                 query = query.Where("game_id = ?", req.GameID)
@@ -201,7 +239,7 @@ func (s *DDZGameLogService) GetPlayLogList(req ddzReq.DDZPlayLogSearch) (list in
                 query = query.Where("player_id = ?", req.PlayerID)
         }
         if req.PlayType != nil {
-                query = query.Where("action_type = ?", *req.PlayType)
+                query = query.Where("play_type = ?", *req.PlayType)
         }
 
         err = query.Count(&total).Error
@@ -209,24 +247,74 @@ func (s *DDZGameLogService) GetPlayLogList(req ddzReq.DDZPlayLogSearch) (list in
                 return nil, 0, err
         }
 
-        var logs []ddz.DDZGamePlayRecord
+        var logs []ddz.DDZPlayLog
         err = query.Limit(limit).Offset(offset).Order("id desc").Find(&logs).Error
         if err != nil {
                 return nil, 0, err
         }
 
-        logList := make([]ddzRes.DDZPlayRecordResponse, 0, len(logs))
+        logList := make([]ddzRes.DDZPlayLogResponse, 0, len(logs))
         for _, l := range logs {
-                logList = append(logList, s.toPlayRecordResponse(l))
+                logList = append(logList, s.toPlayLogResponse(l))
         }
 
         return logList, total, nil
 }
 
-// GetPlayerStatList 获取玩家统计列表（暂不实现，当前模型没有玩家统计表）
+// GetPlayerStatList 获取玩家统计列表
+// 🔧【修复】从 ddz_players 表获取统计数据（win_count, lose_count 等字段存储在玩家表中）
 func (s *DDZGameLogService) GetPlayerStatList(req ddzReq.DDZPlayerStatSearch) (list interface{}, total int64, err error) {
-        // 当前数据库模型没有单独的玩家统计表
-        return []interface{}{}, 0, nil
+        db := GetDDZDB()
+        limit := req.PageSize
+        offset := req.PageSize * (req.Page - 1)
+        query := db.Model(&ddz.DDZPlayer{})
+
+        if req.PlayerID != "" {
+                query = query.Where("id = ?", req.PlayerID)
+        }
+        if req.StartDate != "" {
+                query = query.Where("created_at >= ?", req.StartDate)
+        }
+        if req.EndDate != "" {
+                query = query.Where("created_at <= ?", req.EndDate+" 23:59:59")
+        }
+
+        err = query.Count(&total).Error
+        if err != nil {
+                return nil, 0, err
+        }
+
+        var players []ddz.DDZPlayer
+        err = query.Limit(limit).Offset(offset).Order("id desc").Find(&players).Error
+        if err != nil {
+                return nil, 0, err
+        }
+
+        // 转换为统计响应格式
+        result := make([]ddzRes.DDZPlayerStatResponse, 0, len(players))
+        for _, p := range players {
+                winRate := 0.0
+                totalGames := p.WinCount + p.LoseCount
+                if totalGames > 0 {
+                        winRate = float64(p.WinCount) / float64(totalGames) * 100
+                }
+                
+                result = append(result, ddzRes.DDZPlayerStatResponse{
+                        PlayerID:      fmt.Sprintf("%d", p.ID),
+                        PlayerName:    p.Nickname,
+                        PlayerAvatar:  p.Avatar,
+                        StatDate:      p.CreatedAt.Format("2006-01-02"),
+                        TotalGames:    totalGames,
+                        Wins:          p.WinCount,
+                        Losses:        p.LoseCount,
+                        WinRate:       winRate,
+                        LandlordGames: p.LandlordCount,
+                        FarmerGames:   p.FarmerCount,
+                        CreatedAt:     p.CreatedAt.Format("2006-01-02 15:04:05"),
+                })
+        }
+
+        return result, total, nil
 }
 
 // GetRoomConfigList 获取游戏房间配置列表（ddz_room_config 表）
@@ -1351,5 +1439,123 @@ func (s *DDZGameLogService) roomRecordToResponse(r RoomRecord) ddzRes.DDZRoomRes
                 StartedAt:        startedAtStr,
                 EndedAt:          endedAtStr,
                 CreatedAt:        r.CreatedAt.Format("2006-01-02 15:04:05"),
+        }
+}
+
+// 🔧【新增】叫地主日志转换方法
+func (s *DDZGameLogService) toBidLogResponse(l ddz.DDZBidLog) ddzRes.DDZBidLogResponse {
+        db := GetDDZDB()
+        
+        // 获取玩家昵称
+        playerName := ""
+        var player ddz.DDZPlayer
+        if err := db.Where("id = ?", l.PlayerID).First(&player).Error; err == nil {
+                playerName = player.Nickname
+        }
+        
+        // 叫地主类型文本
+        bidTypeText := "不叫"
+        switch l.BidType {
+        case 1:
+                bidTypeText = "叫地主"
+        case 2:
+                bidTypeText = "抢地主"
+        }
+        
+        // 是否成功文本
+        successText := "失败"
+        if l.IsSuccess == 1 {
+                successText = "成功"
+        }
+        
+        return ddzRes.DDZBidLogResponse{
+                ID:          l.ID,
+                GameID:      l.GameID,
+                PlayerID:    l.PlayerID,
+                PlayerName:  playerName,
+                BidOrder:    l.BidOrder,
+                BidType:     l.BidType,
+                BidTypeText: bidTypeText,
+                BidScore:    l.BidScore,
+                IsSuccess:   l.IsSuccess,
+                SuccessText: successText,
+                CreatedAt:   l.CreatedAt.Format("2006-01-02 15:04:05"),
+        }
+}
+
+// 🔧【新增】发牌日志转换方法
+func (s *DDZGameLogService) toDealLogResponse(l ddz.DDZDealLog) ddzRes.DDZDealLogResponse {
+        db := GetDDZDB()
+        
+        // 获取玩家昵称
+        playerName := ""
+        var player ddz.DDZPlayer
+        if err := db.Where("id = ?", l.PlayerID).First(&player).Error; err == nil {
+                playerName = player.Nickname
+        }
+        
+        // 玩家角色文本
+        playerRoleText := "农民"
+        if l.PlayerRole == 1 {
+                playerRoleText = "地主"
+        }
+        
+        return ddzRes.DDZDealLogResponse{
+                ID:             l.ID,
+                GameID:         l.GameID,
+                PlayerID:       l.PlayerID,
+                PlayerName:     playerName,
+                PlayerRole:     l.PlayerRole,
+                PlayerRoleText: playerRoleText,
+                HandCards:      l.HandCards,
+                CardsCount:     l.CardsCount,
+                LandlordCards:  l.LandlordCards,
+                CreatedAt:      l.CreatedAt.Format("2006-01-02 15:04:05"),
+        }
+}
+
+// 🔧【新增】出牌日志转换方法
+func (s *DDZGameLogService) toPlayLogResponse(l ddz.DDZPlayLog) ddzRes.DDZPlayLogResponse {
+        db := GetDDZDB()
+        
+        // 获取玩家昵称
+        playerName := ""
+        var player ddz.DDZPlayer
+        if err := db.Where("id = ?", l.PlayerID).First(&player).Error; err == nil {
+                playerName = player.Nickname
+        }
+        
+        // 玩家角色文本
+        playerRoleText := "农民"
+        if l.PlayerRole == 1 {
+                playerRoleText = "地主"
+        }
+        
+        // 出牌类型文本
+        playTypeText := "出牌"
+        switch l.PlayType {
+        case 2:
+                playTypeText = "不出"
+        case 3:
+                playTypeText = "超时自动出牌"
+        }
+        
+        return ddzRes.DDZPlayLogResponse{
+                ID:             l.ID,
+                GameID:         l.GameID,
+                PlayerID:       l.PlayerID,
+                PlayerName:     playerName,
+                PlayerRole:     l.PlayerRole,
+                PlayerRoleText: playerRoleText,
+                RoundNum:       l.RoundNum,
+                PlayOrder:      l.PlayOrder,
+                PlayType:       l.PlayType,
+                PlayTypeText:   playTypeText,
+                Cards:          l.Cards,
+                CardsCount:     l.CardsCount,
+                CardPattern:    l.CardPattern,
+                IsBomb:         l.IsBomb,
+                IsRocket:       l.IsRocket,
+                CreatedAt:      l.CreatedAt.Format("2006-01-02 15:04:05"),
         }
 }
