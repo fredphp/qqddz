@@ -919,16 +919,17 @@ func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
                         log.Printf("🏟️ [onArenaCountdownEnd] 玩家 %s 已自动准备", playerID)
                 }
         }
-        
-        // 更新房间状态
-        gs.room.State = RoomStateReady
-        
+
+        // 🔧【修复】确保房间状态为 Waiting，这样 StartGame() 检查才能通过
+        // StartGame() 内部会将状态从 Waiting 改为 Ready
+        gs.room.State = RoomStateWaiting
+
         // 调用房间开始游戏
         if err := gs.room.StartGame(); err != nil {
                 log.Printf("❌ [onArenaCountdownEnd] 开始游戏失败: %v", err)
                 return
         }
-        
+
         // 创建新的游戏会话并开始
         // 注意：这里需要通过房间管理器的回调来创建新会话
         // 暂时直接调用 Start 方法重用当前会话
