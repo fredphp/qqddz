@@ -70,6 +70,18 @@ func (s *AIStrategyV2) DecidePlay(gameState *GameState) *PlayDecision {
         log.Printf("[AI] role=%s", s.getRoleString())
         log.Printf("[AI] hand_cards=%d", len(gameState.MyHandCards))
 
+        // 🔧【调试】打印当前出牌状态
+        if gameState.CurrentPlay != nil {
+                log.Printf("[AI] CurrentPlay: PlayerID=%d, Pattern=%s, IsPass=%v, Cards=%d",
+                        gameState.CurrentPlay.PlayerID, gameState.CurrentPlay.Pattern,
+                        gameState.CurrentPlay.IsPass, len(gameState.CurrentPlay.Cards))
+                if len(gameState.CurrentPlay.Cards) > 0 {
+                        log.Printf("[AI] CurrentPlay first card: Rank=%d", gameState.CurrentPlay.Cards[0].Rank)
+                }
+        } else {
+                log.Printf("[AI] CurrentPlay is nil")
+        }
+
         // 检查是否需要让牌（分数控制）
         if s.runtime != nil && s.runtime.ScoreControl != nil && s.runtime.ScoreControl.LetWinEnabled {
                 if s.shouldLetWin() {
@@ -80,6 +92,7 @@ func (s *AIStrategyV2) DecidePlay(gameState *GameState) *PlayDecision {
 
         // 判断是否是新回合
         isNewRound := gameState.CurrentPlay == nil || gameState.CurrentPlay.IsPass
+        log.Printf("[AI] isNewRound=%v", isNewRound)
 
         if isNewRound {
                 return s.firstPlayDecision()

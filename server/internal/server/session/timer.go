@@ -66,13 +66,19 @@ func (gs *GameSession) handlePlayTimeout() {
 func (gs *GameSession) doHandlePlayTimeout() {
         gs.mu.Lock()
 
+        log.Printf("[TRUSTEE] doHandlePlayTimeout 开始执行")
+
         if gs.state != GameStatePlaying {
+                log.Printf("[TRUSTEE] 游戏状态不是 Playing，退出: state=%d", gs.state)
                 gs.mu.Unlock()
                 return
         }
 
         currentPlayer := gs.players[gs.currentPlayer]
         playerID := currentPlayer.ID
+
+        log.Printf("[TRUSTEE] 当前玩家: %s (ID: %s), IsRobot: %v, IsTrustee: %v",
+                currentPlayer.Name, playerID, currentPlayer.IsRobot(), currentPlayer.IsTrustee)
 
         // 🔧【托管】检查玩家状态
         if currentPlayer.IsRobot() {
@@ -85,8 +91,27 @@ func (gs *GameSession) doHandlePlayTimeout() {
                 gs.broadcastTrusteeState(currentPlayer.ID, currentPlayer.Name, true, "timeout")
         }
 
+        // 🔧【调试】打印上家出牌信息
+        if !gs.lastPlayedHand.IsEmpty() {
+                log.Printf("[TRUSTEE] lastPlayedHand: Type=%s, KeyRank=%d, Cards=%d",
+                        gs.lastPlayedHand.Type.String(), gs.lastPlayedHand.KeyRank, len(gs.lastPlayedHand.Cards))
+        } else {
+                log.Printf("[TRUSTEE] lastPlayedHand is empty (新一轮)")
+        }
+
         // 🔧【修复】使用智能决策系统
+        log.Printf("[TRUSTEE] 开始调用 makeRobotDecision")
         decision := gs.makeRobotDecision(currentPlayer)
+        if decision != nil {
+                cardsLen := 0
+                if decision.Cards != nil {
+                        cardsLen = len(decision.Cards)
+                }
+                log.Printf("[TRUSTEE] makeRobotDecision 返回: ShouldPlay=%v, Cards=%d, Reason=%s",
+                        decision.ShouldPlay, cardsLen, decision.Reason)
+        } else {
+                log.Printf("[TRUSTEE] makeRobotDecision 返回: nil")
+        }
 
         if decision == nil || !decision.ShouldPlay {
                 // 决定过牌
