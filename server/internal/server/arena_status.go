@@ -571,7 +571,6 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
         // 1. 收集所有在线玩家客户端（真人）
         // ============================================================
         onlineClients := make([]*Client, 0) // 在线的真人玩家
-        var offlineRealPlayerCount int // 不在线的真人玩家数量
         
         b.server.clientsMu.RLock()
         for _, playerID := range table.Players {
