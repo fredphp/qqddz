@@ -208,6 +208,8 @@ func (d *Database) AutoMigrate() error {
                 &ArenaPeriod{},
                 &ArenaSignupLog{},
                 &ArenaPeriodPlayer{},
+                // 写入队列错误日志表
+                &WriteQueueErrorLog{},
         )
 }
 

@@ -396,8 +396,16 @@ func (q *WriteQueue) IsStarted() bool {
 // =============================================
 
 // worker 工作协程
+// 🔧【安全】添加 panic 恢复机制，防止崩溃
 func (q *WriteQueue) worker() {
-        defer q.wg.Done()
+        defer func() {
+                q.wg.Done()
+                if r := recover(); r != nil {
+                        log.Printf("❌ [WriteQueue] worker 发生 panic: %v", r)
+                        // 记录错误到数据库
+                        q.recordError("worker_panic", fmt.Sprintf("worker panic: %v", r), "")
+                }
+        }()
 
         batchTimer := time.NewTimer(q.config.BatchTimeout)
         defer batchTimer.Stop()
@@ -506,6 +514,7 @@ func (q *WriteQueue) flushRemaining() {
 
 // writeBatchNoLimit 批量写入（不限流，用于关闭时）
 // 🔧【整合】复用 SaveGameResult 避免重复代码
+// 🔧【安全】添加 panic 恢复和错误记录
 func (q *WriteQueue) writeBatchNoLimit(batch []*GameResultData) {
         if len(batch) == 0 {
                 return
@@ -514,6 +523,7 @@ func (q *WriteQueue) writeBatchNoLimit(batch []*GameResultData) {
         // 检查数据库连接
         if q.db == nil {
                 log.Printf("❌ [WriteQueue] 数据库连接为空，无法写入 %d 条数据", len(batch))
+                q.recordError("db_nil", fmt.Sprintf("数据库连接为空，无法写入 %d 条数据", len(batch)), "")
                 return
         }
 
@@ -526,28 +536,47 @@ func (q *WriteQueue) writeBatchNoLimit(batch []*GameResultData) {
                         continue
                 }
 
-                atomic.AddUint64(&q.totalProcessed, 1)
+                // 🔧【安全】为每条数据添加 panic 恢复
+                func() {
+                        defer func() {
+                                if r := recover(); r != nil {
+                                        failCount++
+                                        atomic.AddUint64(&q.totalFailed, 1)
+                                        log.Printf("❌ [WriteQueue] 写入单条数据发生 panic: %v, GameID=%s", r, data.GameID)
+                                        q.recordError("write_panic",
+                                                fmt.Sprintf("写入数据 panic: %v", r),
+                                                fmt.Sprintf("GameID=%s, RoomID=%s", data.GameID, data.RoomID))
+                                }
+                        }()
 
-                // 🔧【整合】使用统一的 SaveGameResult 函数，避免重复代码
-                record := data.toGameRecord()
-                if record == nil {
-                        continue
-                }
+                        atomic.AddUint64(&q.totalProcessed, 1)
 
-                err := SaveGameResult(record, data.DealLogs, data.BidLogs, data.PlayLogs)
-
-                if err != nil {
-                        failCount++
-                        atomic.AddUint64(&q.totalFailed, 1)
-
-                        // 重试逻辑 - 只在队列启动时才重试
-                        if atomic.LoadInt32(&q.started) == 1 {
-                                q.retryOrDrop(data)
+                        // 🔧【整合】使用统一的 SaveGameResult 函数，避免重复代码
+                        record := data.toGameRecord()
+                        if record == nil {
+                                log.Printf("⚠️ [WriteQueue] 数据转换为空，跳过: GameID=%s", data.GameID)
+                                return
                         }
-                } else {
-                        successCount++
-                        atomic.AddUint64(&q.totalSuccess, 1)
-                }
+
+                        err := SaveGameResult(record, data.DealLogs, data.BidLogs, data.PlayLogs)
+
+                        if err != nil {
+                                failCount++
+                                atomic.AddUint64(&q.totalFailed, 1)
+                                log.Printf("❌ [WriteQueue] 保存游戏结果失败: %v, GameID=%s", err, data.GameID)
+                                q.recordError("save_failed",
+                                        fmt.Sprintf("保存游戏结果失败: %v", err),
+                                        fmt.Sprintf("GameID=%s, RoomID=%s", data.GameID, data.RoomID))
+
+                                // 重试逻辑 - 只在队列启动时才重试
+                                if atomic.LoadInt32(&q.started) == 1 {
+                                        q.retryOrDrop(data)
+                                }
+                        } else {
+                                successCount++
+                                atomic.AddUint64(&q.totalSuccess, 1)
+                        }
+                }()
         }
 
         elapsed := time.Since(startTime)
@@ -579,14 +608,27 @@ func (q *WriteQueue) writeSingle(data *GameResultData) error {
 
 // writeSingleNoLimit 单条写入（不限流，用于关闭时和回退场景）
 // 🔧【整合】复用 SaveGameResult 和 toGameRecord 避免重复代码
-func (q *WriteQueue) writeSingleNoLimit(data *GameResultData) error {
+// 🔧【安全】添加 panic 恢复和错误记录
+func (q *WriteQueue) writeSingleNoLimit(data *GameResultData) (err error) {
         if data == nil {
                 return nil
         }
 
+        // 🔧【安全】添加 panic 恢复
+        defer func() {
+                if r := recover(); r != nil {
+                        err = fmt.Errorf("写入数据发生 panic: %v", r)
+                        log.Printf("❌ [WriteQueue] writeSingleNoLimit panic: %v, GameID=%s", r, data.GameID)
+                        q.recordError("write_single_panic",
+                                fmt.Sprintf("写入数据 panic: %v", r),
+                                fmt.Sprintf("GameID=%s, RoomID=%s", data.GameID, data.RoomID))
+                }
+        }()
+
         // 检查数据库连接
         if q.db == nil {
                 log.Printf("❌ [WriteQueue] 数据库连接为空，无法写入 GameID=%s", data.GameID)
+                q.recordError("db_nil", "数据库连接为空", fmt.Sprintf("GameID=%s", data.GameID))
                 return fmt.Errorf("数据库连接为空")
         }
 
@@ -595,13 +637,18 @@ func (q *WriteQueue) writeSingleNoLimit(data *GameResultData) error {
         // 🔧【整合】使用辅助函数转换数据
         record := data.toGameRecord()
         if record == nil {
+                log.Printf("⚠️ [WriteQueue] 数据转换为空: GameID=%s", data.GameID)
                 return fmt.Errorf("数据转换失败")
         }
 
-        err := SaveGameResult(record, data.DealLogs, data.BidLogs, data.PlayLogs)
+        err = SaveGameResult(record, data.DealLogs, data.BidLogs, data.PlayLogs)
 
         if err != nil {
                 atomic.AddUint64(&q.totalFailed, 1)
+                log.Printf("❌ [WriteQueue] 保存游戏结果失败: %v, GameID=%s", err, data.GameID)
+                q.recordError("save_failed",
+                        fmt.Sprintf("保存游戏结果失败: %v", err),
+                        fmt.Sprintf("GameID=%s, RoomID=%s", data.GameID, data.RoomID))
                 // 只在队列启动时才重试
                 if atomic.LoadInt32(&q.started) == 1 {
                         q.retryOrDrop(data)
@@ -614,6 +661,7 @@ func (q *WriteQueue) writeSingleNoLimit(data *GameResultData) error {
 }
 
 // retryOrDrop 重试或丢弃
+// 🔧【安全】添加 panic 恢复机制，防止重试时崩溃
 func (q *WriteQueue) retryOrDrop(data *GameResultData) {
         if data == nil {
                 return
@@ -624,6 +672,10 @@ func (q *WriteQueue) retryOrDrop(data *GameResultData) {
         if data.RetryCount >= q.config.MaxRetries {
                 log.Printf("❌ [WriteQueue] 数据丢弃，超过最大重试次数(%d): GameID=%s, RoomID=%s",
                         data.RetryCount, data.GameID, data.RoomID)
+                // 🔧【新增】记录丢弃的数据到错误日志，供 admin 后台查看
+                q.recordError("data_dropped",
+                        fmt.Sprintf("超过最大重试次数(%d)", data.RetryCount),
+                        fmt.Sprintf("GameID=%s, RoomID=%s", data.GameID, data.RoomID))
                 return
         }
 
@@ -639,7 +691,17 @@ func (q *WriteQueue) retryOrDrop(data *GameResultData) {
                 data.GameID, data.RetryCount, delay)
 
         // 异步重试（使用 time.AfterFunc 更安全）
+        // 🔧【安全】添加 panic 恢复，防止重试协程崩溃
         time.AfterFunc(delay, func() {
+                defer func() {
+                        if r := recover(); r != nil {
+                                log.Printf("❌ [WriteQueue] 重试协程发生 panic: %v, GameID=%s", r, data.GameID)
+                                q.recordError("retry_panic",
+                                        fmt.Sprintf("重试协程 panic: %v", r),
+                                        fmt.Sprintf("GameID=%s", data.GameID))
+                        }
+                }()
+
                 // 再次检查队列是否仍在运行（使用原子操作）
                 if atomic.LoadInt32(&q.started) == 0 {
                         log.Printf("⚠️ [WriteQueue] 队列已停止，取消重试 GameID=%s", data.GameID)
@@ -648,6 +710,7 @@ func (q *WriteQueue) retryOrDrop(data *GameResultData) {
                 // 重试时直接写入，避免队列循环
                 if err := q.writeSingleNoLimit(data); err != nil {
                         log.Printf("❌ [WriteQueue] 重试写入失败: %v, GameID=%s", err, data.GameID)
+                        // 错误已在 writeSingleNoLimit 中记录，这里不再重复记录
                 } else {
                         // 重试成功，更新统计
                         log.Printf("✅ [WriteQueue] 重试成功: GameID=%s", data.GameID)
@@ -660,8 +723,15 @@ func (q *WriteQueue) retryOrDrop(data *GameResultData) {
 // =============================================
 
 // metricsReporter 指标上报协程
+// 🔧【安全】添加 panic 恢复机制，防止崩溃
 func (q *WriteQueue) metricsReporter() {
-        defer q.wg.Done()
+        defer func() {
+                q.wg.Done()
+                if r := recover(); r != nil {
+                        log.Printf("❌ [WriteQueue] metricsReporter 发生 panic: %v", r)
+                        q.recordError("metrics_panic", fmt.Sprintf("metricsReporter panic: %v", r), "")
+                }
+        }()
 
         ticker := time.NewTicker(q.config.MetricsInterval)
         defer ticker.Stop()
@@ -766,4 +836,129 @@ func SubmitGameResultBlocking(data *GameResultData) {
 func GetWriteQueueMetrics() map[string]interface{} {
         q := GetWriteQueue()
         return q.GetMetrics()
+}
+
+// =============================================
+// 错误记录（供 admin 后台查看）
+// =============================================
+
+// WriteQueueErrorLog 写入队列错误日志
+// 🔧【新增】记录错误到数据库，供 admin 后台查看
+type WriteQueueErrorLog struct {
+        ID          uint64    `gorm:"primaryKey;autoIncrement" json:"id"`
+        ErrorType   string    `gorm:"type:varchar(50);index" json:"error_type"`     // 错误类型
+        ErrorMsg    string    `gorm:"type:varchar(500)" json:"error_msg"`            // 错误消息
+        ErrorDetail string    `gorm:"type:varchar(500)" json:"error_detail"`         // 错误详情
+        Resolved    uint8     `gorm:"default:0;index" json:"resolved"`               // 是否已解决: 0-未解决, 1-已解决
+        CreatedAt   time.Time `gorm:"autoCreateTime;index" json:"created_at"`        // 创建时间
+}
+
+// TableName 指定表名
+func (WriteQueueErrorLog) TableName() string {
+        return "ddz_write_queue_error_logs"
+}
+
+// recordError 记录错误到数据库
+// 🔧【新增】将错误持久化，供 admin 后台查看
+func (q *WriteQueue) recordError(errorType, errorMsg, errorDetail string) {
+        // 先记录到日志
+        log.Printf("❌ [WriteQueue.Error] type=%s, msg=%s, detail=%s", errorType, errorMsg, errorDetail)
+
+        // 如果数据库连接不可用，只记录日志
+        if q.db == nil {
+                log.Printf("❌ [WriteQueue.Error] 数据库连接为空，无法记录错误到数据库")
+                return
+        }
+
+        // 创建错误日志记录
+        errorLog := &WriteQueueErrorLog{
+                ErrorType:   errorType,
+                ErrorMsg:    errorMsg,
+                ErrorDetail: errorDetail,
+                Resolved:    0,
+                CreatedAt:   time.Now(),
+        }
+
+        // 异步写入数据库，避免阻塞主流程
+        go func() {
+                defer func() {
+                        if r := recover(); r != nil {
+                                log.Printf("❌ [WriteQueue.Error] 记录错误时发生 panic: %v", r)
+                        }
+                }()
+
+                if err := q.db.Create(errorLog).Error; err != nil {
+                        log.Printf("❌ [WriteQueue.Error] 无法写入错误日志到数据库: %v", err)
+                }
+        }()
+}
+
+// GetWriteQueueErrorLogs 获取写入队列错误日志列表
+// 🔧【新增】供 admin 后台调用
+func GetWriteQueueErrorLogs(page, pageSize int, resolved *uint8) ([]WriteQueueErrorLog, int64, error) {
+        var logs []WriteQueueErrorLog
+        var total int64
+
+        db := GetInstance().GetDB().Model(&WriteQueueErrorLog{})
+        if resolved != nil {
+                db = db.Where("resolved = ?", *resolved)
+        }
+
+        if err := db.Count(&total).Error; err != nil {
+                return nil, 0, err
+        }
+
+        offset := (page - 1) * pageSize
+        if err := db.Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&logs).Error; err != nil {
+                return nil, 0, err
+        }
+
+        return logs, total, nil
+}
+
+// ResolveWriteQueueError 标记错误为已解决
+// 🔧【新增】供 admin 后台调用
+func ResolveWriteQueueError(id uint64) error {
+        return GetInstance().GetDB().Model(&WriteQueueErrorLog{}).
+                Where("id = ?", id).
+                Update("resolved", 1).Error
+}
+
+// GetWriteQueueErrorStats 获取错误统计
+// 🔧【新增】供 admin 后台调用
+func GetWriteQueueErrorStats() (map[string]interface{}, error) {
+        var total, unresolved, resolved int64
+
+        db := GetInstance().GetDB().Model(&WriteQueueErrorLog{})
+
+        if err := db.Count(&total).Error; err != nil {
+                return nil, err
+        }
+
+        if err := db.Where("resolved = 0").Count(&unresolved).Error; err != nil {
+                return nil, err
+        }
+
+        resolved = total - unresolved
+
+        // 按错误类型统计
+        type ErrorTypeCount struct {
+                ErrorType string
+                Count     int64
+        }
+        var typeCounts []ErrorTypeCount
+        if err := db.Select("error_type, count(*) as count").
+                Group("error_type").
+                Order("count DESC").
+                Limit(10).
+                Find(&typeCounts).Error; err != nil {
+                return nil, err
+        }
+
+        return map[string]interface{}{
+                "total":       total,
+                "unresolved":  unresolved,
+                "resolved":    resolved,
+                "type_counts": typeCounts,
+        }, nil
 }
