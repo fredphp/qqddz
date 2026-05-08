@@ -101,10 +101,10 @@ func (gs *GameSession) doHandlePlayTimeout() {
 }
 
 // handleRobotPlay 机器人托管出牌（不走时间检查）
+// 注意：不在这里停止倒计时，让 HandlePlayCards/HandlePass 成功时停止
+// 这样如果机器人操作失败，后备倒计时仍然可以触发
 func (gs *GameSession) handleRobotPlay() {
-        // 停止倒计时计时器（机器人操作会直接执行）
-        gs.stopTimer()
-        // 执行出牌逻辑
+        // 直接执行出牌逻辑（HandlePlayCards/HandlePass 内部会停止倒计时）
         gs.doHandlePlayTimeout()
 }
 
@@ -332,8 +332,10 @@ func (gs *GameSession) notifyPlayTurnWithRobotCheck() {
         // 🔧【托管】检查玩家是否处于托管状态
         if player.IsRobot() || player.IsTrustee {
                 log.Printf("[TRUSTEE] 玩家 %s 托管状态，准备自动出牌", player.Name)
-                // 🔧【修复】启动机器人快速操作（800-1500ms），不再启动后备倒计时
-                // 注意：handleRobotPlay 会自动停止倒计时计时器
+                // 🔧【修复】同时启动后备倒计时和机器人快速操作
+                // 1. 启动后备倒计时（30秒）- 如果机器人操作失败，倒计时到期后自动出牌
+                gs.startPlayTimer()
+                // 2. 启动机器人快速操作（800-1500ms）
                 gs.scheduleRobotAction(func() {
                         gs.handleRobotPlay()
                 })
