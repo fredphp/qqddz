@@ -120,6 +120,11 @@ func (pm *PartitionManager) createMonthTables(t time.Time) error {
                 return err
         }
 
+        // 创建竞技场金币流水分表
+        if err := pm.createArenaGoldLogTable(suffix); err != nil {
+                return err
+        }
+
         return nil
 }
 
