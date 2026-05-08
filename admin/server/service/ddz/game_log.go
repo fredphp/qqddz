@@ -35,29 +35,28 @@ func getTableNameWithMonth(baseTable, month string) string {
 }
 
 // GetGameRecordList 获取游戏记录列表
+// 🔧【关键修复】默认查询当前月份的分表，因为游戏服务器将数据写入分表
 func (s *DDZGameLogService) GetGameRecordList(req ddzReq.DDZGameRecordSearch) (list interface{}, total int64, err error) {
         db := GetDDZDB()
         limit := req.PageSize
         offset := req.PageSize * (req.Page - 1)
 
-        // 🔧【修复】优先查询主表 ddz_game_records（游戏服务器存储的表）
-        // 如果指定了月份参数，则尝试查询分表
-        var query *gorm.DB
-        if req.Month != "" {
-                // 指定了月份，尝试查询分表
-                tableName := getTableNameWithMonth("ddz_game_records", req.Month)
-                var tableCount int64
-                db.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", tableName).Scan(&tableCount)
-                if tableCount > 0 {
-                        query = db.Table(tableName)
-                } else {
-                        // 分表不存在，返回空结果
-                        return []ddzRes.DDZGameRecordResponse{}, 0, nil
-                }
-        } else {
-                // 未指定月份，查询主表（游戏服务器实际存储的表）
-                query = db.Model(&ddz.DDZGameRecord{})
+        // 🔧【关键修复】默认查询当前月份的分表（游戏服务器将数据写入分表）
+        month := req.Month
+        if month == "" {
+                month = getCurrentMonth()
         }
+        tableName := getTableNameWithMonth("ddz_game_records", month)
+
+        // 检查分表是否存在
+        var tableCount int64
+        db.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", tableName).Scan(&tableCount)
+        if tableCount == 0 {
+                // 分表不存在，返回空结果
+                return []ddzRes.DDZGameRecordResponse{}, 0, nil
+        }
+
+        query := db.Table(tableName)
 
         if req.GameID != "" {
                 query = query.Where("game_id LIKE ?", "%"+req.GameID+"%")
@@ -155,12 +154,28 @@ func (s *DDZGameLogService) DeleteGameRecord(id uint) error {
 }
 
 // GetBidLogList 获取叫地主日志列表
-// 🔧【修复】查询 ddz_bid_logs 表（游戏服务器实际存储的表）
+// 🔧【关键修复】默认查询当前月份的分表，因为游戏服务器将数据写入分表
 func (s *DDZGameLogService) GetBidLogList(req ddzReq.DDZBidLogSearch) (list interface{}, total int64, err error) {
         db := GetDDZDB()
         limit := req.PageSize
         offset := req.PageSize * (req.Page - 1)
-        query := db.Model(&ddz.DDZBidLog{})
+
+        // 🔧【关键修复】默认查询当前月份的分表（游戏服务器将数据写入分表）
+        month := req.Month
+        if month == "" {
+                month = getCurrentMonth()
+        }
+        tableName := getTableNameWithMonth("ddz_bid_logs", month)
+
+        // 检查分表是否存在
+        var tableCount int64
+        db.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", tableName).Scan(&tableCount)
+        if tableCount == 0 {
+                // 分表不存在，返回空结果
+                return []ddzRes.DDZBidLogResponse{}, 0, nil
+        }
+
+        query := db.Table(tableName)
 
         if req.GameID != "" {
                 query = query.Where("game_id = ?", req.GameID)
@@ -192,13 +207,28 @@ func (s *DDZGameLogService) GetBidLogList(req ddzReq.DDZBidLogSearch) (list inte
 }
 
 // GetDealLogList 获取发牌日志列表
-// 🔧【修复】查询 ddz_deal_logs 表（游戏服务器实际存储的表）
+// 🔧【关键修复】默认查询当前月份的分表，因为游戏服务器将数据写入分表
 func (s *DDZGameLogService) GetDealLogList(req ddzReq.DDZDealLogSearch) (list interface{}, total int64, err error) {
         db := GetDDZDB()
         limit := req.PageSize
         offset := req.PageSize * (req.Page - 1)
-        // 🔧【修复】使用游戏服务器实际存储的表名 ddz_deal_logs
-        query := db.Model(&ddz.DDZDealLog{})
+
+        // 🔧【关键修复】默认查询当前月份的分表（游戏服务器将数据写入分表）
+        month := req.Month
+        if month == "" {
+                month = getCurrentMonth()
+        }
+        tableName := getTableNameWithMonth("ddz_deal_logs", month)
+
+        // 检查分表是否存在
+        var tableCount int64
+        db.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", tableName).Scan(&tableCount)
+        if tableCount == 0 {
+                // 分表不存在，返回空结果
+                return []ddzRes.DDZDealLogResponse{}, 0, nil
+        }
+
+        query := db.Table(tableName)
 
         if req.GameID != "" {
                 query = query.Where("game_id = ?", req.GameID)
@@ -224,13 +254,28 @@ func (s *DDZGameLogService) GetDealLogList(req ddzReq.DDZDealLogSearch) (list in
 }
 
 // GetPlayLogList 获取出牌日志列表
-// 🔧【修复】查询 ddz_play_logs 表（游戏服务器实际存储的表）
+// 🔧【关键修复】默认查询当前月份的分表，因为游戏服务器将数据写入分表
 func (s *DDZGameLogService) GetPlayLogList(req ddzReq.DDZPlayLogSearch) (list interface{}, total int64, err error) {
         db := GetDDZDB()
         limit := req.PageSize
         offset := req.PageSize * (req.Page - 1)
-        // 🔧【修复】使用游戏服务器实际存储的表名 ddz_play_logs
-        query := db.Model(&ddz.DDZPlayLog{})
+
+        // 🔧【关键修复】默认查询当前月份的分表（游戏服务器将数据写入分表）
+        month := req.Month
+        if month == "" {
+                month = getCurrentMonth()
+        }
+        tableName := getTableNameWithMonth("ddz_play_logs", month)
+
+        // 检查分表是否存在
+        var tableCount int64
+        db.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", tableName).Scan(&tableCount)
+        if tableCount == 0 {
+                // 分表不存在，返回空结果
+                return []ddzRes.DDZPlayLogResponse{}, 0, nil
+        }
+
+        query := db.Table(tableName)
 
         if req.GameID != "" {
                 query = query.Where("game_id = ?", req.GameID)
