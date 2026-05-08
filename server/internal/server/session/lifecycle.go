@@ -727,7 +727,8 @@ func (gs *GameSession) saveGameResultToDatabaseAsync(winner *GamePlayer, baseSco
 
                 // 检查数据库连接
                 if !database.GetInstance().IsConnected() {
-                        log.Printf("⚠️ [AsyncSave] 数据库未连接，跳过保存")
+                        log.Printf("❌ [AsyncSave] 数据库未连接！游戏结果将丢失！房间: %s", roomCode)
+                        log.Printf("❌ [AsyncSave] 请检查: 1.MySQL服务是否启动 2.数据库配置是否正确 3.数据库连接是否成功初始化")
                         return
                 }
 
