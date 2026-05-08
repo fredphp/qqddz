@@ -297,43 +297,36 @@ func (gs *GameSession) handleOfflineTimeout(playerID string) {
 func (gs *GameSession) notifyPlayTurnWithRobotCheck() {
         player := gs.players[gs.currentPlayer]
         
-        // 🔧【托管】检查玩家是否处于托管状态
-        if player.IsRobot() || player.IsTrustee {
-                log.Printf("[TRUSTEE] 玩家 %s 托管状态，准备自动出牌", player.Name)
-                // 广播通知让其他玩家看到轮次
-                mustPlay := gs.lastPlayerIdx == gs.currentPlayer || gs.lastPlayedHand.IsEmpty()
-                canBeat := mustPlay
-                if !mustPlay {
-                        beatingCards := rule.FindSmallestBeatingCards(player.Hand, gs.lastPlayedHand)
-                        canBeat = beatingCards != nil
-                }
-                gs.room.Broadcast(codec.MustNewMessage(protocol.MsgPlayTurn, &protocol.PlayTurnPayload{
-                        PlayerID: player.ID,
-                        Timeout:  gs.gameConfig.TurnTimeout,
-                        MustPlay: mustPlay,
-                        CanBeat:  canBeat,
-                }))
-                // 🔧【托管】使用快速操作（800-1500ms）
-                gs.scheduleRobotAction(func() {
-                        gs.handlePlayTimeout()
-                })
-                return
-        }
-
-        // 普通玩家，发送通知并启动计时器
+        // 计算是否必须出牌和是否能打过
         mustPlay := gs.lastPlayerIdx == gs.currentPlayer || gs.lastPlayedHand.IsEmpty()
         canBeat := mustPlay
         if !mustPlay {
                 beatingCards := rule.FindSmallestBeatingCards(player.Hand, gs.lastPlayedHand)
                 canBeat = beatingCards != nil
         }
-
+        
+        // 广播出牌回合消息
         gs.room.Broadcast(codec.MustNewMessage(protocol.MsgPlayTurn, &protocol.PlayTurnPayload{
                 PlayerID: player.ID,
                 Timeout:  gs.gameConfig.TurnTimeout,
                 MustPlay: mustPlay,
                 CanBeat:  canBeat,
         }))
+        
+        // 🔧【托管】检查玩家是否处于托管状态
+        if player.IsRobot() || player.IsTrustee {
+                log.Printf("[TRUSTEE] 玩家 %s 托管状态，准备自动出牌", player.Name)
+                // 🔧【修复】同时启动后备倒计时和快速机器人操作
+                // 1. 启动后备倒计时（如果机器人操作失败，倒计时到期后自动出牌）
+                gs.startPlayTimer()
+                // 2. 启动机器人快速操作（800-1500ms）
+                gs.scheduleRobotAction(func() {
+                        gs.handlePlayTimeout()
+                })
+                return
+        }
+
+        // 普通玩家，启动倒计时
         gs.startPlayTimer()
 }
 
