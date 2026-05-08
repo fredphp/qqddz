@@ -1302,8 +1302,9 @@ func (q *WriteQueue) RecoverPendingData() error {
         }
 
         // 查询所有待处理和处理中的数据（可能是上次异常停止时留下的）
+        // 🔧【修复】使用 int 切片代替 uint8 切片，避免 GORM 将其当作二进制数据处理
         var pendingList []PendingGameData
-        if err := q.db.Where("status IN ?", []uint8{PendingStatusPending, PendingStatusProcessing}).
+        if err := q.db.Where("status IN ?", []int{int(PendingStatusPending), int(PendingStatusProcessing)}).
                 Find(&pendingList).Error; err != nil {
                 log.Printf("❌ [WriteQueue] 查询待处理数据失败: %v", err)
                 return err
