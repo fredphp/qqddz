@@ -80,9 +80,16 @@ func (h *Handler) tryRestoreRoomState(client types.ClientInterface, session *ses
                 return
         }
 
+        // 🔧【修复】创建一个模拟的 oldClient 用于重连
+        // 当玩家掉线后，oldClient 可能已经被移除，但我们需要传递玩家ID给 ReconnectPlayer
         oldClient := h.server.GetClientByID(session.PlayerID)
         if oldClient == nil {
-                return
+                // 创建一个简单的旧客户端包装器，只包含必要的信息
+                oldClient = &disconnectedClientWrapper{
+                        id:       session.PlayerID,
+                        name:     session.PlayerName,
+                        roomCode: session.RoomCode,
+                }
         }
 
         // 重连到房间
@@ -96,6 +103,26 @@ func (h *Handler) tryRestoreRoomState(client types.ClientInterface, session *ses
 
         // 如果游戏正在进行，恢复游戏状态
         if gameSession := h.GetGameSession(session.RoomCode); gameSession != nil {
+                // 🔧【关键修复】通知 GameSession 玩家已上线，取消机器人托管
+                gameSession.PlayerOnline(session.PlayerID)
                 payload.GameState = gameSession.BuildGameStateDTO(session.PlayerID, h.sessionManager)
         }
 }
+
+// disconnectedClientWrapper 用于包装已断开连接的客户端信息
+type disconnectedClientWrapper struct {
+        id       string
+        name     string
+        roomCode string
+}
+
+func (c *disconnectedClientWrapper) GetID() string          { return c.id }
+func (c *disconnectedClientWrapper) GetName() string        { return c.name }
+func (c *disconnectedClientWrapper) GetRoom() string        { return c.roomCode }
+func (c *disconnectedClientWrapper) SetRoom(room string)    {}
+func (c *disconnectedClientWrapper) GetPlayerID() uint64    { return 0 }
+func (c *disconnectedClientWrapper) SetPlayerID(id uint64)  {}
+func (c *disconnectedClientWrapper) GetGold() int64         { return 0 }
+func (c *disconnectedClientWrapper) SetGold(gold int64)     {}
+func (c *disconnectedClientWrapper) SendMessage(msg *protocol.Message) {}
+func (c *disconnectedClientWrapper) Close()                 {}
