@@ -207,7 +207,55 @@ func (s *AIStrategyV2) farmerFirstPlay() *PlayDecision {
                 return s.playSmallestCard(cards)
         }
 
-        // 地主快出完了，需要压制
+        // 地主只剩1张牌 - 关键策略！
+        // 不能出单牌，要出对子或三张让地主接不住
+        if landlordCards == 1 {
+                log.Printf("[AI] landlord_remain=1 reason=critical_block")
+                // 优先出对子
+                if structure.PairCount > 0 {
+                        pair := s.findSmallestPair(cards)
+                        if pair != nil {
+                                log.Printf("[AI] choose=pair reason=block_landlord_1_card")
+                                return &PlayDecision{
+                                        ShouldPlay: true,
+                                        Cards:      pair,
+                                        Pattern:    "对子",
+                                        Reason:     "地主只剩1张，出对子封堵",
+                                }
+                        }
+                }
+                // 出三张
+                if structure.TrioCount > 0 {
+                        trio := s.findSmallestTrioAbove(cards, 0)
+                        if trio != nil {
+                                log.Printf("[AI] choose=trio reason=block_landlord_1_card")
+                                return &PlayDecision{
+                                        ShouldPlay: true,
+                                        Cards:      trio,
+                                        Pattern:    "三条",
+                                        Reason:     "地主只剩1张，出三张封堵",
+                                }
+                        }
+                }
+                // 如果有炸弹，也行
+                if structure.BombCount > 0 {
+                        bomb := s.findSmallestBomb(cards, 0)
+                        if bomb != nil {
+                                log.Printf("[AI] choose=bomb reason=block_landlord_1_card")
+                                return &PlayDecision{
+                                        ShouldPlay: true,
+                                        Cards:      bomb,
+                                        Pattern:    "炸弹",
+                                        Reason:     "地主只剩1张，出炸弹封堵",
+                                }
+                        }
+                }
+                // 实在没办法，出最小牌
+                log.Printf("[AI] choose=single reason=no_other_choice")
+                return s.playSmallestCard(cards)
+        }
+
+        // 地主快出完了(2-3张)，需要压制
         if landlordCards <= 3 {
                 log.Printf("[AI] landlord_remain=%d reason=need_block", landlordCards)
                 return s.playMediumCard(cards)
@@ -344,10 +392,19 @@ func (s *AIStrategyV2) findBeatingCardsWithSmartSplit() []CardInfo {
         targetRank := currentPlay.Cards[0].Rank
         isEndGame := s.evaluator.IsEndGame(hand)
 
-        switch currentPlay.Pattern {
+        // 统一牌型名称（游戏可能返回"单张"或"单牌"）
+        pattern := currentPlay.Pattern
+        if pattern == "单张" {
+                pattern = "单牌"
+        }
+
+        log.Printf("[AI] 智能拆牌: pattern=%s, targetRank=%d, handCount=%d", pattern, targetRank, len(hand))
+
+        switch pattern {
         case "单牌":
                 // 先尝试找普通单牌
                 if single := s.findSmallestSingleAbove(hand, targetRank); single != nil {
+                        log.Printf("[AI] 找到单牌: rank=%d", single[0].Rank)
                         return single
                 }
 
@@ -375,6 +432,7 @@ func (s *AIStrategyV2) findBeatingCardsWithSmartSplit() []CardInfo {
         case "对子":
                 // 找能打过的对子
                 if pair := s.findSmallestPairAbove(hand, targetRank); pair != nil {
+                        log.Printf("[AI] 找到对子: rank=%d", pair[0].Rank)
                         return pair
                 }
 
@@ -443,6 +501,9 @@ func (s *AIStrategyV2) endGameFirstPlay() *PlayDecision {
 func (s *AIStrategyV2) shouldUseBomb() bool {
         // 获取对手最少牌数
         opponentMinCards := s.getOpponentMinCards()
+        landlordCards := s.getLandlordCards()
+
+        log.Printf("[AI] 炸弹策略判断: opponentMinCards=%d, landlordCards=%d", opponentMinCards, landlordCards)
 
         // Case1: 对手只剩1张，必须炸
         if opponentMinCards <= 1 {
@@ -450,14 +511,20 @@ func (s *AIStrategyV2) shouldUseBomb() bool {
                 return true
         }
 
-        // Case2: 炸后能直接赢
+        // Case2: 农民视角 - 地主只剩1-2张牌，必须炸
+        if s.isFarmer && landlordCards <= 2 {
+                log.Printf("[AI] use_bomb=true reason=landlord_only_%d_cards", landlordCards)
+                return true
+        }
+
+        // Case3: 炸后能直接赢
         structure := s.evaluator.AnalyzeHand(s.gameState.MyHandCards)
         if structure.HandCount <= 2 && (structure.BombCount > 0 || structure.RocketCount > 0) {
                 log.Printf("[AI] use_bomb=true reason=can_win_after_bomb")
                 return true
         }
 
-        // Case3: 地主被卡死（作为地主时）
+        // Case4: 地主被卡死（作为地主时）
         if s.isLandlord && opponentMinCards <= 2 {
                 log.Printf("[AI] use_bomb=true reason=landlord_blocked")
                 return true
@@ -685,20 +752,34 @@ func (s *AIStrategyV2) findBestTrioWithKicker(cards []CardInfo, structure *HandS
 func (s *AIStrategyV2) findSmallestBeatingCards() []CardInfo {
         hand := s.gameState.MyHandCards
         currentPlay := s.gameState.CurrentPlay
+        targetRank := currentPlay.Cards[0].Rank
 
-        switch currentPlay.Pattern {
+        // 统一牌型名称
+        pattern := currentPlay.Pattern
+        if pattern == "单张" {
+                pattern = "单牌"
+        }
+
+        log.Printf("[AI] 基础牌型查找: pattern=%s, targetRank=%d", pattern, targetRank)
+
+        switch pattern {
+        case "单牌":
+                // 找最小单牌
+                return s.findSmallestSingleAbove(hand, targetRank)
+        case "对子":
+                return s.findSmallestPairAbove(hand, targetRank)
         case "三条":
-                return s.findSmallestTrioAbove(hand, currentPlay.Cards[0].Rank)
+                return s.findSmallestTrioAbove(hand, targetRank)
         case "三带一":
-                return s.findSmallestTrioWithOne(hand, currentPlay.Cards[0].Rank)
+                return s.findSmallestTrioWithOne(hand, targetRank)
         case "三带二":
-                return s.findSmallestTrioWithPair(hand, currentPlay.Cards[0].Rank)
+                return s.findSmallestTrioWithPair(hand, targetRank)
         case "顺子":
-                return s.findSmallestStraightAbove(hand, currentPlay.Cards[0].Rank, len(currentPlay.Cards))
+                return s.findSmallestStraightAbove(hand, targetRank, len(currentPlay.Cards))
         case "连对":
-                return s.findSmallestPairStraightAbove(hand, currentPlay.Cards[0].Rank, len(currentPlay.Cards)/2)
+                return s.findSmallestPairStraightAbove(hand, targetRank, len(currentPlay.Cards)/2)
         case "炸弹":
-                return s.findSmallestBomb(hand, currentPlay.Cards[0].Rank)
+                return s.findSmallestBomb(hand, targetRank)
         default:
                 if s.shouldUseBomb() {
                         return s.findSmallestBomb(hand, 0)
