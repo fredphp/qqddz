@@ -27,6 +27,10 @@ type RobotAI struct {
         // 让牌状态
         letWinEnabled bool
         letWinTarget  uint64
+
+        // 智能策略V2
+        strategyV2 *AIStrategyV2
+        evaluator  *AIEvaluator
 }
 
 // GameState 游戏状态
@@ -88,6 +92,8 @@ func NewRobotAI(robot *database.RobotRuntime, config *database.RobotAIConfig) *R
                 memory:        NewCardMemory(),
                 gameState:     &GameState{},
                 letWinEnabled: false,
+                strategyV2:    NewAIStrategyV2(config),
+                evaluator:     NewAIEvaluator(nil),
         }
 
         // 如果启用让牌，初始化让牌状态
@@ -370,9 +376,22 @@ func (ai *RobotAI) DecidePlay(gameState *GameState) *PlayDecision {
 
         log.Printf("[RobotAI] 出牌决策: 角色=%d, 手牌数=%d", gameState.MyRole, len(gameState.MyHandCards))
 
-        // 先做初步决策
+        // 使用智能策略V2进行决策
+        if ai.strategyV2 != nil {
+                decision := ai.strategyV2.DecidePlay(gameState)
+
+                // 判断是否是炸弹场景（出的牌是炸弹/王炸）
+                isBomb := decision != nil && len(decision.Cards) >= 4 && ai.isBombCards(decision.Cards)
+
+                // 计算思考时间（炸弹需要更长思考时间）
+                decision.ThinkTime = ai.calculateThinkTime(isBomb)
+
+                return decision
+        }
+
+        // 回退到旧版策略（兼容）
         var decision *PlayDecision
-        
+
         // 检查是否需要让牌
         if ai.letWinEnabled && ai.shouldLetWin(gameState) {
                 decision = ai.letWinPlay(gameState, 0)
@@ -383,13 +402,13 @@ func (ai *RobotAI) DecidePlay(gameState *GameState) *PlayDecision {
                 // 需要接牌
                 decision = ai.followPlayDecision(gameState, 0)
         }
-        
+
         // 判断是否是炸弹场景（出的牌是炸弹/王炸）
         isBomb := decision != nil && len(decision.Cards) >= 4 && ai.isBombCards(decision.Cards)
-        
+
         // 计算思考时间（炸弹需要更长思考时间）
         decision.ThinkTime = ai.calculateThinkTime(isBomb)
-        
+
         return decision
 }
 
