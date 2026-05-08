@@ -474,6 +474,8 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
         // 【核心】区分普通场和竞技场的结算后逻辑
         // ============================================================
         
+        log.Printf("🎮 [endGame] 检查房间类型: RoomCategory=%d (2=竞技场)", gs.room.RoomCategory)
+        
         if gs.room.RoomCategory == 2 {
                 // 竞技场模式：启动30秒倒计时，自动进入下一轮
                 log.Printf("🏟️ [endGame] 竞技场房间 %s 结算完成，启动30秒倒计时", gs.room.Code)
@@ -886,18 +888,20 @@ func (gs *GameSession) startArenaRoundCountdown() {
         // 计算下一轮轮次
         nextRound := gs.room.GameCount + 1
         
-        log.Printf("🏟️ [startArenaRoundCountdown] 房间 %s 启动30秒倒计时，下一轮: %d", gs.room.Code, nextRound)
+        log.Printf("🏟️ [startArenaRoundCountdown] 房间 %s 启动30秒倒计时，下一轮: %d, 当前局数: %d", 
+                gs.room.Code, nextRound, gs.room.GameCount)
         
         // 广播倒计时开始消息
         gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaRoundCountdown, &protocol.ArenaRoundCountdownPayload{
                 Seconds:  ArenaCountdownDuration,
                 Round:    nextRound,
-                PeriodNo: "", // TODO: 从竞技场管理器获取期号
-                RoomID:   0,  // TODO: 从房间配置获取
+                PeriodNo: gs.room.PeriodNo, // 🔧【修复】从房间获取期号
+                RoomID:   gs.room.RoomConfigID, // 🔧【修复】从房间获取配置ID
                 Message:  "下一轮将在 30 秒后开始",
         }))
         
         // 启动倒计时协程
+        log.Printf("🏟️ [startArenaRoundCountdown] 启动倒计时协程...")
         go gs.runArenaCountdown(ArenaCountdownDuration, nextRound)
 }
 
@@ -939,6 +943,8 @@ func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
         defer gs.mu.Unlock()
         
         log.Printf("🏟️ [onArenaCountdownEnd] 房间 %s 倒计时结束，自动准备并开始第 %d 轮", gs.room.Code, nextRound)
+        log.Printf("🏟️ [onArenaCountdownEnd] 当前房间状态: %v, RoomCategory: %d, 玩家数: %d", 
+                gs.room.State, gs.room.RoomCategory, len(gs.room.Players))
         
         // 广播自动准备消息
         gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaAutoReady, &protocol.ArenaAutoReadyPayload{
@@ -958,12 +964,15 @@ func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
         // 🔧【修复】确保房间状态为 Waiting，这样 StartGame() 检查才能通过
         // StartGame() 内部会将状态从 Waiting 改为 Ready
         gs.room.State = RoomStateWaiting
+        log.Printf("🏟️ [onArenaCountdownEnd] 房间状态已设置为 Waiting")
 
         // 调用房间开始游戏
+        log.Printf("🏟️ [onArenaCountdownEnd] 准备调用 StartGame()...")
         if err := gs.room.StartGame(); err != nil {
                 log.Printf("❌ [onArenaCountdownEnd] 开始游戏失败: %v", err)
                 return
         }
+        log.Printf("🏟️ [onArenaCountdownEnd] StartGame() 调用成功")
 
         // 创建新的游戏会话并开始
         // 注意：这里需要通过房间管理器的回调来创建新会话

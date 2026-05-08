@@ -44,6 +44,7 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface, roomConfigID uin
                 LastLandlordIdx: -1, // 🔧【新增】初始化为-1，表示首局
                 GameCount:       0,  // 🔧【新增】初始化为0，第一局开始时自增为1
                 RoomCategory:    1,  // 🔧【新增】默认普通场
+                RoomConfigID:    roomConfigID, // 🔧【新增】保存房间配置ID
         }
 
         // 添加创建者（房主自动设置为已准备）
