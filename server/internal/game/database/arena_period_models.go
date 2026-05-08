@@ -674,6 +674,7 @@ func ensureArenaGoldLogTableExists(t time.Time) error {
 
 // InitArenaGold 初始化玩家当期赛事金币（报名时调用）
 // 从 room_config.min_gold 读取初始金币值
+// 🔧【关键修复】如果记录不存在，先创建记录再更新金币
 func InitArenaGold(periodNo string, playerID uint64, initialGold int64) error {
         t, err := parsePeriodNoToTime(periodNo)
         if err != nil {
@@ -682,7 +683,67 @@ func InitArenaGold(periodNo string, playerID uint64, initialGold int64) error {
 
         tableName := getArenaPeriodPlayerTableNameByTime(t)
 
-        // 更新玩家的 arena_gold
+        // 🔧【关键修复】先检查记录是否存在
+        var existingPlayer ArenaPeriodPlayer
+        err = DB().Table(tableName).
+                Where("period_no = ? AND player_id = ?", periodNo, playerID).
+                First(&existingPlayer).Error
+
+        if err == gorm.ErrRecordNotFound {
+                // 记录不存在，创建新记录
+                log.Printf("🔍 [InitArenaGold] 记录不存在，创建新记录: period_no=%s, player_id=%d", periodNo, playerID)
+                
+                // 解析 periodNo 获取 period_id 和 room_id
+                // periodNo 格式: YYMMDD + 房间ID(2位) + 期序号(4位) = 12位
+                var periodID, roomID uint64
+                if len(periodNo) >= 12 {
+                        // 提取房间ID（第7-8位）
+                        roomID = uint64(periodNo[6]-'0')*10 + uint64(periodNo[7]-'0')
+                        // 提取期序号（第9-12位）
+                        periodID = uint64(periodNo[8]-'0')*1000 + uint64(periodNo[9]-'0')*100 + 
+                                uint64(periodNo[10]-'0')*10 + uint64(periodNo[11]-'0')
+                }
+                
+                // 创建新记录
+                newPlayer := map[string]interface{}{
+                        "period_no":    periodNo,
+                        "period_id":    periodID,
+                        "room_id":      roomID,
+                        "player_id":    playerID,
+                        "signup_time":  time.Now(),
+                        "signup_order": 0, // 机器人报名顺序为0
+                        "status":       ArenaPeriodPlayerStatusNormal,
+                        "arena_gold":   initialGold,
+                        "player_status": ArenaPlayerStatusSignup,
+                        "created_at":   time.Now(),
+                        "updated_at":   time.Now(),
+                }
+                
+                if err := DB().Table(tableName).Create(newPlayer).Error; err != nil {
+                        log.Printf("❌ [InitArenaGold] 创建记录失败: period_no=%s, player_id=%d, err=%v", periodNo, playerID, err)
+                        return fmt.Errorf("创建赛事金币记录失败: %w", err)
+                }
+                
+                // 写入金币流水
+                if err := CreateArenaGoldLog(&ArenaGoldLog{
+                        PeriodNo:   periodNo,
+                        PlayerID:   playerID,
+                        BeforeGold: 0,
+                        ChangeGold: initialGold,
+                        AfterGold:  initialGold,
+                        Reason:     ArenaGoldReasonInit,
+                }); err != nil {
+                        log.Printf("⚠️ [InitArenaGold] 写入金币流水失败: %v", err)
+                }
+                
+                log.Printf("✅ [InitArenaGold] 创建并初始化金币成功: period_no=%s, player_id=%d, arena_gold=%d", periodNo, playerID, initialGold)
+                return nil
+        } else if err != nil {
+                log.Printf("❌ [InitArenaGold] 查询记录失败: period_no=%s, player_id=%d, err=%v", periodNo, playerID, err)
+                return fmt.Errorf("查询赛事金币记录失败: %w", err)
+        }
+
+        // 记录已存在，更新金币
         result := DB().Table(tableName).
                 Where("period_no = ? AND player_id = ?", periodNo, playerID).
                 Updates(map[string]interface{}{
