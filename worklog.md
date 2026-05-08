@@ -172,3 +172,31 @@ Stage Summary:
   - 竞技场机器人系统与普通场完全隔离
   - 不影响现有普通场、托管逻辑、房间匹配逻辑
   - 通过新增模块实现，保持向后兼容
+
+---
+Task ID: 6
+Agent: Main Agent
+Task: 修复竞技场倒计时结束后系统出牌无限循环bug
+
+Work Log:
+- 分析问题：用户反馈"玩家在倒计时结束后没有出牌，由系统出牌，结果系统帮我出了10以后，无限在出10，牌都打完了还在继续循环出"
+- 排查代码流程：
+  1. handlePlayTimeout → doHandlePlayTimeout → makeRobotDecision
+  2. makeRobotDecision 调用 AI 决策返回要出的牌
+  3. HandlePlayCards 处理出牌，调用 RemoveCards 从手牌移除
+  4. 移除后调用 notifyPlayTurn 通知下一个玩家
+- 定位根因：RemoveCards 函数使用 slices.Contains 比较完整的 Card 结构体
+  - Card 结构体包含 Suit、Rank、Color 三个字段
+  - AI 决策返回的牌只设置了 Suit 和 Rank，Color 为默认值 0
+  - slices.Contains 比较所有字段，因 Color 不匹配导致牌无法正确移除
+  - 结果：手牌未更新，下次 AI 决策返回同样的牌，形成无限循环
+- 修复方案：
+  - 修改 RemoveCards 函数，使用 (Suit, Rank) 组合匹配牌
+  - 忽略 Color 字段，确保 AI 返回的牌能正确匹配并移除
+  - 使用计数映射处理重复牌的情况
+
+Stage Summary:
+- 修改文件：server/internal/game/card/hand.go
+- 问题根因：AI 决策返回的 Card 缺少 Color 字段，导致 slices.Contains 匹配失败，牌无法从手牌移除
+- 修复方案：改用 (Suit, Rank) 组合匹配，忽略 Color 字段
+- 影响范围：仅修改 RemoveCards 函数，不影响其他功能
