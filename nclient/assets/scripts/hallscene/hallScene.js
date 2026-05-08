@@ -900,7 +900,6 @@ cc.Class({
     _onArenaRoomButtonClick: function(roomConfig, btnNode) {
         var self = this;
         var myglobal = window.myglobal;
-        var playerArenaCoin = myglobal && myglobal.playerData ? myglobal.playerData.arena_coin : 0;
         
         // 检查是否已报名
         var roomId = roomConfig.id;
@@ -916,14 +915,9 @@ cc.Class({
             return;
         }
         
-        // 获取报名费
-        var signupFee = roomConfig.signup_fee || roomConfig.signupFee || roomConfig.min_arena_coin || roomConfig.minArenaCoin || 0;
-        
-        // 检查竞技币是否足够
-        if (playerArenaCoin < signupFee) {
-            this._showMessage("竞技币不足，无法报名");
-            return;
-        }
+        // 🔧【修复】不使用本地缓存的竞技币余额判断，直接调用服务端报名API
+        // 原因：后台添加竞技币后，客户端本地缓存的值没有更新，会导致误判
+        // 服务端会检查竞技币余额并返回详细错误信息
         
         // 直接执行报名
         this._doArenaSignup(roomConfig, btnNode);
