@@ -59,6 +59,7 @@ func DefaultWriteQueueConfig() *WriteQueueConfig {
 
 // toGameRecord 将 GameResultData 转换为 GameRecord
 // 🔧【整合】提取公共转换逻辑，避免重复代码
+// 🔧【修复】添加 RoomCode 字段用于分表存储
 func (data *GameResultData) toGameRecord() *GameRecord {
         if data == nil {
                 return nil
@@ -66,6 +67,7 @@ func (data *GameResultData) toGameRecord() *GameRecord {
         return &GameRecord{
                 GameID:               data.GameID,
                 RoomID:               data.RoomID,
+                RoomCode:             data.RoomCode,
                 RoomType:             data.RoomType,
                 RoomCategory:         data.RoomCategory,
                 LandlordID:           data.LandlordID,

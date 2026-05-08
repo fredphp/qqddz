@@ -968,34 +968,63 @@ func Transaction(fn func(tx *gorm.DB) error) error {
 
 // SaveGameResult 保存游戏结果(事务操作)
 // 🔧【修复】使用事务感知的更新函数，避免锁竞争
+// 🔧【关键修复】将数据写入分表而不是主表
 func SaveGameResult(record *GameRecord, dealLogs []DealLog, bidLogs []BidLog, playLogs []PlayLog) error {
-        return Transaction(func(tx *gorm.DB) error {
-                // 保存游戏记录
-                if err := tx.Create(record).Error; err != nil {
+        // 🔧【关键】使用游戏开始时间确定分表
+        startedAt := record.StartedAt
+        if startedAt.IsZero() {
+                startedAt = time.Now()
+        }
+
+        // 获取分表名
+        pm := GetPartitionManager()
+        gameRecordTable := pm.GetGameRecordTableName(startedAt)
+        dealLogTable := pm.GetDealLogTableName(startedAt)
+        bidLogTable := pm.GetBidLogTableName(startedAt)
+        playLogTable := pm.GetPlayLogTableName(startedAt)
+
+        // 确保分表后缀
+        suffix := startedAt.Format("200601")
+
+        return DB().Transaction(func(tx *gorm.DB) error {
+                // 🔧【关键】保存游戏记录到分表
+                if err := pm.EnsureTableExists(PartitionTypeGameRecord, suffix); err != nil {
+                        return fmt.Errorf("确保游戏记录分表存在失败: %w", err)
+                }
+                if err := tx.Table(gameRecordTable).Create(record).Error; err != nil {
                         return err
                 }
-                
-                // 保存发牌日志
+
+                // 🔧【关键】保存发牌日志到分表
                 if len(dealLogs) > 0 {
-                        if err := tx.Create(&dealLogs).Error; err != nil {
+                        if err := pm.EnsureTableExists(PartitionTypeDealLog, suffix); err != nil {
+                                return fmt.Errorf("确保发牌日志分表存在失败: %w", err)
+                        }
+                        if err := tx.Table(dealLogTable).Create(&dealLogs).Error; err != nil {
                                 return err
                         }
                 }
-                
-                // 保存叫地主日志
+
+                // 🔧【关键】保存叫地主日志到分表
                 if len(bidLogs) > 0 {
-                        if err := tx.Create(&bidLogs).Error; err != nil {
+                        if err := pm.EnsureTableExists(PartitionTypeBidLog, suffix); err != nil {
+                                return fmt.Errorf("确保叫地主日志分表存在失败: %w", err)
+                        }
+                        if err := tx.Table(bidLogTable).Create(&bidLogs).Error; err != nil {
                                 return err
                         }
                 }
-                
-                // 保存出牌日志
+
+                // 🔧【关键】保存出牌日志到分表
                 if len(playLogs) > 0 {
-                        if err := tx.Create(&playLogs).Error; err != nil {
+                        if err := pm.EnsureTableExists(PartitionTypePlayLog, suffix); err != nil {
+                                return fmt.Errorf("确保出牌日志分表存在失败: %w", err)
+                        }
+                        if err := tx.Table(playLogTable).Create(&playLogs).Error; err != nil {
                                 return err
                         }
                 }
-                
+
                 // 🔧【修复】使用事务感知的更新函数
                 // 更新玩家金币
                 if err := UpdatePlayerGoldWithTx(tx, record.LandlordID, record.LandlordWinGold); err != nil {
@@ -1007,7 +1036,7 @@ func SaveGameResult(record *GameRecord, dealLogs []DealLog, bidLogs []BidLog, pl
                 if err := UpdatePlayerGoldWithTx(tx, record.Farmer2ID, record.Farmer2WinGold); err != nil {
                         return err
                 }
-                
+
                 // 更新玩家统计数据
                 landlordWin := record.Result == GameResultLandlordWin
                 if err := UpdatePlayerStatsWithTx(tx, record.LandlordID, landlordWin, true); err != nil {
@@ -1019,7 +1048,8 @@ func SaveGameResult(record *GameRecord, dealLogs []DealLog, bidLogs []BidLog, pl
                 if err := UpdatePlayerStatsWithTx(tx, record.Farmer2ID, !landlordWin, false); err != nil {
                         return err
                 }
-                
+
+                log.Printf("💾 [SaveGameResult] 游戏记录已保存到分表: %s, GameID=%s", gameRecordTable, record.GameID)
                 return nil
         })
 }

@@ -150,6 +150,7 @@ type GameRecord struct {
         ID                  uint64     `gorm:"primaryKey;autoIncrement;comment:游戏记录ID" json:"id"`
         GameID              string     `gorm:"type:varchar(64);uniqueIndex;not null;comment:游戏唯一标识" json:"game_id"`
         RoomID              string     `gorm:"type:varchar(64);index;not null;comment:房间ID" json:"room_id"`
+        RoomCode            string     `gorm:"type:varchar(10);index;not null;default:'';comment:房间号" json:"room_code"`
         RoomType            uint8      `gorm:"type:tinyint;not null;default:1;comment:房间类型" json:"room_type"`
         RoomCategory        uint8      `gorm:"type:tinyint;not null;default:1;comment:房间分类:1-普通场,2-竞技场" json:"room_category"`
         LandlordID          uint64     `gorm:"type:bigint unsigned;index;not null;comment:地主玩家ID" json:"landlord_id"`
