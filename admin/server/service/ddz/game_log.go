@@ -8,7 +8,6 @@ import (
         "time"
 
         "gorm.io/datatypes"
-        "gorm.io/gorm"
 
         "github.com/flipped-aurora/gin-vue-admin/server/global"
         "github.com/flipped-aurora/gin-vue-admin/server/model/ddz"
@@ -345,13 +344,13 @@ func (s *DDZGameLogService) GetPlayerStatList(req ddzReq.DDZPlayerStatSearch) (l
                 }
                 
                 result = append(result, ddzRes.DDZPlayerStatResponse{
-                        PlayerID:      fmt.Sprintf("%d", p.ID),
+                        PlayerID:      uint64(p.ID),
                         PlayerName:    p.Nickname,
                         PlayerAvatar:  p.Avatar,
                         StatDate:      p.CreatedAt.Format("2006-01-02"),
                         TotalGames:    totalGames,
-                        Wins:          p.WinCount,
-                        Losses:        p.LoseCount,
+                        WinGames:      p.WinCount,
+                        LoseGames:     p.LoseCount,
                         WinRate:       winRate,
                         LandlordGames: p.LandlordCount,
                         FarmerGames:   p.FarmerCount,
