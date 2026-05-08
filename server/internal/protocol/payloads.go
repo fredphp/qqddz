@@ -315,6 +315,9 @@ type GameOverPayload struct {
         Multiple   int               `json:"multiple"`     // 总倍数
         MultiDetail MultiplierDetail `json:"multi_detail"` // 倍数详情
         Players    []PlayerResult   `json:"players"`      // 玩家结算结果
+
+        // 🔧【新增】房间分类（用于区分普通场和竞技场）
+        RoomCategory uint8 `json:"room_category"` // 房间分类: 1-普通场, 2-竞技场
 }
 
 // MultiplierDetail 倍数详情
@@ -675,4 +678,45 @@ type ArenaCloseDialogPayload struct {
         PeriodNo string `json:"period_no"` // 上一期的期号
         Reason   string `json:"reason"`    // 关闭原因: "new_period_started", "match_cancelled", etc.
         Message  string `json:"message"`   // 提示消息
+}
+
+// ============================================================
+// 【新增】竞技场轮次倒计时 Payload（服务端控制）
+// ============================================================
+
+// ArenaRoundCountdownPayload 竞技场轮次倒计时开始
+// 游戏结束后，服务端广播此消息告知客户端开始30秒倒计时
+type ArenaRoundCountdownPayload struct {
+        Seconds     int    `json:"seconds"`      // 倒计时总秒数（30）
+        Round       int    `json:"round"`        // 下一轮轮次
+        PeriodNo    string `json:"period_no"`    // 当前期号
+        RoomID      uint64 `json:"room_id"`      // 房间配置ID
+        Message     string `json:"message"`      // 提示消息："下一轮将在 30 秒后开始"
+}
+
+// ArenaCountdownTickPayload 竞技场倒计时每秒更新
+// 服务端每秒广播此消息，客户端据此更新UI
+type ArenaCountdownTickPayload struct {
+        Seconds  int    `json:"seconds"`  // 剩余秒数
+        PeriodNo string `json:"period_no"` // 当前期号
+        RoomID   uint64 `json:"room_id"`   // 房间配置ID
+}
+
+// ArenaAutoReadyPayload 竞技场自动准备通知
+// 倒计时结束后，服务端自动为所有玩家准备，广播此消息
+type ArenaAutoReadyPayload struct {
+        PeriodNo string `json:"period_no"` // 当前期号
+        RoomID   uint64 `json:"room_id"`   // 房间配置ID
+        Message  string `json:"message"`   // 提示消息："系统已自动准备"
+}
+
+// ArenaReconnectStatePayload 竞技场断线重连状态恢复
+// 玩家断线重连时，服务端发送此消息恢复当前状态
+type ArenaReconnectStatePayload struct {
+        Phase       string `json:"phase"`        // 当前阶段: "settlement"/"countdown"/"playing"
+        PeriodNo    string `json:"period_no"`    // 当前期号
+        RoomID      uint64 `json:"room_id"`      // 房间配置ID
+        Round       int    `json:"round"`        // 当前轮次
+        Countdown   int    `json:"countdown"`    // 剩余倒计时秒数（如果phase是countdown）
+        Message     string `json:"message"`      // 提示消息
 }

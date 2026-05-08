@@ -4843,7 +4843,7 @@ cc.Class({
         popupNode.parent = canvas
         
         var popupWidth = 450
-        var popupHeight = 350
+        var popupHeight = 380  // 🔧【调整】增加高度以容纳倒计时
         
         // 背景
         var bgNode = new cc.Node("Bg")
@@ -4881,7 +4881,7 @@ cc.Class({
         multiLabel.string = "本局倍数: x" + (data.multiple || 1)
         multiLabel.fontSize = 24
         multiNode.color = new cc.Color(255, 220, 150)
-        multiNode.y = popupHeight/2 - 150
+        multiNode.y = popupHeight/2 - 140
         multiNode.parent = popupNode
         
         // 当前比赛金币
@@ -4890,18 +4890,41 @@ cc.Class({
         coinLabel.string = "当前比赛金币: " + this._matchCoin
         coinLabel.fontSize = 24
         coinNode.color = new cc.Color(255, 200, 100)
-        coinNode.y = popupHeight/2 - 200
+        coinNode.y = popupHeight/2 - 180
         coinNode.parent = popupNode
         
-        // 倒计时提示（由服务端控制）
-        var countdownNode = new cc.Node("CompetitionCountdown")
-        countdownNode.name = "CompetitionCountdown"
-        var countdownLabel = countdownNode.addComponent(cc.Label)
-        countdownLabel.string = "下一局开始 " + (this._competitionCountdown || 15) + "秒"
-        countdownLabel.fontSize = 22
-        countdownNode.color = new cc.Color(200, 200, 200)
-        countdownNode.y = -popupHeight/2 + 60
-        countdownNode.parent = popupNode
+        // ============================================================
+        // 🔧【修复】竞技场倒计时（由服务端控制）
+        // 不显示"继续游戏"和"返回大厅"按钮
+        // 显示服务端控制的30秒倒计时
+        // ============================================================
+        
+        // 倒计时显示容器
+        var countdownContainer = new cc.Node("CountdownContainer")
+        countdownContainer.y = -popupHeight/2 + 80
+        countdownContainer.parent = popupNode
+        
+        // 倒计时文字
+        var countdownLabel = new cc.Node("CountdownLabel")
+        var countdownLabelComp = countdownLabel.addComponent(cc.Label)
+        countdownLabelComp.string = "下一轮将在 30 秒后开始"
+        countdownLabelComp.fontSize = 26
+        countdownLabel.color = new cc.Color(255, 215, 0)  // 金黄色
+        countdownLabel.parent = countdownContainer
+        
+        // 倒计时数字（大号显示）
+        var countdownNumber = new cc.Node("CountdownNumber")
+        var countdownNumberComp = countdownNumber.addComponent(cc.Label)
+        countdownNumberComp.string = "30"
+        countdownNumberComp.fontSize = 48
+        countdownNumber.color = new cc.Color(255, 255, 255)
+        countdownNumber.y = -45
+        countdownNumber.parent = countdownContainer
+        
+        // 添加描边效果
+        var outline = countdownNumber.addComponent(cc.LabelOutline)
+        outline.color = cc.Color.BLACK
+        outline.width = 2
         
         // 弹出动画
         cc.tween(popupNode)
@@ -4911,9 +4934,113 @@ cc.Class({
         // 保存引用
         this._gameResultPopup = popupNode
         this._gameResultMask = maskNode
+        this._countdownLabelNode = countdownLabel
+        this._countdownNumberNode = countdownNumber
+        this._arenaCountdownSeconds = 30
         
         // 播放音效
         this._playGameResultSound(isWinner)
+        
+        // ============================================================
+        // 🔧【新增】注册服务端倒计时消息监听
+        // ============================================================
+        this._setupArenaCountdownListeners()
+    },
+    
+    /**
+     * 🔧【新增】设置竞技场倒计时消息监听
+     * 监听服务端推送的倒计时消息
+     */
+    _setupArenaCountdownListeners: function() {
+        var self = this
+        var myglobal = window.myglobal
+        
+        if (!myglobal || !myglobal.socket) {
+            console.warn("🏟️ [_setupArenaCountdownListeners] socket未初始化")
+            return
+        }
+        
+        // 监听倒计时开始消息
+        myglobal.socket.onArenaRoundCountdown(function(data) {
+            console.log("🏟️ [onArenaRoundCountdown] 收到倒计时开始:", data)
+            self._arenaCountdownSeconds = data.seconds || 30
+            self._updateArenaCountdownUI(data.seconds)
+        })
+        
+        // 监听倒计时每秒更新消息
+        myglobal.socket.onArenaCountdownTick(function(data) {
+            console.log("🏟️ [onArenaCountdownTick] 倒计时更新:", data.seconds)
+            self._updateArenaCountdownUI(data.seconds)
+        })
+        
+        // 监听自动准备消息
+        myglobal.socket.onArenaAutoReady(function(data) {
+            console.log("🏟️ [onArenaAutoReady] 自动准备:", data.message)
+            self._showArenaAutoReadyMessage(data.message)
+        })
+        
+        // 监听断线重连状态恢复
+        myglobal.socket.onArenaReconnectState(function(data) {
+            console.log("🏟️ [onArenaReconnectState] 状态恢复:", data)
+            if (data.phase === "countdown") {
+                self._arenaCountdownSeconds = data.countdown
+                self._updateArenaCountdownUI(data.countdown)
+            }
+        })
+    },
+    
+    /**
+     * 🔧【新增】更新竞技场倒计时UI
+     * @param {Number} seconds - 剩余秒数
+     */
+    _updateArenaCountdownUI: function(seconds) {
+        // 更新文字
+        if (this._countdownLabelNode) {
+            var label = this._countdownLabelNode.getComponent(cc.Label)
+            if (label) {
+                label.string = "下一轮将在 " + seconds + " 秒后开始"
+            }
+        }
+        
+        // 更新数字
+        if (this._countdownNumberNode) {
+            var numLabel = this._countdownNumberNode.getComponent(cc.Label)
+            if (numLabel) {
+                numLabel.string = String(seconds)
+            }
+            
+            // 最后5秒闪烁效果
+            if (seconds <= 5 && seconds > 0) {
+                cc.tween(this._countdownNumberNode)
+                    .to(0.1, { scale: 1.2 })
+                    .to(0.1, { scale: 1.0 })
+                    .start()
+                
+                // 变红
+                this._countdownNumberNode.color = new cc.Color(255, 100, 100)
+            } else {
+                this._countdownNumberNode.color = new cc.Color(255, 255, 255)
+            }
+        }
+    },
+    
+    /**
+     * 🔧【新增】显示竞技场自动准备消息
+     * @param {String} message - 消息内容
+     */
+    _showArenaAutoReadyMessage: function(message) {
+        // 更新倒计时显示为自动准备消息
+        if (this._countdownLabelNode) {
+            var label = this._countdownLabelNode.getComponent(cc.Label)
+            if (label) {
+                label.string = message || "系统已自动准备"
+            }
+        }
+        
+        // 隐藏数字
+        if (this._countdownNumberNode) {
+            this._countdownNumberNode.active = false
+        }
     },
 
     /**

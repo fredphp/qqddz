@@ -135,6 +135,12 @@ window.socketCtr = function(){
         COMPETITION_ELIMINATED: "competition_eliminated",
         COMPETITION_ADVANCE: "competition_advance",
         COMPETITION_CHAMPION: "competition_champion",
+        
+        // 🔧【新增】竞技场轮次倒计时消息
+        ARENA_ROUND_COUNTDOWN: "arena_round_countdown",  // 竞技场轮次倒计时开始
+        ARENA_COUNTDOWN_TICK: "arena_countdown_tick",      // 竞技场倒计时每秒更新
+        ARENA_AUTO_READY: "arena_auto_ready",              // 竞技场自动准备通知
+        ARENA_RECONNECT_STATE: "arena_reconnect_state",     // 竞技场断线重连状态恢复
     }
 
     // 发送消息
@@ -593,6 +599,44 @@ window.socketCtr = function(){
                     reward_type: data.reward_type || "virtual",  // virtual 或 physical
                     rankings: data.rankings || [],
                     match_coin: data.match_coin || 0
+                })
+                break
+            
+            // 🔧【新增】竞技场轮次倒计时消息处理
+            case MessageType.ARENA_ROUND_COUNTDOWN:
+                evt.fire("arena_round_countdown_notify", {
+                    seconds: data.seconds || 30,
+                    round: data.round || 1,
+                    period_no: data.period_no || "",
+                    room_id: data.room_id || 0,
+                    message: data.message || ""
+                })
+                break
+            
+            case MessageType.ARENA_COUNTDOWN_TICK:
+                evt.fire("arena_countdown_tick_notify", {
+                    seconds: data.seconds || 0,
+                    period_no: data.period_no || "",
+                    room_id: data.room_id || 0
+                })
+                break
+            
+            case MessageType.ARENA_AUTO_READY:
+                evt.fire("arena_auto_ready_notify", {
+                    period_no: data.period_no || "",
+                    room_id: data.room_id || 0,
+                    message: data.message || "系统已自动准备"
+                })
+                break
+            
+            case MessageType.ARENA_RECONNECT_STATE:
+                evt.fire("arena_reconnect_state_notify", {
+                    phase: data.phase || "",
+                    period_no: data.period_no || "",
+                    room_id: data.room_id || 0,
+                    round: data.round || 0,
+                    countdown: data.countdown || 0,
+                    message: data.message || ""
                 })
                 break
                 
@@ -1255,6 +1299,46 @@ window.socketCtr = function(){
             _socket.close()
         }
         evt.fire("force_logout", data)
+    }
+
+    // ============================================================
+    // 【新增】竞技场轮次倒计时监听函数
+    // ============================================================
+
+    /**
+     * 监听竞技场轮次倒计时开始
+     * @param {Function} callback - 回调函数，接收 { seconds, round, period_no, room_id, message }
+     */
+    that.onArenaRoundCountdown = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("arena_round_countdown_notify", callback)
+    }
+
+    /**
+     * 监听竞技场倒计时每秒更新
+     * @param {Function} callback - 回调函数，接收 { seconds, period_no, room_id }
+     */
+    that.onArenaCountdownTick = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("arena_countdown_tick_notify", callback)
+    }
+
+    /**
+     * 监听竞技场自动准备通知
+     * @param {Function} callback - 回调函数，接收 { period_no, room_id, message }
+     */
+    that.onArenaAutoReady = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("arena_auto_ready_notify", callback)
+    }
+
+    /**
+     * 监听竞技场断线重连状态恢复
+     * @param {Function} callback - 回调函数，接收 { phase, period_no, room_id, round, countdown, message }
+     */
+    that.onArenaReconnectState = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("arena_reconnect_state_notify", callback)
     }
 
     return that

@@ -387,6 +387,8 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 Multiple:    totalMulti,
                 MultiDetail: multiDetail,
                 Players:     players,
+                // 🔧【新增】房间分类（用于区分普通场和竞技场）
+                RoomCategory: gs.room.RoomCategory,
         }))
 
         role := "农民"
@@ -425,21 +427,32 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 return
         }
 
-        // 🔧【修复】游戏结束后保持房间状态，让玩家可以选择继续游戏或返回大厅
-        // 不再立即清空玩家的房间状态
-        // 重置房间为等待状态，让玩家可以重新准备
-        for _, p := range gs.players {
-                rp := gs.room.Players[p.ID]
-                if rp != nil {
-                        // 重置玩家准备状态，但不离开房间
-                        rp.Ready = false
-                        log.Printf("🎮 [endGame] 重置玩家 %s 的准备状态为 false", p.ID)
+        // ============================================================
+        // 【核心】区分普通场和竞技场的结算后逻辑
+        // ============================================================
+        
+        if gs.room.RoomCategory == 2 {
+                // 竞技场模式：启动30秒倒计时，自动进入下一轮
+                log.Printf("🏟️ [endGame] 竞技场房间 %s 结算完成，启动30秒倒计时", gs.room.Code)
+                gs.startArenaRoundCountdown()
+        } else {
+                // 普通场：玩家手动选择继续游戏或返回大厅
+                log.Printf("🎮 [endGame] 普通场房间 %s 结算完成，等待玩家选择", gs.room.Code)
+                
+                // 重置房间为等待状态，让玩家可以重新准备
+                for _, p := range gs.players {
+                        rp := gs.room.Players[p.ID]
+                        if rp != nil {
+                                // 重置玩家准备状态，但不离开房间
+                                rp.Ready = false
+                                log.Printf("🎮 [endGame] 重置玩家 %s 的准备状态为 false", p.ID)
+                        }
                 }
+                
+                // 将房间状态设为等待，允许玩家重新准备
+                gs.room.State = RoomStateWaiting
+                log.Printf("🎮 [endGame] 房间 %s 状态重置为 Waiting，等待玩家重新准备", gs.room.Code)
         }
-
-        // 🔧【新增】将房间状态设为等待，允许玩家重新准备
-        gs.room.State = RoomStateWaiting
-        log.Printf("🎮 [endGame] 房间 %s 状态重置为 Waiting，等待玩家重新准备", gs.room.Code)
 
         // 记录游戏结果到排行榜
         gs.recordGameResults(winner)
@@ -812,4 +825,137 @@ func (gs *GameSession) recordGameResults(winner *GamePlayer) {
                         log.Printf("记录游戏结果失败: %v", err)
                 }
         }
+}
+
+// ============================================================
+// 【竞技场】轮次倒计时逻辑（服务端控制）
+// ============================================================
+
+// ArenaCountdownDuration 竞技场倒计时总时长（30秒）
+const ArenaCountdownDuration = 30
+
+// startArenaRoundCountdown 启动竞技场轮次倒计时
+// 竞技场游戏结束后，服务端控制30秒倒计时，然后自动准备并开始下一轮
+func (gs *GameSession) startArenaRoundCountdown() {
+        gs.mu.Lock()
+        defer gs.mu.Unlock()
+        
+        // 计算下一轮轮次
+        nextRound := gs.room.GameCount + 1
+        
+        log.Printf("🏟️ [startArenaRoundCountdown] 房间 %s 启动30秒倒计时，下一轮: %d", gs.room.Code, nextRound)
+        
+        // 广播倒计时开始消息
+        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaRoundCountdown, &protocol.ArenaRoundCountdownPayload{
+                Seconds:  ArenaCountdownDuration,
+                Round:    nextRound,
+                PeriodNo: "", // TODO: 从竞技场管理器获取期号
+                RoomID:   0,  // TODO: 从房间配置获取
+                Message:  "下一轮将在 30 秒后开始",
+        }))
+        
+        // 启动倒计时协程
+        go gs.runArenaCountdown(ArenaCountdownDuration, nextRound)
+}
+
+// runArenaCountdown 运行竞技场倒计时
+// 每秒广播一次倒计时更新
+func (gs *GameSession) runArenaCountdown(totalSeconds, nextRound int) {
+        ticker := time.NewTicker(1 * time.Second)
+        defer ticker.Stop()
+        
+        remaining := totalSeconds
+        
+        for {
+                select {
+                case <-ticker.C:
+                        remaining--
+                        
+                        // 广播倒计时更新
+                        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaCountdownTick, &protocol.ArenaCountdownTickPayload{
+                                Seconds:  remaining,
+                                PeriodNo: "",
+                                RoomID:   0,
+                        }))
+                        
+                        log.Printf("🏟️ [runArenaCountdown] 房间 %s 倒计时: %d秒", gs.room.Code, remaining)
+                        
+                        // 倒计时结束
+                        if remaining <= 0 {
+                                gs.onArenaCountdownEnd(nextRound)
+                                return
+                        }
+                }
+        }
+}
+
+// onArenaCountdownEnd 竞技场倒计时结束处理
+// 自动为所有玩家准备，然后开始新一轮游戏
+func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
+        gs.mu.Lock()
+        defer gs.mu.Unlock()
+        
+        log.Printf("🏟️ [onArenaCountdownEnd] 房间 %s 倒计时结束，自动准备并开始第 %d 轮", gs.room.Code, nextRound)
+        
+        // 广播自动准备消息
+        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaAutoReady, &protocol.ArenaAutoReadyPayload{
+                PeriodNo: "",
+                RoomID:   0,
+                Message:  "系统已自动准备",
+        }))
+        
+        // 为所有玩家设置准备状态
+        for playerID, rp := range gs.room.Players {
+                if rp != nil {
+                        rp.Ready = true
+                        log.Printf("🏟️ [onArenaCountdownEnd] 玩家 %s 已自动准备", playerID)
+                }
+        }
+        
+        // 更新房间状态
+        gs.room.State = RoomStateReady
+        
+        // 调用房间开始游戏
+        if err := gs.room.startGameLocked(); err != nil {
+                log.Printf("❌ [onArenaCountdownEnd] 开始游戏失败: %v", err)
+                return
+        }
+        
+        // 创建新的游戏会话并开始
+        // 注意：这里需要通过房间管理器的回调来创建新会话
+        // 暂时直接调用 Start 方法重用当前会话
+        gs.resetForNewRound()
+        gs.Start()
+        
+        log.Printf("✅ [onArenaCountdownEnd] 房间 %s 第 %d 轮游戏已开始", gs.room.Code, nextRound)
+}
+
+// resetForNewRound 重置游戏会话状态以准备新一轮
+func (gs *GameSession) resetForNewRound() {
+        // 重置游戏状态
+        gs.state = GameStateInit
+        gs.deck = nil
+        gs.bottomCards = nil
+        gs.callIndex = 0
+        gs.callRound = 0
+        gs.callTurnIndex = 0
+        gs.callHistory = make([]CallRecord, 0)
+        gs.firstCallerIdx = -1
+        gs.lastCallerIdx = -1
+        gs.currentCallerID = ""
+        gs.pendingCallAction = ""
+        gs.reDealCount = 0
+        gs.currentPlayer = 0
+        gs.lastPlayedHand = nil
+        gs.lastPlayerIdx = -1
+        gs.consecutivePasses = 0
+        gs.playerOutStatus = make(map[int]bool)
+        
+        // 重置玩家状态
+        for _, p := range gs.players {
+                p.IsLandlord = false
+                p.Hand = nil
+        }
+        
+        log.Printf("🔄 [resetForNewRound] 房间 %s 已重置，准备新一轮", gs.room.Code)
 }

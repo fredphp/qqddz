@@ -159,6 +159,12 @@ const (
         // 🔧【新增】竞技场关闭弹窗通知（新期号开始时关闭上一轮弹窗）
         MsgArenaCloseDialog MessageType = "arena_close_dialog" // 竞技场关闭弹窗通知
 
+        // 🔧【新增】竞技场轮次倒计时（服务端控制30秒倒计时）
+        MsgArenaRoundCountdown MessageType = "arena_round_countdown" // 竞技场轮次倒计时
+        MsgArenaCountdownTick  MessageType = "arena_countdown_tick"   // 竞技场倒计时每秒更新
+        MsgArenaAutoReady      MessageType = "arena_auto_ready"      // 竞技场自动准备通知
+        MsgArenaReconnectState MessageType = "arena_reconnect_state" // 竞技场断线重连状态恢复
+
         // 错误
         MsgError MessageType = "error" // 错误消息
 )

@@ -78,6 +78,9 @@ type Room struct {
         LastLandlordIdx int // 上一局地主的座位索引（-1表示首局）
         GameCount       int // 游戏局数计数
 
+        // 🔧【新增】房间分类字段
+        RoomCategory uint8 // 房间分类: 1-普通场, 2-竞技场
+
         mu sync.RWMutex
 }
 

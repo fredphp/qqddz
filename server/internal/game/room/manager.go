@@ -43,6 +43,7 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface, roomConfigID uin
                 CreatedAt:       time.Now(),
                 LastLandlordIdx: -1, // 🔧【新增】初始化为-1，表示首局
                 GameCount:       0,  // 🔧【新增】初始化为0，第一局开始时自增为1
+                RoomCategory:    1,  // 🔧【新增】默认普通场
         }
 
         // 添加创建者（房主自动设置为已准备）
@@ -62,6 +63,11 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface, roomConfigID uin
                 if err != nil {
                         log.Printf("⚠️ 获取房间配置失败: %v, 使用默认配置", err)
                 }
+        }
+
+        // 🔧【新增】如果有房间配置，设置房间分类
+        if roomConfig != nil {
+                room.RoomCategory = roomConfig.RoomCategory
         }
 
         // 保存房间到分表
