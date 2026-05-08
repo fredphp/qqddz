@@ -4,6 +4,7 @@ package database
 
 import (
         "context"
+        "fmt"
         "log"
         "sync"
         "sync/atomic"
@@ -403,11 +404,13 @@ func (q *WriteQueue) flushBatch() {
         q.batchBuffer = make([]*GameResultData, 0, q.config.BatchSize)
         q.batchMutex.Unlock()
 
-        // 等待令牌
-        q.tokenBucket.Wait(len(batch))
+        // 等待令牌（检查 tokenBucket 是否存在）
+        if q.tokenBucket != nil {
+                q.tokenBucket.Wait(len(batch))
+        }
 
         // 批量写入
-        q.writeBatch(batch)
+        q.writeBatchNoLimit(batch)
 }
 
 // flushRemaining 刷新剩余数据（停止时调用）
@@ -452,23 +455,15 @@ func (q *WriteQueue) flushRemaining() {
 // 写入操作
 // =============================================
 
-// writeBatch 批量写入（带限流）
-func (q *WriteQueue) writeBatch(batch []*GameResultData) {
+// writeBatchNoLimit 批量写入（不限流，用于关闭时）
+func (q *WriteQueue) writeBatchNoLimit(batch []*GameResultData) {
         if len(batch) == 0 {
                 return
         }
 
-        // 等待令牌限流
-        if q.tokenBucket != nil {
-                q.tokenBucket.Wait(len(batch))
-        }
-
-        q.writeBatchNoLimit(batch)
-}
-
-// writeBatchNoLimit 批量写入（不限流，用于关闭时）
-func (q *WriteQueue) writeBatchNoLimit(batch []*GameResultData) {
-        if len(batch) == 0 {
+        // 检查数据库连接
+        if q.db == nil {
+                log.Printf("❌ [WriteQueue] 数据库连接为空，无法写入 %d 条数据", len(batch))
                 return
         }
 
@@ -598,6 +593,12 @@ func (q *WriteQueue) writeSingleNoLimit(data *GameResultData) error {
                 return nil
         }
 
+        // 检查数据库连接
+        if q.db == nil {
+                log.Printf("❌ [WriteQueue] 数据库连接为空，无法写入 GameID=%s", data.GameID)
+                return fmt.Errorf("数据库连接为空")
+        }
+
         atomic.AddUint64(&q.totalProcessed, 1)
 
         // 使用事务写入
@@ -668,14 +669,21 @@ func (q *WriteQueue) retryOrDrop(data *GameResultData) {
         log.Printf("🔄 [WriteQueue] 准备重试: GameID=%s, 第%d次重试, 延迟=%v",
                 data.GameID, data.RetryCount, delay)
 
-        // 异步重试
-        go func() {
-                time.Sleep(delay)
-                // 重试时直接写入，避免队列循环
-                if err := q.writeSingle(data); err != nil {
-                        log.Printf("❌ [WriteQueue] 重试写入失败: %v, GameID=%s", err, data.GameID)
+        // 异步重试（使用 time.AfterFunc 更安全）
+        time.AfterFunc(delay, func() {
+                // 再次检查队列是否仍在运行
+                if !q.started {
+                        log.Printf("⚠️ [WriteQueue] 队列已停止，取消重试 GameID=%s", data.GameID)
+                        return
                 }
-        }()
+                // 重试时直接写入，避免队列循环
+                if err := q.writeSingleNoLimit(data); err != nil {
+                        log.Printf("❌ [WriteQueue] 重试写入失败: %v, GameID=%s", err, data.GameID)
+                } else {
+                        // 重试成功，更新统计
+                        log.Printf("✅ [WriteQueue] 重试成功: GameID=%s", data.GameID)
+                }
+        })
 }
 
 // =============================================
