@@ -117,3 +117,58 @@ Stage Summary:
   - 旧：报名结束 → 发送通知 → 等待玩家点击进入 → 创建房间
   - 新：报名结束 → 立即创建房间 → 自动准备 → 自动开始发牌 → 发送通知
 - 提交：374de5e "fix: 竞技场报名结束后自动分配房间并开始游戏"
+
+---
+Task ID: 5
+Agent: Main Agent
+Task: 实现竞技场机器人补位系统 + 智能AI + 分数控制
+
+Work Log:
+- 分析现有代码结构：
+  - 竞技场状态管理：arena_status.go
+  - 机器人管理：game/robot/manager.go
+  - 机器人AI：game/robot/ai.go
+  - 机器人策略：game/robot/strategy.go
+- 创建竞技场机器人管理器：
+  - server/internal/game/robot/arena_robot_manager.go
+  - 实现机器人补位、锁定、释放功能
+  - 添加竞技场专属的机器人运行时状态
+- 创建智能出牌AI策略：
+  - server/internal/game/robot/ddz_ai_strategy.go
+  - 实现身份感知（地主/农民）
+  - 实现队友意识（农民协作）
+  - 实现炸弹策略（限制使用）
+  - 实现地主压制策略和农民配合策略
+- 创建机器人分数控制系统：
+  - server/internal/game/robot/robot_score_control.go
+  - 实现排名概率控制（冠军5%、亚军20%、中间55%、淘汰20%）
+  - 实现让牌策略（机器人不能经常第一）
+  - 实现奖励分配（机器人不获得冠军奖励）
+- 创建数据库迁移SQL：
+  - sql/migrations/add_arena_robot_fields.sql
+  - 添加 arena_lock_room_id、arena_status 字段
+  - 创建 ddz_arena_robot_config 配置表
+  - 创建 ddz_arena_robot_records 运行记录表
+- 创建竞技场结算处理器：
+  - server/internal/server/arena_settlement.go
+  - 实现排名计算、奖励分配
+  - 机器人不获得奖励，奖励顺延给真人玩家
+
+Stage Summary:
+- 新增文件：
+  - server/internal/game/robot/arena_robot_manager.go（竞技场机器人管理器）
+  - server/internal/game/robot/ddz_ai_strategy.go（智能出牌AI）
+  - server/internal/game/robot/robot_score_control.go（分数控制系统）
+  - server/internal/server/arena_settlement.go（竞技场结算处理）
+  - sql/migrations/add_arena_robot_fields.sql（数据库迁移）
+- 功能实现：
+  - 竞技场人数不足自动补机器人（凑成3的倍数）
+  - 机器人锁定机制（arena_lock_room_id、arena_status字段）
+  - 机器人生命周期管理（打到淘汰后释放）
+  - 智能出牌AI（身份感知、队友意识、炸弹策略）
+  - 分数控制（排名分布、让牌策略）
+  - 机器人不获得冠军奖励（奖励顺延给真人玩家）
+- 设计原则：
+  - 竞技场机器人系统与普通场完全隔离
+  - 不影响现有普通场、托管逻辑、房间匹配逻辑
+  - 通过新增模块实现，保持向后兼容
