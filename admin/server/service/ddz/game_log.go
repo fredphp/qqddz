@@ -191,7 +191,7 @@ func (s *DDZGameLogService) GetBidLogList(req ddzReq.DDZBidLogSearch) (list inte
                 return nil, 0, err
         }
 
-        var logs []ddz.DDZBidLog
+        var logs []BidLog
         err = query.Limit(limit).Offset(offset).Order("id desc").Find(&logs).Error
         if err != nil {
                 return nil, 0, err
@@ -199,7 +199,7 @@ func (s *DDZGameLogService) GetBidLogList(req ddzReq.DDZBidLogSearch) (list inte
 
         logList := make([]ddzRes.DDZBidLogResponse, 0, len(logs))
         for _, l := range logs {
-                logList = append(logList, s.toBidLogResponse(l))
+                logList = append(logList, s.bidLogToResponse(l))
         }
 
         return logList, total, nil
@@ -238,7 +238,7 @@ func (s *DDZGameLogService) GetDealLogList(req ddzReq.DDZDealLogSearch) (list in
                 return nil, 0, err
         }
 
-        var logs []ddz.DDZDealLog
+        var logs []DealLog
         err = query.Limit(limit).Offset(offset).Order("id desc").Find(&logs).Error
         if err != nil {
                 return nil, 0, err
@@ -246,7 +246,7 @@ func (s *DDZGameLogService) GetDealLogList(req ddzReq.DDZDealLogSearch) (list in
 
         logList := make([]ddzRes.DDZDealLogResponse, 0, len(logs))
         for _, l := range logs {
-                logList = append(logList, s.toDealLogResponse(l))
+                logList = append(logList, s.dealLogToResponse(l))
         }
 
         return logList, total, nil
@@ -291,7 +291,7 @@ func (s *DDZGameLogService) GetPlayLogList(req ddzReq.DDZPlayLogSearch) (list in
                 return nil, 0, err
         }
 
-        var logs []ddz.DDZPlayLog
+        var logs []PlayLog
         err = query.Limit(limit).Offset(offset).Order("id desc").Find(&logs).Error
         if err != nil {
                 return nil, 0, err
@@ -299,7 +299,7 @@ func (s *DDZGameLogService) GetPlayLogList(req ddzReq.DDZPlayLogSearch) (list in
 
         logList := make([]ddzRes.DDZPlayLogResponse, 0, len(logs))
         for _, l := range logs {
-                logList = append(logList, s.toPlayLogResponse(l))
+                logList = append(logList, s.playLogToResponse(l))
         }
 
         return logList, total, nil
@@ -1417,6 +1417,47 @@ type RoomRecord struct {
         EndedAt      *time.Time `json:"ended_at"`
 }
 
+// DealLog 分表发牌日志结构体
+type DealLog struct {
+        ID            uint64    `json:"id"`
+        GameID        string    `json:"game_id"`
+        PlayerID      uint64    `json:"player_id"`
+        PlayerRole    uint8     `json:"player_role"`
+        HandCards     string    `json:"hand_cards"`
+        CardsCount    int       `json:"cards_count"`
+        LandlordCards string    `json:"landlord_cards"`
+        CreatedAt     time.Time `json:"created_at"`
+}
+
+// BidLog 分表叫地主日志结构体
+type BidLog struct {
+        ID        uint64    `json:"id"`
+        GameID    string    `json:"game_id"`
+        PlayerID  uint64    `json:"player_id"`
+        BidOrder  int       `json:"bid_order"`
+        BidType   int       `json:"bid_type"`
+        BidScore  int       `json:"bid_score"`
+        IsSuccess int       `json:"is_success"`
+        CreatedAt time.Time `json:"created_at"`
+}
+
+// PlayLog 分表出牌日志结构体
+type PlayLog struct {
+        ID          uint64    `json:"id"`
+        GameID      string    `json:"game_id"`
+        PlayerID    uint64    `json:"player_id"`
+        PlayerRole  uint8     `json:"player_role"`
+        RoundNum    int       `json:"round_num"`
+        PlayOrder   int       `json:"play_order"`
+        PlayType    int       `json:"play_type"`
+        Cards       string    `json:"cards"`
+        CardsCount  int       `json:"cards_count"`
+        CardPattern string    `json:"card_pattern"`
+        IsBomb      int       `json:"is_bomb"`
+        IsRocket    int       `json:"is_rocket"`
+        CreatedAt   time.Time `json:"created_at"`
+}
+
 // roomRecordToResponse 将分表房间记录转换为响应格式
 func (s *DDZGameLogService) roomRecordToResponse(r RoomRecord) ddzRes.DDZRoomResponse {
         db := GetDDZDB()
@@ -1608,6 +1649,124 @@ func (s *DDZGameLogService) toPlayLogResponse(l ddz.DDZPlayLog) ddzRes.DDZPlayLo
                 PlayerID:       l.PlayerID,
                 PlayerName:     playerName,
                 PlayerRole:     l.PlayerRole,
+                PlayerRoleText: playerRoleText,
+                RoundNum:       l.RoundNum,
+                PlayOrder:      l.PlayOrder,
+                PlayType:       l.PlayType,
+                PlayTypeText:   playTypeText,
+                Cards:          l.Cards,
+                CardsCount:     l.CardsCount,
+                CardPattern:    l.CardPattern,
+                IsBomb:         l.IsBomb,
+                IsRocket:       l.IsRocket,
+                CreatedAt:      l.CreatedAt.Format("2006-01-02 15:04:05"),
+        }
+}
+
+// 🔧【新增】分表叫地主日志转换方法
+func (s *DDZGameLogService) bidLogToResponse(l BidLog) ddzRes.DDZBidLogResponse {
+        db := GetDDZDB()
+        
+        // 获取玩家昵称
+        playerName := ""
+        var player ddz.DDZPlayer
+        if err := db.Where("id = ?", l.PlayerID).First(&player).Error; err == nil {
+                playerName = player.Nickname
+        }
+        
+        // 叫地主类型文本
+        bidTypeText := "不叫"
+        switch l.BidType {
+        case 1:
+                bidTypeText = "叫地主"
+        case 2:
+                bidTypeText = "抢地主"
+        }
+        
+        // 是否成功文本
+        successText := "失败"
+        if l.IsSuccess == 1 {
+                successText = "成功"
+        }
+        
+        return ddzRes.DDZBidLogResponse{
+                ID:          uint(l.ID),
+                GameID:      l.GameID,
+                PlayerID:    l.PlayerID,
+                PlayerName:  playerName,
+                BidOrder:    l.BidOrder,
+                BidType:     l.BidType,
+                BidTypeText: bidTypeText,
+                BidScore:    l.BidScore,
+                IsSuccess:   l.IsSuccess,
+                SuccessText: successText,
+                CreatedAt:   l.CreatedAt.Format("2006-01-02 15:04:05"),
+        }
+}
+
+// 🔧【新增】分表发牌日志转换方法
+func (s *DDZGameLogService) dealLogToResponse(l DealLog) ddzRes.DDZDealLogResponse {
+        db := GetDDZDB()
+        
+        // 获取玩家昵称
+        playerName := ""
+        var player ddz.DDZPlayer
+        if err := db.Where("id = ?", l.PlayerID).First(&player).Error; err == nil {
+                playerName = player.Nickname
+        }
+        
+        // 玩家角色文本
+        playerRoleText := "农民"
+        if l.PlayerRole == 1 {
+                playerRoleText = "地主"
+        }
+        
+        return ddzRes.DDZDealLogResponse{
+                ID:             uint(l.ID),
+                GameID:         l.GameID,
+                PlayerID:       l.PlayerID,
+                PlayerName:     playerName,
+                PlayerRole:     int(l.PlayerRole),
+                PlayerRoleText: playerRoleText,
+                HandCards:      l.HandCards,
+                CardsCount:     l.CardsCount,
+                LandlordCards:  l.LandlordCards,
+                CreatedAt:      l.CreatedAt.Format("2006-01-02 15:04:05"),
+        }
+}
+
+// 🔧【新增】分表出牌日志转换方法
+func (s *DDZGameLogService) playLogToResponse(l PlayLog) ddzRes.DDZPlayLogResponse {
+        db := GetDDZDB()
+        
+        // 获取玩家昵称
+        playerName := ""
+        var player ddz.DDZPlayer
+        if err := db.Where("id = ?", l.PlayerID).First(&player).Error; err == nil {
+                playerName = player.Nickname
+        }
+        
+        // 玩家角色文本
+        playerRoleText := "农民"
+        if l.PlayerRole == 1 {
+                playerRoleText = "地主"
+        }
+        
+        // 出牌类型文本
+        playTypeText := "出牌"
+        switch l.PlayType {
+        case 2:
+                playTypeText = "不出"
+        case 3:
+                playTypeText = "超时自动出牌"
+        }
+        
+        return ddzRes.DDZPlayLogResponse{
+                ID:             uint(l.ID),
+                GameID:         l.GameID,
+                PlayerID:       l.PlayerID,
+                PlayerName:     playerName,
+                PlayerRole:     int(l.PlayerRole),
                 PlayerRoleText: playerRoleText,
                 RoundNum:       l.RoundNum,
                 PlayOrder:      l.PlayOrder,

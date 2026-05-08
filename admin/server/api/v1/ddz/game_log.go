@@ -168,8 +168,8 @@ func (api *DDZGameLogApi) GetDealLogList(c *gin.Context) {
 
         list, total, err := ddzGameLogService.GetDealLogList(req)
         if err != nil {
-                global.GVA_LOG.Error("获取发牌日志列表失败!", zap.Error(err))
-                response.FailWithMessage("获取发牌日志列表失败", c)
+                global.GVA_LOG.Error("获取发牌日志列表失败!", zap.Error(err), zap.Any("request", req))
+                response.FailWithMessage("获取发牌日志列表失败: "+err.Error(), c)
                 return
         }
 
