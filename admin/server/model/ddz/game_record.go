@@ -1,33 +1,36 @@
 package ddz
 
 import (
+        "time"
+
         "github.com/flipped-aurora/gin-vue-admin/server/global"
 )
 
 // DDZGameRecord 斗地主游戏记录
+// 🔧【修复】字段类型与游戏服务端保持一致
 type DDZGameRecord struct {
         global.GVA_MODEL
-        GameID                string `json:"gameId" gorm:"uniqueIndex;comment:游戏唯一标识"`
-        RoomID                string `json:"roomId" gorm:"index;comment:房间ID"`
-        RoomType              int    `json:"roomType" gorm:"comment:房间类型"`
-        RoomCategory          int    `json:"roomCategory" gorm:"comment:房间分类 1普通场 2竞技场"`
-        LandlordID            string `json:"landlordId" gorm:"comment:地主玩家ID"`
-        Farmer1ID             string `json:"farmer1Id" gorm:"comment:农民1玩家ID"`
-        Farmer2ID             string `json:"farmer2Id" gorm:"comment:农民2玩家ID"`
-        BaseScore             int    `json:"baseScore" gorm:"comment:底分"`
-        Multiplier            int    `json:"multiplier" gorm:"comment:倍数"`
-        BombCount             int    `json:"bombCount" gorm:"default:0;comment:炸弹数量"`
-        Spring                int    `json:"spring" gorm:"default:0;comment:春天 0否 1春天 2反春天"`
-        Result                int    `json:"result" gorm:"comment:结果 1地主胜 2农民胜"`
-        LandlordWinGold       int64  `json:"landlordWinGold" gorm:"default:0;comment:地主输赢金币"`
-        Farmer1WinGold        int64  `json:"farmer1WinGold" gorm:"default:0;comment:农民1输赢金币"`
-        Farmer2WinGold        int64  `json:"farmer2WinGold" gorm:"default:0;comment:农民2输赢金币"`
-        LandlordWinArenaCoin  int64  `json:"landlordWinArenaCoin" gorm:"default:0;comment:地主输赢竞技币"`
-        Farmer1WinArenaCoin   int64  `json:"farmer1WinArenaCoin" gorm:"default:0;comment:农民1输赢竞技币"`
-        Farmer2WinArenaCoin   int64  `json:"farmer2WinArenaCoin" gorm:"default:0;comment:农民2输赢竞技币"`
-        StartedAt             string `json:"startedAt" gorm:"comment:开始时间"`
-        EndedAt               string `json:"endedAt" gorm:"comment:结束时间"`
-        DurationSeconds       int    `json:"durationSeconds" gorm:"comment:游戏时长(秒)"`
+        GameID                string     `json:"gameId" gorm:"uniqueIndex;comment:游戏唯一标识"`
+        RoomID                string     `json:"roomId" gorm:"index;comment:房间ID"`
+        RoomType              int        `json:"roomType" gorm:"comment:房间类型"`
+        RoomCategory          int        `json:"roomCategory" gorm:"comment:房间分类 1普通场 2竞技场"`
+        LandlordID            uint64     `json:"landlordId" gorm:"index;comment:地主玩家ID"`     // 🔧【修复】string -> uint64
+        Farmer1ID             uint64     `json:"farmer1Id" gorm:"index;comment:农民1玩家ID"`     // 🔧【修复】string -> uint64
+        Farmer2ID             uint64     `json:"farmer2Id" gorm:"index;comment:农民2玩家ID"`     // 🔧【修复】string -> uint64
+        BaseScore             int        `json:"baseScore" gorm:"comment:底分"`
+        Multiplier            int        `json:"multiplier" gorm:"comment:倍数"`
+        BombCount             int        `json:"bombCount" gorm:"default:0;comment:炸弹数量"`
+        Spring                int        `json:"spring" gorm:"default:0;comment:春天 0否 1春天 2反春天"`
+        Result                int        `json:"result" gorm:"comment:结果 1地主胜 2农民胜"`
+        LandlordWinGold       int64      `json:"landlordWinGold" gorm:"default:0;comment:地主输赢金币"`
+        Farmer1WinGold        int64      `json:"farmer1WinGold" gorm:"default:0;comment:农民1输赢金币"`
+        Farmer2WinGold        int64      `json:"farmer2WinGold" gorm:"default:0;comment:农民2输赢金币"`
+        LandlordWinArenaCoin  int64      `json:"landlordWinArenaCoin" gorm:"default:0;comment:地主输赢竞技币"`
+        Farmer1WinArenaCoin   int64      `json:"farmer1WinArenaCoin" gorm:"default:0;comment:农民1输赢竞技币"`
+        Farmer2WinArenaCoin   int64      `json:"farmer2WinArenaCoin" gorm:"default:0;comment:农民2输赢竞技币"`
+        StartedAt             time.Time  `json:"startedAt" gorm:"index;comment:开始时间"`        // 🔧【修复】string -> time.Time
+        EndedAt               *time.Time `json:"endedAt" gorm:"comment:结束时间"`                // 🔧【修复】string -> *time.Time
+        DurationSeconds       int        `json:"durationSeconds" gorm:"comment:游戏时长(秒)"`
 }
 
 func (DDZGameRecord) TableName() string {

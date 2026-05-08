@@ -1,6 +1,8 @@
 package ddz
 
 import (
+        "fmt"
+
         "github.com/flipped-aurora/gin-vue-admin/server/model/ddz"
         ddzReq "github.com/flipped-aurora/gin-vue-admin/server/model/ddz/request"
         ddzRes "github.com/flipped-aurora/gin-vue-admin/server/model/ddz/response"
@@ -97,7 +99,7 @@ func (s *DDZGameService) GetGameRecordDetail(id uint) (ddzRes.DDZGameRecordDetai
         for _, pr := range playerRecords {
                 players = append(players, ddzRes.DDZGamePlayerInfo{
                         PlayerID:    pr.PlayerID,
-                        Nickname:    s.getPlayerNickname(pr.PlayerID),
+                        Nickname:    s.getPlayerNicknameByStr(pr.PlayerID),
                         PlayerIndex: pr.PlayerIndex,
                         IsLandlord:  pr.IsLandlord,
                         IsWinner:    pr.IsWinner,
@@ -137,6 +139,7 @@ func (s *DDZGameService) GetGameRecordDetail(id uint) (ddzRes.DDZGameRecordDetai
 }
 
 // toGameRecordResponse 转换为响应格式
+// 🔧【修复】适配 DDZGameRecord 字段类型变更
 func (s *DDZGameService) toGameRecordResponse(r ddz.DDZGameRecord) ddzRes.DDZGameRecordResponse {
         // 计算结果文本
         resultText := ""
@@ -171,10 +174,20 @@ func (s *DDZGameService) toGameRecordResponse(r ddz.DDZGameRecord) ddzRes.DDZGam
                 minutes := r.DurationSeconds / 60
                 seconds := r.DurationSeconds % 60
                 if minutes > 0 {
-                        durationText = string(rune(minutes)) + "分" + string(rune(seconds)) + "秒"
+                        durationText = fmt.Sprintf("%d分%d秒", minutes, seconds)
                 } else {
-                        durationText = string(rune(seconds)) + "秒"
+                        durationText = fmt.Sprintf("%d秒", seconds)
                 }
+        }
+
+        // 🔧【修复】时间格式化
+        startedAtStr := ""
+        if !r.StartedAt.IsZero() {
+                startedAtStr = r.StartedAt.Format("2006-01-02 15:04:05")
+        }
+        endedAtStr := ""
+        if r.EndedAt != nil && !r.EndedAt.IsZero() {
+                endedAtStr = r.EndedAt.Format("2006-01-02 15:04:05")
         }
 
         return ddzRes.DDZGameRecordResponse{
@@ -185,11 +198,11 @@ func (s *DDZGameService) toGameRecordResponse(r ddz.DDZGameRecord) ddzRes.DDZGam
                 RoomCategory:         r.RoomCategory,
                 BaseScore:            r.BaseScore,
                 Multiplier:           r.Multiplier,
-                LandlordID:           r.LandlordID,
+                LandlordID:           fmt.Sprintf("%d", r.LandlordID),  // 🔧【修复】uint64 -> string
                 LandlordName:         s.getPlayerNickname(r.LandlordID),
-                Farmer1ID:            r.Farmer1ID,
+                Farmer1ID:            fmt.Sprintf("%d", r.Farmer1ID),   // 🔧【修复】uint64 -> string
                 Farmer1Name:          s.getPlayerNickname(r.Farmer1ID),
-                Farmer2ID:            r.Farmer2ID,
+                Farmer2ID:            fmt.Sprintf("%d", r.Farmer2ID),   // 🔧【修复】uint64 -> string
                 Farmer2Name:          s.getPlayerNickname(r.Farmer2ID),
                 Winner:               r.Result,
                 Result:               r.Result,
@@ -205,19 +218,36 @@ func (s *DDZGameService) toGameRecordResponse(r ddz.DDZGameRecord) ddzRes.DDZGam
                 Farmer2WinArenaCoin:  r.Farmer2WinArenaCoin,
                 GameDuration:         r.DurationSeconds,
                 DurationText:         durationText,
-                GameTime:             r.StartedAt,
-                StartedAt:            r.StartedAt,
-                EndedAt:              r.EndedAt,
+                GameTime:             startedAtStr,
+                StartedAt:            startedAtStr,
+                EndedAt:              endedAtStr,
                 Players:              []ddzRes.DDZGamePlayerInfo{},
                 CreatedAt:            r.CreatedAt.Format("2006-01-02 15:04:05"),
         }
 }
 
 // getPlayerNickname 获取玩家昵称
-func (s *DDZGameService) getPlayerNickname(playerID string) string {
+// 🔧【修复】参数类型从 string 改为 uint64
+func (s *DDZGameService) getPlayerNickname(playerID uint64) string {
+        if playerID == 0 {
+                return ""
+        }
         db := GetDDZDB()
         var player ddz.DDZPlayer
-        if err := db.Where("player_id = ?", playerID).First(&player).Error; err != nil {
+        if err := db.Where("id = ?", playerID).First(&player).Error; err != nil {
+                return ""
+        }
+        return player.Nickname
+}
+
+// getPlayerNicknameByStr 根据字符串ID获取玩家昵称
+func (s *DDZGameService) getPlayerNicknameByStr(playerID string) string {
+        if playerID == "" {
+                return ""
+        }
+        db := GetDDZDB()
+        var player ddz.DDZPlayer
+        if err := db.Where("id = ?", playerID).First(&player).Error; err != nil {
                 return ""
         }
         return player.Nickname

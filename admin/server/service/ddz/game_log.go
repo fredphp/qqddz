@@ -887,37 +887,55 @@ func (s *DDZGameLogService) toGameRecordResponse(r ddz.DDZGameRecord) ddzRes.DDZ
                 minutes := r.DurationSeconds / 60
                 seconds := r.DurationSeconds % 60
                 if minutes > 0 {
-                        durationText = string(rune(minutes)) + "分" + string(rune(seconds)) + "秒"
+                        durationText = fmt.Sprintf("%d分%d秒", minutes, seconds)
                 } else {
-                        durationText = string(rune(seconds)) + "秒"
+                        durationText = fmt.Sprintf("%d秒", seconds)
                 }
         }
 
-        // 获取地主昵称
+        // 🔧【修复】获取地主昵称 - LandlordID 现在是 uint64 类型
         landlordName := ""
-        if r.LandlordID != "" {
+        landlordIDStr := ""
+        if r.LandlordID != 0 {
+                landlordIDStr = fmt.Sprintf("%d", r.LandlordID)
                 var player ddz.DDZPlayer
                 if err := db.Where("id = ?", r.LandlordID).First(&player).Error; err == nil {
                         landlordName = player.Nickname
                 }
         }
 
-        // 获取农民1昵称
+        // 🔧【修复】获取农民1昵称 - Farmer1ID 现在是 uint64 类型
         farmer1Name := ""
-        if r.Farmer1ID != "" {
+        farmer1IDStr := ""
+        if r.Farmer1ID != 0 {
+                farmer1IDStr = fmt.Sprintf("%d", r.Farmer1ID)
                 var player ddz.DDZPlayer
                 if err := db.Where("id = ?", r.Farmer1ID).First(&player).Error; err == nil {
                         farmer1Name = player.Nickname
                 }
         }
 
-        // 获取农民2昵称
+        // 🔧【修复】获取农民2昵称 - Farmer2ID 现在是 uint64 类型
         farmer2Name := ""
-        if r.Farmer2ID != "" {
+        farmer2IDStr := ""
+        if r.Farmer2ID != 0 {
+                farmer2IDStr = fmt.Sprintf("%d", r.Farmer2ID)
                 var player ddz.DDZPlayer
                 if err := db.Where("id = ?", r.Farmer2ID).First(&player).Error; err == nil {
                         farmer2Name = player.Nickname
                 }
+        }
+
+        // 🔧【修复】时间格式化 - StartedAt 现在是 time.Time 类型
+        startedAtStr := ""
+        if !r.StartedAt.IsZero() {
+                startedAtStr = r.StartedAt.Format("2006-01-02 15:04:05")
+        }
+
+        // 🔧【修复】时间格式化 - EndedAt 现在是 *time.Time 类型
+        endedAtStr := ""
+        if r.EndedAt != nil && !r.EndedAt.IsZero() {
+                endedAtStr = r.EndedAt.Format("2006-01-02 15:04:05")
         }
 
         // 获取玩家信息
@@ -949,11 +967,11 @@ func (s *DDZGameLogService) toGameRecordResponse(r ddz.DDZGameRecord) ddzRes.DDZ
                 RoomCategory:         r.RoomCategory,
                 BaseScore:            r.BaseScore,
                 Multiplier:           r.Multiplier,
-                LandlordID:           r.LandlordID,
+                LandlordID:           landlordIDStr,  // 🔧【修复】转换为字符串
                 LandlordName:         landlordName,
-                Farmer1ID:            r.Farmer1ID,
+                Farmer1ID:            farmer1IDStr,   // 🔧【修复】转换为字符串
                 Farmer1Name:          farmer1Name,
-                Farmer2ID:            r.Farmer2ID,
+                Farmer2ID:            farmer2IDStr,   // 🔧【修复】转换为字符串
                 Farmer2Name:          farmer2Name,
                 Winner:               r.Result, // 兼容旧字段
                 Result:               r.Result,
@@ -969,9 +987,9 @@ func (s *DDZGameLogService) toGameRecordResponse(r ddz.DDZGameRecord) ddzRes.DDZ
                 Farmer2WinArenaCoin:  r.Farmer2WinArenaCoin,
                 GameDuration:         r.DurationSeconds,
                 DurationText:         durationText,
-                GameTime:             r.StartedAt,
-                StartedAt:            r.StartedAt,
-                EndedAt:              r.EndedAt,
+                GameTime:             startedAtStr,
+                StartedAt:            startedAtStr,
+                EndedAt:              endedAtStr,
                 Players:              players,
                 CreatedAt:            r.CreatedAt.Format("2006-01-02 15:04:05"),
         }
