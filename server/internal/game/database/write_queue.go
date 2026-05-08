@@ -397,6 +397,7 @@ func (q *WriteQueue) IsStarted() bool {
 
 // worker 工作协程
 // 🔧【安全】添加 panic 恢复机制，防止崩溃
+// 🔧【关键】panic 后尝试重启 worker，确保队列持续运行
 func (q *WriteQueue) worker() {
         defer func() {
                 q.wg.Done()
@@ -404,6 +405,14 @@ func (q *WriteQueue) worker() {
                         log.Printf("❌ [WriteQueue] worker 发生 panic: %v", r)
                         // 记录错误到数据库
                         q.recordError("worker_panic", fmt.Sprintf("worker panic: %v", r), "")
+
+                        // 🔧【关键修复】尝试重启 worker，确保队列持续运行
+                        // 只有在队列仍在运行状态时才重启
+                        if atomic.LoadInt32(&q.started) == 1 {
+                                log.Printf("🔄 [WriteQueue] 尝试重启 worker...")
+                                q.wg.Add(1)
+                                go q.worker()
+                        }
                 }
         }()
 
@@ -426,7 +435,7 @@ func (q *WriteQueue) worker() {
                         q.batchMutex.Unlock()
 
                         if shouldFlush {
-                                q.flushBatch()
+                                q.safeFlushBatch()
                                 if !batchTimer.Stop() {
                                         select {
                                         case <-batchTimer.C:
@@ -438,10 +447,22 @@ func (q *WriteQueue) worker() {
 
                 case <-batchTimer.C:
                         // 超时，刷新批量缓冲区
-                        q.flushBatch()
+                        q.safeFlushBatch()
                         batchTimer.Reset(q.config.BatchTimeout)
                 }
         }
+}
+
+// safeFlushBatch 安全地刷新批量缓冲区
+// 🔧【新增】添加 panic 保护，确保 flushBatch 不会崩溃
+func (q *WriteQueue) safeFlushBatch() {
+        defer func() {
+                if r := recover(); r != nil {
+                        log.Printf("❌ [WriteQueue] flushBatch 发生 panic: %v", r)
+                        q.recordError("flush_panic", fmt.Sprintf("flushBatch panic: %v", r), "")
+                }
+        }()
+        q.flushBatch()
 }
 
 // flushBatch 刷新批量缓冲区
@@ -724,12 +745,20 @@ func (q *WriteQueue) retryOrDrop(data *GameResultData) {
 
 // metricsReporter 指标上报协程
 // 🔧【安全】添加 panic 恢复机制，防止崩溃
+// 🔧【关键】panic 后尝试重启，确保监控持续运行
 func (q *WriteQueue) metricsReporter() {
         defer func() {
                 q.wg.Done()
                 if r := recover(); r != nil {
                         log.Printf("❌ [WriteQueue] metricsReporter 发生 panic: %v", r)
                         q.recordError("metrics_panic", fmt.Sprintf("metricsReporter panic: %v", r), "")
+
+                        // 🔧【关键修复】尝试重启 metricsReporter
+                        if atomic.LoadInt32(&q.started) == 1 {
+                                log.Printf("🔄 [WriteQueue] 尝试重启 metricsReporter...")
+                                q.wg.Add(1)
+                                go q.metricsReporter()
+                        }
                 }
         }()
 
@@ -741,7 +770,16 @@ func (q *WriteQueue) metricsReporter() {
                 case <-q.ctx.Done():
                         return
                 case <-ticker.C:
-                        q.reportMetrics()
+                        // 🔧【安全】为 reportMetrics 添加 panic 保护
+                        func() {
+                                defer func() {
+                                        if r := recover(); r != nil {
+                                                log.Printf("❌ [WriteQueue] reportMetrics panic: %v", r)
+                                                q.recordError("report_metrics_panic", fmt.Sprintf("reportMetrics panic: %v", r), "")
+                                        }
+                                }()
+                                q.reportMetrics()
+                        }()
                 }
         }
 }
@@ -895,11 +933,23 @@ func (q *WriteQueue) recordError(errorType, errorMsg, errorDetail string) {
 
 // GetWriteQueueErrorLogs 获取写入队列错误日志列表
 // 🔧【新增】供 admin 后台调用
+// 🔧【安全】添加数据库连接检查
 func GetWriteQueueErrorLogs(page, pageSize int, resolved *uint8) ([]WriteQueueErrorLog, int64, error) {
+        // 🔧【安全】检查数据库实例
+        dbInstance := GetInstance()
+        if dbInstance == nil {
+                return nil, 0, fmt.Errorf("数据库实例未初始化")
+        }
+
+        dbConn := dbInstance.GetDB()
+        if dbConn == nil {
+                return nil, 0, fmt.Errorf("数据库连接未建立")
+        }
+
         var logs []WriteQueueErrorLog
         var total int64
 
-        db := GetInstance().GetDB().Model(&WriteQueueErrorLog{})
+        db := dbConn.Model(&WriteQueueErrorLog{})
         if resolved != nil {
                 db = db.Where("resolved = ?", *resolved)
         }
@@ -918,18 +968,42 @@ func GetWriteQueueErrorLogs(page, pageSize int, resolved *uint8) ([]WriteQueueEr
 
 // ResolveWriteQueueError 标记错误为已解决
 // 🔧【新增】供 admin 后台调用
+// 🔧【安全】添加数据库连接检查
 func ResolveWriteQueueError(id uint64) error {
-        return GetInstance().GetDB().Model(&WriteQueueErrorLog{}).
+        // 🔧【安全】检查数据库实例
+        dbInstance := GetInstance()
+        if dbInstance == nil {
+                return fmt.Errorf("数据库实例未初始化")
+        }
+
+        dbConn := dbInstance.GetDB()
+        if dbConn == nil {
+                return fmt.Errorf("数据库连接未建立")
+        }
+
+        return dbConn.Model(&WriteQueueErrorLog{}).
                 Where("id = ?", id).
                 Update("resolved", 1).Error
 }
 
 // GetWriteQueueErrorStats 获取错误统计
 // 🔧【新增】供 admin 后台调用
+// 🔧【安全】添加数据库连接检查
 func GetWriteQueueErrorStats() (map[string]interface{}, error) {
+        // 🔧【安全】检查数据库实例
+        dbInstance := GetInstance()
+        if dbInstance == nil {
+                return nil, fmt.Errorf("数据库实例未初始化")
+        }
+
+        dbConn := dbInstance.GetDB()
+        if dbConn == nil {
+                return nil, fmt.Errorf("数据库连接未建立")
+        }
+
         var total, unresolved, resolved int64
 
-        db := GetInstance().GetDB().Model(&WriteQueueErrorLog{})
+        db := dbConn.Model(&WriteQueueErrorLog{})
 
         if err := db.Count(&total).Error; err != nil {
                 return nil, err
