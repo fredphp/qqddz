@@ -346,3 +346,8 @@ func (c *Client) GetCallIndex() int64 {
         defer c.mu.RUnlock()
         return c.callIndex
 }
+
+// IsRobot 判断是否是机器人客户端（普通客户端返回 false）
+func (c *Client) IsRobot() bool {
+        return false
+}

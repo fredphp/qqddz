@@ -29,6 +29,7 @@ type ClientInterface interface {
         SetPlayerID(id uint64) // 设置数据库玩家ID
         GetGold() int64      // 🔧【新增】获取玩家金币数量
         SetGold(gold int64)  // 🔧【新增】设置玩家金币数量
+        IsRobot() bool       // 🔧【新增】判断是否是机器人客户端
 }
 
 // ChatLimiter 聊天速率限制器接口

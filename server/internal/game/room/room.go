@@ -25,11 +25,17 @@ type RoomPlayer struct {
 
 // NewRoomPlayer 创建房间玩家
 func NewRoomPlayer(client types.ClientInterface, seat int) *RoomPlayer {
+        // 🔧【修复】检查客户端是否是机器人，如果是则设置正确的状态
+        initialState := PlayerStateOnline
+        if client.IsRobot() {
+                initialState = PlayerStateRobot
+        }
+        
         return &RoomPlayer{
                 Client: client,
                 Seat:   seat,
                 Ready:  false,
-                State:  PlayerStateOnline,
+                State:  initialState,
         }
 }
 
