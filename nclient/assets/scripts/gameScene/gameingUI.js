@@ -162,6 +162,10 @@ cc.Class({
             // 🔧【修复】停止所有竞技场倒计时
             this._stopArenaCountdown()
             
+            // 🔧【关键修复】清理桌面上的牌（上一轮最后一手牌）
+            console.log("🃏 [onPushCards] 清理桌面上的牌")
+            this._clearAllOutCardZones()
+            
             // 【核心】直接保存服务端数据，不做任何转换
             this.handCards = data.cards || []
             this.bottomCards = data.bottom_cards || []
@@ -4861,6 +4865,7 @@ cc.Class({
         // 判断输赢
         var isWinner = false
         var myWinGold = 0
+        var myMatchCoin = 0  // 🔧【新增】当前玩家的金币（从data.players获取）
         
         if (data.players && data.players.length > 0) {
             for (var i = 0; i < data.players.length; i++) {
@@ -4868,24 +4873,26 @@ cc.Class({
                 if (String(player.player_id) === String(myPlayerId)) {
                     isWinner = player.is_winner
                     myWinGold = player.win_gold
+                    // 🔧【修复】从服务端返回的玩家数据中获取金币
+                    if (player.match_coin !== undefined && player.match_coin >= 0) {
+                        myMatchCoin = player.match_coin
+                    }
                     break
                 }
             }
         }
         
-        // 更新比赛金币
-        if (data.match_coin !== undefined) {
-            this._matchCoin = data.match_coin
-        }
+        // 🔧【修复】更新当前玩家的金币显示
+        this._matchCoin = myMatchCoin
 
-        // 🔧【新增】更新所有玩家的竞技币显示
+        // 🔧【新增】更新所有玩家的金币显示
         if (data.players && data.players.length > 0) {
             for (var i = 0; i < data.players.length; i++) {
                 var player = data.players[i]
                 var playerId = player.player_id
                 var matchCoin = player.match_coin
 
-                // 🔧【修复】竞技场模式下更新玩家的竞技币显示
+                // 🔧【修复】竞技场模式下更新玩家的金币显示
                 if (matchCoin !== undefined && matchCoin >= 0) {
                     this._updatePlayerMatchCoinDisplay(playerId, matchCoin)
                 }
@@ -4936,10 +4943,10 @@ cc.Class({
         titleNode.y = popupHeight/2 - 50
         titleNode.parent = popupNode
         
-        // 🔧【修复】输赢金额 - 竞技场显示"竞技币"
+        // 🔧【修复】输赢金额 - 竞技场显示"金币"（不是竞技币）
         var resultNode = new cc.Node("Result")
         var resultLabel = resultNode.addComponent(cc.Label)
-        resultLabel.string = "本局结果: " + (myWinGold >= 0 ? "+" : "") + myWinGold + " 竞技币"
+        resultLabel.string = "本局结果: " + (myWinGold >= 0 ? "+" : "") + myWinGold + " 金币"
         resultLabel.fontSize = 28
         resultNode.color = myWinGold >= 0 ? new cc.Color(100, 255, 100) : new cc.Color(255, 100, 100)
         resultNode.y = popupHeight/2 - 100
@@ -4954,10 +4961,10 @@ cc.Class({
         multiNode.y = popupHeight/2 - 140
         multiNode.parent = popupNode
         
-        // 🔧【修复】当前竞技币
+        // 🔧【修复】当前金币（不是竞技币）
         var coinNode = new cc.Node("MatchCoin")
         var coinLabel = coinNode.addComponent(cc.Label)
-        coinLabel.string = "当前竞技币: " + this._matchCoin
+        coinLabel.string = "当前金币: " + this._matchCoin
         coinLabel.fontSize = 24
         coinNode.color = new cc.Color(255, 200, 100)
         coinNode.y = popupHeight/2 - 180
