@@ -123,13 +123,25 @@ func NewTokenBucket(maxTokens, refillRate int64) *TokenBucket {
 }
 
 // Wait 等待指定数量的令牌
-func (tb *TokenBucket) Wait(count int) {
+// 返回 true 表示成功获取令牌，false 表示 context 已取消
+func (tb *TokenBucket) Wait(ctx context.Context, count int) bool {
         for {
+                // 检查 context 是否已取消
+                select {
+                case <-ctx.Done():
+                        return false
+                default:
+                }
+
                 if tb.tryAcquire(int64(count)) {
-                        return
+                        return true
                 }
                 // 等待一小段时间后重试
-                time.Sleep(10 * time.Millisecond)
+                select {
+                case <-ctx.Done():
+                        return false
+                case <-time.After(10 * time.Millisecond):
+                }
         }
 }
 
@@ -192,14 +204,14 @@ type WriteQueue struct {
         totalFailed     uint64 // 失败数
         totalRetries    uint64 // 重试数
         currentQueueLen uint64 // 当前队列长度
-        lastMetricsTime time.Time
+        lastMetricsNano int64  // 上次指标上报时间（UnixNano，使用原子操作）
 
         // 批量处理缓冲区
         batchBuffer []*GameResultData
         batchMutex  sync.Mutex
 
-        // 启动状态
-        started bool
+        // 启动状态 - 使用原子操作保护
+        started int32 // 0=未启动, 1=已启动
 }
 
 var (
@@ -231,8 +243,8 @@ func InitWriteQueue(config *WriteQueueConfig) error {
         // 初始化令牌桶限流器
         q.tokenBucket = NewTokenBucket(int64(q.config.WriteBurst), int64(q.config.MaxWriteRate))
 
-        // 初始化统计
-        q.lastMetricsTime = time.Now()
+        // 初始化统计时间（使用原子操作）
+        atomic.StoreInt64(&q.lastMetricsNano, time.Now().UnixNano())
 
         return nil
 }
@@ -242,14 +254,15 @@ func (q *WriteQueue) Start(db *gorm.DB) {
         writeQueueMutex.Lock()
         defer writeQueueMutex.Unlock()
 
-        if q.started {
+        // 使用原子操作检查是否已启动
+        if atomic.LoadInt32(&q.started) == 1 {
                 log.Println("⚠️ [WriteQueue] 写入队列已经启动，跳过重复启动")
                 return
         }
 
         q.db = db
         q.ctx, q.cancel = context.WithCancel(context.Background())
-        q.started = true
+        atomic.StoreInt32(&q.started, 1)
 
         // 启动工作协程
         q.wg.Add(2)
@@ -268,7 +281,8 @@ func (q *WriteQueue) Stop() {
         writeQueueMutex.Lock()
         defer writeQueueMutex.Unlock()
 
-        if !q.started {
+        // 使用原子操作检查是否已停止
+        if atomic.LoadInt32(&q.started) == 0 {
                 return
         }
 
@@ -280,7 +294,7 @@ func (q *WriteQueue) Stop() {
         // 处理剩余数据
         q.flushRemaining()
 
-        q.started = false
+        atomic.StoreInt32(&q.started, 0)
 
         log.Println("✅ [WriteQueue] 写入队列已停止")
         log.Printf("   📊 统计: 提交=%d, 处理=%d, 成功=%d, 失败=%d, 重试=%d",
@@ -343,7 +357,7 @@ func (q *WriteQueue) SubmitBlocking(data *GameResultData) {
 
 // IsStarted 检查队列是否已启动
 func (q *WriteQueue) IsStarted() bool {
-        return q.started
+        return atomic.LoadInt32(&q.started) == 1
 }
 
 // =============================================
@@ -404,9 +418,13 @@ func (q *WriteQueue) flushBatch() {
         q.batchBuffer = make([]*GameResultData, 0, q.config.BatchSize)
         q.batchMutex.Unlock()
 
-        // 等待令牌（检查 tokenBucket 是否存在）
-        if q.tokenBucket != nil {
-                q.tokenBucket.Wait(len(batch))
+        // 等待令牌（检查 tokenBucket 是否存在，使用 context 支持取消）
+        if q.tokenBucket != nil && q.ctx != nil {
+                if !q.tokenBucket.Wait(q.ctx, len(batch)) {
+                        // Context 已取消，直接返回
+                        log.Printf("⚠️ [WriteQueue] 队列已停止，跳过批量写入")
+                        return
+                }
         }
 
         // 批量写入
@@ -560,7 +578,7 @@ func (q *WriteQueue) writeBatchNoLimit(batch []*GameResultData) {
                 atomic.AddUint64(&q.totalFailed, uint64(len(batch)))
 
                 // 重试逻辑 - 只在队列启动时才重试
-                if q.started {
+                if atomic.LoadInt32(&q.started) == 1 {
                         for _, data := range batch {
                                 if data != nil {
                                         q.retryOrDrop(data)
@@ -579,9 +597,12 @@ func (q *WriteQueue) writeSingle(data *GameResultData) error {
                 return nil
         }
 
-        // 等待令牌限流
-        if q.tokenBucket != nil {
-                q.tokenBucket.Wait(1)
+        // 等待令牌限流（使用 context 支持取消）
+        if q.tokenBucket != nil && q.ctx != nil {
+                if !q.tokenBucket.Wait(q.ctx, 1) {
+                        // Context 已取消
+                        return fmt.Errorf("队列已停止")
+                }
         }
 
         return q.writeSingleNoLimit(data)
@@ -634,7 +655,7 @@ func (q *WriteQueue) writeSingleNoLimit(data *GameResultData) error {
         if err != nil {
                 atomic.AddUint64(&q.totalFailed, 1)
                 // 只在队列启动时才重试
-                if q.started {
+                if atomic.LoadInt32(&q.started) == 1 {
                         q.retryOrDrop(data)
                 }
                 return err
@@ -671,8 +692,8 @@ func (q *WriteQueue) retryOrDrop(data *GameResultData) {
 
         // 异步重试（使用 time.AfterFunc 更安全）
         time.AfterFunc(delay, func() {
-                // 再次检查队列是否仍在运行
-                if !q.started {
+                // 再次检查队列是否仍在运行（使用原子操作）
+                if atomic.LoadInt32(&q.started) == 0 {
                         log.Printf("⚠️ [WriteQueue] 队列已停止，取消重试 GameID=%s", data.GameID)
                         return
                 }
@@ -709,7 +730,10 @@ func (q *WriteQueue) metricsReporter() {
 
 // reportMetrics 上报指标
 func (q *WriteQueue) reportMetrics() {
-        elapsed := time.Since(q.lastMetricsTime)
+        // 使用原子操作读取上次上报时间
+        lastNano := atomic.LoadInt64(&q.lastMetricsNano)
+        lastTime := time.Unix(0, lastNano)
+        elapsed := time.Since(lastTime)
         if elapsed == 0 {
                 return
         }
@@ -740,8 +764,8 @@ func (q *WriteQueue) reportMetrics() {
                 log.Printf("   📈 队列长度: %d/%d", queueLen, q.config.QueueSize)
         }
 
-        // 更新时间
-        q.lastMetricsTime = time.Now()
+        // 更新时间（使用原子操作）
+        atomic.StoreInt64(&q.lastMetricsNano, time.Now().UnixNano())
 }
 
 // GetMetrics 获取当前指标
@@ -754,7 +778,7 @@ func (q *WriteQueue) GetMetrics() map[string]interface{} {
                 "total_retries":   atomic.LoadUint64(&q.totalRetries),
                 "queue_length":    atomic.LoadUint64(&q.currentQueueLen),
                 "queue_capacity":  q.config.QueueSize,
-                "started":         q.started,
+                "started":         atomic.LoadInt32(&q.started) == 1,
         }
         if q.tokenBucket != nil {
                 metrics["tokens_available"] = q.tokenBucket.Available()
