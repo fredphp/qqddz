@@ -942,7 +942,28 @@ func (gs *GameSession) runArenaCountdown(totalSeconds, nextRound int) {
 // onArenaCountdownEnd 竞技场倒计时结束处理
 // 自动为所有玩家准备，然后开始新一轮游戏
 func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
-        log.Printf("🏟️ [onArenaCountdownEnd] 房间 %s 倒计时结束，自动准备并开始第 %d 轮", gs.room.Code, nextRound)
+        log.Printf("🏟️ [onArenaCountdownEnd] 房间 %s 倒计时结束，准备开始第 %d 轮", gs.room.Code, nextRound)
+        
+        // 🔧【新增】检查是否达到最大轮次
+        maxRoundCount := gs.getMaxRoundCount()
+        currentRound := gs.room.GameCount // 当前已完成的局数
+        
+        log.Printf("🏟️ [onArenaCountdownEnd] 轮次检查: 当前已完成 %d 局, 最大轮次 %d", currentRound, maxRoundCount)
+        
+        if currentRound >= maxRoundCount {
+                log.Printf("🏁 [onArenaCountdownEnd] 房间 %s 已完成 %d 轮，竞技场结束", gs.room.Code, currentRound)
+                // 广播竞技场结束消息
+                gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaMatchEnd, &protocol.ArenaMatchEndPayload{
+                        PeriodNo: gs.room.PeriodNo,
+                        RoomID:   gs.room.RoomConfigID,
+                        Message:  "比赛结束",
+                }))
+                // 调用游戏结束回调销毁房间
+                if gs.onGameEnd != nil {
+                        gs.onGameEnd(gs.room)
+                }
+                return
+        }
         
         // 🔧【关键修复】使用单独的锁块，避免与 Start() 死锁
         {
@@ -991,6 +1012,28 @@ func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
         gs.Start()
         
         log.Printf("✅ [onArenaCountdownEnd] 房间 %s 第 %d 轮游戏已开始", gs.room.Code, nextRound)
+}
+
+// getMaxRoundCount 获取竞技场最大轮次
+func (gs *GameSession) getMaxRoundCount() int {
+        // 默认轮次为 3
+        defaultRoundCount := 3
+        
+        // 从房间配置ID获取配置
+        if gs.room.RoomConfigID > 0 {
+                roomConfig, err := database.GetRoomConfigByID(gs.room.RoomConfigID)
+                if err != nil {
+                        log.Printf("⚠️ [getMaxRoundCount] 获取房间配置失败: %v, 使用默认轮次 %d", err, defaultRoundCount)
+                        return defaultRoundCount
+                }
+                if roomConfig.MatchRoundCount > 0 {
+                        log.Printf("🏟️ [getMaxRoundCount] 房间配置ID=%d, 最大轮次=%d", gs.room.RoomConfigID, roomConfig.MatchRoundCount)
+                        return roomConfig.MatchRoundCount
+                }
+        }
+        
+        log.Printf("🏟️ [getMaxRoundCount] 无房间配置，使用默认轮次 %d", defaultRoundCount)
+        return defaultRoundCount
 }
 
 // resetForNewRound 重置游戏会话状态以准备新一轮

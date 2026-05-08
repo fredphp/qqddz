@@ -734,3 +734,11 @@ type ArenaReconnectStatePayload struct {
         Countdown   int    `json:"countdown"`    // 剩余倒计时秒数（如果phase是countdown）
         Message     string `json:"message"`      // 提示消息
 }
+
+// ArenaMatchEndPayload 竞技场比赛结束通知
+// 当所有轮次打完后，服务端广播此消息通知玩家比赛结束
+type ArenaMatchEndPayload struct {
+        PeriodNo string `json:"period_no"` // 当前期号
+        RoomID   uint64 `json:"room_id"`   // 房间配置ID
+        Message  string `json:"message"`   // 提示消息："比赛结束"
+}

@@ -164,6 +164,7 @@ const (
         MsgArenaCountdownTick  MessageType = "arena_countdown_tick"   // 竞技场倒计时每秒更新
         MsgArenaAutoReady      MessageType = "arena_auto_ready"      // 竞技场自动准备通知
         MsgArenaReconnectState MessageType = "arena_reconnect_state" // 竞技场断线重连状态恢复
+        MsgArenaMatchEnd       MessageType = "arena_match_end"       // 竞技场比赛结束通知
 
         // 错误
         MsgError MessageType = "error" // 错误消息
