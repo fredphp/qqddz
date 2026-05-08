@@ -853,8 +853,8 @@ func CreateArenaGoldLog(log *ArenaGoldLog) error {
         }).Error
 }
 
-// UpdateArenaPeriodPlayerStatus 更新玩家比赛状态
-func UpdateArenaPeriodPlayerStatus(periodNo string, playerID uint64, playerStatus uint8, isEliminated uint8, eliminatedRound *int) error {
+// UpdateArenaPeriodPlayerMatchStatus 更新玩家比赛状态（包含淘汰信息）
+func UpdateArenaPeriodPlayerMatchStatus(periodNo string, playerID uint64, playerStatus uint8, isEliminated uint8, eliminatedRound *int) error {
         t, err := parsePeriodNoToTime(periodNo)
         if err != nil {
                 t = time.Now()
