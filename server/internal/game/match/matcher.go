@@ -133,9 +133,11 @@ func (m *Matcher) joinExistingRoomLocked(client types.ClientInterface, r *room.R
 
         // 发送加入房间成功消息
         client.SendMessage(codec.MustNewMessage(protocol.MsgRoomJoined, &protocol.RoomJoinedPayload{
-                RoomCode: r.Code,
-                Player:   r.GetPlayerInfo(client.GetID()),
-                Players:  r.GetAllPlayersInfo(),
+                RoomCode:     r.Code,
+                Player:       r.GetPlayerInfo(client.GetID()),
+                Players:      r.GetAllPlayersInfo(),
+                RoomCategory: r.RoomCategory, // 🔧【新增】房间分类
+                PeriodNo:     r.PeriodNo,     // 🔧【新增】期号
         }))
 
         log.Printf("✅ 玩家 %s 成功补位到房间 %s，当前人数: %d", client.GetName(), r.Code, len(r.Players))
@@ -239,9 +241,11 @@ func (m *Matcher) createMatchRoom(players []types.ClientInterface) {
         for _, client := range players {
                 // 发送加入房间成功消息
                 client.SendMessage(codec.MustNewMessage(protocol.MsgRoomJoined, &protocol.RoomJoinedPayload{
-                        RoomCode: room.Code,
-                        Player:   room.GetPlayerInfo(client.GetID()),
-                        Players:  room.GetAllPlayersInfo(),
+                        RoomCode:     room.Code,
+                        Player:       room.GetPlayerInfo(client.GetID()),
+                        Players:      room.GetAllPlayersInfo(),
+                        RoomCategory: room.RoomCategory, // 🔧【新增】房间分类
+                        PeriodNo:     room.PeriodNo,     // 🔧【新增】期号
                 }))
         }
 

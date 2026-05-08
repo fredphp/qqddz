@@ -112,10 +112,12 @@ func (h *Handler) handleJoinRoom(client types.ClientInterface, msg *protocol.Mes
         }
 
         client.SendMessage(codec.MustNewMessage(protocol.MsgRoomJoined, &protocol.RoomJoinedPayload{
-                RoomCode:  room.Code,
-                Player:    currentPlayer,
-                Players:   allPlayers,
-                CreatorID: room.CreatorID, // 返回房主ID
+                RoomCode:     room.Code,
+                Player:       currentPlayer,
+                Players:      allPlayers,
+                CreatorID:    room.CreatorID, // 返回房主ID
+                RoomCategory: room.RoomCategory, // 🔧【新增】房间分类
+                PeriodNo:     room.PeriodNo,     // 🔧【新增】期号
         }))
 }
 

@@ -212,9 +212,11 @@ func (r *Room) startGameLocked() error {
 
         // 2. 广播游戏开始
         players := r.GetAllPlayersInfo()
-        log.Printf("🎮 [startGameLocked] 广播游戏开始给 %d 个玩家", len(players))
+        log.Printf("🎮 [startGameLocked] 广播游戏开始给 %d 个玩家, RoomCategory=%d, PeriodNo=%s", len(players), r.RoomCategory, r.PeriodNo)
         r.Broadcast(codec.MustNewMessage(protocol.MsgGameStart, &protocol.GameStartPayload{
-                Players: players,
+                Players:      players,
+                RoomCategory: r.RoomCategory, // 🔧【新增】房间分类
+                PeriodNo:     r.PeriodNo,     // 🔧【新增】期号
         }))
 
         return nil

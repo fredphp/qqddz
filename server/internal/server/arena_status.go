@@ -741,14 +741,16 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
                         if client.PlayerID == playerID {
                                 playerInfo := gameRoom.GetPlayerInfo(client.GetID())
                                 payload := &protocol.RoomJoinedPayload{
-                                        RoomCode:  gameRoom.Code,
-                                        Player:    playerInfo,
-                                        Players:   players,
-                                        CreatorID: gameRoom.CreatorID,
+                                        RoomCode:     gameRoom.Code,
+                                        Player:       playerInfo,
+                                        Players:      players,
+                                        CreatorID:    gameRoom.CreatorID,
+                                        RoomCategory: gameRoom.RoomCategory, // 🔧【新增】房间分类
+                                        PeriodNo:     gameRoom.PeriodNo,     // 🔧【新增】期号
                                 }
                                 client.SendMessage(codec.MustNewMessage(protocol.MsgRoomJoined, payload))
-                                log.Printf("[ArenaStatus] ✅ 发送 room_joined 给玩家 %d (%s), roomCode=%s, seat=%d", 
-                                        playerID, playerInfo.Name, gameRoom.Code, playerInfo.Seat)
+                                log.Printf("[ArenaStatus] ✅ 发送 room_joined 给玩家 %d (%s), roomCode=%s, seat=%d, RoomCategory=%d, PeriodNo=%s", 
+                                        playerID, playerInfo.Name, gameRoom.Code, playerInfo.Seat, gameRoom.RoomCategory, gameRoom.PeriodNo)
                                 break
                         }
                 }
@@ -1039,13 +1041,16 @@ func (b *ArenaStatusBroadcaster) sendRoomJoinedToTablePlayer(enterPhase *EnterPh
                 if client.PlayerID == playerID {
                         players := gameRoom.GetAllPlayersInfo()
                         payload := &protocol.RoomJoinedPayload{
-                                RoomCode:  gameRoom.Code,
-                                Player:    gameRoom.GetPlayerInfo(client.GetID()),
-                                Players:   players,
-                                CreatorID: gameRoom.CreatorID,
+                                RoomCode:     gameRoom.Code,
+                                Player:       gameRoom.GetPlayerInfo(client.GetID()),
+                                Players:      players,
+                                CreatorID:    gameRoom.CreatorID,
+                                RoomCategory: gameRoom.RoomCategory, // 🔧【新增】房间分类
+                                PeriodNo:     gameRoom.PeriodNo,     // 🔧【新增】期号
                         }
                         client.SendMessage(codec.MustNewMessage(protocol.MsgRoomJoined, payload))
-                        log.Printf("[ArenaStatus] 发送 room_joined 给玩家 %d, roomCode=%s, players=%d", playerID, gameRoom.Code, len(players))
+                        log.Printf("[ArenaStatus] 发送 room_joined 给玩家 %d, roomCode=%s, players=%d, RoomCategory=%d, PeriodNo=%s", 
+                                playerID, gameRoom.Code, len(players), gameRoom.RoomCategory, gameRoom.PeriodNo)
                         break
                 }
         }

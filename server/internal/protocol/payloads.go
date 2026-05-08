@@ -199,10 +199,12 @@ type RoomCreatedPayload struct {
 
 // RoomJoinedPayload 加入房间成功响应
 type RoomJoinedPayload struct {
-        RoomCode  string       `json:"room_code"`
-        Player    PlayerInfo   `json:"player"`
-        Players   []PlayerInfo `json:"players"`    // 房间内所有玩家
-        CreatorID string       `json:"creator_id"` // 房主ID
+        RoomCode     string       `json:"room_code"`
+        Player       PlayerInfo   `json:"player"`
+        Players      []PlayerInfo `json:"players"`      // 房间内所有玩家
+        CreatorID    string       `json:"creator_id"`   // 房主ID
+        RoomCategory uint8        `json:"room_category"` // 🔧【新增】房间分类: 1-普通场, 2-竞技场
+        PeriodNo     string       `json:"period_no"`     // 🔧【新增】期号（竞技场模式下使用）
 }
 
 // PlayerJoinedPayload 其他玩家加入通知
@@ -224,7 +226,9 @@ type PlayerReadyPayload struct {
 
 // GameStartPayload 游戏开始通知
 type GameStartPayload struct {
-        Players []PlayerInfo `json:"players"` // 按座位顺序排列
+        Players      []PlayerInfo `json:"players"`       // 按座位顺序排列
+        RoomCategory uint8        `json:"room_category"` // 🔧【新增】房间分类: 1-普通场, 2-竞技场
+        PeriodNo     string       `json:"period_no"`     // 🔧【新增】期号（竞技场模式下使用）
 }
 
 // DealCardsPayload 发牌通知
