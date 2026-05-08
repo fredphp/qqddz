@@ -316,8 +316,6 @@ func (j *JSONMode) TryHandleJSON(message []byte) bool {
 }
 
 func (j *JSONMode) handleJSONMessage(msg *JSONMessage) {
-        log.Printf("[JSON] 收到消息: type=%s, callIndex=%d", msg.Type, msg.CallIndex)
-
         switch msg.Type {
         case "ping":
                 j.handlePing(msg)
@@ -357,14 +355,12 @@ func (j *JSONMode) handleJSONMessage(msg *JSONMessage) {
         case "arena_cancel_enter":
                 j.handleArenaCancelEnter(msg)
         default:
-                log.Printf("[JSON] 未知消息类型: %s", msg.Type)
+                // 未知消息类型，忽略
         }
 }
 
 // handlePing 处理 ping 消息
 func (j *JSONMode) handlePing(msg *JSONMessage) {
-        log.Printf("[JSON] 收到 ping 消息")
-
         // 解析客户端时间戳
         var data struct {
                 Timestamp int64 `json:"timestamp"`
@@ -417,8 +413,6 @@ func (j *JSONMode) handleJoinRoom(msg *JSONMessage) {
                 _ = json.Unmarshal(msgData, &data)
         }
 
-        log.Printf("[JSON] handleJoinRoom: room_code=%s", data.RoomCode)
-        
         j.client.SetCallIndex(msg.CallIndex)
         protoMsg, err := codec.NewMessage(protocol.MsgJoinRoom, &protocol.JoinRoomPayload{
                 RoomCode: data.RoomCode,
@@ -497,15 +491,9 @@ func (j *JSONMode) handleRob(msg *JSONMessage) {
                 Rob bool `json:"rob"`
         }
         msgData := msg.GetData()
-        log.Printf("[JSON] handleRob 原始数据: Data=%s, Payload=%s, GetData()=%s", 
-                string(msg.Data), string(msg.Payload), string(msgData))
         if len(msgData) > 0 {
-                if err := json.Unmarshal(msgData, &data); err != nil {
-                        log.Printf("[JSON] handleRob 解析失败: %v", err)
-                }
+                _ = json.Unmarshal(msgData, &data)
         }
-
-        log.Printf("[JSON] 处理 rob 消息: rob=%v", data.Rob)
 
         protoMsg, err := codec.NewMessage(protocol.MsgRob, &protocol.RobPayload{
                 Rob: data.Rob,
@@ -569,7 +557,6 @@ func (j *JSONMode) handlePass(msg *JSONMessage) {
 
 // handleHintRequest 处理提示请求
 func (j *JSONMode) handleHintRequest(msg *JSONMessage) {
-        log.Printf("[JSON] 收到提示请求，玩家: %s", j.client.GetName())
         protoMsg, err := codec.NewMessage(protocol.MsgHintRequest, nil)
         if err != nil {
                 log.Printf("[JSON] 创建消息失败: %v", err)
@@ -612,11 +599,8 @@ func NewJSONHandler(server *Server) *JSONHandler {
 func (h *JSONHandler) HandleJSONMessage(client *Client, data []byte) error {
         var msg JSONMessage
         if err := json.Unmarshal(data, &msg); err != nil {
-                log.Printf("JSON 解析失败: %v", err)
                 return err
         }
-
-        log.Printf("收到 JSON 消息: type=%s, callIndex=%d", msg.Type, msg.CallIndex)
 
         // 根据消息类型分发处理
         switch msg.Type {
@@ -749,8 +733,6 @@ func (h *JSONHandler) handleRob(client *Client, msg *JSONMessage) {
                 _ = json.Unmarshal(msgData, &data)
         }
 
-        log.Printf("[JSONHandler] 处理 rob 消息: rob=%v", data.Rob)
-
         protoMsg, err := codec.NewMessage(protocol.MsgRob, &protocol.RobPayload{
                 Rob: data.Rob,
         })
@@ -768,13 +750,8 @@ func (h *JSONHandler) handlePlayCards(client *Client, msg *JSONMessage) {
         }
         msgData := msg.GetData()
 
-        // 🔧【修复】正确处理 JSON 解析错误
-        log.Printf("🃏 [handlePlayCards] 原始消息数据: %s", string(msgData))
-
         if len(msgData) > 0 {
                 if err := json.Unmarshal(msgData, &data); err != nil {
-                        log.Printf("🃏 [handlePlayCards] ❌ JSON 解析失败: %v", err)
-                        // 发送错误响应
                         errMsg, _ := codec.NewMessage(protocol.MsgError, &protocol.ErrorPayload{
                                 Code:    protocol.ErrCodeInvalidMsg,
                                 Message: "无效的出牌数据格式",
@@ -786,9 +763,8 @@ func (h *JSONHandler) handlePlayCards(client *Client, msg *JSONMessage) {
                 }
         }
 
-        // 🔧【验证】检查卡牌数据有效性
+        // 检查卡牌数据有效性
         if len(data.Cards) == 0 {
-                log.Printf("🃏 [handlePlayCards] ❌ 卡牌数量为0")
                 errMsg, _ := codec.NewMessage(protocol.MsgError, &protocol.ErrorPayload{
                         Code:    protocol.ErrCodeInvalidCards,
                         Message: "请选择要出的牌",
@@ -799,14 +775,9 @@ func (h *JSONHandler) handlePlayCards(client *Client, msg *JSONMessage) {
                 return
         }
 
-        // 🔧【调试日志】打印收到的卡牌数据
-        log.Printf("🃏 [handlePlayCards] 收到出牌请求，卡牌数量: %d", len(data.Cards))
-        for i, c := range data.Cards {
-                log.Printf("🃏 [handlePlayCards] 卡牌[%d]: suit=%d, rank=%d, color=%d", i, c.Suit, c.Rank, c.Color)
-
-                // 🔧【验证】检查卡牌数据有效性
+        // 验证卡牌数据有效性
+        for _, c := range data.Cards {
                 if c.Rank < 3 || c.Rank > 17 {
-                        log.Printf("🃏 [handlePlayCards] ❌ 无效的点数: %d", c.Rank)
                         errMsg, _ := codec.NewMessage(protocol.MsgError, &protocol.ErrorPayload{
                                 Code:    protocol.ErrCodeInvalidCards,
                                 Message: "无效的牌型",
@@ -817,7 +788,6 @@ func (h *JSONHandler) handlePlayCards(client *Client, msg *JSONMessage) {
                         return
                 }
                 if c.Suit < 0 || c.Suit > 4 {
-                        log.Printf("🃏 [handlePlayCards] ❌ 无效的花色: %d", c.Suit)
                         errMsg, _ := codec.NewMessage(protocol.MsgError, &protocol.ErrorPayload{
                                 Code:    protocol.ErrCodeInvalidCards,
                                 Message: "无效的牌型",
@@ -940,8 +910,6 @@ func (j *JSONMode) handleArenaSignup(msg *JSONMessage) {
                 _ = json.Unmarshal(msgData, &data)
         }
 
-        log.Printf("[JSON] handleArenaSignup: room_id=%d", data.RoomID)
-
         j.client.SetCallIndex(msg.CallIndex)
         protoMsg, err := codec.NewMessage(protocol.MsgArenaSignup, &protocol.ArenaSignupPayload{
                 RoomID: data.RoomID,
@@ -962,8 +930,6 @@ func (j *JSONMode) handleArenaCancelSignup(msg *JSONMessage) {
         if len(msgData) > 0 {
                 _ = json.Unmarshal(msgData, &data)
         }
-
-        log.Printf("[JSON] handleArenaCancelSignup: room_id=%d", data.RoomID)
 
         j.client.SetCallIndex(msg.CallIndex)
         protoMsg, err := codec.NewMessage(protocol.MsgArenaCancelSignup, &protocol.ArenaCancelSignupPayload{
@@ -987,8 +953,6 @@ func (j *JSONMode) handleArenaEnter(msg *JSONMessage) {
                 _ = json.Unmarshal(msgData, &data)
         }
 
-        log.Printf("[JSON] handleArenaEnter: period_no=%s, room_id=%d", data.PeriodNo, data.RoomID)
-
         j.client.SetCallIndex(msg.CallIndex)
         protoMsg, err := codec.NewMessage(protocol.MsgArenaEnter, &protocol.ArenaEnterPayload{
                 PeriodNo: data.PeriodNo,
@@ -1011,8 +975,6 @@ func (j *JSONMode) handleArenaCancelEnter(msg *JSONMessage) {
         if len(msgData) > 0 {
                 _ = json.Unmarshal(msgData, &data)
         }
-
-        log.Printf("[JSON] handleArenaCancelEnter: period_no=%s, room_id=%d", data.PeriodNo, data.RoomID)
 
         j.client.SetCallIndex(msg.CallIndex)
         protoMsg, err := codec.NewMessage(protocol.MsgArenaCancelEnter, &protocol.ArenaCancelEnterPayload{

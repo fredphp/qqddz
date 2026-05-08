@@ -14,25 +14,19 @@ import (
         "github.com/palemoky/fight-the-landlord/internal/protocol/codec"
 )
 
-// monitorStats 定期监控服务器状态
+// monitorStats 定期监控服务器状态（静默运行，不输出日志）
 func (s *Server) monitorStats() {
-        ticker := time.NewTicker(30 * time.Second)
+        ticker := time.NewTicker(5 * time.Minute) // 改为5分钟检查一次
         defer ticker.Stop()
 
         for range ticker.C {
+                // 仅在内存超过阈值时输出警告
                 var m runtime.MemStats
                 runtime.ReadMemStats(&m)
-
-                onlineCount := s.GetOnlineCount()
-                goroutines := runtime.NumGoroutine()
-                activeConns := len(s.semaphore)
-
-                log.Printf("📊 [监控] 在线: %d | Goroutines: %d | 活跃连接: %d/%d | 内存: %.2f MB",
-                        onlineCount,
-                        goroutines,
-                        activeConns,
-                        s.maxConnections,
-                        float64(m.Alloc)/1024/1024)
+                memMB := float64(m.Alloc) / 1024 / 1024
+                if memMB > 100 { // 内存超过100MB时警告
+                        log.Printf("⚠️ [监控] 内存使用较高: %.2f MB", memMB)
+                }
         }
 }
 

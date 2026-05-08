@@ -248,7 +248,6 @@ func (b *ArenaStatusBroadcaster) checkAndBroadcast() {
                 if !exists {
                         b.lastStatus[roomID] = &status
                         needBroadcast = true
-                        log.Printf("[ArenaStatus] 房间 %d 首次获取状态，期号=%s，需要广播", roomID, status.PeriodNoStr)
                         continue
                 }
 
@@ -258,8 +257,6 @@ func (b *ArenaStatusBroadcaster) checkAndBroadcast() {
                 // 情况1：期号变化
                 if lastStatus.PeriodNoStr != status.PeriodNoStr && status.PeriodNoStr != "" {
                         shouldBroadcast = true
-                        log.Printf("[ArenaStatus] 房间 %d 期号变化: %s -> %s", roomID, lastStatus.PeriodNoStr, status.PeriodNoStr)
-
                         // 期号变化时，触发上一期结算和新期号创建
                         b.handlePeriodChange(roomID, lastStatus.PeriodNoStr, status.PeriodNoStr, status)
                 }
@@ -267,8 +264,6 @@ func (b *ArenaStatusBroadcaster) checkAndBroadcast() {
                 // 情况2：阶段变化
                 if lastStatus.StatusText != status.StatusText {
                         shouldBroadcast = true
-                        log.Printf("[ArenaStatus] 房间 %d 状态变化: %s -> %s", roomID, lastStatus.StatusText, status.StatusText)
-
                         // 阶段变化处理
                         b.handlePhaseChange(roomID, status)
                 }
@@ -276,7 +271,6 @@ func (b *ArenaStatusBroadcaster) checkAndBroadcast() {
                 // 情况3：报名人数变化（超过阈值时推送）
                 if status.TotalPlayers > 0 && lastStatus.TotalPlayers != status.TotalPlayers {
                         shouldBroadcast = true
-                        log.Printf("[ArenaStatus] 房间 %d 报名人数变化: %d -> %d", roomID, lastStatus.TotalPlayers, status.TotalPlayers)
                 }
 
                 if shouldBroadcast {
@@ -289,11 +283,9 @@ func (b *ArenaStatusBroadcaster) checkAndBroadcast() {
 
         // 决定是否广播
         if needBroadcast {
-                log.Printf("📢 [checkAndBroadcast] 需要广播，共 %d 个房间", len(currentStatus))
                 b.server.BroadcastArenaStatus(currentStatus)
                 b.lastBroadcastTime = time.Now()
         } else if needFallbackBroadcast && len(currentStatus) > 0 {
-                log.Printf("📢 [checkAndBroadcast] 兜底广播（30秒）")
                 b.server.BroadcastArenaStatus(currentStatus)
                 b.lastBroadcastTime = time.Now()
         }
@@ -330,21 +322,16 @@ func (b *ArenaStatusBroadcaster) handlePeriodChange(roomID uint64, oldPeriodNo, 
                         remainder := len(signupPlayers) % 3
                         if remainder != 0 {
                                 fillCount := 3 - remainder
-                                log.Printf("[ArenaStatus] 报名人数 %d 不是3的倍数，需要补位 %d 个机器人: roomID=%d, periodNo=%s", 
-                                        len(signupPlayers), fillCount, roomID, oldPeriodNo)
                                 
                                 // 添加机器人到报名列表
                                 robots := b.fillRobotsToSignupList(oldPeriodNo, roomID, fillCount)
                                 if len(robots) > 0 {
                                         signupPlayers = append(signupPlayers, robots...)
-                                        log.Printf("[ArenaStatus] 机器人补位成功: 新增 %d 个机器人，总人数 %d", 
-                                                len(robots), len(signupPlayers))
                                 }
                         }
                 }
                 
                 if len(signupPlayers) > 0 {
-                        log.Printf("[ArenaStatus] 上一期报名玩家: roomID=%d, periodNo=%s, players=%d", roomID, oldPeriodNo, len(signupPlayers))
                         // 发送比赛开始通知给已报名玩家
                         b.sendMatchStartNotification(roomID, oldPeriodNo, signupPlayers)
                 }
@@ -353,7 +340,6 @@ func (b *ArenaStatusBroadcaster) handlePeriodChange(roomID uint64, oldPeriodNo, 
                         PeriodNo: oldPeriodNo,
                         RoomID:   roomID,
                 })
-                log.Printf("[ArenaStatus] 触发上一期结算: roomID=%d, periodNo=%s", roomID, oldPeriodNo)
         }
 
         // 2. 创建新期号记录
@@ -374,7 +360,6 @@ func (b *ArenaStatusBroadcaster) handlePeriodChange(roomID uint64, oldPeriodNo, 
 
         // 标记已处理
         b.processedPeriods[roomID] = newPeriodNo
-        log.Printf("[ArenaStatus] 触发新期号创建: roomID=%d, periodNo=%s", roomID, newPeriodNo)
 }
 
 // sendMatchStartNotification 发送比赛开始通知给已报名玩家
@@ -540,11 +525,8 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
 
         // 🔧【关键】机器人自动进入房间
         for _, robotID := range robotPlayers {
-                log.Printf("[ArenaStatus] 🤖 机器人 %d 自动进入比赛", robotID)
                 b.HandlePlayerEnter(periodNo, robotID)
         }
-
-        log.Printf("[ArenaStatus] ✅ 竞技场分组完成: periodNo=%s, tables=%d, 已发送弹窗通知", periodNo, len(tables))
 }
 
 // 🔧【新增】发送比赛开始弹窗通知给真人玩家
@@ -567,32 +549,23 @@ func (b *ArenaStatusBroadcaster) sendMatchStartPopup(roomID uint64, periodNo str
         
         // 发送给所有在线的真人玩家
         b.server.clientsMu.RLock()
-        sentCount := 0
         for _, playerID := range realPlayers {
                 for _, client := range b.server.clients {
                         if client.PlayerID == playerID && client.GetRoom() == "" {
                                 client.SendMessage(msg)
-                                sentCount++
-                                log.Printf("[ArenaStatus] 📢 发送比赛开始弹窗给玩家 %d", playerID)
                                 break
                         }
                 }
         }
         b.server.clientsMu.RUnlock()
-        
-        log.Printf("[ArenaStatus] 📢 比赛开始弹窗已发送: periodNo=%s, totalPlayers=%d, sentCount=%d", 
-                periodNo, len(realPlayers), sentCount)
 }
 
 // 🔧【重构】为一桌玩家创建房间并开始游戏
 // 流程：3人同时分配 → 随机选房主 → 创建房间 → 三人同时加入 → 自动准备 → 开始游戏
 func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseInfo, table *GameTable, roomConfigID uint64, playerMap map[uint64]*database.Player) {
         if b.server.roomManager == nil {
-                log.Printf("[ArenaStatus] ❌ roomManager 未初始化")
                 return
         }
-
-        log.Printf("[ArenaStatus] 🎲 桌号 %d 开始创建房间，玩家列表: %v", table.TableID, table.Players)
 
         // ============================================================
         // 1. 收集所有在线玩家客户端（真人）
@@ -608,37 +581,25 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
                 }
                 
                 // 查找真人玩家的客户端连接
-                foundClient := false
                 for _, client := range b.server.clients {
                         if client.PlayerID == playerID && client.GetRoom() == "" {
                                 onlineClients = append(onlineClients, client)
-                                foundClient = true
                                 break
                         }
                 }
-                
-                if !foundClient {
-                        offlineRealPlayerCount++
-                }
         }
         b.server.clientsMu.RUnlock()
-        
-        if offlineRealPlayerCount > 0 {
-                log.Printf("[ArenaStatus] ⚠️ 桌号 %d 有 %d 个真人玩家不在线", table.TableID, offlineRealPlayerCount)
-        }
 
         // 如果没有在线的真人玩家，使用第一个机器人作为房主
         var hostRobotID uint64 = 0 // 记录作为房主的机器人ID
         var robotHostClient *RobotClient // 机器人房主客户端
         if len(onlineClients) == 0 {
-                log.Printf("[ArenaStatus] ⚠️ 桌号 %d 没有在线的真人玩家，使用机器人作为房主", table.TableID)
                 // 使用机器人作为房主
                 if len(table.RobotPlayers) > 0 {
                         hostRobotID = table.RobotPlayers[0]
                         robotHostClient = NewRobotClient(hostRobotID, b.server)
                 }
                 if robotHostClient == nil {
-                        log.Printf("[ArenaStatus] ❌ 桌号 %d 无法创建房间：没有可用玩家", table.TableID)
                         return
                 }
         }
@@ -650,8 +611,6 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
         if robotHostClient != nil {
                 // 使用机器人作为房主
                 hostClient = robotHostClient
-                log.Printf("[ArenaStatus] 🏠 桌号 %d 使用机器人作为房主: PlayerID=%d, Name=%s", 
-                        table.TableID, hostRobotID, robotHostClient.GetName())
         } else {
                 // 从在线真人玩家中随机选择房主
                 hostIdx := rand.Intn(len(onlineClients))
@@ -659,9 +618,6 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
                 
                 // 从在线列表中移除房主（房主创建房间时已自动加入）
                 onlineClients = append(onlineClients[:hostIdx], onlineClients[hostIdx+1:]...)
-                
-                log.Printf("[ArenaStatus] 🏠 桌号 %d 随机选择房主: PlayerID=%d, Name=%s", 
-                        table.TableID, hostClient.GetPlayerID(), hostClient.GetName())
         }
 
         // ============================================================
@@ -676,19 +632,12 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
         // 记录房间信息
         table.RoomCreated = true
         table.RoomCode = gameRoom.Code
-        
-        log.Printf("[ArenaStatus] ✅ 房间创建成功: roomCode=%s, 房主=%d", gameRoom.Code, hostClient.GetPlayerID())
 
         // ============================================================
         // 4. 将其他真人玩家加入房间（座位1、2）
         // ============================================================
         for _, client := range onlineClients {
-                _, err := b.server.roomManager.JoinRoom(client, gameRoom.Code)
-                if err != nil {
-                        log.Printf("[ArenaStatus] ⚠️ 玩家 %d 加入房间失败: %v", client.PlayerID, err)
-                } else {
-                        log.Printf("[ArenaStatus] ✅ 玩家 %d (%s) 加入房间成功", client.PlayerID, client.GetName())
-                }
+                b.server.roomManager.JoinRoom(client, gameRoom.Code)
         }
 
         // ============================================================
@@ -697,17 +646,11 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
         for _, robotID := range table.RobotPlayers {
                 // 跳过已经是房主的机器人
                 if robotID == hostRobotID {
-                        log.Printf("[ArenaStatus] ⏭️ 机器人 %d 是房主，已自动加入，跳过", robotID)
                         continue
                 }
                 robotClient := NewRobotClient(robotID, b.server)
                 if robotClient != nil {
-                        _, err := b.server.roomManager.JoinRoom(robotClient, gameRoom.Code)
-                        if err != nil {
-                                log.Printf("[ArenaStatus] ⚠️ 机器人 %d 加入房间失败: %v", robotID, err)
-                        } else {
-                                log.Printf("[ArenaStatus] ✅ 机器人 %d 加入房间成功", robotID)
-                        }
+                        b.server.roomManager.JoinRoom(robotClient, gameRoom.Code)
                 }
         }
 
@@ -715,17 +658,11 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
         // 6. 设置所有玩家为已准备状态
         // ============================================================
         gameRoom.SetAllPlayersReady()
-        log.Printf("[ArenaStatus] 📋 桌号 %d 所有玩家已准备", table.TableID)
 
         // ============================================================
         // 7. 获取房间内所有玩家信息（用于广播）
         // ============================================================
         players := gameRoom.GetAllPlayersInfo()
-        log.Printf("[ArenaStatus] 📋 桌号 %d 房间内玩家列表: %d 人", table.TableID, len(players))
-        for i, p := range players {
-                log.Printf("[ArenaStatus]   [%d] ID=%s, Name=%s, Seat=%d, Ready=%v, Gold=%d", 
-                        i, p.ID, p.Name, p.Seat, p.Ready, p.GoldCount)
-        }
 
         // ============================================================
         // 8. 发送 room_joined 消息给所有真人玩家
@@ -749,8 +686,6 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
                                         PeriodNo:     gameRoom.PeriodNo,     // 🔧【新增】期号
                                 }
                                 client.SendMessage(codec.MustNewMessage(protocol.MsgRoomJoined, payload))
-                                log.Printf("[ArenaStatus] ✅ 发送 room_joined 给玩家 %d (%s), roomCode=%s, seat=%d, RoomCategory=%d, PeriodNo=%s", 
-                                        playerID, playerInfo.Name, gameRoom.Code, playerInfo.Seat, gameRoom.RoomCategory, gameRoom.PeriodNo)
                                 break
                         }
                 }
@@ -768,14 +703,11 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
                         }))
                 }
         }
-        log.Printf("[ArenaStatus] 📢 桌号 %d 已广播准备状态", table.TableID)
 
         // ============================================================
         // 10. 开始游戏
         // ============================================================
-        log.Printf("[ArenaStatus] 🎮 桌号 %d 开始游戏: roomCode=%s", table.TableID, gameRoom.Code)
         if err := gameRoom.StartGame(); err != nil {
-                log.Printf("[ArenaStatus] ❌ 开始游戏失败: %v", err)
                 return
         }
 
@@ -784,10 +716,7 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
         // ============================================================
         if b.server.roomManager != nil {
                 b.server.roomManager.TriggerOnGameStart(gameRoom)
-                log.Printf("[ArenaStatus] 🎯 已触发游戏会话创建: roomCode=%s", gameRoom.Code)
         }
-        
-        log.Printf("[ArenaStatus] ✅ 桌号 %d 游戏已开始: roomCode=%s, players=%d", table.TableID, gameRoom.Code, len(players))
 }
 
 // 🔧【新增】处理进入阶段超时
@@ -804,60 +733,33 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
         delete(b.enterPhases, periodNo)
         b.enterPhasesMu.Unlock()
 
-        log.Printf("[ArenaStatus] 进入阶段超时处理开始: periodNo=%s", periodNo)
-
         // 统计玩家状态
         var timeoutPlayers []uint64
-        var totalRefund int64
 
         for playerID, status := range enterPhase.PlayerStatuses {
                 if !status.HasEntered && !status.HasCancelled {
                         // 未进入也未取消的玩家 = 超时未响应
                         timeoutPlayers = append(timeoutPlayers, playerID)
-                        if status.SignupFee > 0 {
-                                totalRefund += status.SignupFee
-                        }
                 }
         }
 
-        // 🔧【关键】对于超时未响应的玩家，自动取消并返还竞技币
+        // 对于超时未响应的玩家，自动取消并返还竞技币
         for _, playerID := range timeoutPlayers {
                 status := enterPhase.PlayerStatuses[playerID]
                 if status.SignupFee > 0 {
                         // 返还竞技币并记录流水
-                        err := database.UpdatePlayerArenaCoinWithLog(
+                        database.UpdatePlayerArenaCoinWithLog(
                                 playerID,
                                 status.SignupFee,
                                 database.ArenaCoinChangeRefund,
                                 periodNo,
                                 fmt.Sprintf("进入阶段超时返还，期号:%s", periodNo),
                         )
-                        if err != nil {
-                                log.Printf("[ArenaStatus] 返还竞技币失败: playerID=%d, fee=%d, err=%v", 
-                                        playerID, status.SignupFee, err)
-                        } else {
-                                log.Printf("[ArenaStatus] 进入阶段超时，自动取消并返还竞技币: playerID=%d, fee=%d, periodNo=%s", 
-                                        playerID, status.SignupFee, periodNo)
-                        }
-                } else {
-                        log.Printf("[ArenaStatus] 进入阶段超时，玩家未响应（无报名费）: playerID=%d, periodNo=%s", 
-                                playerID, periodNo)
                 }
         }
 
         // 发送关闭弹窗消息
         b.sendCloseDialogNotification(enterPhase.RoomID, periodNo)
-
-        // 统计已创建的房间数
-        createdRooms := 0
-        for _, table := range enterPhase.Tables {
-                if table.RoomCreated {
-                        createdRooms++
-                }
-        }
-
-        log.Printf("[ArenaStatus] 进入阶段超时处理完成: periodNo=%s, timeout=%d, totalRefund=%d, tables=%d, roomsCreated=%d",
-                periodNo, len(timeoutPlayers), totalRefund, len(enterPhase.Tables), createdRooms)
 }
 
 // 🔧【新增】处理玩家点击"进入"按钮
@@ -897,8 +799,6 @@ func (b *ArenaStatusBroadcaster) HandlePlayerEnter(periodNo string, playerID uin
         status.HasEntered = true
         tableID := status.TableID
         
-        log.Printf("[ArenaStatus] 玩家点击进入: playerID=%d, periodNo=%s, tableID=%d", playerID, periodNo, tableID)
-
         // 获取玩家所在的桌子
         if tableID == 0 || tableID > len(enterPhase.Tables) {
                 return fmt.Errorf("玩家未分配到桌子")
@@ -942,10 +842,8 @@ func (b *ArenaStatusBroadcaster) HandlePlayerEnter(periodNo string, playerID uin
                 // 加入房间
                 _, err := b.server.roomManager.JoinRoom(client, table.RoomCode)
                 if err != nil {
-                        log.Printf("[ArenaStatus] 玩家 %d 加入房间失败: %v", playerID, err)
                         return err
                 }
-                log.Printf("[ArenaStatus] 玩家 %d 加入房间成功: roomCode=%s", playerID, table.RoomCode)
                 
                 // 设置玩家为准备状态
                 b.server.roomManager.SetPlayerReady(client, true)
@@ -961,11 +859,8 @@ func (b *ArenaStatusBroadcaster) HandlePlayerEnter(periodNo string, playerID uin
         allEntered := b.checkTableAllEntered(table)
         if allEntered && !table.AllEntered {
                 table.AllEntered = true
-                log.Printf("[ArenaStatus] 🎮 桌号 %d 所有玩家已进入，开始游戏: roomCode=%s", table.TableID, table.RoomCode)
                 if gameRoom != nil {
-                        if err := b.startArenaGame(gameRoom); err != nil {
-                                log.Printf("[ArenaStatus] ❌ 开始游戏失败: %v", err)
-                        }
+                        b.startArenaGame(gameRoom)
                 }
         }
 
@@ -996,23 +891,16 @@ func (b *ArenaStatusBroadcaster) createTableRoom(enterPhase *EnterPhaseInfo, tab
 
         // 🔧【关键修复】设置竞技场期号
         gameRoom.SetPeriodNo(enterPhase.PeriodNo)
-        log.Printf("[ArenaStatus] 桌号 %d 设置期号: periodNo=%s", table.TableID, enterPhase.PeriodNo)
 
         // 记录房间信息
         table.RoomCreated = true
         table.RoomCode = gameRoom.Code
         
-        log.Printf("[ArenaStatus] 桌号 %d 房间创建成功: roomCode=%s, 房主=%d, periodNo=%s", table.TableID, gameRoom.Code, hostClient.PlayerID, enterPhase.PeriodNo)
-
         // 将机器人加入房间
         for _, robotID := range table.RobotPlayers {
                 robotClient := NewRobotClient(robotID, b.server)
                 if robotClient != nil {
-                        _, err := b.server.roomManager.JoinRoom(robotClient, gameRoom.Code)
-                        if err != nil {
-                                log.Printf("[ArenaStatus] 机器人 %d 加入房间失败: %v", robotID, err)
-                        } else {
-                                log.Printf("[ArenaStatus] 机器人 %d 加入房间成功", robotID)
+                        if _, err := b.server.roomManager.JoinRoom(robotClient, gameRoom.Code); err == nil {
                                 table.PlayerStatuses[robotID] = true // 机器人标记为已进入
                         }
                 }
@@ -1032,7 +920,6 @@ func (b *ArenaStatusBroadcaster) sendRoomJoinedToTablePlayer(enterPhase *EnterPh
 
         gameRoom := b.server.roomManager.GetRoom(table.RoomCode)
         if gameRoom == nil {
-                log.Printf("[ArenaStatus] 房间不存在: roomCode=%s", table.RoomCode)
                 return
         }
 
@@ -1049,8 +936,6 @@ func (b *ArenaStatusBroadcaster) sendRoomJoinedToTablePlayer(enterPhase *EnterPh
                                 PeriodNo:     gameRoom.PeriodNo,     // 🔧【新增】期号
                         }
                         client.SendMessage(codec.MustNewMessage(protocol.MsgRoomJoined, payload))
-                        log.Printf("[ArenaStatus] 发送 room_joined 给玩家 %d, roomCode=%s, players=%d, RoomCategory=%d, PeriodNo=%s", 
-                                playerID, gameRoom.Code, len(players), gameRoom.RoomCategory, gameRoom.PeriodNo)
                         break
                 }
         }
@@ -1064,17 +949,13 @@ func (b *ArenaStatusBroadcaster) startArenaGame(gameRoom *room.Room) error {
         }
 
         // 开始游戏
-        log.Printf("[ArenaStatus] 🎮 开始竞技场游戏: roomCode=%s", gameRoom.Code)
         if err := gameRoom.StartGame(); err != nil {
                 return fmt.Errorf("开始游戏失败: %v", err)
         }
         
-        log.Printf("[ArenaStatus] ✅ 游戏已开始（广播 game_start）: roomCode=%s", gameRoom.Code)
-        
         // 触发游戏会话创建（发牌）
         if b.server.roomManager != nil {
                 b.server.roomManager.TriggerOnGameStart(gameRoom)
-                log.Printf("[ArenaStatus] 🎯 已触发游戏会话创建: roomCode=%s", gameRoom.Code)
         }
         
         return nil
@@ -1118,13 +999,9 @@ func (b *ArenaStatusBroadcaster) HandlePlayerCancelEnter(periodNo string, player
                         fmt.Sprintf("玩家取消进入返还，期号:%s", periodNo),
                 )
                 if err != nil {
-                        log.Printf("[ArenaStatus] 取消进入返还竞技币失败: playerID=%d, fee=%d, err=%v",
-                                playerID, status.SignupFee, err)
                         return 0, err
                 }
                 refundAmount = status.SignupFee
-                log.Printf("[ArenaStatus] 玩家取消进入，返还竞技币: playerID=%d, fee=%d, periodNo=%s",
-                        playerID, status.SignupFee, periodNo)
         }
 
         return refundAmount, nil
@@ -1141,7 +1018,6 @@ func (b *ArenaStatusBroadcaster) fillRobotsToSignupList(periodNo string, roomID 
         // 🔧【新增】获取房间配置以读取初始金币
         var roomConfig database.RoomConfig
         if err := database.DB().Where("id = ?", roomID).First(&roomConfig).Error; err != nil {
-                log.Printf("[ArenaStatus] 获取房间配置失败: %v, 使用默认初始金币", err)
                 roomConfig.MinGold = 10000 // 默认值
         }
         initialGold := roomConfig.MinGold
@@ -1157,18 +1033,8 @@ func (b *ArenaStatusBroadcaster) fillRobotsToSignupList(periodNo string, roomID 
                 Limit(count).
                 Find(&robots).Error
         
-        if err != nil {
-                log.Printf("[ArenaStatus] 获取可用机器人失败: %v", err)
+        if err != nil || len(robots) == 0 {
                 return nil
-        }
-        
-        if len(robots) == 0 {
-                log.Printf("[ArenaStatus] ⚠️ 没有可用的机器人，请在 ddz_players 表中添加机器人")
-                return nil
-        }
-        
-        if len(robots) < count {
-                log.Printf("[ArenaStatus] ⚠️ 可用机器人不足，需要 %d 个，只有 %d 个", count, len(robots))
         }
         
         var robotIDs []uint64
@@ -1190,12 +1056,9 @@ func (b *ArenaStatusBroadcaster) fillRobotsToSignupList(periodNo string, roomID 
                 })
                 
                 // 🔧【关键修复】初始化机器人当期赛事金币
-                if err := database.InitArenaGold(periodNo, robot.ID, initialGold); err != nil {
-                        log.Printf("[ArenaStatus] 机器人初始化赛事金币失败: robotID=%d, err=%v", robot.ID, err)
-                }
+                database.InitArenaGold(periodNo, robot.ID, initialGold)
                 
                 robotIDs = append(robotIDs, robot.ID)
-                log.Printf("[ArenaStatus] 机器人 %d (%s) 已自动报名，期号=%s, 初始金币=%d", robot.ID, robot.Nickname, periodNo, initialGold)
         }
         
         return robotIDs
@@ -1224,9 +1087,6 @@ func (b *ArenaStatusBroadcaster) sendCloseDialogNotification(roomID uint64, oldP
                 }
         }
         b.server.clientsMu.RUnlock()
-        
-        log.Printf("[ArenaStatus] 发送关闭弹窗通知: roomID=%d, periodNo=%s, sentCount=%d", 
-                roomID, oldPeriodNo, sentCount)
 }
 
 // handlePhaseChange 处理阶段变化

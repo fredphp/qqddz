@@ -343,13 +343,6 @@ func (s *Server) BroadcastRoomListUpdate(actionType string, item *room.RoomListI
 
 // BroadcastArenaStatus 广播竞技场状态给所有在大厅的客户端
 func (s *Server) BroadcastArenaStatus(arenas []protocol.ArenaRoomStatus) {
-        // 🔧 调试：打印要广播的数据
-        log.Printf("📤 [BroadcastArenaStatus] 广播 %d 个房间状态:", len(arenas))
-        for i := range arenas {
-                log.Printf("📤 [BroadcastArenaStatus] 房间 %d: periodNoStr=%s, phase=%d, totalPlayers=%d",
-                        arenas[i].RoomID, arenas[i].PeriodNoStr, arenas[i].Phase, arenas[i].TotalPlayers)
-        }
-
         payload := protocol.ArenaStatusPayload{
                 Arenas: arenas,
                 Time:   time.Now().UnixMilli(),
@@ -358,17 +351,14 @@ func (s *Server) BroadcastArenaStatus(arenas []protocol.ArenaRoomStatus) {
         msg := codec.MustNewMessage(protocol.MsgArenaStatus, payload)
 
         // 广播给所有不在房间内的客户端（在大厅的客户端）
-        clientCount := 0
         s.clientsMu.RLock()
         for _, client := range s.clients {
                 // 只发送给不在房间的客户端
                 if client.GetRoom() == "" {
                         client.SendMessage(msg)
-                        clientCount++
                 }
         }
         s.clientsMu.RUnlock()
-        log.Printf("📤 [BroadcastArenaStatus] 已发送给 %d 个客户端", clientCount)
 }
 
 // TriggerArenaBroadcast 触发立即广播竞技场状态
