@@ -149,6 +149,19 @@ cc.Class({
         
         // 【核心】监听服务器发牌消息 - 唯一数据入口
         myglobal.socket.onPushCards(function(data){
+            console.log("🃏 ========== 服务端发牌消息 ==========")
+            console.log("🃏 服务端原始手牌:", JSON.stringify(data.cards))
+            console.log("🃏 服务端原始底牌:", JSON.stringify(data.bottom_cards))
+            
+            // 🔧【关键修复】新一轮发牌时，关闭上一轮的结算弹窗
+            if (this._gameResultPopup || this._gameResultMask) {
+                console.log("🃏 [onPushCards] 关闭上一轮的结算弹窗")
+                this._closeGameResultPopup(this._gameResultPopup, this._gameResultMask)
+            }
+            
+            // 🔧【修复】停止所有竞技场倒计时
+            this._stopArenaCountdown()
+            
             // 【核心】直接保存服务端数据，不做任何转换
             this.handCards = data.cards || []
             this.bottomCards = data.bottom_cards || []
@@ -5144,6 +5157,21 @@ cc.Class({
                 this._countdownNumberNode.color = new cc.Color(255, 255, 255)
             }
         }
+    },
+    
+    /**
+     * 🔧【新增】停止竞技场倒计时
+     */
+    _stopArenaCountdown: function() {
+        // 停止本地倒计时定时器
+        if (this._localArenaCountdownTimer) {
+            this.unschedule(this._localArenaCountdownTick)
+            this._localArenaCountdownTimer = null
+            console.log("🏟️ [_stopArenaCountdown] 已停止本地倒计时")
+        }
+        
+        // 重置倒计时秒数
+        this._arenaCountdownSeconds = 0
     },
     
     /**
