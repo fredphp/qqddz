@@ -520,6 +520,11 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
         b.enterPhases[periodNo] = enterPhase
         b.enterPhasesMu.Unlock()
 
+        // 🔧【关键修复】启动倒计时定时器，倒计时结束后处理超时
+        enterPhase.timer = time.AfterFunc(time.Duration(EnterPhaseCountdown)*time.Second, func() {
+                b.handleEnterPhaseTimeout(periodNo)
+        })
+
         // 🔧【修复】发送弹窗消息给所有真人玩家
         b.sendMatchStartPopup(roomID, periodNo, roomConfig, realPlayers, playerMap)
 
@@ -720,13 +725,17 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
 
 // 🔧【新增】处理进入阶段超时
 // 倒计时结束后，检查哪些玩家没有响应，自动取消并返还竞技币
-// 注意：房间创建现在是在玩家点击"进入"按钮时立即完成的
+// 对于已进入的玩家，开始游戏
 func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
         b.enterPhasesMu.Lock()
         enterPhase, exists := b.enterPhases[periodNo]
         if !exists {
                 b.enterPhasesMu.Unlock()
                 return
+        }
+        // 停止定时器（如果还在运行）
+        if enterPhase.timer != nil {
+                enterPhase.timer.Stop()
         }
         // 清理进入阶段信息
         delete(b.enterPhases, periodNo)
@@ -754,6 +763,29 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
                                 periodNo,
                                 fmt.Sprintf("进入阶段超时返还，期号:%s", periodNo),
                         )
+                }
+        }
+
+        // 🔧【关键修复】对于已经进入的玩家，为他们的桌子开始游戏
+        for _, table := range enterPhase.Tables {
+                if !table.RoomCreated || table.RoomCode == "" {
+                        continue
+                }
+                // 检查这桌是否有已进入的玩家
+                hasEnteredPlayer := false
+                for _, playerID := range table.Players {
+                        if status, ok := enterPhase.PlayerStatuses[playerID]; ok && status.HasEntered {
+                                hasEnteredPlayer = true
+                                break
+                        }
+                }
+                // 如果有已进入的玩家且游戏未开始，开始游戏
+                if hasEnteredPlayer && !table.AllEntered {
+                        gameRoom := b.server.roomManager.GetRoom(table.RoomCode)
+                        if gameRoom != nil {
+                                table.AllEntered = true
+                                b.startArenaGame(gameRoom)
+                        }
                 }
         }
 
@@ -861,6 +893,20 @@ func (b *ArenaStatusBroadcaster) HandlePlayerEnter(periodNo string, playerID uin
                 if gameRoom != nil {
                         b.startArenaGame(gameRoom)
                 }
+        }
+
+        // 🔧【新增】检查所有桌子是否都已开始游戏，如果是则停止定时器
+        allTablesStarted := true
+        for _, t := range enterPhase.Tables {
+                if !t.AllEntered {
+                        allTablesStarted = false
+                        break
+                }
+        }
+        if allTablesStarted && enterPhase.timer != nil {
+                enterPhase.timer.Stop()
+                // 清理进入阶段信息
+                delete(b.enterPhases, periodNo)
         }
 
         return nil
