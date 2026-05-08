@@ -4,6 +4,7 @@ package database
 
 import (
         "context"
+        "encoding/json"
         "fmt"
         "log"
         "sync"
@@ -281,6 +282,7 @@ func InitWriteQueue(config *WriteQueueConfig) error {
 }
 
 // Start 启动写入队列
+// 🔧【优化】启动时自动恢复上次异常停止时未处理的数据
 func (q *WriteQueue) Start(db *gorm.DB) {
         writeQueueMutex.Lock()
         defer writeQueueMutex.Unlock()
@@ -305,6 +307,15 @@ func (q *WriteQueue) Start(db *gorm.DB) {
                 q.config.QueueSize, q.config.BatchSize, q.config.BatchTimeout)
         log.Printf("   📊 限流: 最大写入速率=%d/s, 突发大小=%d",
                 q.config.MaxWriteRate, q.config.WriteBurst)
+
+        // 🔧【关键】启动后恢复未处理的数据
+        go func() {
+                // 稍微延迟，确保队列完全启动
+                time.Sleep(1 * time.Second)
+                if err := q.RecoverPendingData(); err != nil {
+                        log.Printf("❌ [WriteQueue] 恢复待处理数据失败: %v", err)
+                }
+        }()
 }
 
 // Stop 停止写入队列
@@ -338,9 +349,21 @@ func (q *WriteQueue) Stop() {
 
 // Submit 提交游戏结果到队列
 // 非阻塞模式：如果队列满，返回错误
+// 🔧【优化】先持久化再入队，确保数据不丢失
 func (q *WriteQueue) Submit(data *GameResultData) error {
         if data == nil {
                 return nil
+        }
+
+        data.SubmitTime = time.Now()
+        data.CreatedAt = time.Now()
+
+        // 🔧【关键】先持久化数据，确保不丢失
+        if q.db != nil {
+                if err := q.persistData(data); err != nil {
+                        log.Printf("⚠️ [WriteQueue] 持久化数据失败: %v, GameID=%s", err, data.GameID)
+                        // 持久化失败不阻塞主流程，继续入队
+                }
         }
 
         // 检查队列是否已初始化
@@ -348,9 +371,6 @@ func (q *WriteQueue) Submit(data *GameResultData) error {
                 log.Printf("⚠️ [WriteQueue] 队列未初始化，直接写入")
                 return q.writeSingleNoLimit(data)
         }
-
-        data.SubmitTime = time.Now()
-        data.CreatedAt = time.Now()
 
         select {
         case q.queue <- data:
@@ -366,9 +386,21 @@ func (q *WriteQueue) Submit(data *GameResultData) error {
 
 // SubmitBlocking 阻塞式提交游戏结果
 // 会等待队列有空间
+// 🔧【优化】先持久化再入队，确保数据不丢失
 func (q *WriteQueue) SubmitBlocking(data *GameResultData) {
         if data == nil {
                 return
+        }
+
+        data.SubmitTime = time.Now()
+        data.CreatedAt = time.Now()
+
+        // 🔧【关键】先持久化数据，确保不丢失
+        if q.db != nil {
+                if err := q.persistData(data); err != nil {
+                        log.Printf("⚠️ [WriteQueue] 持久化数据失败: %v, GameID=%s", err, data.GameID)
+                        // 持久化失败不阻塞主流程，继续入队
+                }
         }
 
         // 检查队列是否已初始化
@@ -377,9 +409,6 @@ func (q *WriteQueue) SubmitBlocking(data *GameResultData) {
                 q.writeSingleNoLimit(data)
                 return
         }
-
-        data.SubmitTime = time.Now()
-        data.CreatedAt = time.Now()
 
         q.queue <- data
         atomic.AddUint64(&q.totalSubmitted, 1)
@@ -536,6 +565,7 @@ func (q *WriteQueue) flushRemaining() {
 // writeBatchNoLimit 批量写入（不限流，用于关闭时）
 // 🔧【整合】复用 SaveGameResult 避免重复代码
 // 🔧【安全】添加 panic 恢复和错误记录
+// 🔧【数据安全】处理成功后删除持久化记录
 func (q *WriteQueue) writeBatchNoLimit(batch []*GameResultData) {
         if len(batch) == 0 {
                 return
@@ -567,6 +597,8 @@ func (q *WriteQueue) writeBatchNoLimit(batch []*GameResultData) {
                                         q.recordError("write_panic",
                                                 fmt.Sprintf("写入数据 panic: %v", r),
                                                 fmt.Sprintf("GameID=%s, RoomID=%s", data.GameID, data.RoomID))
+                                        // 标记持久化数据失败
+                                        q.markDataFailed(data.GameID, data.RetryCount)
                                 }
                         }()
 
@@ -589,6 +621,9 @@ func (q *WriteQueue) writeBatchNoLimit(batch []*GameResultData) {
                                         fmt.Sprintf("保存游戏结果失败: %v", err),
                                         fmt.Sprintf("GameID=%s, RoomID=%s", data.GameID, data.RoomID))
 
+                                // 标记持久化数据失败
+                                q.markDataFailed(data.GameID, data.RetryCount)
+
                                 // 重试逻辑 - 只在队列启动时才重试
                                 if atomic.LoadInt32(&q.started) == 1 {
                                         q.retryOrDrop(data)
@@ -596,6 +631,8 @@ func (q *WriteQueue) writeBatchNoLimit(batch []*GameResultData) {
                         } else {
                                 successCount++
                                 atomic.AddUint64(&q.totalSuccess, 1)
+                                // 🔧【关键】处理成功后删除持久化记录
+                                q.markDataProcessed(data.GameID)
                         }
                 }()
         }
@@ -630,6 +667,7 @@ func (q *WriteQueue) writeSingle(data *GameResultData) error {
 // writeSingleNoLimit 单条写入（不限流，用于关闭时和回退场景）
 // 🔧【整合】复用 SaveGameResult 和 toGameRecord 避免重复代码
 // 🔧【安全】添加 panic 恢复和错误记录
+// 🔧【数据安全】处理成功后删除持久化记录
 func (q *WriteQueue) writeSingleNoLimit(data *GameResultData) (err error) {
         if data == nil {
                 return nil
@@ -643,6 +681,8 @@ func (q *WriteQueue) writeSingleNoLimit(data *GameResultData) (err error) {
                         q.recordError("write_single_panic",
                                 fmt.Sprintf("写入数据 panic: %v", r),
                                 fmt.Sprintf("GameID=%s, RoomID=%s", data.GameID, data.RoomID))
+                        // 标记持久化数据失败
+                        q.markDataFailed(data.GameID, data.RetryCount)
                 }
         }()
 
@@ -670,6 +710,8 @@ func (q *WriteQueue) writeSingleNoLimit(data *GameResultData) (err error) {
                 q.recordError("save_failed",
                         fmt.Sprintf("保存游戏结果失败: %v", err),
                         fmt.Sprintf("GameID=%s, RoomID=%s", data.GameID, data.RoomID))
+                // 标记持久化数据失败
+                q.markDataFailed(data.GameID, data.RetryCount)
                 // 只在队列启动时才重试
                 if atomic.LoadInt32(&q.started) == 1 {
                         q.retryOrDrop(data)
@@ -678,11 +720,14 @@ func (q *WriteQueue) writeSingleNoLimit(data *GameResultData) (err error) {
         }
 
         atomic.AddUint64(&q.totalSuccess, 1)
+        // 🔧【关键】处理成功后删除持久化记录
+        q.markDataProcessed(data.GameID)
         return nil
 }
 
 // retryOrDrop 重试或丢弃
 // 🔧【安全】添加 panic 恢复机制，防止重试时崩溃
+// 🔧【数据安全】更新持久化数据的重试次数
 func (q *WriteQueue) retryOrDrop(data *GameResultData) {
         if data == nil {
                 return
@@ -697,10 +742,15 @@ func (q *WriteQueue) retryOrDrop(data *GameResultData) {
                 q.recordError("data_dropped",
                         fmt.Sprintf("超过最大重试次数(%d)", data.RetryCount),
                         fmt.Sprintf("GameID=%s, RoomID=%s", data.GameID, data.RoomID))
+                // 🔧【关键】标记持久化数据为失败状态
+                q.markDataFailed(data.GameID, data.RetryCount)
                 return
         }
 
         atomic.AddUint64(&q.totalRetries, 1)
+
+        // 🔧【关键】更新持久化数据的重试次数
+        q.markDataFailed(data.GameID, data.RetryCount)
 
         // 计算退避延迟
         delay := q.config.RetryBaseDelay * time.Duration(1<<uint(data.RetryCount-1))
@@ -720,6 +770,7 @@ func (q *WriteQueue) retryOrDrop(data *GameResultData) {
                                 q.recordError("retry_panic",
                                         fmt.Sprintf("重试协程 panic: %v", r),
                                         fmt.Sprintf("GameID=%s", data.GameID))
+                                q.markDataFailed(data.GameID, data.RetryCount)
                         }
                 }()
 
@@ -896,6 +947,35 @@ func (WriteQueueErrorLog) TableName() string {
         return "ddz_write_queue_error_logs"
 }
 
+// =============================================
+// 待处理数据持久化（防止服务器异常丢失数据）
+// =============================================
+
+// PendingGameData 待处理游戏数据
+// 🔧【新增】持久化待处理数据，服务器异常重启后可恢复
+type PendingGameData struct {
+        ID        uint64    `gorm:"primaryKey;autoIncrement" json:"id"`
+        GameID    string    `gorm:"type:varchar(64);uniqueIndex;index" json:"game_id"` // 游戏ID，唯一标识
+        DataJSON  string    `gorm:"type:text" json:"data_json"`                         // 序列化的游戏数据（JSON格式）
+        Status    uint8     `gorm:"default:0;index" json:"status"`                      // 状态: 0-待处理, 1-处理中, 2-处理成功, 3-处理失败
+        RetryCount int       `gorm:"default:0" json:"retry_count"`                       // 重试次数
+        CreatedAt time.Time `gorm:"autoCreateTime;index" json:"created_at"`             // 创建时间
+        UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`                   // 更新时间
+}
+
+// TableName 指定表名
+func (PendingGameData) TableName() string {
+        return "ddz_pending_game_data"
+}
+
+// PendingGameDataStatus 状态常量
+const (
+        PendingStatusPending   uint8 = 0 // 待处理
+        PendingStatusProcessing uint8 = 1 // 处理中
+        PendingStatusSuccess    uint8 = 2 // 处理成功
+        PendingStatusFailed     uint8 = 3 // 处理失败
+)
+
 // recordError 记录错误到数据库
 // 🔧【新增】将错误持久化，供 admin 后台查看
 func (q *WriteQueue) recordError(errorType, errorMsg, errorDetail string) {
@@ -1035,4 +1115,390 @@ func GetWriteQueueErrorStats() (map[string]interface{}, error) {
                 "resolved":    resolved,
                 "type_counts": typeCounts,
         }, nil
+}
+
+// =============================================
+// 数据持久化和恢复（防止服务器异常丢失数据）
+// =============================================
+
+// pendingGameDataAdapter 用于JSON序列化的适配器
+// 🔧【说明】由于 DealLogs, BidLogs, PlayLogs 是切片，需要单独处理
+type pendingGameDataAdapter struct {
+        RoomCode            string       `json:"room_code"`
+        GameID              string       `json:"game_id"`
+        RoomID              string       `json:"room_id"`
+        RoomType            uint8        `json:"room_type"`
+        RoomCategory        uint8        `json:"room_category"`
+        LandlordID          uint64       `json:"landlord_id"`
+        Farmer1ID           uint64       `json:"farmer1_id"`
+        Farmer2ID           uint64       `json:"farmer2_id"`
+        BaseScore           int          `json:"base_score"`
+        Multiplier          int          `json:"multiplier"`
+        BombCount           int          `json:"bomb_count"`
+        Spring              uint8        `json:"spring"`
+        Result              uint8        `json:"result"`
+        LandlordWinGold     int64        `json:"landlord_win_gold"`
+        Farmer1WinGold      int64        `json:"farmer1_win_gold"`
+        Farmer2WinGold      int64        `json:"farmer2_win_gold"`
+        LandlordWinArenaCoin int64       `json:"landlord_win_arena_coin"`
+        Farmer1WinArenaCoin int64        `json:"farmer1_win_arena_coin"`
+        Farmer2WinArenaCoin int64        `json:"farmer2_win_arena_coin"`
+        DurationSeconds     int          `json:"duration_seconds"`
+        StartedAt           time.Time    `json:"started_at"`
+        EndedAt             *time.Time   `json:"ended_at,omitempty"`
+        DealLogs            []DealLog    `json:"deal_logs"`
+        BidLogs             []BidLog     `json:"bid_logs"`
+        PlayLogs            []PlayLog    `json:"play_logs"`
+        RetryCount          int          `json:"retry_count"`
+}
+
+// ToJSON 将 GameResultData 序列化为 JSON
+func (data *GameResultData) ToJSON() (string, error) {
+        adapter := pendingGameDataAdapter{
+                RoomCode:             data.RoomCode,
+                GameID:               data.GameID,
+                RoomID:               data.RoomID,
+                RoomType:             data.RoomType,
+                RoomCategory:         data.RoomCategory,
+                LandlordID:           data.LandlordID,
+                Farmer1ID:            data.Farmer1ID,
+                Farmer2ID:            data.Farmer2ID,
+                BaseScore:            data.BaseScore,
+                Multiplier:           data.Multiplier,
+                BombCount:            data.BombCount,
+                Spring:               data.Spring,
+                Result:               data.Result,
+                LandlordWinGold:      data.LandlordWinGold,
+                Farmer1WinGold:       data.Farmer1WinGold,
+                Farmer2WinGold:       data.Farmer2WinGold,
+                LandlordWinArenaCoin: data.LandlordWinArenaCoin,
+                Farmer1WinArenaCoin:  data.Farmer1WinArenaCoin,
+                Farmer2WinArenaCoin:  data.Farmer2WinArenaCoin,
+                DurationSeconds:      data.DurationSeconds,
+                StartedAt:            data.StartedAt,
+                EndedAt:              data.EndedAt,
+                DealLogs:             data.DealLogs,
+                BidLogs:              data.BidLogs,
+                PlayLogs:             data.PlayLogs,
+                RetryCount:           data.RetryCount,
+        }
+        bytes, err := json.Marshal(adapter)
+        if err != nil {
+                return "", err
+        }
+        return string(bytes), nil
+}
+
+// FromJSON 从 JSON 反序列化为 GameResultData
+func (data *GameResultData) FromJSON(jsonStr string) error {
+        var adapter pendingGameDataAdapter
+        if err := json.Unmarshal([]byte(jsonStr), &adapter); err != nil {
+                return err
+        }
+        data.RoomCode = adapter.RoomCode
+        data.GameID = adapter.GameID
+        data.RoomID = adapter.RoomID
+        data.RoomType = adapter.RoomType
+        data.RoomCategory = adapter.RoomCategory
+        data.LandlordID = adapter.LandlordID
+        data.Farmer1ID = adapter.Farmer1ID
+        data.Farmer2ID = adapter.Farmer2ID
+        data.BaseScore = adapter.BaseScore
+        data.Multiplier = adapter.Multiplier
+        data.BombCount = adapter.BombCount
+        data.Spring = adapter.Spring
+        data.Result = adapter.Result
+        data.LandlordWinGold = adapter.LandlordWinGold
+        data.Farmer1WinGold = adapter.Farmer1WinGold
+        data.Farmer2WinGold = adapter.Farmer2WinGold
+        data.LandlordWinArenaCoin = adapter.LandlordWinArenaCoin
+        data.Farmer1WinArenaCoin = adapter.Farmer1WinArenaCoin
+        data.Farmer2WinArenaCoin = adapter.Farmer2WinArenaCoin
+        data.DurationSeconds = adapter.DurationSeconds
+        data.StartedAt = adapter.StartedAt
+        data.EndedAt = adapter.EndedAt
+        data.DealLogs = adapter.DealLogs
+        data.BidLogs = adapter.BidLogs
+        data.PlayLogs = adapter.PlayLogs
+        data.RetryCount = adapter.RetryCount
+        return nil
+}
+
+// persistData 持久化数据到数据库
+// 🔧【关键】在入队前先持久化，确保数据不丢失
+func (q *WriteQueue) persistData(data *GameResultData) error {
+        if data == nil || q.db == nil {
+                return nil
+        }
+
+        // 序列化数据
+        jsonStr, err := data.ToJSON()
+        if err != nil {
+                log.Printf("❌ [WriteQueue] 序列化数据失败: %v, GameID=%s", err, data.GameID)
+                return err
+        }
+
+        // 检查是否已存在
+        var existing PendingGameData
+        result := q.db.Where("game_id = ?", data.GameID).First(&existing)
+        if result.Error == nil {
+                // 已存在，更新
+                return q.db.Model(&existing).Updates(map[string]interface{}{
+                        "data_json":   jsonStr,
+                        "status":      PendingStatusPending,
+                        "retry_count": data.RetryCount,
+                }).Error
+        }
+
+        // 不存在，创建新记录
+        pending := &PendingGameData{
+                GameID:     data.GameID,
+                DataJSON:   jsonStr,
+                Status:     PendingStatusPending,
+                RetryCount: data.RetryCount,
+        }
+        return q.db.Create(pending).Error
+}
+
+// markDataProcessed 标记数据处理成功
+// 🔧【关键】处理成功后删除持久化记录（或标记为成功）
+func (q *WriteQueue) markDataProcessed(gameID string) error {
+        if q.db == nil {
+                return nil
+        }
+        // 删除已成功处理的记录（也可以改为标记状态）
+        return q.db.Where("game_id = ?", gameID).Delete(&PendingGameData{}).Error
+}
+
+// markDataProcessing 标记数据处理中
+func (q *WriteQueue) markDataProcessing(gameID string) error {
+        if q.db == nil {
+                return nil
+        }
+        return q.db.Model(&PendingGameData{}).
+                Where("game_id = ?", gameID).
+                Update("status", PendingStatusProcessing).Error
+}
+
+// markDataFailed 标记数据处理失败
+func (q *WriteQueue) markDataFailed(gameID string, retryCount int) error {
+        if q.db == nil {
+                return nil
+        }
+        return q.db.Model(&PendingGameData{}).
+                Where("game_id = ?", gameID).
+                Updates(map[string]interface{}{
+                        "status":      PendingStatusFailed,
+                        "retry_count": retryCount,
+                }).Error
+}
+
+// RecoverPendingData 恢复未处理的数据
+// 🔧【关键】服务启动时调用，恢复上次异常时未处理完的数据
+func (q *WriteQueue) RecoverPendingData() error {
+        if q.db == nil {
+                log.Printf("⚠️ [WriteQueue] 数据库连接为空，无法恢复待处理数据")
+                return nil
+        }
+
+        // 查询所有待处理和处理中的数据（可能是上次异常停止时留下的）
+        var pendingList []PendingGameData
+        if err := q.db.Where("status IN ?", []uint8{PendingStatusPending, PendingStatusProcessing}).
+                Find(&pendingList).Error; err != nil {
+                log.Printf("❌ [WriteQueue] 查询待处理数据失败: %v", err)
+                return err
+        }
+
+        if len(pendingList) == 0 {
+                log.Printf("✅ [WriteQueue] 没有待恢复的数据")
+                return nil
+        }
+
+        log.Printf("🔄 [WriteQueue] 开始恢复 %d 条待处理数据...", len(pendingList))
+
+        recoveredCount := 0
+        for _, pending := range pendingList {
+                // 反序列化数据
+                var data GameResultData
+                if err := data.FromJSON(pending.DataJSON); err != nil {
+                        log.Printf("❌ [WriteQueue] 反序列化数据失败: %v, GameID=%s", err, pending.GameID)
+                        // 标记为失败
+                        q.db.Model(&PendingGameData{}).
+                                Where("id = ?", pending.ID).
+                                Update("status", PendingStatusFailed)
+                        continue
+                }
+
+                // 重置状态为待处理
+                q.db.Model(&PendingGameData{}).
+                        Where("id = ?", pending.ID).
+                        Update("status", PendingStatusPending)
+
+                // 提交到队列（非阻塞）
+                if err := q.Submit(&data); err != nil {
+                        log.Printf("❌ [WriteQueue] 提交数据到队列失败: %v, GameID=%s", err, pending.GameID)
+                        continue
+                }
+
+                recoveredCount++
+        }
+
+        log.Printf("✅ [WriteQueue] 成功恢复 %d/%d 条数据", recoveredCount, len(pendingList))
+        return nil
+}
+
+// GetPendingGameDataList 获取待处理数据列表
+// 🔧【新增】供 admin 后台调用
+func GetPendingGameDataList(page, pageSize int, status *uint8) ([]PendingGameData, int64, error) {
+        dbInstance := GetInstance()
+        if dbInstance == nil {
+                return nil, 0, fmt.Errorf("数据库实例未初始化")
+        }
+
+        dbConn := dbInstance.GetDB()
+        if dbConn == nil {
+                return nil, 0, fmt.Errorf("数据库连接未建立")
+        }
+
+        var list []PendingGameData
+        var total int64
+
+        db := dbConn.Model(&PendingGameData{})
+        if status != nil {
+                db = db.Where("status = ?", *status)
+        }
+
+        if err := db.Count(&total).Error; err != nil {
+                return nil, 0, err
+        }
+
+        offset := (page - 1) * pageSize
+        if err := db.Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&list).Error; err != nil {
+                return nil, 0, err
+        }
+
+        return list, total, nil
+}
+
+// GetPendingGameDataStats 获取待处理数据统计
+// 🔧【新增】供 admin 后台调用
+func GetPendingGameDataStats() (map[string]interface{}, error) {
+        dbInstance := GetInstance()
+        if dbInstance == nil {
+                return nil, fmt.Errorf("数据库实例未初始化")
+        }
+
+        dbConn := dbInstance.GetDB()
+        if dbConn == nil {
+                return nil, fmt.Errorf("数据库连接未建立")
+        }
+
+        var total, pending, processing, success, failed int64
+
+        db := dbConn.Model(&PendingGameData{})
+
+        if err := db.Count(&total).Error; err != nil {
+                return nil, err
+        }
+
+        if err := db.Where("status = ?", PendingStatusPending).Count(&pending).Error; err != nil {
+                return nil, err
+        }
+
+        if err := db.Where("status = ?", PendingStatusProcessing).Count(&processing).Error; err != nil {
+                return nil, err
+        }
+
+        if err := db.Where("status = ?", PendingStatusSuccess).Count(&success).Error; err != nil {
+                return nil, err
+        }
+
+        if err := db.Where("status = ?", PendingStatusFailed).Count(&failed).Error; err != nil {
+                return nil, err
+        }
+
+        return map[string]interface{}{
+                "total":      total,
+                "pending":    pending,
+                "processing": processing,
+                "success":    success,
+                "failed":     failed,
+        }, nil
+}
+
+// RetryPendingGameData 重试处理失败的待处理数据
+// 🔧【新增】供 admin 后台手动触发重试
+func RetryPendingGameData(gameID string) error {
+        q := GetWriteQueue()
+        if !q.IsStarted() {
+                return fmt.Errorf("写入队列未启动")
+        }
+
+        dbInstance := GetInstance()
+        if dbInstance == nil {
+                return fmt.Errorf("数据库实例未初始化")
+        }
+
+        dbConn := dbInstance.GetDB()
+        if dbConn == nil {
+                return fmt.Errorf("数据库连接未建立")
+        }
+
+        // 查询数据
+        var pending PendingGameData
+        if err := dbConn.Where("game_id = ?", gameID).First(&pending).Error; err != nil {
+                return fmt.Errorf("数据不存在: %v", err)
+        }
+
+        // 反序列化
+        var data GameResultData
+        if err := data.FromJSON(pending.DataJSON); err != nil {
+                return fmt.Errorf("反序列化失败: %v", err)
+        }
+
+        // 重置状态
+        if err := dbConn.Model(&PendingGameData{}).
+                Where("game_id = ?", gameID).
+                Update("status", PendingStatusPending).Error; err != nil {
+                return err
+        }
+
+        // 提交到队列
+        return q.Submit(&data)
+}
+
+// DeletePendingGameData 删除待处理数据记录
+// 🔧【新增】供 admin 后台调用（清理已成功或不再需要的数据）
+func DeletePendingGameData(gameID string) error {
+        dbInstance := GetInstance()
+        if dbInstance == nil {
+                return fmt.Errorf("数据库实例未初始化")
+        }
+
+        dbConn := dbInstance.GetDB()
+        if dbConn == nil {
+                return fmt.Errorf("数据库连接未建立")
+        }
+
+        return dbConn.Where("game_id = ?", gameID).Delete(&PendingGameData{}).Error
+}
+
+// CleanupOldPendingData 清理过期的待处理数据
+// 🔧【新增】定期清理成功或过期的数据
+func CleanupOldPendingData(olderThanDays int) (int64, error) {
+        dbInstance := GetInstance()
+        if dbInstance == nil {
+                return 0, fmt.Errorf("数据库实例未初始化")
+        }
+
+        dbConn := dbInstance.GetDB()
+        if dbConn == nil {
+                return 0, fmt.Errorf("数据库连接未建立")
+        }
+
+        cutoffTime := time.Now().AddDate(0, 0, -olderThanDays)
+        result := dbConn.Where("status = ? AND created_at < ?", PendingStatusSuccess, cutoffTime).
+                Delete(&PendingGameData{})
+
+        return result.RowsAffected, result.Error
 }
