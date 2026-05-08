@@ -118,11 +118,15 @@ type disconnectedClientWrapper struct {
 
 func (c *disconnectedClientWrapper) GetID() string          { return c.id }
 func (c *disconnectedClientWrapper) GetName() string        { return c.name }
+func (c *disconnectedClientWrapper) SetName(name string)    {}
 func (c *disconnectedClientWrapper) GetRoom() string        { return c.roomCode }
 func (c *disconnectedClientWrapper) SetRoom(room string)    {}
 func (c *disconnectedClientWrapper) GetPlayerID() uint64    { return 0 }
 func (c *disconnectedClientWrapper) SetPlayerID(id uint64)  {}
 func (c *disconnectedClientWrapper) GetGold() int64         { return 0 }
 func (c *disconnectedClientWrapper) SetGold(gold int64)     {}
+func (c *disconnectedClientWrapper) GetCallIndex() int64    { return 0 }
+func (c *disconnectedClientWrapper) SetCallIndex(index int64) {}
+func (c *disconnectedClientWrapper) IsRobot() bool          { return false }
 func (c *disconnectedClientWrapper) SendMessage(msg *protocol.Message) {}
 func (c *disconnectedClientWrapper) Close()                 {}

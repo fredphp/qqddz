@@ -545,7 +545,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartPopup(roomID uint64, periodNo str
                 SignupFee:     roomConfig.MinArenaCoin,
                 TotalPlayers:  len(realPlayers),
                 MatchDuration: PeriodTotalMinutes,
-                MatchRounds:   1, // 默认打1轮
+                MatchRounds:   roomConfig.MatchRoundCount, // 🔧【修复】从配置获取轮次数
                 Countdown:     EnterPhaseCountdown,
                 Message:       "比赛即将开始，请点击进入！",
         }
@@ -632,6 +632,9 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
                 log.Printf("[ArenaStatus] ❌ 创建房间失败: %v", err)
                 return
         }
+
+        // 🔧【关键修复】设置竞技场期号
+        gameRoom.SetPeriodNo(enterPhase.PeriodNo)
 
         // 记录房间信息
         table.RoomCreated = true
