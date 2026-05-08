@@ -2015,7 +2015,10 @@ cc.Class({
                             gold_count: p.gold_count || 0,
                             goldcount: p.gold_count || 0,
                             seatindex: (p.seat !== undefined ? p.seat : idx) + 1,
-                            isready: p.ready || false
+                            isready: p.ready || false,
+                            arena_gold: p.arena_gold || 0,  // 🔧【修复】添加竞技场金币
+                            match_coin: p.match_coin || 0,  // 兼容字段
+                            period_no: p.period_no || ""    // 期号
                         };
                     }),
                     housemanageid: roomData.creator_id || "",
