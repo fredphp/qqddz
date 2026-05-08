@@ -189,16 +189,32 @@ cc.Class({
       this.account_label.node.active = false
       this.nickname_label.string = data.nick_name || ("玩家" + (index + 1))
       
-      // 🔧【修复】优先使用 gold_count（服务端新字段），兼容 goldcount（旧字段）
-      // 注意：不能使用 || 运算符，因为 0 是有效值但会被 || 跳过
-      var goldValue = 0
-      if (data.gold_count !== undefined && data.gold_count !== null) {
-          goldValue = data.gold_count
-      } else if (data.goldcount !== undefined && data.goldcount !== null) {
-          goldValue = data.goldcount
+      // 🔧【修复】区分普通场和竞技场的金币显示
+      // 竞技场模式下显示 match_coin（竞技币），普通场显示 gold_count（金币）
+      var displayValue = 0
+      var isArenaMode = data.room_category === 2 || this._isArenaMode
+      
+      if (isArenaMode) {
+          // 竞技场模式：优先显示竞技币
+          if (data.match_coin !== undefined && data.match_coin !== null) {
+              displayValue = data.match_coin
+              console.log("🏟️ [player_node] 竞技场模式 - 昵称:", data.nick_name, "match_coin:", data.match_coin)
+          } else if (data.gold_count !== undefined && data.gold_count !== null) {
+              displayValue = data.gold_count
+              console.log("🏟️ [player_node] 竞技场模式（无match_coin）- 使用 gold_count:", data.gold_count)
+          }
+      } else {
+          // 普通场：显示金币
+          if (data.gold_count !== undefined && data.gold_count !== null) {
+              displayValue = data.gold_count
+          } else if (data.goldcount !== undefined && data.goldcount !== null) {
+              displayValue = data.goldcount
+          }
+          console.log("🪙 [player_node] 普通场 - 昵称:", data.nick_name, "gold_count:", data.gold_count, "最终金币:", displayValue)
       }
-      console.log("🪙 [player_node] init_data - 昵称:", data.nick_name, "gold_count:", data.gold_count, "goldcount:", data.goldcount, "最终金币:", goldValue)
-      this.globalcount_label.string = String(goldValue)
+      
+      this.globalcount_label.string = String(displayValue)
+      this._isArenaMode = isArenaMode // 保存竞技场模式状态
       this.cardlist_node = []
 
       // 检查准备状态

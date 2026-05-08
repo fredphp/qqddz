@@ -479,6 +479,8 @@ type PlayerInfo struct {
         Online     bool   `json:"online"`      // 是否在线（兼容旧客户端）
         State      string `json:"state"`       // 玩家状态: online/offline/robot
         GoldCount  int64  `json:"gold_count"`  // 玩家金币数量
+        // 🔧【新增】竞技场专用字段
+        MatchCoin  int64  `json:"match_coin"`  // 竞技币（竞技场模式下显示）
 }
 
 // CardInfo 牌信息

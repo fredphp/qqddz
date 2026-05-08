@@ -80,6 +80,10 @@ type Room struct {
 
         // 🔧【新增】房间分类字段
         RoomCategory uint8 // 房间分类: 1-普通场, 2-竞技场
+        
+        // 🔧【新增】竞技场专用字段
+        ArenaSessionID uint64 // 竞技场会话ID（竞技场模式下使用）
+        PeriodNo       string // 期号（竞技场模式下使用）
 
         mu sync.RWMutex
 }

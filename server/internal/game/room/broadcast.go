@@ -73,6 +73,7 @@ func (r *Room) GetPlayerInfo(playerID string) protocol.PlayerInfo {
                         IsLandlord: false,
                         CardsCount: cardsCount,
                         GoldCount:  0,
+                        MatchCoin:  0,
                 }
         }
 
@@ -87,6 +88,7 @@ func (r *Room) GetPlayerInfo(playerID string) protocol.PlayerInfo {
                         IsLandlord: player.IsLandlord,
                         CardsCount: cardsCount,
                         GoldCount:  0,
+                        MatchCoin:  0,
                 }
         }
 
@@ -95,6 +97,7 @@ func (r *Room) GetPlayerInfo(playerID string) protocol.PlayerInfo {
         playerName := player.Client.GetName()
         playerDBID := player.Client.GetPlayerID()
         var avatar string
+        var matchCoin int64 = 0 // 🔧【新增】竞技币
         
         log.Printf("🔍 [GetPlayerInfo] 玩家UUID=%s, 昵称=%s, PlayerID=%d, 当前缓存金币=%d", playerID, playerName, playerDBID, goldCount)
         
@@ -125,11 +128,22 @@ func (r *Room) GetPlayerInfo(playerID string) protocol.PlayerInfo {
                                 log.Printf("✅ [GetPlayerInfo] 通过昵称=%s 获取玩家信息: 金币=%d, 头像=%s, PlayerID: %d", playerName, goldCount, avatar, dbPlayer.ID)
                         }
                 }
+                
+                // 🔧【新增】竞技场模式下获取玩家竞技币
+                if r.RoomCategory == 2 && r.ArenaSessionID > 0 && playerDBID > 0 {
+                        var participation database.ArenaParticipation
+                        if err := db.Where("session_id = ? AND player_id = ?", r.ArenaSessionID, playerDBID).First(&participation).Error; err != nil {
+                                log.Printf("⚠️ [GetPlayerInfo] 获取竞技币失败: session_id=%d, player_id=%d, err=%v", r.ArenaSessionID, playerDBID, err)
+                        } else {
+                                matchCoin = participation.MatchCoin
+                                log.Printf("✅ [GetPlayerInfo] 竞技场模式: 玩家 %d 的竞技币=%d", playerDBID, matchCoin)
+                        }
+                }
         } else {
                 log.Printf("⚠️ [GetPlayerInfo] 数据库连接为空，使用缓存金币: %d", goldCount)
         }
         
-        log.Printf("📤 [GetPlayerInfo] 返回玩家信息: UUID=%s, 昵称=%s, 头像=%s, 金币=%d", playerID, playerName, avatar, goldCount)
+        log.Printf("📤 [GetPlayerInfo] 返回玩家信息: UUID=%s, 昵称=%s, 头像=%s, 金币=%d, 竞技币=%d", playerID, playerName, avatar, goldCount, matchCoin)
 
         // 游戏会话由外部调用方管理，此处暂不传入
         return protocol.PlayerInfo{
@@ -141,6 +155,7 @@ func (r *Room) GetPlayerInfo(playerID string) protocol.PlayerInfo {
                 IsLandlord: player.IsLandlord,
                 CardsCount: cardsCount,
                 GoldCount:  goldCount,
+                MatchCoin:  matchCoin, // 🔧【新增】竞技币
         }
 }
 

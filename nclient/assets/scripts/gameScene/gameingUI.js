@@ -4970,18 +4970,25 @@ cc.Class({
     _startLocalArenaCountdown: function(seconds) {
         var self = this
         
+        console.log("🏟️ [_startLocalArenaCountdown] 开始启动倒计时, seconds:", seconds)
+        
         // 停止之前的倒计时
         if (this._localArenaCountdownTimer) {
             this.unschedule(this._localArenaCountdownTick)
+            this._localArenaCountdownTimer = null
         }
         
         this._arenaCountdownSeconds = seconds
         
-        // 启动每秒tick
-        this.schedule(this._localArenaCountdownTick, 1)
+        // 🔧【修复】确保初始UI正确显示
+        this._updateArenaCountdownUI(seconds)
+        
+        // 🔧【修复】使用 cc.director 的时间调度，确保在所有情况下都能工作
+        // 每秒tick一次，无限重复
+        this.schedule(this._localArenaCountdownTick, 1, cc.macro.REPEAT_FOREVER, 1)
         this._localArenaCountdownTimer = true
         
-        console.log("🏟️ [_startLocalArenaCountdown] 启动本地倒计时:", seconds)
+        console.log("🏟️ [_startLocalArenaCountdown] 本地倒计时已启动")
     },
     
     /**

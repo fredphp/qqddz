@@ -277,6 +277,7 @@ window.socketCtr = function(){
                     avatarUrl: "avatar_1",
                     gold_count: data.player ? data.player.gold_count : 0,  // 🔧【修复】使用服务端发送的金币数量
                     goldcount: data.player ? data.player.gold_count || 0 : 0,  // 兼容旧客户端
+                    match_coin: data.player ? (data.player.match_coin || 0) : 0, // 🔧【新增】竞技币
                     seatindex: data.player ? data.player.seat + 1 : 1,
                     isready: data.player ? data.player.ready : false
                 }
@@ -809,18 +810,23 @@ window.socketCtr = function(){
                 _quickMatchTimeout = null
             }
             
+            // 🔧【新增】获取房间分类
+            var roomCategory = data.room_category || 1
+            
             // 转换数据格式
             var players = data.players || []
             var playerdata = players.map(function(p, idx) {
-                console.log("🪙 [request_enter_room] 转换玩家数据:", p.name, "gold_count=", p.gold_count)
+                console.log("🪙 [request_enter_room] 转换玩家数据:", p.name, "gold_count=", p.gold_count, "match_coin=", p.match_coin)
                 return {
                     accountid: p.id,
                     nick_name: p.name,
                     avatarUrl: "avatar_1",
                     gold_count: p.gold_count || 0,
                     goldcount: p.gold_count || 0,
+                    match_coin: p.match_coin || 0, // 🔧【新增】竞技币
                     seatindex: (p.seat !== undefined ? p.seat : idx) + 1,
-                    isready: p.ready || false
+                    isready: p.ready || false,
+                    room_category: roomCategory // 🔧【新增】传递房间分类
                 }
             })
             
@@ -829,7 +835,9 @@ window.socketCtr = function(){
                 playerdata: playerdata,
                 roomid: data.room_code || "MATCH",
                 room_code: data.room_code || "MATCH",
-                housemanageid: data.creator_id || ""
+                housemanageid: data.creator_id || "",
+                room_category: roomCategory, // 🔧【新增】传递房间分类
+                period_no: data.period_no || "" // 🔧【新增】期号
             })
         }
     }
