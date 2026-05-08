@@ -318,6 +318,11 @@ type GameOverPayload struct {
 
         // 🔧【新增】房间分类（用于区分普通场和竞技场）
         RoomCategory uint8 `json:"room_category"` // 房间分类: 1-普通场, 2-竞技场
+
+        // 🔧【新增】竞技场专用字段
+        ArenaCountdown int   `json:"arena_countdown"` // 竞技场倒计时初始值（秒）
+        ArenaRound     int   `json:"arena_round"`     // 竞技场下一轮轮次
+        MatchCoin      int64 `json:"match_coin"`      // 比赛金币/竞技币
 }
 
 // MultiplierDetail 倍数详情

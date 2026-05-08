@@ -377,6 +377,9 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 gs.saveGameResultToDatabaseAsync(winner, baseScore, totalMulti, uint8(multiDetail.SpringType), players)
         }()
 
+        // 🔧【新增】计算竞技场下一轮轮次
+        nextRound := gs.room.GameCount + 1
+
         // 广播游戏结束（包含完整结算信息）
         gs.room.Broadcast(codec.MustNewMessage(protocol.MsgGameOver, &protocol.GameOverPayload{
                 WinnerID:    winner.ID,
@@ -390,6 +393,10 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 Players:     players,
                 // 🔧【新增】房间分类（用于区分普通场和竞技场）
                 RoomCategory: gs.room.RoomCategory,
+                // 🔧【新增】竞技场专用字段
+                ArenaCountdown: ArenaCountdownDuration, // 30秒倒计时
+                ArenaRound:     nextRound,
+                MatchCoin:      0, // 比赛金币（TODO: 从竞技场管理器获取）
         }))
 
         role := "农民"

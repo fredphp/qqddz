@@ -510,6 +510,12 @@ cc.Class({
             this._competitionCountdownTimer = null
         }
         
+        // 🔧【新增】清理本地竞技场倒计时
+        if (this._localArenaCountdownTimer) {
+            this.unschedule(this._localArenaCountdownTick)
+            this._localArenaCountdownTimer = null
+        }
+        
         // 【竞技场】清理比赛金币显示
         this._hideMatchCoinDisplay()
     },
@@ -4866,10 +4872,10 @@ cc.Class({
         titleNode.y = popupHeight/2 - 50
         titleNode.parent = popupNode
         
-        // 输赢金额
+        // 🔧【修复】输赢金额 - 竞技场显示"竞技币"
         var resultNode = new cc.Node("Result")
         var resultLabel = resultNode.addComponent(cc.Label)
-        resultLabel.string = "本局结果: " + (myWinGold >= 0 ? "+" : "") + myWinGold
+        resultLabel.string = "本局结果: " + (myWinGold >= 0 ? "+" : "") + myWinGold + " 竞技币"
         resultLabel.fontSize = 28
         resultNode.color = myWinGold >= 0 ? new cc.Color(100, 255, 100) : new cc.Color(255, 100, 100)
         resultNode.y = popupHeight/2 - 100
@@ -4884,20 +4890,24 @@ cc.Class({
         multiNode.y = popupHeight/2 - 140
         multiNode.parent = popupNode
         
-        // 当前比赛金币
+        // 🔧【修复】当前竞技币
         var coinNode = new cc.Node("MatchCoin")
         var coinLabel = coinNode.addComponent(cc.Label)
-        coinLabel.string = "当前比赛金币: " + this._matchCoin
+        coinLabel.string = "当前竞技币: " + this._matchCoin
         coinLabel.fontSize = 24
         coinNode.color = new cc.Color(255, 200, 100)
         coinNode.y = popupHeight/2 - 180
         coinNode.parent = popupNode
         
         // ============================================================
-        // 🔧【修复】竞技场倒计时（由服务端控制）
+        // 🔧【修复】竞技场倒计时
         // 不显示"继续游戏"和"返回大厅"按钮
         // 显示服务端控制的30秒倒计时
+        // 🔧【关键修复】从 game_over 数据中获取初始倒计时，立即启动本地倒计时
         // ============================================================
+        
+        // 🔧【关键】从服务端数据获取初始倒计时值
+        var initialCountdown = data.arena_countdown || 30
         
         // 倒计时显示容器
         var countdownContainer = new cc.Node("CountdownContainer")
@@ -4907,7 +4917,7 @@ cc.Class({
         // 倒计时文字
         var countdownLabel = new cc.Node("CountdownLabel")
         var countdownLabelComp = countdownLabel.addComponent(cc.Label)
-        countdownLabelComp.string = "下一轮将在 30 秒后开始"
+        countdownLabelComp.string = "下一轮将在 " + initialCountdown + " 秒后开始"
         countdownLabelComp.fontSize = 26
         countdownLabel.color = new cc.Color(255, 215, 0)  // 金黄色
         countdownLabel.parent = countdownContainer
@@ -4915,7 +4925,7 @@ cc.Class({
         // 倒计时数字（大号显示）
         var countdownNumber = new cc.Node("CountdownNumber")
         var countdownNumberComp = countdownNumber.addComponent(cc.Label)
-        countdownNumberComp.string = "30"
+        countdownNumberComp.string = String(initialCountdown)
         countdownNumberComp.fontSize = 48
         countdownNumber.color = new cc.Color(255, 255, 255)
         countdownNumber.y = -45
@@ -4936,20 +4946,66 @@ cc.Class({
         this._gameResultMask = maskNode
         this._countdownLabelNode = countdownLabel
         this._countdownNumberNode = countdownNumber
-        this._arenaCountdownSeconds = 30
+        this._arenaCountdownSeconds = initialCountdown
         
         // 播放音效
         this._playGameResultSound(isWinner)
         
         // ============================================================
-        // 🔧【新增】注册服务端倒计时消息监听
+        // 🔧【关键修复】立即启动本地倒计时定时器
+        // 同时注册服务端消息监听，双保险确保倒计时正常工作
         // ============================================================
+        
+        // 启动本地倒计时定时器
+        this._startLocalArenaCountdown(initialCountdown)
+        
+        // 注册服务端倒计时消息监听（作为备份）
         this._setupArenaCountdownListeners()
     },
     
     /**
+     * 🔧【新增】启动本地竞技场倒计时
+     * @param {Number} seconds - 初始倒计时秒数
+     */
+    _startLocalArenaCountdown: function(seconds) {
+        var self = this
+        
+        // 停止之前的倒计时
+        if (this._localArenaCountdownTimer) {
+            this.unschedule(this._localArenaCountdownTick)
+        }
+        
+        this._arenaCountdownSeconds = seconds
+        
+        // 启动每秒tick
+        this.schedule(this._localArenaCountdownTick, 1)
+        this._localArenaCountdownTimer = true
+        
+        console.log("🏟️ [_startLocalArenaCountdown] 启动本地倒计时:", seconds)
+    },
+    
+    /**
+     * 🔧【新增】本地竞技场倒计时Tick
+     */
+    _localArenaCountdownTick: function() {
+        if (this._arenaCountdownSeconds <= 0) {
+            this.unschedule(this._localArenaCountdownTick)
+            this._localArenaCountdownTimer = null
+            console.log("🏟️ [_localArenaCountdownTick] 倒计时结束")
+            return
+        }
+        
+        this._arenaCountdownSeconds--
+        
+        // 更新UI
+        this._updateArenaCountdownUI(this._arenaCountdownSeconds)
+        
+        console.log("🏟️ [_localArenaCountdownTick] 剩余:", this._arenaCountdownSeconds)
+    },
+    
+    /**
      * 🔧【新增】设置竞技场倒计时消息监听
-     * 监听服务端推送的倒计时消息
+     * 监听服务端推送的倒计时消息（作为本地倒计时的备份和同步）
      */
     _setupArenaCountdownListeners: function() {
         var self = this
@@ -4960,22 +5016,30 @@ cc.Class({
             return
         }
         
-        // 监听倒计时开始消息
+        // 监听倒计时开始消息（如果服务端重新发送）
         myglobal.socket.onArenaRoundCountdown(function(data) {
             console.log("🏟️ [onArenaRoundCountdown] 收到倒计时开始:", data)
+            // 同步服务端的倒计时值
             self._arenaCountdownSeconds = data.seconds || 30
             self._updateArenaCountdownUI(data.seconds)
         })
         
-        // 监听倒计时每秒更新消息
+        // 监听倒计时每秒更新消息（同步服务端的倒计时）
         myglobal.socket.onArenaCountdownTick(function(data) {
-            console.log("🏟️ [onArenaCountdownTick] 倒计时更新:", data.seconds)
+            console.log("🏟️ [onArenaCountdownTick] 服务端倒计时同步:", data.seconds)
+            // 🔧【关键】同步服务端的倒计时值，确保与服务端一致
+            self._arenaCountdownSeconds = data.seconds
             self._updateArenaCountdownUI(data.seconds)
         })
         
         // 监听自动准备消息
         myglobal.socket.onArenaAutoReady(function(data) {
             console.log("🏟️ [onArenaAutoReady] 自动准备:", data.message)
+            // 停止本地倒计时
+            if (self._localArenaCountdownTimer) {
+                self.unschedule(self._localArenaCountdownTick)
+                self._localArenaCountdownTimer = null
+            }
             self._showArenaAutoReadyMessage(data.message)
         })
         
