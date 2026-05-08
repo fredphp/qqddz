@@ -131,6 +131,7 @@ func (r *Room) GetPlayerInfo(playerID string) protocol.PlayerInfo {
                 
                 // 🔧【新增】竞技场模式下获取玩家竞技币
                 // 🔧【关键修复】优先从 ddz_arena_period_players 获取 arena_gold（当期赛事金币）
+                log.Printf("🔍 [GetPlayerInfo] 检查竞技场模式: RoomCategory=%d, PeriodNo=%s, playerDBID=%d", r.RoomCategory, r.PeriodNo, playerDBID)
                 if r.RoomCategory == 2 && r.PeriodNo != "" && playerDBID > 0 {
                         // 从期号玩家表获取 arena_gold
                         if arenaGold, err := database.GetArenaGold(r.PeriodNo, playerDBID); err != nil {

@@ -276,10 +276,31 @@ func (gs *GameSession) notifyCallTurnInternal() {
 
         // 🔧【托管】检查玩家是否处于托管状态
         if player.IsRobot() || player.IsTrustee {
-                log.Printf("[TRUSTEE] 玩家 %s 托管状态，准备自动不抢", player.Name)
+                // 🔧【关键修复】机器人需要根据重发次数决定是否抢地主
+                // 避免无限循环发牌
+                var action string
+                if gs.reDealCount >= 1 {
+                        // 重新发牌后，50% 概率抢地主
+                        if rand.IntN(100) < 50 {
+                                action = "call"
+                                log.Printf("[TRUSTEE] 玩家 %s 重新发牌后决定抢地主 (reDealCount=%d)", player.Name, gs.reDealCount)
+                        } else {
+                                action = "pass"
+                                log.Printf("[TRUSTEE] 玩家 %s 重新发牌后决定不抢 (reDealCount=%d)", player.Name, gs.reDealCount)
+                        }
+                } else {
+                        // 首次发牌，30% 概率抢地主
+                        if rand.IntN(100) < 30 {
+                                action = "call"
+                                log.Printf("[TRUSTEE] 玩家 %s 托管状态决定抢地主", player.Name)
+                        } else {
+                                action = "pass"
+                                log.Printf("[TRUSTEE] 玩家 %s 托管状态决定不抢", player.Name)
+                        }
+                }
                 // 使用快速操作（800-1500ms）
                 gs.scheduleRobotAction(func() {
-                        _ = gs.HandleCallLandlordImmediate(player.ID, "pass")
+                        _ = gs.HandleCallLandlordImmediate(player.ID, action)
                 })
                 return
         }

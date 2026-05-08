@@ -768,21 +768,26 @@ func UpdateArenaGold(periodNo string, playerID uint64, changeGold int64, matchID
 func GetArenaGold(periodNo string, playerID uint64) (int64, error) {
         t, err := parsePeriodNoToTime(periodNo)
         if err != nil {
+                log.Printf("⚠️ [GetArenaGold] 解析期号失败: periodNo=%s, err=%v, 使用当前时间", periodNo, err)
                 t = time.Now()
         }
 
         tableName := getArenaPeriodPlayerTableNameByTime(t)
+        log.Printf("🔍 [GetArenaGold] 查询表: %s, period_no=%s, player_id=%d", tableName, periodNo, playerID)
 
         var player ArenaPeriodPlayer
         if err := DB().Table(tableName).
                 Where("period_no = ? AND player_id = ?", periodNo, playerID).
                 First(&player).Error; err != nil {
                 if err == gorm.ErrRecordNotFound {
+                        log.Printf("⚠️ [GetArenaGold] 记录不存在: table=%s, period_no=%s, player_id=%d", tableName, periodNo, playerID)
                         return 0, nil // 未找到记录，返回0
                 }
+                log.Printf("❌ [GetArenaGold] 查询失败: table=%s, err=%v", tableName, err)
                 return 0, err
         }
 
+        log.Printf("✅ [GetArenaGold] 查询成功: table=%s, period_no=%s, player_id=%d, arena_gold=%d", tableName, periodNo, playerID, player.ArenaGold)
         return player.ArenaGold, nil
 }
 
