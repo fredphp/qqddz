@@ -200,3 +200,33 @@ Stage Summary:
 - 问题根因：AI 决策返回的 Card 缺少 Color 字段，导致 slices.Contains 匹配失败，牌无法从手牌移除
 - 修复方案：改用 (Suit, Rank) 组合匹配，忽略 Color 字段
 - 影响范围：仅修改 RemoveCards 函数，不影响其他功能
+
+---
+Task ID: 7
+Agent: Main Agent
+Task: 修复竞技场新一轮倍数未重置问题
+
+Work Log:
+- 分析问题：用户报告新一轮开始后，倍数没有被重置，导致倍数持续累积（如128倍）
+- 排查代码：
+  1. 查看 lifecycle.go 中的 resetForNewRound 函数
+  2. 发现该函数只重置了基础游戏状态，缺少倍数相关字段的重置
+  3. 倍数相关字段：
+     - gs.qiangCount：抢地主次数（每次抢地主倍数 x2）
+     - gs.gameLogger.bombCount：炸弹数量（每个炸弹倍数 x2）
+     - gs.gameLogger.rocketCount：王炸数量（每个王炸倍数 x2）
+- 修复方案：
+  1. 在 resetForNewRound 函数中添加 qiangCount 和 rocketCount 的重置
+  2. 在 GameLogger 中添加 Reset 方法，重置 bombCount、rocketCount 等字段
+  3. 在 resetForNewRound 中调用 gameLogger.Reset()
+
+Stage Summary:
+- 修改文件：
+  - server/internal/server/session/lifecycle.go（resetForNewRound 函数）
+  - server/internal/server/session/game_logger.go（新增 Reset 方法）
+- 问题根因：resetForNewRound 函数缺少对倍数相关字段的重置
+- 修复内容：
+  - gs.qiangCount = 0
+  - gs.rocketCount = 0
+  - gameLogger.Reset()：重置 bombCount、rocketCount、roundNum、playOrder、dealLogs、bidLogs、playLogs
+- 影响范围：仅修改竞技场新一轮开始时的重置逻辑，不影响其他功能

@@ -106,6 +106,20 @@ func (l *GameLogger) IncrementRocketCount() {
         l.rocketCount++
 }
 
+// Reset 重置游戏日志记录器（用于新一轮游戏）
+// 🔧【新增】重置炸弹和王炸计数，避免倍数累积
+func (l *GameLogger) Reset() {
+        l.bombCount = 0
+        l.rocketCount = 0
+        l.roundNum = 0
+        l.playOrder = 0
+        l.dealLogs = make([]DealLogRecord, 0)
+        l.bidLogs = make([]BidLogRecord, 0)
+        l.playLogs = make([]PlayLogRecord, 0)
+        l.startedAt = time.Now() // 重置开始时间
+        l.gameID = generateGameID() // 生成新的游戏ID
+}
+
 // StartNewRound 开始新回合
 func (l *GameLogger) StartNewRound() {
         l.roundNum++

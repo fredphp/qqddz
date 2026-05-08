@@ -1057,6 +1057,15 @@ func (gs *GameSession) resetForNewRound() {
         gs.consecutivePasses = 0
         gs.playerOutStatus = make(map[int]bool)
         
+        // 🔧【关键修复】重置倍数相关字段，避免倍数累积
+        gs.qiangCount = 0   // 抢地主次数
+        gs.rocketCount = 0  // 王炸次数
+        
+        // 🔧【关键修复】重置 gameLogger 的炸弹和王炸计数
+        if gs.gameLogger != nil {
+                gs.gameLogger.Reset()
+        }
+        
         // 重置玩家状态
         for _, p := range gs.players {
                 p.IsLandlord = false
