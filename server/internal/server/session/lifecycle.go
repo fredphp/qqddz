@@ -881,22 +881,25 @@ const ArenaCountdownDuration = 30
 
 // startArenaRoundCountdown 启动竞技场轮次倒计时
 // 竞技场游戏结束后，服务端控制30秒倒计时，然后自动准备并开始下一轮
+// 🔧【修复】移除锁，因为它在被锁保护的上下文中调用，使用 goroutine 避免阻塞
 func (gs *GameSession) startArenaRoundCountdown() {
-        gs.mu.Lock()
-        defer gs.mu.Unlock()
-        
-        // 计算下一轮轮次
-        nextRound := gs.room.GameCount + 1
+        // 🔧【关键修复】复制必要数据后启动 goroutine，避免死锁
+        // 因为调用者（HandlePlayCards 等）持有 gs.mu 锁，这里不能同步获取锁
+        roomCode := gs.room.Code
+        gameCount := gs.room.GameCount
+        periodNo := gs.room.PeriodNo
+        roomConfigID := gs.room.RoomConfigID
+        nextRound := gameCount + 1
         
         log.Printf("🏟️ [startArenaRoundCountdown] 房间 %s 启动30秒倒计时，下一轮: %d, 当前局数: %d", 
-                gs.room.Code, nextRound, gs.room.GameCount)
+                roomCode, nextRound, gameCount)
         
-        // 广播倒计时开始消息
+        // 广播倒计时开始消息（不需要锁）
         gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaRoundCountdown, &protocol.ArenaRoundCountdownPayload{
                 Seconds:  ArenaCountdownDuration,
                 Round:    nextRound,
-                PeriodNo: gs.room.PeriodNo, // 🔧【修复】从房间获取期号
-                RoomID:   gs.room.RoomConfigID, // 🔧【修复】从房间获取配置ID
+                PeriodNo: periodNo,
+                RoomID:   roomConfigID,
                 Message:  "下一轮将在 30 秒后开始",
         }))
         
@@ -939,45 +942,52 @@ func (gs *GameSession) runArenaCountdown(totalSeconds, nextRound int) {
 // onArenaCountdownEnd 竞技场倒计时结束处理
 // 自动为所有玩家准备，然后开始新一轮游戏
 func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
-        gs.mu.Lock()
-        defer gs.mu.Unlock()
-        
         log.Printf("🏟️ [onArenaCountdownEnd] 房间 %s 倒计时结束，自动准备并开始第 %d 轮", gs.room.Code, nextRound)
-        log.Printf("🏟️ [onArenaCountdownEnd] 当前房间状态: %v, RoomCategory: %d, 玩家数: %d", 
-                gs.room.State, gs.room.RoomCategory, len(gs.room.Players))
         
-        // 广播自动准备消息
-        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaAutoReady, &protocol.ArenaAutoReadyPayload{
-                PeriodNo: "",
-                RoomID:   0,
-                Message:  "系统已自动准备",
-        }))
-        
-        // 为所有玩家设置准备状态
-        for playerID, rp := range gs.room.Players {
-                if rp != nil {
-                        rp.Ready = true
-                        log.Printf("🏟️ [onArenaCountdownEnd] 玩家 %s 已自动准备", playerID)
+        // 🔧【关键修复】使用单独的锁块，避免与 Start() 死锁
+        {
+                gs.mu.Lock()
+                
+                log.Printf("🏟️ [onArenaCountdownEnd] 当前房间状态: %v, RoomCategory: %d, 玩家数: %d", 
+                        gs.room.State, gs.room.RoomCategory, len(gs.room.Players))
+                
+                // 广播自动准备消息
+                gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaAutoReady, &protocol.ArenaAutoReadyPayload{
+                        PeriodNo: "",
+                        RoomID:   0,
+                        Message:  "系统已自动准备",
+                }))
+                
+                // 为所有玩家设置准备状态
+                for playerID, rp := range gs.room.Players {
+                        if rp != nil {
+                                rp.Ready = true
+                                log.Printf("🏟️ [onArenaCountdownEnd] 玩家 %s 已自动准备", playerID)
+                        }
                 }
+
+                // 🔧【修复】确保房间状态为 Waiting，这样 StartGame() 检查才能通过
+                // StartGame() 内部会将状态从 Waiting 改为 Ready
+                gs.room.State = RoomStateWaiting
+                log.Printf("🏟️ [onArenaCountdownEnd] 房间状态已设置为 Waiting")
+
+                // 调用房间开始游戏
+                log.Printf("🏟️ [onArenaCountdownEnd] 准备调用 StartGame()...")
+                if err := gs.room.StartGame(); err != nil {
+                        log.Printf("❌ [onArenaCountdownEnd] 开始游戏失败: %v", err)
+                        gs.mu.Unlock()
+                        return
+                }
+                log.Printf("🏟️ [onArenaCountdownEnd] StartGame() 调用成功")
+
+                // 重置游戏会话状态
+                gs.resetForNewRound()
+                
+                // 🔧【关键】先解锁再调用 Start()，因为 Start() 内部也会获取锁
+                gs.mu.Unlock()
         }
-
-        // 🔧【修复】确保房间状态为 Waiting，这样 StartGame() 检查才能通过
-        // StartGame() 内部会将状态从 Waiting 改为 Ready
-        gs.room.State = RoomStateWaiting
-        log.Printf("🏟️ [onArenaCountdownEnd] 房间状态已设置为 Waiting")
-
-        // 调用房间开始游戏
-        log.Printf("🏟️ [onArenaCountdownEnd] 准备调用 StartGame()...")
-        if err := gs.room.StartGame(); err != nil {
-                log.Printf("❌ [onArenaCountdownEnd] 开始游戏失败: %v", err)
-                return
-        }
-        log.Printf("🏟️ [onArenaCountdownEnd] StartGame() 调用成功")
-
-        // 创建新的游戏会话并开始
-        // 注意：这里需要通过房间管理器的回调来创建新会话
-        // 暂时直接调用 Start 方法重用当前会话
-        gs.resetForNewRound()
+        
+        // 在锁外调用 Start()，避免死锁
         gs.Start()
         
         log.Printf("✅ [onArenaCountdownEnd] 房间 %s 第 %d 轮游戏已开始", gs.room.Code, nextRound)
