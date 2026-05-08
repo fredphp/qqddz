@@ -271,6 +271,18 @@ func (h *ArenaHandler) Signup(w http.ResponseWriter, r *http.Request) {
                 return
         }
 
+        // 🔧【关键修复】初始化玩家当期赛事金币（从 room_config.min_gold 读取初始值）
+        initialGold := roomConfig.MinGold
+        if initialGold <= 0 {
+                initialGold = 10000 // 默认初始金币
+        }
+        if err := database.InitArenaGold(periodInfo.PeriodNo, player.ID, initialGold); err != nil {
+                log.Printf("⚠️ [报名] 初始化赛事金币失败: %v", err)
+                // 不回滚，因为金币初始化失败不影响报名成功
+        } else {
+                log.Printf("✅ [报名] 初始化赛事金币成功: periodNo=%s, playerID=%d, initialGold=%d", periodInfo.PeriodNo, player.ID, initialGold)
+        }
+
         // 更新期号报名人数（仅当新建记录时才增加计数，恢复记录不增加）
         if periodID > 0 && result == database.UpsertResultCreated {
                 database.UpdateArenaPeriodSignupCount(periodID, 1, 0)

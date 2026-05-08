@@ -84,8 +84,16 @@ type Room struct {
         // 🔧【新增】竞技场专用字段
         ArenaSessionID uint64 // 竞技场会话ID（竞技场模式下使用）
         PeriodNo       string // 期号（竞技场模式下使用）
+        RoomConfigID   uint64 // 房间配置ID（竞技场模式下使用）
 
         mu sync.RWMutex
+}
+
+// SetPeriodNo 设置竞技场期号
+func (r *Room) SetPeriodNo(periodNo string) {
+        r.mu.Lock()
+        defer r.mu.Unlock()
+        r.PeriodNo = periodNo
 }
 
 // RoomManager 房间管理器

@@ -476,15 +476,18 @@ func UpsertArenaPeriodPlayer(player *ArenaPeriodPlayer) (UpsertResult, error) {
         }
 
         // 记录不存在，创建新记录（使用 map 避免 TableName 覆盖）
+        // 🔧【关键修复】创建时包含 arena_gold 字段（初始为0，后续由 InitArenaGold 更新）
         if err := DB().Table(tableName).Create(map[string]interface{}{
-                "period_no":    player.PeriodNo,
-                "period_id":    player.PeriodID,
-                "room_id":      player.RoomID,
-                "player_id":    player.PlayerID,
-                "signup_time":  player.SignupTime,
-                "signup_order": player.SignupOrder,
-                "signup_fee":   player.SignupFee,
-                "status":       player.Status,
+                "period_no":     player.PeriodNo,
+                "period_id":     player.PeriodID,
+                "room_id":       player.RoomID,
+                "player_id":     player.PlayerID,
+                "signup_time":   player.SignupTime,
+                "signup_order":  player.SignupOrder,
+                "signup_fee":    player.SignupFee,
+                "status":        player.Status,
+                "arena_gold":    0, // 初始为0，后续由 InitArenaGold 初始化
+                "player_status": ArenaPlayerStatusSignup,
         }).Error; err != nil {
                 return UpsertResultCreated, err
         }

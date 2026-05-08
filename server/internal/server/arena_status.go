@@ -992,11 +992,15 @@ func (b *ArenaStatusBroadcaster) createTableRoom(enterPhase *EnterPhaseInfo, tab
                 return fmt.Errorf("创建房间失败: %v", err)
         }
 
+        // 🔧【关键修复】设置竞技场期号
+        gameRoom.SetPeriodNo(enterPhase.PeriodNo)
+        log.Printf("[ArenaStatus] 桌号 %d 设置期号: periodNo=%s", table.TableID, enterPhase.PeriodNo)
+
         // 记录房间信息
         table.RoomCreated = true
         table.RoomCode = gameRoom.Code
         
-        log.Printf("[ArenaStatus] 桌号 %d 房间创建成功: roomCode=%s, 房主=%d", table.TableID, gameRoom.Code, hostClient.PlayerID)
+        log.Printf("[ArenaStatus] 桌号 %d 房间创建成功: roomCode=%s, 房主=%d, periodNo=%s", table.TableID, gameRoom.Code, hostClient.PlayerID, enterPhase.PeriodNo)
 
         // 将机器人加入房间
         for _, robotID := range table.RobotPlayers {
@@ -1129,6 +1133,17 @@ func (b *ArenaStatusBroadcaster) fillRobotsToSignupList(periodNo string, roomID 
                 return nil
         }
         
+        // 🔧【新增】获取房间配置以读取初始金币
+        var roomConfig database.RoomConfig
+        if err := database.DB().Where("id = ?", roomID).First(&roomConfig).Error; err != nil {
+                log.Printf("[ArenaStatus] 获取房间配置失败: %v, 使用默认初始金币", err)
+                roomConfig.MinGold = 10000 // 默认值
+        }
+        initialGold := roomConfig.MinGold
+        if initialGold <= 0 {
+                initialGold = 10000
+        }
+        
         // 从数据库获取可用机器人（player_type=2 且 robot_status=0）
         var robots []database.Player
         err := database.DB().Where("player_type = ? AND robot_status = ?", 
@@ -1169,8 +1184,13 @@ func (b *ArenaStatusBroadcaster) fillRobotsToSignupList(periodNo string, roomID 
                         "robot_locked_at":          now,
                 })
                 
+                // 🔧【关键修复】初始化机器人当期赛事金币
+                if err := database.InitArenaGold(periodNo, robot.ID, initialGold); err != nil {
+                        log.Printf("[ArenaStatus] 机器人初始化赛事金币失败: robotID=%d, err=%v", robot.ID, err)
+                }
+                
                 robotIDs = append(robotIDs, robot.ID)
-                log.Printf("[ArenaStatus] 机器人 %d (%s) 已自动报名，期号=%s", robot.ID, robot.Nickname, periodNo)
+                log.Printf("[ArenaStatus] 机器人 %d (%s) 已自动报名，期号=%s, 初始金币=%d", robot.ID, robot.Nickname, periodNo, initialGold)
         }
         
         return robotIDs
