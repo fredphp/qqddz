@@ -64,7 +64,7 @@ func (p ParsedHand) IsEmpty() bool {
 
 // HandAnalysis 对手牌进行预分析，统计不同点数的牌出现了几次
 type HandAnalysis struct {
-        counts map[card.Rank]int // 每种点数牌的数量
+        counts map[card.Rank]int // 每种点数牌的数量（私有字段，内部使用）
         // 为了方便，提前将不同数量的牌分组
         fours []card.Rank
         trios []card.Rank
@@ -109,6 +109,41 @@ func analyzeCards(cards []card.Card) HandAnalysis {
         sortRanks(analysis.ones)
 
         return analysis
+}
+
+// AnalyzeHand 公开的分析手牌函数
+func AnalyzeHand(cards []card.Card) HandAnalysis {
+        return analyzeCards(cards)
+}
+
+// GetCount 获取指定点数的牌数量（公开方法）
+func (h HandAnalysis) GetCount(rank card.Rank) int {
+        return h.counts[rank]
+}
+
+// GetCounts 获取所有点数的数量映射（公开方法）
+func (h HandAnalysis) GetCounts() map[card.Rank]int {
+        return h.counts
+}
+
+// GetFours 获取四张牌的点数列表（公开方法）
+func (h HandAnalysis) GetFours() []card.Rank {
+        return h.fours
+}
+
+// GetTrios 获取三张牌的点数列表（公开方法）
+func (h HandAnalysis) GetTrios() []card.Rank {
+        return h.trios
+}
+
+// GetPairs 获取对子的点数列表（公开方法）
+func (h HandAnalysis) GetPairs() []card.Rank {
+        return h.pairs
+}
+
+// GetOnes 获取单牌的点数列表（公开方法）
+func (h HandAnalysis) GetOnes() []card.Rank {
+        return h.ones
 }
 
 // isContinuous 检查给定的点数切片是否连续，并且不能包含 2 和大小王

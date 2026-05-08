@@ -5,6 +5,9 @@ import (
         "math/rand/v2"
         "time"
 
+        "github.com/palemoky/fight-the-landlord/internal/game/card"
+        "github.com/palemoky/fight-the-landlord/internal/game/database"
+        "github.com/palemoky/fight-the-landlord/internal/game/robot"
         "github.com/palemoky/fight-the-landlord/internal/game/rule"
         "github.com/palemoky/fight-the-landlord/internal/protocol"
         "github.com/palemoky/fight-the-landlord/internal/protocol/codec"
@@ -82,22 +85,202 @@ func (gs *GameSession) doHandlePlayTimeout() {
                 gs.broadcastTrusteeState(currentPlayer.ID, currentPlayer.Name, true, "timeout")
         }
 
-        // 尝试找到最小能打过的牌
-        cardsToPlay := rule.FindSmallestBeatingCards(currentPlayer.Hand, gs.lastPlayedHand)
+        // 🔧【修复】使用智能决策系统
+        decision := gs.makeRobotDecision(currentPlayer)
 
-        if cardsToPlay != nil {
-                // 找到了能打的牌，出牌
+        if decision == nil || !decision.ShouldPlay {
+                // 决定过牌
+                gs.mu.Unlock()
+                reason := "决策为空或不应出牌"
+                if decision != nil {
+                        reason = decision.Reason
+                }
+                log.Printf("[TRUSTEE] 玩家 %s 选择过牌: %s", currentPlayer.Name, reason)
+                _ = gs.HandlePass(playerID)
+                return
+        }
+
+        if decision.Cards != nil && len(decision.Cards) > 0 {
+                // 有牌可以出，转换为 card.Card 格式
+                cardsToPlay := convertCardInfosToCards(decision.Cards)
                 cardInfos := convert.CardsToInfos(cardsToPlay)
                 gs.mu.Unlock()
-                log.Printf("[TRUSTEE] 玩家 %s 自动出牌: %v", currentPlayer.Name, cardInfos)
-                _ = gs.HandlePlayCards(playerID, cardInfos)
+                log.Printf("[TRUSTEE] 玩家 %s 自动出牌: %v, 原因: %s", currentPlayer.Name, cardInfos, decision.Reason)
+                err := gs.HandlePlayCards(playerID, cardInfos)
+                if err != nil {
+                        // 🔧【关键修复】出牌失败，必须过牌，防止死循环
+                        log.Printf("[TRUSTEE] ⚠️ 出牌失败: %v，改为过牌", err)
+                        _ = gs.HandlePass(playerID)
+                }
                 return
         }
 
         // 没有能打的牌，自动 PASS
         gs.mu.Unlock()
-        log.Printf("[TRUSTEE] 玩家 %s 自动 PASS", currentPlayer.Name)
+        log.Printf("[TRUSTEE] 玩家 %s 自动 PASS: %s", currentPlayer.Name, decision.Reason)
         _ = gs.HandlePass(playerID)
+}
+
+// makeRobotDecision 机器人智能决策
+func (gs *GameSession) makeRobotDecision(currentPlayer *GamePlayer) *robot.PlayDecision {
+        // 创建AI决策器
+        aiConfig := database.RobotAIConfigDefault()
+        robotAI := robot.NewRobotAI(nil, aiConfig)
+        
+        // 构建游戏状态
+        gameState := &robot.GameState{
+                GameID:      gs.room.Code,
+                MyRole:      database.PlayerRoleFarmer,
+                MyHandCards: convertCardsToCardInfos(currentPlayer.Hand),
+        }
+        
+        if currentPlayer.IsLandlord {
+                gameState.MyRole = database.PlayerRoleLandlord
+        }
+        
+        // 设置上家出牌信息
+        if !gs.lastPlayedHand.IsEmpty() {
+                gameState.CurrentPlay = &robot.PlayRecord{
+                        PlayerID: 0,
+                        Role:     database.PlayerRoleFarmer,
+                        Cards:    convertCardsToCardInfos(gs.lastPlayedHand.Cards),
+                        Pattern:  gs.lastPlayedHand.Type.String(),
+                        IsBomb:   gs.lastPlayedHand.Type == rule.Bomb,
+                        IsRocket: gs.lastPlayedHand.Type == rule.Rocket,
+                }
+                
+                // 设置上家角色
+                if gs.lastPlayerIdx >= 0 && gs.lastPlayerIdx < len(gs.players) {
+                        lastPlayer := gs.players[gs.lastPlayerIdx]
+                        if lastPlayer.IsLandlord {
+                                gameState.CurrentPlay.Role = database.PlayerRoleLandlord
+                        }
+                        gameState.CurrentPlay.PlayerID = lastPlayer.DBID
+                }
+        }
+        
+        // 设置玩家信息
+        for i, p := range gs.players {
+                switch i {
+                case 0:
+                        gameState.Player1ID = p.DBID
+                        gameState.Player1Role = database.PlayerRoleFarmer
+                        gameState.Player1Cards = len(p.Hand)
+                        if p.IsLandlord {
+                                gameState.Player1Role = database.PlayerRoleLandlord
+                        }
+                case 1:
+                        gameState.Player2ID = p.DBID
+                        gameState.Player2Role = database.PlayerRoleFarmer
+                        gameState.Player2Cards = len(p.Hand)
+                        if p.IsLandlord {
+                                gameState.Player2Role = database.PlayerRoleLandlord
+                        }
+                case 2:
+                        gameState.Player3ID = p.DBID
+                        gameState.Player3Role = database.PlayerRoleFarmer
+                        gameState.Player3Cards = len(p.Hand)
+                        if p.IsLandlord {
+                                gameState.Player3Role = database.PlayerRoleLandlord
+                        }
+                }
+        }
+        
+        // 调用AI决策
+        decision := robotAI.DecidePlay(gameState)
+        
+        // 🔧【关键修复】检查炸弹/王炸使用限制
+        if decision != nil && decision.ShouldPlay && len(decision.Cards) > 0 {
+                // 检查是否是炸弹或王炸
+                isBomb := len(decision.Cards) == 4 && decision.Cards[0].Rank == decision.Cards[1].Rank
+                isRocket := len(decision.Cards) == 2 && 
+                        ((decision.Cards[0].Rank == 16 && decision.Cards[1].Rank == 17) || 
+                         (decision.Cards[0].Rank == 17 && decision.Cards[1].Rank == 16))
+                
+                if isBomb || isRocket {
+                        // 获取对手最少牌数
+                        opponentMinCards := getOpponentMinCards(gs, currentPlayer)
+                        
+                        // 检查是否应该使用炸弹/王炸
+                        shouldUse := shouldUseBombOrRocket(gs, currentPlayer, opponentMinCards, isRocket)
+                        if !shouldUse {
+                                log.Printf("[RobotAI] 🚫 限制使用%v，选择过牌", map[bool]string{true: "王炸", false: "炸弹"}[isRocket])
+                                return &robot.PlayDecision{
+                                        ShouldPlay: false,
+                                        Cards:      nil,
+                                        Reason:     "限制使用炸弹/王炸",
+                                }
+                        }
+                }
+        }
+        
+        return decision
+}
+
+// convertCardsToCardInfos 转换牌格式
+func convertCardsToCardInfos(cards []card.Card) []robot.CardInfo {
+        result := make([]robot.CardInfo, len(cards))
+        for i, c := range cards {
+                result[i] = robot.CardInfo{
+                        Rank: int(c.Rank),
+                        Suit: int(c.Suit),
+                        Code: c.String(),
+                }
+        }
+        return result
+}
+
+// convertCardInfosToCards 将 CardInfo 转换为 card.Card
+func convertCardInfosToCards(infos []robot.CardInfo) []card.Card {
+        result := make([]card.Card, len(infos))
+        for i, info := range infos {
+                result[i] = card.Card{
+                        Suit: card.Suit(info.Suit),
+                        Rank: card.Rank(info.Rank),
+                }
+        }
+        return result
+}
+
+// getOpponentMinCards 获取对手最少剩余牌数
+func getOpponentMinCards(gs *GameSession, currentPlayer *GamePlayer) int {
+        minCards := 20
+        for _, p := range gs.players {
+                if p.ID == currentPlayer.ID {
+                        continue
+                }
+                // 判断是否是对手
+                isOpponent := currentPlayer.IsLandlord || p.IsLandlord
+                if isOpponent && len(p.Hand) < minCards {
+                        minCards = len(p.Hand)
+                }
+        }
+        return minCards
+}
+
+// shouldUseBombOrRocket 判断是否应该使用炸弹/王炸
+func shouldUseBombOrRocket(gs *GameSession, currentPlayer *GamePlayer, opponentMinCards int, isRocket bool) bool {
+        // 1. 对手只剩1-2张牌，必须炸
+        if opponentMinCards <= 2 {
+                log.Printf("[RobotAI] 对手只剩%d张牌，必须使用炸弹", opponentMinCards)
+                return true
+        }
+        
+        // 2. 检查自己能否一次出完
+        handCount := len(currentPlayer.Hand)
+        bombCardCount := 4
+        if isRocket {
+                bombCardCount = 2
+        }
+        remaining := handCount - bombCardCount
+        if remaining <= 2 {
+                log.Printf("[RobotAI] 使用炸弹后只剩%d张，可以一次出完", remaining)
+                return true
+        }
+        
+        // 3. 其他情况限制使用
+        log.Printf("[RobotAI] 不满足炸弹使用条件（对手剩余%d张，自己剩余%d张）", opponentMinCards, handCount)
+        return false
 }
 
 // handleRobotPlay 机器人托管出牌（不走时间检查）
