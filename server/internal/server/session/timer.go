@@ -56,6 +56,11 @@ func (gs *GameSession) handlePlayTimeout() {
         gs.timerExpiresAt = time.Time{}
         gs.timerMu.Unlock()
 
+        gs.doHandlePlayTimeout()
+}
+
+// doHandlePlayTimeout 实际执行出牌超时处理（不带时间检查）
+func (gs *GameSession) doHandlePlayTimeout() {
         gs.mu.Lock()
 
         if gs.state != GameStatePlaying {
@@ -84,13 +89,23 @@ func (gs *GameSession) handlePlayTimeout() {
                 // 找到了能打的牌，出牌
                 cardInfos := convert.CardsToInfos(cardsToPlay)
                 gs.mu.Unlock()
+                log.Printf("[TRUSTEE] 玩家 %s 自动出牌: %v", currentPlayer.Name, cardInfos)
                 _ = gs.HandlePlayCards(playerID, cardInfos)
                 return
         }
 
         // 没有能打的牌，自动 PASS
         gs.mu.Unlock()
+        log.Printf("[TRUSTEE] 玩家 %s 自动 PASS", currentPlayer.Name)
         _ = gs.HandlePass(playerID)
+}
+
+// handleRobotPlay 机器人托管出牌（不走时间检查）
+func (gs *GameSession) handleRobotPlay() {
+        // 停止倒计时计时器（机器人操作会直接执行）
+        gs.stopTimer()
+        // 执行出牌逻辑
+        gs.doHandlePlayTimeout()
 }
 
 func (gs *GameSession) stopTimer() {
@@ -206,9 +221,10 @@ func (gs *GameSession) PlayerOffline(playerID string) {
         if isPlaying {
                 log.Printf("[TRUSTEE] 玩家 %s 出牌阶段断线，机器人接管", player.Name)
                 gs.stopTimerInternal()
+                gs.mu.Unlock()
                 // 🔧【托管】使用快速操作
                 gs.scheduleRobotAction(func() {
-                        gs.handlePlayTimeout()
+                        gs.handleRobotPlay()
                 })
         }
 }
@@ -316,12 +332,10 @@ func (gs *GameSession) notifyPlayTurnWithRobotCheck() {
         // 🔧【托管】检查玩家是否处于托管状态
         if player.IsRobot() || player.IsTrustee {
                 log.Printf("[TRUSTEE] 玩家 %s 托管状态，准备自动出牌", player.Name)
-                // 🔧【修复】同时启动后备倒计时和快速机器人操作
-                // 1. 启动后备倒计时（如果机器人操作失败，倒计时到期后自动出牌）
-                gs.startPlayTimer()
-                // 2. 启动机器人快速操作（800-1500ms）
+                // 🔧【修复】启动机器人快速操作（800-1500ms），不再启动后备倒计时
+                // 注意：handleRobotPlay 会自动停止倒计时计时器
                 gs.scheduleRobotAction(func() {
-                        gs.handlePlayTimeout()
+                        gs.handleRobotPlay()
                 })
                 return
         }

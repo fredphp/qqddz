@@ -310,12 +310,10 @@ func (gs *GameSession) notifyPlayTurn() {
         // 🔧【托管】检查玩家是否处于托管状态（机器人或超时托管）
         if player.IsRobot() || player.IsTrustee {
                 log.Printf("[TRUSTEE] 玩家 %s 托管状态，准备自动出牌", player.Name)
-                // 🔧【修复】同时启动后备倒计时和快速机器人操作
-                // 1. 启动后备倒计时（如果机器人操作失败，倒计时到期后自动出牌）
-                gs.startPlayTimer()
-                // 2. 启动机器人快速操作（800-1500ms随机延迟）
+                // 🔧【修复】启动机器人快速操作（800-1500ms），不再启动后备倒计时
+                // 注意：handleRobotPlay 会自动停止倒计时计时器
                 gs.scheduleRobotAction(func() {
-                        gs.handlePlayTimeout()
+                        gs.handleRobotPlay()
                 })
                 return
         }
