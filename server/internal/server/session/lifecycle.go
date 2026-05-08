@@ -675,8 +675,8 @@ func (gs *GameSession) saveGameResultToDatabase(winner *GamePlayer, baseScore, t
         }
 }
 
-// saveGameResultToDatabaseAsync 异步保存游戏结果到数据库（带重试机制）
-// 🔧【新增】实现"无感结算"，数据库操作不阻塞结算弹窗
+// saveGameResultToDatabaseAsync 异步保存游戏结果到数据库（使用写入队列）
+// 🔧【优化】使用写入队列减轻高并发下的数据库压力
 func (gs *GameSession) saveGameResultToDatabaseAsync(winner *GamePlayer, baseScore, totalMulti int, spring uint8, players []protocol.PlayerResult) {
         // 🔧【重要】复制必要的数据，避免在 goroutine 中访问可能已被修改的数据
         // 复制玩家信息
@@ -714,17 +714,10 @@ func (gs *GameSession) saveGameResultToDatabaseAsync(winner *GamePlayer, baseSco
         // 复制房间信息
         roomCode := gs.room.Code
 
-        log.Printf("📊 [AsyncSave] 开始异步保存游戏结果，房间: %s", roomCode)
+        log.Printf("📊 [AsyncSave] 开始准备游戏结果数据，房间: %s", roomCode)
 
-        // 重试机制：最多重试3次，每次间隔递增
-        maxRetries := 3
-        for retry := 0; retry < maxRetries; retry++ {
-                if retry > 0 {
-                        waitTime := time.Duration(retry) * time.Second
-                        log.Printf("📊 [AsyncSave] 第 %d 次重试，等待 %v...", retry, waitTime)
-                        time.Sleep(waitTime)
-                }
-
+        // 🔧【优化】使用 goroutine 准备数据，不阻塞主流程
+        go func() {
                 // 检查数据库连接
                 if !database.GetInstance().IsConnected() {
                         log.Printf("❌ [AsyncSave] 数据库未连接！游戏结果将丢失！房间: %s", roomCode)
@@ -815,8 +808,8 @@ func (gs *GameSession) saveGameResultToDatabaseAsync(winner *GamePlayer, baseSco
                         }
                 }
 
-                // 保存游戏结果
-                err := gameLogger.SaveGameResult(
+                // 🔧【优化】构建游戏结果数据
+                gameData := gameLogger.BuildGameResultData(
                         landlordID, farmer1ID, farmer2ID,
                         baseScore, totalMulti,
                         spring, result,
@@ -825,19 +818,25 @@ func (gs *GameSession) saveGameResultToDatabaseAsync(winner *GamePlayer, baseSco
                         playerIDMap,
                 )
 
-                if err != nil {
-                        log.Printf("❌ [AsyncSave] 第 %d 次保存失败: %v", retry+1, err)
-                        // 如果是锁超时错误，继续重试
-                        if retry < maxRetries-1 {
-                                continue
+                // 🔧【优化】提交到写入队列，非阻塞模式
+                if err := database.SubmitGameResult(gameData); err != nil {
+                        log.Printf("❌ [AsyncSave] 提交到写入队列失败: %v，尝试直接保存", err)
+                        // 队列满，回退到直接保存
+                        err := gameLogger.SaveGameResult(
+                                landlordID, farmer1ID, farmer2ID,
+                                baseScore, totalMulti,
+                                spring, result,
+                                landlordWinGold, farmer1WinGold, farmer2WinGold,
+                                landlordWinArenaCoin, farmer1WinArenaCoin, farmer2WinArenaCoin,
+                                playerIDMap,
+                        )
+                        if err != nil {
+                                log.Printf("❌ [AsyncSave] 直接保存也失败: %v", err)
                         }
-                        log.Printf("❌ [AsyncSave] 已达最大重试次数，保存失败")
-                        return
+                } else {
+                        log.Printf("✅ [AsyncSave] 游戏结果已提交到写入队列，房间: %s", roomCode)
                 }
-
-                log.Printf("✅ [AsyncSave] 游戏结果保存成功，房间: %s", roomCode)
-                return
-        }
+        }()
 }
 
 // recordGameResults 记录游戏结果到排行榜

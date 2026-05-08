@@ -185,6 +185,53 @@ func (l *GameLogger) RecordPlayLog(playerID string, playerRole uint8, playType u
         })
 }
 
+// BuildGameResultData 构建游戏结果数据（用于写入队列）
+// 🔧【优化】构建数据后提交到写入队列，减轻数据库压力
+func (l *GameLogger) BuildGameResultData(
+        landlordID, farmer1ID, farmer2ID uint64,
+        baseScore, multiplier int,
+        spring uint8,
+        result uint8,
+        landlordWinGold, farmer1WinGold, farmer2WinGold int64,
+        landlordWinArenaCoin, farmer1WinArenaCoin, farmer2WinArenaCoin int64,
+        playerIDMap map[string]uint64,
+) *database.GameResultData {
+        endedAt := time.Now()
+        durationSeconds := int(endedAt.Sub(l.startedAt).Seconds())
+
+        // 转换日志记录
+        dealLogs := l.convertDealLogs(playerIDMap)
+        bidLogs := l.convertBidLogs(playerIDMap)
+        playLogs := l.convertPlayLogs(playerIDMap)
+
+        return &database.GameResultData{
+                GameID:              l.gameID,
+                RoomID:              l.roomID,
+                RoomType:            l.roomType,
+                RoomCategory:        l.roomCategory,
+                LandlordID:          landlordID,
+                Farmer1ID:           farmer1ID,
+                Farmer2ID:           farmer2ID,
+                BaseScore:           baseScore,
+                Multiplier:          multiplier,
+                BombCount:           l.bombCount,
+                Spring:              spring,
+                Result:              result,
+                LandlordWinGold:     landlordWinGold,
+                Farmer1WinGold:      farmer1WinGold,
+                Farmer2WinGold:      farmer2WinGold,
+                LandlordWinArenaCoin: landlordWinArenaCoin,
+                Farmer1WinArenaCoin: farmer1WinArenaCoin,
+                Farmer2WinArenaCoin: farmer2WinArenaCoin,
+                StartedAt:           l.startedAt,
+                EndedAt:             &endedAt,
+                DurationSeconds:     durationSeconds,
+                DealLogs:            dealLogs,
+                BidLogs:             bidLogs,
+                PlayLogs:            playLogs,
+        }
+}
+
 // SaveGameResult 保存游戏结果到数据库
 // 🔧【修复】新增 playerIDMap 参数，用于将 WebSocket PlayerID 映射到数据库 DBID
 func (l *GameLogger) SaveGameResult(

@@ -68,6 +68,16 @@ func main() {
 				// 启动分表定时调度器
 				database.StartPartitionScheduler()
 			}
+
+			// 🔧【优化】初始化写入队列
+			log.Println("📝 正在初始化写入队列...")
+			if err := database.InitWriteQueue(database.DefaultWriteQueueConfig()); err != nil {
+				log.Printf("⚠️ 写入队列初始化失败: %v", err)
+			} else {
+				log.Println("✅ 写入队列初始化成功")
+				// 启动写入队列
+				database.StartWriteQueue(database.GetInstance().GetDB())
+			}
 		}
 	} else {
 		log.Println("⚠️ 未配置MySQL数据库，游戏数据将无法保存！")
@@ -143,6 +153,12 @@ func main() {
 	// 关闭WebSocket服务器
 	if wsServer != nil {
 		wsServer.GracefulShutdown(cfg.Game.ShutdownTimeoutDuration())
+	}
+
+	// 🔧【优化】停止写入队列（处理剩余数据）
+	if database.GetInstance().IsConnected() {
+		log.Println("📝 正在停止写入队列...")
+		database.StopWriteQueue()
 	}
 
 	// 关闭数据库连接
