@@ -9,6 +9,7 @@ import (
 
         "github.com/palemoky/fight-the-landlord/internal/game/database"
         "github.com/palemoky/fight-the-landlord/internal/game/deal"
+        "github.com/palemoky/fight-the-landlord/internal/game/rule"
         "github.com/palemoky/fight-the-landlord/internal/protocol"
         "github.com/palemoky/fight-the-landlord/internal/protocol/codec"
         "github.com/palemoky/fight-the-landlord/internal/protocol/convert"
@@ -916,7 +917,7 @@ func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
         gs.room.State = RoomStateReady
         
         // 调用房间开始游戏
-        if err := gs.room.startGameLocked(); err != nil {
+        if err := gs.room.StartGame(); err != nil {
                 log.Printf("❌ [onArenaCountdownEnd] 开始游戏失败: %v", err)
                 return
         }
@@ -946,7 +947,7 @@ func (gs *GameSession) resetForNewRound() {
         gs.pendingCallAction = ""
         gs.reDealCount = 0
         gs.currentPlayer = 0
-        gs.lastPlayedHand = nil
+        gs.lastPlayedHand = rule.ParsedHand{}
         gs.lastPlayerIdx = -1
         gs.consecutivePasses = 0
         gs.playerOutStatus = make(map[int]bool)
