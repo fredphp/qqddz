@@ -155,6 +155,9 @@ func (h *ArenaHandler) Signup(w http.ResponseWriter, r *http.Request) {
                 return
         }
 
+        // 🔧【调试】打印玩家竞技币余额
+        log.Printf("🔍 [报名调试] 玩家ID: %d, 竞技币余额: %d, 金币余额: %d", player.ID, player.ArenaCoin, player.Gold)
+
         // 检查玩家状态
         if player.Status != database.PlayerStatusNormal {
                 writeJSONError(w, http.StatusForbidden, "账号状态异常，无法报名")
@@ -212,8 +215,13 @@ func (h *ArenaHandler) Signup(w http.ResponseWriter, r *http.Request) {
         // 注意：管理后台将报名费配置在 ddz_room_config.min_arena_coin 字段
         signupFee := roomConfig.MinArenaCoin
 
+        // 🔧【调试】打印报名门槛信息
+        log.Printf("🔍 [报名调试] 房间ID: %d, 房间名: %s, 报名门槛(min_arena_coin): %d, 玩家竞技币: %d", 
+                roomConfig.ID, roomConfig.RoomName, signupFee, player.ArenaCoin)
+
         // 检查竞技币是否足够（入场门槛和报名费是同一个值）
         if player.ArenaCoin < signupFee {
+                log.Printf("❌ [报名调试] 竞技币不足: 玩家 %d, 需要 %d, 当前 %d", player.ID, signupFee, player.ArenaCoin)
                 writeJSONError(w, http.StatusBadRequest, fmt.Sprintf("竞技币不足，需要%d，当前%d", signupFee, player.ArenaCoin))
                 return
         }
