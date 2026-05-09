@@ -100,3 +100,38 @@ func (s *Server) ForceLogoutAllPlayers(reason string) {
                 }(client)
         }
 }
+
+// ============================================================
+// 【新增】竞技场赛事相关广播方法
+// ============================================================
+
+// BroadcastToPeriodPlayers 广播消息给指定期号的所有玩家
+func (s *Server) BroadcastToPeriodPlayers(periodNo string, msg *protocol.Message) {
+        s.clientsMu.RLock()
+        defer s.clientsMu.RUnlock()
+
+        count := 0
+        for _, client := range s.clients {
+                if client.GetPeriodNo() == periodNo {
+                        client.SendMessage(msg)
+                        count++
+                }
+        }
+
+        log.Printf("[Broadcast] 广播给期号 %s 的 %d 个玩家", periodNo, count)
+}
+
+// SendToPlayer 发送消息给指定玩家
+func (s *Server) SendToPlayer(playerID string, msg *protocol.Message) bool {
+        s.clientsMu.RLock()
+        defer s.clientsMu.RUnlock()
+
+        client, exists := s.clients[playerID]
+        if !exists {
+                log.Printf("[Broadcast] ⚠️ 玩家不在线: %s", playerID)
+                return false
+        }
+
+        client.SendMessage(msg)
+        return true
+}

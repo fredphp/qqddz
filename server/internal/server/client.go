@@ -59,6 +59,7 @@ type Client struct {
         IP         string // 客户端 IP 地址
         PlayerID   uint64 // 数据库玩家ID
         Gold       int64  // 🔧【新增】玩家金币数量（从数据库缓存）
+        PeriodNo   string // 🔧【新增】当前竞技场期号（用于赛事进度广播）
 
         server *Server
         conn   *websocket.Conn
@@ -350,4 +351,22 @@ func (c *Client) GetCallIndex() int64 {
 // IsRobot 判断是否是机器人客户端（普通客户端返回 false）
 func (c *Client) IsRobot() bool {
         return false
+}
+
+// ============================================================
+// 【新增】竞技场期号相关方法
+// ============================================================
+
+// GetPeriodNo 获取当前竞技场期号
+func (c *Client) GetPeriodNo() string {
+        c.mu.RLock()
+        defer c.mu.RUnlock()
+        return c.PeriodNo
+}
+
+// SetPeriodNo 设置当前竞技场期号
+func (c *Client) SetPeriodNo(periodNo string) {
+        c.mu.Lock()
+        defer c.mu.Unlock()
+        c.PeriodNo = periodNo
 }

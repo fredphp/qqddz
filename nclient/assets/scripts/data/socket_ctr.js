@@ -141,6 +141,11 @@ window.socketCtr = function(){
         ARENA_COUNTDOWN_TICK: "arena_countdown_tick",      // 竞技场倒计时每秒更新
         ARENA_AUTO_READY: "arena_auto_ready",              // 竞技场自动准备通知
         ARENA_RECONNECT_STATE: "arena_reconnect_state",     // 竞技场断线重连状态恢复
+
+        // 🔧【新增】竞技场多桌等待和决赛排行榜
+        TOURNAMENT_WAIT_PROGRESS: "tournament_wait_progress",  // 等待进度广播
+        TOURNAMENT_ROUND_ADVANCE: "tournament_round_advance",  // 下一轮通知
+        TOURNAMENT_FINAL_RANK: "tournament_final_rank",        // 最终榜单
     }
 
     // 发送消息
@@ -637,6 +642,46 @@ window.socketCtr = function(){
                     room_id: data.room_id || 0,
                     round: data.round || 0,
                     countdown: data.countdown || 0,
+                    message: data.message || ""
+                })
+                break
+
+            // ============================================================
+            // 【新增】竞技场多桌等待和决赛排行榜消息处理
+            // ============================================================
+
+            // 等待进度广播
+            case MessageType.TOURNAMENT_WAIT_PROGRESS:
+                evt.fire("tournament_wait_progress_notify", {
+                    period_no: data.period_no || "",
+                    round: data.round || 1,
+                    total_rounds: data.total_rounds || 1,
+                    finished_tables: data.finished_tables || 0,
+                    total_tables: data.total_tables || 0,
+                    player_table_done: data.player_table_done || false,
+                    message: data.message || ""
+                })
+                break
+
+            // 下一轮通知
+            case MessageType.TOURNAMENT_ROUND_ADVANCE:
+                evt.fire("tournament_round_advance_notify", {
+                    period_no: data.period_no || "",
+                    new_round: data.new_round || 1,
+                    total_rounds: data.total_rounds || 1,
+                    message: data.message || ""
+                })
+                break
+
+            // 最终榜单
+            case MessageType.TOURNAMENT_FINAL_RANK:
+                evt.fire("tournament_final_rank_notify", {
+                    period_no: data.period_no || "",
+                    total_players: data.total_players || 0,
+                    top3: data.top3 || [],
+                    top20: data.top20 || [],
+                    my_rank: data.my_rank || 0,
+                    my_match_coin: data.my_match_coin || 0,
                     message: data.message || ""
                 })
                 break
@@ -1349,6 +1394,37 @@ window.socketCtr = function(){
     that.onArenaReconnectState = function(callback){
         var evt = _getEvent()
         if (evt) evt.on("arena_reconnect_state_notify", callback)
+    }
+
+    // ============================================================
+    // 【新增】竞技场多桌等待和决赛排行榜监听函数
+    // ============================================================
+
+    /**
+     * 监听等待进度广播
+     * @param {Function} callback - 回调函数，接收 { period_no, round, total_rounds, finished_tables, total_tables, player_table_done, message }
+     */
+    that.onTournamentWaitProgress = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("tournament_wait_progress_notify", callback)
+    }
+
+    /**
+     * 监听下一轮通知
+     * @param {Function} callback - 回调函数，接收 { period_no, new_round, total_rounds, message }
+     */
+    that.onTournamentRoundAdvance = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("tournament_round_advance_notify", callback)
+    }
+
+    /**
+     * 监听最终榜单
+     * @param {Function} callback - 回调函数，接收 { period_no, total_players, top3, top20, my_rank, my_match_coin, message }
+     */
+    that.onTournamentFinalRank = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("tournament_final_rank_notify", callback)
     }
 
     return that

@@ -746,3 +746,50 @@ type ArenaMatchEndPayload struct {
         RoomID   uint64 `json:"room_id"`   // 房间配置ID
         Message  string `json:"message"`   // 提示消息："比赛结束"
 }
+
+// ============================================================
+// 【新增】竞技场多桌等待和决赛排行榜 Payloads
+// ============================================================
+
+// TournamentWaitProgressPayload 等待进度广播
+// 当玩家完成当前轮次后，显示等待其他桌完成的进度
+type TournamentWaitProgressPayload struct {
+        PeriodNo        string `json:"period_no"`         // 期号
+        Round           int    `json:"round"`             // 当前轮次
+        TotalRounds     int    `json:"total_rounds"`      // 总轮次
+        FinishedTables  int    `json:"finished_tables"`   // 已完成桌数
+        TotalTables     int    `json:"total_tables"`      // 总桌数
+        PlayerTableDone bool   `json:"player_table_done"` // 当前玩家所在桌是否已完成
+        Message         string `json:"message"`           // 提示消息
+}
+
+// TournamentRoundAdvancePayload 下一轮通知
+// 当所有桌完成当前轮次后，广播此消息通知进入下一轮
+type TournamentRoundAdvancePayload struct {
+        PeriodNo    string `json:"period_no"`    // 期号
+        NewRound    int    `json:"new_round"`    // 新轮次
+        TotalRounds int    `json:"total_rounds"` // 总轮次
+        Message     string `json:"message"`      // 提示消息
+}
+
+// TournamentFinalRankPayload 最终榜单
+// 比赛结束时推送最终排名
+type TournamentFinalRankPayload struct {
+        PeriodNo     string                `json:"period_no"`     // 期号
+        TotalPlayers int                   `json:"total_players"` // 总参赛人数
+        Top3         []TournamentRankEntry `json:"top3"`          // 前三名（领奖台展示）
+        Top20        []TournamentRankEntry `json:"top20"`         // 前20名（列表展示）
+        MyRank       int                   `json:"my_rank"`       // 我的排名（0表示未上榜）
+        MyMatchCoin  int64                 `json:"my_match_coin"` // 我的最终金币
+        Message      string                `json:"message"`       // 提示消息
+}
+
+// TournamentRankEntry 淘汰赛排名条目
+type TournamentRankEntry struct {
+        Rank       int    `json:"rank"`        // 排名
+        PlayerID   string `json:"player_id"`   // 玩家ID
+        PlayerName string `json:"player_name"` // 玩家昵称
+        Avatar     string `json:"avatar"`      // 头像URL
+        MatchCoin  int64  `json:"match_coin"`  // 最终金币
+        IsRobot    bool   `json:"is_robot"`    // 是否是机器人
+}

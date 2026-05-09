@@ -166,6 +166,11 @@ const (
         MsgArenaReconnectState MessageType = "arena_reconnect_state" // 竞技场断线重连状态恢复
         MsgArenaMatchEnd       MessageType = "arena_match_end"       // 竞技场比赛结束通知
 
+        // 🔧【新增】竞技场多桌等待和决赛排行榜
+        MsgTournamentWaitProgress MessageType = "tournament_wait_progress" // 等待进度广播
+        MsgTournamentRoundAdvance MessageType = "tournament_round_advance" // 下一轮通知
+        MsgTournamentFinalRank    MessageType = "tournament_final_rank"    // 最终榜单
+
         // 错误
         MsgError MessageType = "error" // 错误消息
 )
