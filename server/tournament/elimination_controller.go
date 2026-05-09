@@ -93,12 +93,18 @@ func (ec *EliminationController) ExecuteElimination(sessionID uint64, roundNum i
         // 8. 判断是否进入决赛
         isFinalRound := remainingCount <= 3
 
+        // 转换 toEliminate 为值类型切片
+        eliminatedPlayers := make([]EliminatedPlayer, len(toEliminate))
+        for i, p := range toEliminate {
+                eliminatedPlayers[i] = *p
+        }
+
         result := &EliminationResult{
                 SessionID:       sessionID,
                 RoundNum:        roundNum,
                 EliminatedCount: len(toEliminate),
                 RemainingCount:  remainingCount,
-                Eliminated:      toEliminate,
+                Eliminated:      eliminatedPlayers,
                 IsFinalRound:    isFinalRound,
         }
 
@@ -111,17 +117,6 @@ func (ec *EliminationController) ExecuteElimination(sessionID uint64, roundNum i
 // eliminatePlayer 淘汰单个玩家
 // 🔧【重构】使用分表操作
 func (ec *EliminationController) eliminatePlayer(sessionID, playerID uint64, roundNum int, reason string) error {
-        // 获取淘汰前排名
-        rank := 0
-        if participations, err := database.GetActiveParticipations(sessionID); err == nil {
-                for i, p := range participations {
-                        if p.PlayerID == playerID {
-                                rank = i + 1
-                                break
-                        }
-                }
-        }
-
         // 更新玩家淘汰状态（使用分表）
         return database.UpdateParticipationElimination(sessionID, playerID, true, roundNum, reason)
 }
