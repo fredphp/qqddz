@@ -161,7 +161,13 @@ const (
 // =============================================
 
 // ArenaPeriodPlayer 竞技场期号报名玩家快照表模型
-// 用于记录每个期号的最终报名玩家列表
+// 职责：报名管理 + 历史记录查询（按月分表）
+// 与 ArenaParticipation 的区别：
+// - ArenaPeriodPlayer: 报名专用（分表，便于历史查询）
+// - ArenaParticipation: 比赛过程数据（主表，支持事务操作）
+//
+// 注意：比赛过程数据（金币、淘汰、排名）存储在 ddz_arena_participations 表
+// 比赛结束后，最终排名会同步到本表的 final_rank 字段
 type ArenaPeriodPlayer struct {
         ID              uint64    `gorm:"primaryKey;autoIncrement;comment:记录ID" json:"id"`
         PeriodNo        string    `gorm:"type:varchar(20);not null;index;comment:期号" json:"period_no"`
@@ -173,12 +179,10 @@ type ArenaPeriodPlayer struct {
         SignupFee       int64     `gorm:"type:bigint;not null;default:0;comment:报名费" json:"signup_fee"`
         Status          uint8     `gorm:"type:tinyint unsigned;not null;default:1;index;comment:状态:1-正常,2-取消,3-超时未进入" json:"status"`
 
-        // 🔧【新增】竞技场赛事金币字段
-        ArenaGold       int64     `gorm:"type:bigint;not null;default:0;comment:当期赛事金币" json:"arena_gold"`
-        IsEliminated    uint8     `gorm:"type:tinyint unsigned;not null;default:0;comment:是否淘汰:0-否,1-是" json:"is_eliminated"`
-        EliminatedRound *int      `gorm:"type:int;comment:淘汰轮次" json:"eliminated_round"`
-        RankNo          *int      `gorm:"type:int;comment:最终排名" json:"rank_no"`
+        // 玩家比赛状态（简单状态，用于快速查询）
         PlayerStatus    uint8     `gorm:"type:tinyint unsigned;not null;default:0;index;comment:玩家状态:0-报名,1-比赛中,2-淘汰,3-晋级,4-结束" json:"player_status"`
+        // 最终排名（比赛结束时从 participations 同步）
+        FinalRank       *int      `gorm:"type:int;comment:最终排名(比赛结束时同步)" json:"final_rank"`
 
         CreatedAt       time.Time `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
         UpdatedAt       time.Time `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`
@@ -476,7 +480,7 @@ func UpsertArenaPeriodPlayer(player *ArenaPeriodPlayer) (UpsertResult, error) {
         }
 
         // 记录不存在，创建新记录（使用 map 避免 TableName 覆盖）
-        // 🔧【关键修复】创建时包含 arena_gold 字段（初始为0，后续由 InitArenaGold 更新）
+        // 报名时只写入报名相关字段，比赛数据由 participations 表管理
         if err := DB().Table(tableName).Create(map[string]interface{}{
                 "period_no":     player.PeriodNo,
                 "period_id":     player.PeriodID,
@@ -486,7 +490,6 @@ func UpsertArenaPeriodPlayer(player *ArenaPeriodPlayer) (UpsertResult, error) {
                 "signup_order":  player.SignupOrder,
                 "signup_fee":    player.SignupFee,
                 "status":        player.Status,
-                "arena_gold":    0, // 初始为0，后续由 InitArenaGold 初始化
                 "player_status": ArenaPlayerStatusSignup,
         }).Error; err != nil {
                 return UpsertResultCreated, err

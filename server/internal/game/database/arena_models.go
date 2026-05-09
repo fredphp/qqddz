@@ -168,18 +168,23 @@ func (s *ArenaSession) CanSignup() bool {
 // =============================================
 
 // ArenaParticipation 参赛记录表模型
+// 职责：比赛过程数据 + 实时排名 + 淘汰状态
+// 与 ArenaPeriodPlayer 的区别：
+// - ArenaPeriodPlayer: 报名管理 + 历史记录查询（按月分表）
+// - ArenaParticipation: 比赛过程数据（主表，支持事务操作）
 type ArenaParticipation struct {
         ID              uint64     `gorm:"primaryKey;autoIncrement;comment:记录ID" json:"id"`
         SessionID       uint64     `gorm:"type:bigint unsigned;uniqueIndex:uk_session_player;not null;index;comment:比赛会话ID" json:"session_id"`
         PlayerID        uint64     `gorm:"type:bigint unsigned;uniqueIndex:uk_session_player;not null;index;comment:玩家ID" json:"player_id"`
+        PeriodNo        string     `gorm:"type:varchar(20);index;comment:期号(关联报名记录)" json:"period_no"` // 新增：关联期号
         RobotID         uint64     `gorm:"type:bigint unsigned;not null;default:0;comment:机器人ID(当is_robot=1时等于player_id)" json:"robot_id"`
         IsRobot         uint8      `gorm:"type:tinyint;not null;default:0;comment:是否机器人:0-否,1-是" json:"is_robot"`
         // 动态淘汰赛新增字段
         IsTournamentBot uint8      `gorm:"type:tinyint;not null;default:0;comment:是否为锦标赛补位机器人(不可获奖)" json:"is_tournament_bot"`
         LetWinEnabled   uint8      `gorm:"type:tinyint;not null;default:0;comment:是否启用让牌策略" json:"let_win_enabled"`
-        SignupTime      time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:报名时间" json:"signup_time"`
-        SignupFee       int64      `gorm:"type:bigint;not null;default:0;comment:报名费(竞技币)" json:"signup_fee"`
-        MatchCoin       int64      `gorm:"type:bigint;not null;default:0;comment:比赛金币(临时，仅用于排名)" json:"match_coin"`
+        SignupTime      time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:报名时间(从period_players复制)" json:"signup_time"`
+        SignupFee       int64      `gorm:"type:bigint;not null;default:0;comment:报名费(从period_players复制)" json:"signup_fee"`
+        MatchCoin       int64      `gorm:"type:bigint;not null;default:0;comment:比赛金币(用于排名，开赛时初始化)" json:"match_coin"`
         RoundMatchCoin  int64      `gorm:"type:bigint;not null;default:0;comment:本轮比赛金币(每轮重置)" json:"round_match_coin"`
         CurrentRound    int        `gorm:"type:int;not null;default:0;comment:当前所在轮次" json:"current_round"`
         Rank            *int       `gorm:"type:int;comment:最终排名" json:"rank"`
