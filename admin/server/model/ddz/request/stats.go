@@ -1,23 +1,31 @@
-package request
+package ddz
 
 import "github.com/flipped-aurora/gin-vue-admin/server/model/common/request"
 
-// DDZStatsSearch 统计搜索请求
-type DDZStatsSearch struct {
+// DDZDailyStatsSearch 每日统计查询请求
+type DDZDailyStatsSearch struct {
 	request.PageInfo
-	PlayerID string `json:"playerId" form:"playerId"`
 	StartDate string `json:"startDate" form:"startDate"`
 	EndDate   string `json:"endDate" form:"endDate"`
 }
 
-// DDZLeaderboardSearch 排行榜搜索请求
+// DDZLeaderboardSearch 排行榜查询请求
 type DDZLeaderboardSearch struct {
-	RankType string `json:"rankType" form:"rankType" binding:"required"` // winrate/coins/level/wins
-	Limit    int    `json:"limit" form:"limit"`
+	request.PageInfo
+	PlayerName string `json:"playerName" form:"playerName"`
+	OrderBy    string `json:"orderBy" form:"orderBy"` // winCount, gold, arenaCoin, rankScore
 }
 
-// DDZDailyStatsSearch 每日统计搜索请求
-type DDZDailyStatsSearch struct {
-	StartDate string `json:"startDate" form:"startDate" binding:"required"`
-	EndDate   string `json:"endDate" form:"endDate" binding:"required"`
+// DDZPlayerOnlineSearch 在线玩家查询请求
+type DDZPlayerOnlineSearch struct {
+	request.PageInfo
+	PlayerID uint64 `json:"playerId" form:"playerId"`
+	LoginIP  string `json:"loginIp" form:"loginIp"`
+}
+
+// DDZRoomPlayerSearch 房间玩家查询请求
+type DDZRoomPlayerSearch struct {
+	request.PageInfo
+	RoomID   uint64 `json:"roomId" form:"roomId"`
+	PlayerID uint64 `json:"playerId" form:"playerId"`
 }
