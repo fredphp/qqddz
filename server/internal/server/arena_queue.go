@@ -314,8 +314,20 @@ func (q *ArenaMessageQueue) handlePeriodFinalize(data interface{}) error {
 }
 
 // syncPlayersToDB 批量同步玩家数据到数据库（使用分表）
+// 🔧【修复】添加金币初始化逻辑
 func (q *ArenaMessageQueue) syncPlayersToDB(periodID uint64, periodNo string, roomID uint64, players []uint64, periodTime time.Time) {
         now := time.Now()
+
+        // 🔧【新增】获取房间配置以读取初始金币
+        var initialGold int64 = 10000 // 默认初始金币
+        roomConfig, err := database.GetRoomConfigByID(roomID)
+        if err == nil && roomConfig != nil {
+                initialGold = roomConfig.MinGold
+        }
+        if initialGold <= 0 {
+                initialGold = 10000
+        }
+
         for order, playerID := range players {
                 playerRecord := &database.ArenaPeriodPlayer{
                         PeriodNo:    periodNo,
@@ -325,11 +337,12 @@ func (q *ArenaMessageQueue) syncPlayersToDB(periodID uint64, periodNo string, ro
                         SignupTime:  now,
                         SignupOrder: order + 1,
                         Status:      database.ArenaPeriodPlayerStatusNormal,
+                        ArenaGold:   initialGold, // 🔧【修复】初始化金币
                 }
                 // 使用分表写入（根据期号时间确定分表）
                 database.FirstOrCreateArenaPeriodPlayerWithTime(periodID, playerID, playerRecord, periodTime)
         }
-        log.Printf("[ArenaQueue] 同步玩家记录: periodID=%d, count=%d", periodID, len(players))
+        log.Printf("[ArenaQueue] 同步玩家记录: periodID=%d, count=%d, initialGold=%d", periodID, len(players), initialGold)
 }
 
 // handleSignupLog 处理报名日志任务（简化版，不写入数据库，数据在结算时批量写入）

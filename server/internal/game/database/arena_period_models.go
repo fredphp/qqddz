@@ -830,6 +830,7 @@ func UpdateArenaGold(periodNo string, playerID uint64, changeGold int64, matchID
 }
 
 // GetArenaGold 查询玩家当期赛事金币
+// 🔧【修复】如果记录不存在，自动创建并初始化金币
 func GetArenaGold(periodNo string, playerID uint64) (int64, error) {
         t, err := parsePeriodNoToTime(periodNo)
         if err != nil {
@@ -845,8 +846,31 @@ func GetArenaGold(periodNo string, playerID uint64) (int64, error) {
                 Where("period_no = ? AND player_id = ?", periodNo, playerID).
                 First(&player).Error; err != nil {
                 if err == gorm.ErrRecordNotFound {
-                        log.Printf("⚠️ [GetArenaGold] 记录不存在: table=%s, period_no=%s, player_id=%d", tableName, periodNo, playerID)
-                        return 0, nil // 未找到记录，返回0
+                        log.Printf("⚠️ [GetArenaGold] 记录不存在，自动创建: table=%s, period_no=%s, player_id=%d", tableName, periodNo, playerID)
+                        // 🔧【修复】记录不存在时，调用 InitArenaGold 创建记录并初始化金币
+                        // 需要获取房间配置来确定初始金币值
+                        // 从 periodNo 解析 roomID
+                        var roomID uint64
+                        if len(periodNo) >= 8 {
+                                roomID = uint64(periodNo[6]-'0')*10 + uint64(periodNo[7]-'0')
+                        }
+                        // 获取房间配置中的初始金币
+                        var initialGold int64 = 10000 // 默认值
+                        if roomID > 0 {
+                                var roomConfig RoomConfig
+                                if err := DB().First(&roomConfig, roomID).Error; err == nil {
+                                        initialGold = roomConfig.MinGold
+                                }
+                        }
+                        if initialGold <= 0 {
+                                initialGold = 10000
+                        }
+                        // 创建记录
+                        if err := InitArenaGold(periodNo, playerID, initialGold); err != nil {
+                                log.Printf("❌ [GetArenaGold] 创建记录失败: %v", err)
+                                return 0, nil
+                        }
+                        return initialGold, nil
                 }
                 log.Printf("❌ [GetArenaGold] 查询失败: table=%s, err=%v", tableName, err)
                 return 0, err
