@@ -5609,6 +5609,7 @@ cc.Class({
     /**
      * 🏆【竞技场】显示冠军弹窗
      * @param {Object} data - { rank, rewards, reward_type, rankings, match_coin }
+     * 🔧【重构】显示完整的排名列表（前20名），包括冠军、亚军、季军
      */
     _showChampionPopup: function(data) {
         var self = this
@@ -5617,11 +5618,16 @@ cc.Class({
         var canvas = cc.find("Canvas") || cc.find("UI_ROOT") || this.node.parent
         if (!canvas) canvas = this.node
         
+        // 🔧【关闭之前的结算弹窗】
+        if (this._gameResultPopup || this._gameResultMask) {
+            this._closeGameResultPopup(this._gameResultPopup, this._gameResultMask)
+        }
+        
         // 遮罩层
         var maskNode = new cc.Node("ChampionMask")
         maskNode.addComponent(cc.BlockInputEvents)
-        maskNode.color = new cc.Color(30, 20, 50)
-        maskNode.opacity = 200
+        maskNode.color = new cc.Color(20, 15, 40)
+        maskNode.opacity = 220
         maskNode.width = winSize.width * 2
         maskNode.height = winSize.height * 2
         maskNode.zIndex = 999
@@ -5634,17 +5640,18 @@ cc.Class({
         popupNode.zIndex = 1000
         popupNode.parent = canvas
         
-        var popupWidth = 500
-        var popupHeight = 450
+        // 🔧【调整】增大弹窗尺寸以容纳更多排名
+        var popupWidth = 520
+        var popupHeight = 620
         
         // 背景
         var bgNode = new cc.Node("Bg")
         var bg = bgNode.addComponent(cc.Graphics)
-        bg.fillColor = new cc.Color(60, 50, 80, 240)
+        bg.fillColor = new cc.Color(45, 35, 70, 245)
         bg.roundRect(-popupWidth/2, -popupHeight/2, popupWidth, popupHeight, 20)
         bg.fill()
-        bg.strokeColor = new cc.Color(255, 200, 100)
-        bg.lineWidth = 4
+        bg.strokeColor = new cc.Color(255, 200, 80)
+        bg.lineWidth = 3
         bg.roundRect(-popupWidth/2, -popupHeight/2, popupWidth, popupHeight, 20)
         bg.stroke()
         bgNode.parent = popupNode
@@ -5652,115 +5659,81 @@ cc.Class({
         // 标题
         var titleNode = new cc.Node("Title")
         var titleLabel = titleNode.addComponent(cc.Label)
-        titleLabel.string = "🏆 恭喜夺冠！🏆"
-        titleLabel.fontSize = 36
+        titleLabel.string = "🏆 比赛结束 🏆"
+        titleLabel.fontSize = 32
+        titleLabel.enableBold = true
         titleNode.color = new cc.Color(255, 220, 100)
-        titleNode.y = popupHeight/2 - 50
+        titleNode.y = popupHeight/2 - 40
         titleNode.parent = popupNode
         
-        // 比赛金币
-        var coinNode = new cc.Node("Coin")
-        var coinLabel = coinNode.addComponent(cc.Label)
-        coinLabel.string = "比赛金币: " + data.match_coin
-        coinLabel.fontSize = 24
-        coinNode.color = new cc.Color(255, 200, 100)
-        coinNode.y = popupHeight/2 - 100
-        coinNode.parent = popupNode
+        // 🔧【新增】前三名展示区
+        var rankings = data.rankings || []
+        var topThreeY = popupHeight/2 - 90
         
-        // 奖励标题
-        var rewardTitleNode = new cc.Node("RewardTitle")
-        var rewardTitleLabel = rewardTitleNode.addComponent(cc.Label)
-        rewardTitleLabel.string = "获得奖励:"
-        rewardTitleLabel.fontSize = 20
-        rewardTitleNode.color = new cc.Color(200, 200, 200)
-        rewardTitleNode.y = popupHeight/2 - 140
-        rewardTitleNode.parent = popupNode
-        
-        // 奖励信息
-        if (data.rewards) {
-            var rewardNode = new cc.Node("Reward")
-            var rewardLabel = rewardNode.addComponent(cc.Label)
-            rewardLabel.string = data.rewards.name || JSON.stringify(data.rewards)
-            rewardLabel.fontSize = 22
-            rewardNode.color = new cc.Color(255, 220, 150)
-            rewardNode.y = popupHeight/2 - 170
-            rewardNode.parent = popupNode
+        if (rankings.length >= 1) {
+            // 冠军
+            this._createRankingItem(popupNode, rankings[0], 1, -120, topThreeY)
+        }
+        if (rankings.length >= 2) {
+            // 亚军
+            this._createRankingItem(popupNode, rankings[1], 2, 0, topThreeY - 20)
+        }
+        if (rankings.length >= 3) {
+            // 季军
+            this._createRankingItem(popupNode, rankings[2], 3, 120, topThreeY - 40)
         }
         
-        // 排名列表标题
-        var rankingTitleNode = new cc.Node("RankingTitle")
-        var rankingTitleLabel = rankingTitleNode.addComponent(cc.Label)
-        rankingTitleLabel.string = "最终排名:"
-        rankingTitleLabel.fontSize = 18
-        rankingTitleNode.color = new cc.Color(180, 180, 180)
-        rankingTitleNode.y = -20
-        rankingTitleNode.parent = popupNode
-        
-        // 排名列表
-        if (data.rankings && data.rankings.length > 0) {
-            for (var i = 0; i < Math.min(data.rankings.length, 3); i++) {
-                var rankInfo = data.rankings[i]
+        // 🔧【新增】其他排名列表标题
+        if (rankings.length > 3) {
+            var otherTitleNode = new cc.Node("OtherTitle")
+            var otherTitleLabel = otherTitleNode.addComponent(cc.Label)
+            otherTitleLabel.string = "—— 其他排名 ——"
+            otherTitleLabel.fontSize = 18
+            otherTitleNode.color = new cc.Color(180, 180, 200)
+            otherTitleNode.y = topThreeY - 100
+            otherTitleNode.parent = popupNode
+            
+            // 🔧【新增】其他排名列表（第4-20名）
+            var startY = topThreeY - 130
+            var maxOtherRankings = Math.min(rankings.length, 20)
+            for (var i = 3; i < maxOtherRankings; i++) {
+                var rankInfo = rankings[i]
                 var rankItemNode = new cc.Node("RankItem_" + i)
                 var rankItemLabel = rankItemNode.addComponent(cc.Label)
-                rankItemLabel.string = "第" + (i + 1) + "名: " + (rankInfo.name || "玩家" + (i + 1))
+                rankItemLabel.string = "第" + rankInfo.rank + "名: " + rankInfo.player_name + "  金币: " + rankInfo.match_coin
                 rankItemLabel.fontSize = 16
-                rankItemNode.color = i === 0 ? new cc.Color(255, 220, 100) : new cc.Color(200, 200, 200)
-                rankItemNode.y = -50 - i * 25
+                rankItemNode.color = new cc.Color(200, 200, 210)
+                rankItemNode.y = startY - (i - 3) * 24
                 rankItemNode.parent = popupNode
             }
         }
         
         // 按钮区域
-        var btnY = -popupHeight/2 + 60
+        var btnY = -popupHeight/2 + 50
         
-        if (data.reward_type === "physical") {
-            // 实物奖励 - 填写收货信息按钮
-            var fillBtn = new cc.Node("FillBtn")
-            fillBtn.setContentSize(200, 50)
-            fillBtn.addComponent(cc.BlockInputEvents)
-            var fillBg = fillBtn.addComponent(cc.Graphics)
-            fillBg.fillColor = new cc.Color(80, 150, 80)
-            fillBg.roundRect(-100, -25, 200, 50, 25)
-            fillBg.fill()
-            fillBtn.y = btnY
-            fillBtn.parent = popupNode
-            
-            var fillLabelNode = new cc.Node("Label")
-            var fillLabel = fillLabelNode.addComponent(cc.Label)
-            fillLabel.string = "填写收货信息"
-            fillLabel.fontSize = 20
-            fillLabelNode.color = new cc.Color(255, 255, 255)
-            fillLabelNode.parent = fillBtn
-            
-            fillBtn.on(cc.Node.EventType.TOUCH_END, function() {
-                // TODO: 跳转到填写收货信息页面
-                self._showMessage("请在个人中心填写收货信息")
-            })
-        } else {
-            // 虚拟奖励 - 领取奖励按钮
-            var claimBtn = new cc.Node("ClaimBtn")
-            claimBtn.setContentSize(200, 50)
-            claimBtn.addComponent(cc.BlockInputEvents)
-            var claimBg = claimBtn.addComponent(cc.Graphics)
-            claimBg.fillColor = new cc.Color(200, 150, 50)
-            claimBg.roundRect(-100, -25, 200, 50, 25)
-            claimBg.fill()
-            claimBtn.y = btnY
-            claimBtn.parent = popupNode
-            
-            var claimLabelNode = new cc.Node("Label")
-            var claimLabel = claimLabelNode.addComponent(cc.Label)
-            claimLabel.string = "领取奖励"
-            claimLabel.fontSize = 20
-            claimLabelNode.color = new cc.Color(255, 255, 255)
-            claimLabelNode.parent = claimBtn
-            
-            claimBtn.on(cc.Node.EventType.TOUCH_END, function() {
-                popupNode.destroy()
-                maskNode.destroy()
-                self._returnToLobby()
-            })
-        }
+        // 确定按钮
+        var confirmBtn = new cc.Node("ConfirmBtn")
+        confirmBtn.setContentSize(180, 45)
+        confirmBtn.addComponent(cc.BlockInputEvents)
+        var confirmBg = confirmBtn.addComponent(cc.Graphics)
+        confirmBg.fillColor = new cc.Color(200, 150, 50)
+        confirmBg.roundRect(-90, -22.5, 180, 45, 22)
+        confirmBg.fill()
+        confirmBtn.y = btnY
+        confirmBtn.parent = popupNode
+        
+        var confirmLabelNode = new cc.Node("Label")
+        var confirmLabel = confirmLabelNode.addComponent(cc.Label)
+        confirmLabel.string = "返回大厅"
+        confirmLabel.fontSize = 20
+        confirmLabelNode.color = new cc.Color(255, 255, 255)
+        confirmLabelNode.parent = confirmBtn
+        
+        confirmBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            popupNode.destroy()
+            maskNode.destroy()
+            self._returnToLobby()
+        })
         
         // 弹出动画
         cc.tween(popupNode)
@@ -5772,6 +5745,76 @@ cc.Class({
         
         this._championPopup = popupNode
         this._championMask = maskNode
+    },
+    
+    /**
+     * 🏅【新增】创建单个排名项
+     * @param {cc.Node} parent - 父节点
+     * @param {Object} rankInfo - 排名信息
+     * @param {Number} rank - 排名（1, 2, 3）
+     * @param {Number} x - X坐标
+     * @param {Number} y - Y坐标
+     */
+    _createRankingItem: function(parent, rankInfo, rank, x, y) {
+        var itemNode = new cc.Node("RankItem_" + rank)
+        itemNode.setPosition(x, y)
+        
+        // 排名背景
+        var bgNode = new cc.Node("Bg")
+        var bg = bgNode.addComponent(cc.Graphics)
+        
+        // 根据排名设置不同颜色
+        var bgColor
+        if (rank === 1) {
+            bgColor = new cc.Color(255, 215, 0, 200)  // 金色
+        } else if (rank === 2) {
+            bgColor = new cc.Color(192, 192, 192, 200)  // 银色
+        } else {
+            bgColor = new cc.Color(205, 127, 50, 200)  // 铜色
+        }
+        
+        bg.fillColor = bgColor
+        bg.roundRect(-55, -30, 110, 60, 10)
+        bg.fill()
+        bgNode.parent = itemNode
+        
+        // 排名标签
+        var rankLabelNode = new cc.Node("RankLabel")
+        var rankLabel = rankLabelNode.addComponent(cc.Label)
+        var rankText
+        if (rank === 1) {
+            rankText = "🥇 冠军"
+        } else if (rank === 2) {
+            rankText = "🥈 亚军"
+        } else {
+            rankText = "🥉 季军"
+        }
+        rankLabel.string = rankText
+        rankLabel.fontSize = 16
+        rankLabel.enableBold = true
+        rankLabelNode.color = new cc.Color(255, 255, 255)
+        rankLabelNode.y = 12
+        rankLabelNode.parent = itemNode
+        
+        // 玩家名称
+        var nameLabelNode = new cc.Node("NameLabel")
+        var nameLabel = nameLabelNode.addComponent(cc.Label)
+        nameLabel.string = rankInfo.player_name || "玩家"
+        nameLabel.fontSize = 14
+        nameLabelNode.color = new cc.Color(255, 255, 255)
+        nameLabelNode.y = -8
+        nameLabelNode.parent = itemNode
+        
+        // 金币数
+        var coinLabelNode = new cc.Node("CoinLabel")
+        var coinLabel = coinLabelNode.addComponent(cc.Label)
+        coinLabel.string = rankInfo.match_coin + " 金币"
+        coinLabel.fontSize = 12
+        coinLabelNode.color = new cc.Color(255, 255, 200)
+        coinLabelNode.y = -22
+        coinLabelNode.parent = itemNode
+        
+        itemNode.parent = parent
     },
     
     /**

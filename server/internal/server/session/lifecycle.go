@@ -477,9 +477,20 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
         log.Printf("🎮 [endGame] 检查房间类型: RoomCategory=%d (2=竞技场)", gs.room.RoomCategory)
 
         if gs.room.RoomCategory == 2 {
-                // 竞技场模式：启动30秒倒计时，自动进入下一轮
-                log.Printf("🏟️ [endGame] 竞技场房间 %s 结算完成，启动30秒倒计时", gs.room.Code)
-                gs.startArenaRoundCountdown()
+                // 🔧【新增】检查当期报名人数
+                periodNo := gs.room.PeriodNo
+                totalPlayers := gs.getArenaTotalPlayers(periodNo)
+                log.Printf("🏟️ [endGame] 竞技场房间 %s 结算完成, 期号=%s, 当期报名人数=%d", gs.room.Code, periodNo, totalPlayers)
+
+                // 🔧【关键】如果只有一桌（3人），直接显示最终排名
+                if totalPlayers <= 3 && totalPlayers > 0 {
+                        log.Printf("🏆 [endGame] 只有 %d 人（一桌），直接发送最终排名消息", totalPlayers)
+                        gs.sendFinalRankingsForSingleTable(periodNo, players)
+                } else {
+                        // 多桌情况：启动30秒倒计时，自动进入下一轮
+                        log.Printf("🏟️ [endGame] 多桌情况，启动30秒倒计时")
+                        gs.startArenaRoundCountdown()
+                }
         } else {
                 // 普通场：玩家手动选择继续游戏或返回大厅
                 log.Printf("🎮 [endGame] 普通场房间 %s 结算完成，等待玩家选择", gs.room.Code)
@@ -965,4 +976,95 @@ func (gs *GameSession) resetForNewRound() {
         }
 
         log.Printf("🔄 [resetForNewRound] 房间 %s 已重置，准备新一轮", gs.room.Code)
+}
+
+// ============================================================
+// 🔧【新增】一桌玩家直接显示最终排名
+// ============================================================
+
+// getArenaTotalPlayers 获取当期报名人数
+func (gs *GameSession) getArenaTotalPlayers(periodNo string) int {
+        if periodNo == "" {
+                return 0
+        }
+
+        // 从数据库获取当期报名人数
+        count, err := database.CountArenaPeriodPlayersByPeriodNo(periodNo)
+        if err != nil {
+                log.Printf("⚠️ [getArenaTotalPlayers] 获取报名人数失败: periodNo=%s, err=%v", periodNo, err)
+                return 0
+        }
+
+        return int(count)
+}
+
+// sendFinalRankingsForSingleTable 为一桌玩家发送最终排名消息
+// 当只有3人（一桌）时，直接显示冠军、亚军、季军排名
+func (gs *GameSession) sendFinalRankingsForSingleTable(periodNo string, players []protocol.PlayerResult) {
+        log.Printf("🏆 [sendFinalRankingsForSingleTable] 开始发送最终排名, periodNo=%s, 玩家数=%d", periodNo, len(players))
+
+        // 1. 根据比赛金币排序（从高到低）
+        sortedPlayers := make([]protocol.PlayerResult, len(players))
+        copy(sortedPlayers, players)
+
+        sort.Slice(sortedPlayers, func(i, j int) bool {
+                return sortedPlayers[i].MatchCoin > sortedPlayers[j].MatchCoin
+        })
+
+        // 2. 构建排名列表
+        rankings := make([]protocol.PlayerRankingInfo, 0, len(sortedPlayers))
+        for i, p := range sortedPlayers {
+                rank := i + 1
+                rankings = append(rankings, protocol.PlayerRankingInfo{
+                        Rank:       rank,
+                        PlayerID:   p.PlayerID,
+                        PlayerName: p.PlayerName,
+                        MatchCoin:  p.MatchCoin,
+                })
+                log.Printf("🏆 排名 #%d: 玩家 %s (ID=%d), 金币=%d", rank, p.PlayerName, p.PlayerID, p.MatchCoin)
+        }
+
+        // 3. 获取冠军信息
+        var championID uint64
+        var championName string
+        if len(rankings) > 0 {
+                championID = rankings[0].PlayerID
+                championName = rankings[0].PlayerName
+        }
+
+        // 4. 构建并发送排名消息
+        payload := &protocol.CompetitionChampionPayload{
+                SessionID:    gs.room.ArenaSessionID,
+                ChampionID:   championID,
+                ChampionName: championName,
+                Reward:       nil, // 一桌比赛暂无特殊奖励
+                Rankings:     rankings,
+        }
+
+        log.Printf("🏆 [sendFinalRankingsForSingleTable] 发送排名消息: champion=%s, 排名数=%d", championName, len(rankings))
+        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgCompetitionChampion, payload))
+
+        // 5. 广播竞技场结束消息
+        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaMatchEnd, &protocol.ArenaMatchEndPayload{
+                PeriodNo: periodNo,
+                RoomID:   gs.room.RoomConfigID,
+                Message:  "比赛结束",
+        }))
+
+        // 6. 调用游戏结束回调销毁房间
+        if gs.onGameEnd != nil {
+                gs.scheduleRoomDestruction()
+        }
+}
+
+// scheduleRoomDestruction 延迟销毁房间（给客户端时间显示排名）
+func (gs *GameSession) scheduleRoomDestruction() {
+        go func() {
+                // 等待5秒让客户端显示排名
+                time.Sleep(5 * time.Second)
+                if gs.onGameEnd != nil {
+                        gs.onGameEnd(gs.room)
+                }
+                log.Printf("🏆 [scheduleRoomDestruction] 房间已销毁")
+        }()
 }
