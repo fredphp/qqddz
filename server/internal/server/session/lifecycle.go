@@ -837,6 +837,7 @@ func (gs *GameSession) runArenaCountdown(totalSeconds, nextRound int) {
         defer ticker.Stop()
 
         remaining := totalSeconds
+        log.Printf("🏟️ [runArenaCountdown] 房间 %s 开始倒计时, 总秒数=%d, 下一轮=%d", gs.room.Code, totalSeconds, nextRound)
 
         for {
                 select {
@@ -854,6 +855,7 @@ func (gs *GameSession) runArenaCountdown(totalSeconds, nextRound int) {
 
                         // 倒计时结束
                         if remaining <= 0 {
+                                log.Printf("🏟️ [runArenaCountdown] 房间 %s 倒计时归零，准备调用 onArenaCountdownEnd()", gs.room.Code)
                                 gs.onArenaCountdownEnd(nextRound)
                                 return
                         }
@@ -864,13 +866,14 @@ func (gs *GameSession) runArenaCountdown(totalSeconds, nextRound int) {
 // onArenaCountdownEnd 竞技场倒计时结束处理
 // 自动为所有玩家准备，然后开始新一轮游戏
 func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
+        log.Printf("🏟️ [onArenaCountdownEnd] ========== 开始处理 ==========")
         log.Printf("🏟️ [onArenaCountdownEnd] 房间 %s 倒计时结束，准备开始第 %d 轮", gs.room.Code, nextRound)
 
         // 🔧【新增】检查是否达到最大轮次
         maxRoundCount := gs.getMaxRoundCount()
         currentRound := gs.room.GameCount // 当前已完成的局数
 
-        log.Printf("🏟️ [onArenaCountdownEnd] 轮次检查: 当前已完成 %d 局, 最大轮次 %d", currentRound, maxRoundCount)
+        log.Printf("🏟️ [onArenaCountdownEnd] 轮次检查: 当前已完成 %d 局, 最大轮次 %d, GameCount=%d", currentRound, maxRoundCount, gs.room.GameCount)
 
         if currentRound >= maxRoundCount {
                 log.Printf("🏁 [onArenaCountdownEnd] 房间 %s 已完成 %d 轮，竞技场结束，发送最终榜单", gs.room.Code, currentRound)
@@ -888,8 +891,11 @@ func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
                 if gs.onGameEnd != nil {
                         gs.scheduleRoomDestruction()
                 }
+                log.Printf("🏟️ [onArenaCountdownEnd] ========== 最终榜单发送完成 ==========")
                 return
         }
+
+        log.Printf("🏟️ [onArenaCountdownEnd] 未达到最大轮次，准备进入第 %d 轮", nextRound)
 
         // 🔧【关键修复】使用单独的锁块，避免与 Start() 死锁
         {
@@ -899,11 +905,13 @@ func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
                         gs.room.State, gs.room.RoomCategory, len(gs.room.Players))
 
                 // 广播自动准备消息
+                log.Printf("🏟️ [onArenaCountdownEnd] 准备广播 MsgArenaAutoReady 消息...")
                 gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaAutoReady, &protocol.ArenaAutoReadyPayload{
                         PeriodNo: "",
                         RoomID:   0,
                         Message:  "系统已自动准备",
                 }))
+                log.Printf("🏟️ [onArenaCountdownEnd] MsgArenaAutoReady 消息已广播")
 
                 // 为所有玩家设置准备状态
                 for playerID, rp := range gs.room.Players {
@@ -922,7 +930,11 @@ func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
                 log.Printf("🏟️ [onArenaCountdownEnd] 准备调用 StartGame()...")
                 if err := gs.room.StartGame(); err != nil {
                         log.Printf("❌ [onArenaCountdownEnd] 开始游戏失败: %v", err)
+                        // 🔧【修复】即使失败也要尝试恢复，不要直接返回
+                        log.Printf("🏟️ [onArenaCountdownEnd] 尝试直接调用 Start()...")
                         gs.mu.Unlock()
+                        gs.Start()
+                        log.Printf("✅ [onArenaCountdownEnd] 房间 %s 第 %d 轮游戏已开始(通过直接调用Start)", gs.room.Code, nextRound)
                         return
                 }
                 log.Printf("🏟️ [onArenaCountdownEnd] StartGame() 调用成功")
@@ -935,9 +947,11 @@ func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
         }
 
         // 在锁外调用 Start()，避免死锁
+        log.Printf("🏟️ [onArenaCountdownEnd] 准备调用 Start()...")
         gs.Start()
 
         log.Printf("✅ [onArenaCountdownEnd] 房间 %s 第 %d 轮游戏已开始", gs.room.Code, nextRound)
+        log.Printf("🏟️ [onArenaCountdownEnd] ========== 处理完成 ==========")
 }
 
 // getMaxRoundCount 获取竞技场最大轮次

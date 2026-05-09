@@ -5080,7 +5080,12 @@ cc.Class({
         if (this._arenaCountdownSeconds <= 0) {
             this.unschedule(this._localArenaCountdownTick)
             this._localArenaCountdownTimer = null
-            console.log("🏟️ [_localArenaCountdownTick] 倒计时结束")
+            console.log("🏟️ [_localArenaCountdownTick] 倒计时结束，等待服务端消息...")
+            
+            // 🔧【修复】倒计时归0后显示等待提示，继续等待服务端消息
+            // 服务端会发送 MsgArenaAutoReady 或新一轮游戏消息
+            this._updateArenaCountdownUI(0)
+            this._showWaitingForServer()
             return
         }
         
@@ -5090,6 +5095,27 @@ cc.Class({
         this._updateArenaCountdownUI(this._arenaCountdownSeconds)
         
         console.log("🏟️ [_localArenaCountdownTick] 剩余:", this._arenaCountdownSeconds)
+    },
+    
+    /**
+     * 🔧【新增】显示等待服务端响应提示
+     */
+    _showWaitingForServer: function() {
+        // 更新倒计时标签显示等待提示
+        if (this._countdownLabelNode) {
+            var label = this._countdownLabelNode.getComponent(cc.Label)
+            if (label) {
+                label.string = "等待服务器响应..."
+            }
+        }
+        
+        // 隐藏数字
+        if (this._countdownNumberNode) {
+            var label = this._countdownNumberNode.getComponent(cc.Label)
+            if (label) {
+                label.string = "..."
+            }
+        }
     },
     
     /**
