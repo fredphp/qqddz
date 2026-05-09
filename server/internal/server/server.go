@@ -68,6 +68,9 @@ type Server struct {
 
         // 竞技场状态广播器
         arenaBroadcaster *ArenaStatusBroadcaster
+
+        // 竞技场赛事进度管理器
+        tournamentProgressManager *TournamentProgressManager
 }
 
 // LeaderboardInterface 排行榜接口
@@ -258,6 +261,10 @@ func NewServer(cfg *config.Config) (*Server, error) {
         s.arenaBroadcaster = NewArenaStatusBroadcaster(s)
         log.Println("🏟️ 竞技场状态广播器已创建（将在 Start() 中启动）")
 
+        // 🔧【新增】创建竞技场赛事进度管理器
+        s.tournamentProgressManager = NewTournamentProgressManager(s)
+        log.Println("🏆 竞技场赛事进度管理器已创建")
+
         log.Printf("🔒 安全配置: 连接限制=%d/s, 消息限制=%d/s, 聊天限制=%d/s, 最大连接数=%d",
                 cfg.Security.RateLimit.MaxPerSecond, cfg.Security.MessageLimit.MaxPerSecond, cfg.Security.ChatLimit.MaxPerSecond, cfg.Server.MaxConnections)
 
@@ -277,6 +284,11 @@ func (s *Server) GetArenaBroadcaster() types.ArenaProvider {
 // GetArenaBroadcasterRaw 获取竞技场广播器原始类型（供内部使用）
 func (s *Server) GetArenaBroadcasterRaw() *ArenaStatusBroadcaster {
         return s.arenaBroadcaster
+}
+
+// GetTournamentProgressManager 获取竞技场赛事进度管理器
+func (s *Server) GetTournamentProgressManager() *TournamentProgressManager {
+        return s.tournamentProgressManager
 }
 
 // Start 启动服务器

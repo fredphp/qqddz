@@ -760,6 +760,7 @@ type TournamentWaitProgressPayload struct {
         FinishedTables  int    `json:"finished_tables"`   // 已完成桌数
         TotalTables     int    `json:"total_tables"`      // 总桌数
         PlayerTableDone bool   `json:"player_table_done"` // 当前玩家所在桌是否已完成
+        Status          string `json:"status"`            // 状态: WAITING, CALCULATING, MATCHING
         Message         string `json:"message"`           // 提示消息
 }
 

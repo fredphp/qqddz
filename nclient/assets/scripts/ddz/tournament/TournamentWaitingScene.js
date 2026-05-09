@@ -6,9 +6,17 @@
  * 2. 实时显示完成进度（已完成桌数/总桌数）
  * 3. 扑克牌loading动画
  * 4. 接收服务端进度更新
+ * 5. 三种状态提示：WAITING / CALCULATING / MATCHING
  * 
  * 设计风格：中国风斗地主竞技场 - 蓝金色
  */
+
+// 状态常量
+const TournamentStatus = {
+    WAITING: "WAITING",
+    CALCULATING: "CALCULATING", 
+    MATCHING: "MATCHING"
+};
 
 cc.Class({
     extends: cc.Component,
@@ -39,6 +47,11 @@ cc.Class({
             type: cc.Label,
             default: null
         },
+        // 状态标签
+        statusLabel: {
+            type: cc.Label,
+            default: null
+        },
         // loading动画节点
         loadingNode: {
             type: cc.Node,
@@ -61,6 +74,7 @@ cc.Class({
         this._finishedTables = 0
         this._totalTables = 0
         this._isWaiting = false
+        this._status = TournamentStatus.WAITING
 
         // 注册事件监听
         this._registerEvents()
@@ -117,6 +131,7 @@ cc.Class({
         this._totalRounds = data.total_rounds || 1
         this._finishedTables = data.finished_tables || 0
         this._totalTables = data.total_tables || 0
+        this._status = data.status || TournamentStatus.WAITING
 
         this._updateUI()
     },
@@ -147,6 +162,7 @@ cc.Class({
         this._totalRounds = data.total_rounds
         this._finishedTables = data.finished_tables
         this._totalTables = data.total_tables
+        this._status = data.status || TournamentStatus.WAITING
 
         this._updateUI()
     },
@@ -165,6 +181,7 @@ cc.Class({
 
         // 重置进度
         this._finishedTables = 0
+        this._status = TournamentStatus.MATCHING
         
         // 更新提示文字
         if (this.tipLabel) {
@@ -204,6 +221,9 @@ cc.Class({
 
         // 更新进度
         this._updateProgressUI()
+        
+        // 更新状态显示
+        this._updateStatusUI()
     },
 
     _updateProgressUI: function() {
@@ -225,6 +245,51 @@ cc.Class({
             } else {
                 var remaining = this._totalTables - this._finishedTables
                 this.tipLabel.string = "正在等待其他玩家完成... (剩余" + remaining + "桌)"
+            }
+        }
+    },
+    
+    /**
+     * 更新状态显示
+     */
+    _updateStatusUI: function() {
+        if (this.statusLabel) {
+            switch (this._status) {
+                case TournamentStatus.CALCULATING:
+                    this.statusLabel.string = "正在统计全场排名..."
+                    this.statusLabel.node.color = new cc.Color(255, 200, 100)
+                    break
+                case TournamentStatus.MATCHING:
+                    this.statusLabel.string = "晋级成功！正在匹配下一轮..."
+                    this.statusLabel.node.color = new cc.Color(100, 255, 100)
+                    break
+                default:
+                    if (this._finishedTables >= this._totalTables) {
+                        this.statusLabel.string = "本轮结束，请稍候..."
+                        this.statusLabel.node.color = new cc.Color(255, 220, 150)
+                    } else {
+                        this.statusLabel.string = "正在等待其他玩家完成..."
+                        this.statusLabel.node.color = new cc.Color(200, 200, 220)
+                    }
+            }
+        }
+        
+        // 根据状态更新提示文字
+        if (this.tipLabel) {
+            switch (this._status) {
+                case TournamentStatus.CALCULATING:
+                    this.tipLabel.string = "正在统计全场排名..."
+                    break
+                case TournamentStatus.MATCHING:
+                    this.tipLabel.string = "晋级成功！正在匹配下一轮..."
+                    break
+                default:
+                    if (this._finishedTables >= this._totalTables) {
+                        this.tipLabel.string = "全部完成，即将进入下一轮..."
+                    } else {
+                        var remaining = this._totalTables - this._finishedTables
+                        this.tipLabel.string = "正在等待其他玩家完成... (剩余" + remaining + "桌)"
+                    }
             }
         }
     },
