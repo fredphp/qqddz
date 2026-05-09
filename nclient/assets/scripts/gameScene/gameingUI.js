@@ -456,6 +456,13 @@ cc.Class({
         myglobal.socket.onCompetitionChampion(function(data){
             this._onCompetitionChampion(data)
         }.bind(this))
+        
+        // 🔧【关键修复】监听最终榜单消息
+        // 当竞技场所有轮次结束时，服务端会发送此消息
+        myglobal.socket.onTournamentFinalRank(function(data){
+            console.log("🏆 [gameingUI] 收到最终榜单:", JSON.stringify(data))
+            this._onTournamentFinalRank(data)
+        }.bind(this))
 
         // 内部事件：显示底牌
         // 🔧【关键修复】此事件已废弃，逻辑已移到 onCallLandlordEnd 和 onLandlordCards
@@ -5884,5 +5891,238 @@ cc.Class({
                     .start()
             })(i)
         }
+    },
+    
+    // ============================================================
+    // 🔧【新增】最终榜单处理
+    // ============================================================
+    
+    /**
+     * 🏆【竞技场】处理最终榜单消息
+     * 当竞技场所有轮次结束时调用
+     * @param {Object} data - { period_no, total_players, top3, top20, my_rank, my_match_coin }
+     */
+    _onTournamentFinalRank: function(data) {
+        console.log("🏆 [_onTournamentFinalRank] 收到最终榜单数据:", JSON.stringify(data))
+        
+        // 停止所有倒计时
+        this._stopPlayCountdown()
+        this._stopBidCountdown()
+        if (this._localArenaCountdownTimer) {
+            this.unschedule(this._localArenaCountdownTick)
+            this._localArenaCountdownTimer = null
+        }
+        
+        // 隐藏比赛金币显示
+        this._hideMatchCoinDisplay()
+        
+        // 关闭之前的结算弹窗
+        if (this._gameResultPopup || this._gameResultMask) {
+            this._closeGameResultPopup(this._gameResultPopup, this._gameResultMask)
+        }
+        
+        // 显示最终榜单弹窗
+        this._showTournamentFinalRankDialog(data)
+    },
+    
+    /**
+     * 🏆【竞技场】显示最终榜单弹窗
+     * @param {Object} data - { period_no, total_players, top3, top20, my_rank, my_match_coin }
+     */
+    _showTournamentFinalRankDialog: function(data) {
+        var self = this
+        var winSize = cc.winSize
+        
+        var canvas = cc.find("Canvas") || cc.find("UI_ROOT") || this.node.parent
+        if (!canvas) canvas = this.node
+        
+        // 遮罩层
+        var maskNode = new cc.Node("FinalRankMask")
+        maskNode.addComponent(cc.BlockInputEvents)
+        maskNode.color = new cc.Color(20, 15, 40)
+        maskNode.opacity = 220
+        maskNode.width = winSize.width * 2
+        maskNode.height = winSize.height * 2
+        maskNode.zIndex = 999
+        maskNode.parent = canvas
+        
+        // 弹窗容器
+        var popupNode = new cc.Node("FinalRankPopup")
+        popupNode.scale = 0.5
+        popupNode.opacity = 0
+        popupNode.zIndex = 1000
+        popupNode.parent = canvas
+        
+        // 弹窗尺寸
+        var popupWidth = 520
+        var popupHeight = 650
+        
+        // 背景
+        var bgNode = new cc.Node("Bg")
+        var bg = bgNode.addComponent(cc.Graphics)
+        bg.fillColor = new cc.Color(45, 35, 70, 245)
+        bg.roundRect(-popupWidth/2, -popupHeight/2, popupWidth, popupHeight, 20)
+        bg.fill()
+        bg.strokeColor = new cc.Color(255, 200, 80)
+        bg.lineWidth = 3
+        bg.roundRect(-popupWidth/2, -popupHeight/2, popupWidth, popupHeight, 20)
+        bg.stroke()
+        bgNode.parent = popupNode
+        
+        // 标题
+        var titleNode = new cc.Node("Title")
+        var titleLabel = titleNode.addComponent(cc.Label)
+        titleLabel.string = "🏆 比赛结束 🏆"
+        titleLabel.fontSize = 32
+        titleLabel.enableBold = true
+        titleNode.color = new cc.Color(255, 220, 100)
+        titleNode.y = popupHeight/2 - 40
+        titleNode.parent = popupNode
+        
+        // 参赛人数
+        var totalNode = new cc.Node("Total")
+        var totalLabel = totalNode.addComponent(cc.Label)
+        totalLabel.string = "共 " + (data.total_players || 3) + " 人参赛"
+        totalLabel.fontSize = 18
+        totalNode.color = new cc.Color(200, 200, 200)
+        totalNode.y = popupHeight/2 - 70
+        totalNode.parent = popupNode
+        
+        // TOP3 领奖台
+        var top3 = data.top3 || []
+        var podiumY = popupHeight/2 - 140
+        var podiumSpacing = 140
+        
+        // 银牌（第二名）- 左侧
+        if (top3.length >= 2) {
+            this._createPodiumEntry(popupNode, top3[1], 2, -podiumSpacing, podiumY)
+        }
+        
+        // 金牌（第一名）- 中间
+        if (top3.length >= 1) {
+            this._createPodiumEntry(popupNode, top3[0], 1, 0, podiumY + 20)
+        }
+        
+        // 铜牌（第三名）- 右侧
+        if (top3.length >= 3) {
+            this._createPodiumEntry(popupNode, top3[2], 3, podiumSpacing, podiumY - 10)
+        }
+        
+        // 我的排名
+        var myRankNode = new cc.Node("MyRank")
+        var myRankLabel = myRankNode.addComponent(cc.Label)
+        myRankLabel.string = "我的排名: 第 " + (data.my_rank || 1) + " 名"
+        myRankLabel.fontSize = 22
+        myRankLabel.enableBold = true
+        myRankNode.color = new cc.Color(255, 255, 100)
+        myRankNode.y = -popupHeight/2 + 100
+        myRankNode.parent = popupNode
+        
+        // 我的比赛金币
+        var myCoinNode = new cc.Node("MyCoin")
+        var myCoinLabel = myCoinNode.addComponent(cc.Label)
+        myCoinLabel.string = "比赛金币: " + (data.my_match_coin || 0)
+        myCoinLabel.fontSize = 18
+        myCoinNode.color = new cc.Color(200, 255, 200)
+        myCoinNode.y = -popupHeight/2 + 70
+        myCoinNode.parent = popupNode
+        
+        // 确定按钮
+        var btnNode = new cc.Node("ConfirmBtn")
+        var btnBg = btnNode.addComponent(cc.Graphics)
+        btnBg.fillColor = new cc.Color(80, 180, 80)
+        btnBg.roundRect(-60, -25, 120, 50, 10)
+        btnBg.fill()
+        btnNode.y = -popupHeight/2 + 30
+        btnNode.parent = popupNode
+        
+        var btnLabel = new cc.Node("Label")
+        var btnLabelComp = btnLabel.addComponent(cc.Label)
+        btnLabelComp.string = "确定"
+        btnLabelComp.fontSize = 20
+        btnLabelComp.enableBold = true
+        btnLabel.color = new cc.Color(255, 255, 255)
+        btnLabel.parent = btnNode
+        
+        // 点击事件
+        btnNode.on(cc.Node.EventType.TOUCH_END, function() {
+            popupNode.destroy()
+            maskNode.destroy()
+            
+            // 返回大厅或竞技场入口
+            cc.director.loadScene("mainScene")
+        })
+        
+        // 弹出动画
+        cc.tween(popupNode)
+            .to(0.3, { scale: 1, opacity: 255 }, { easing: 'backOut' })
+            .start()
+        
+        console.log("🏆 [_showTournamentFinalRankDialog] 最终榜单弹窗已显示")
+    },
+    
+    /**
+     * 🏆【竞技场】创建领奖台条目
+     */
+    _createPodiumEntry: function(parent, rankData, rank, x, y) {
+        var entryNode = new cc.Node("PodiumEntry_" + rank)
+        entryNode.setPosition(x, y)
+        
+        // 排名背景
+        var bgNode = new cc.Node("Bg")
+        var bg = bgNode.addComponent(cc.Graphics)
+        var bgColor = new cc.Color(60, 50, 90)
+        if (rank === 1) bgColor = new cc.Color(80, 70, 40)  // 金色背景
+        else if (rank === 2) bgColor = new cc.Color(60, 60, 70)  // 银色背景
+        else if (rank === 3) bgColor = new cc.Color(70, 50, 40)  // 铜色背景
+        bg.fillColor = bgColor
+        bg.roundRect(-50, -60, 100, 120, 10)
+        bg.fill()
+        bgNode.parent = entryNode
+        
+        // 排名标签
+        var rankLabelNode = new cc.Node("Rank")
+        var rankLabel = rankLabelNode.addComponent(cc.Label)
+        var rankText = "🥇"
+        if (rank === 2) rankText = "🥈"
+        else if (rank === 3) rankText = "🥉"
+        rankLabel.string = rankText
+        rankLabel.fontSize = 36
+        rankLabelNode.y = 35
+        rankLabelNode.parent = entryNode
+        
+        // 玩家名称
+        var nameLabelNode = new cc.Node("Name")
+        var nameLabel = nameLabelNode.addComponent(cc.Label)
+        var playerName = rankData.player_name || "玩家"
+        if (rankData.is_robot) {
+            playerName = "智能陪练" + rank + "号"
+        }
+        nameLabel.string = playerName
+        nameLabel.fontSize = 16
+        nameLabelNode.y = 0
+        nameLabelNode.parent = entryNode
+        
+        // 比赛金币
+        var coinLabelNode = new cc.Node("Coin")
+        var coinLabel = coinLabelNode.addComponent(cc.Label)
+        coinLabel.string = (rankData.match_coin || 0) + " 金币"
+        coinLabel.fontSize = 14
+        coinLabelNode.color = new cc.Color(255, 255, 200)
+        coinLabelNode.y = -25
+        coinLabelNode.parent = entryNode
+        
+        // 机器人标识
+        if (rankData.is_robot) {
+            var robotTagNode = new cc.Node("RobotTag")
+            var robotTagLabel = robotTagNode.addComponent(cc.Label)
+            robotTagLabel.string = "AI"
+            robotTagLabel.fontSize = 12
+            robotTagNode.color = new cc.Color(150, 200, 255)
+            robotTagNode.y = -45
+            robotTagNode.parent = entryNode
+        }
+        
+        entryNode.parent = parent
     }
 });
