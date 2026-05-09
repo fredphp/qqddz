@@ -49,3 +49,40 @@ type DDZSmsCodeSearch struct {
         StartDate string `json:"startDate" form:"startDate"`
         EndDate   string `json:"endDate" form:"endDate"`
 }
+
+// DDZGameConfigCreate 创建游戏配置请求
+type DDZGameConfigCreate struct {
+        ConfigKey   string `json:"configKey" binding:"required"`
+        ConfigValue string `json:"configValue"`
+        Description string `json:"description"`
+}
+
+// DDZGamePlayerRecordSearch 游戏玩家记录搜索请求
+type DDZGamePlayerRecordSearch struct {
+        request.PageInfo
+        GameID   string `json:"gameId" form:"gameId"`
+        PlayerID uint64 `json:"playerId" form:"playerId"`
+}
+
+// DDZGamePlayRecordSearch 出牌记录搜索请求
+type DDZGamePlayRecordSearch struct {
+        request.PageInfo
+        GameID   string  `json:"gameId" form:"gameId"`
+        PlayerID uint64  `json:"playerId" form:"playerId"`
+        PlayType *uint8  `json:"playType" form:"playType"`
+}
+
+// DDZDealRecordSearch 发牌记录搜索请求
+type DDZDealRecordSearch struct {
+        request.PageInfo
+        GameID   string `json:"gameId" form:"gameId"`
+        PlayerID uint64 `json:"playerId" form:"playerId"`
+}
+
+// DDZStatsSearch 统计搜索请求
+type DDZStatsSearch struct {
+        request.PageInfo
+        PlayerID  string `json:"playerId" form:"playerId"`
+        StartDate string `json:"startDate" form:"startDate"`
+        EndDate   string `json:"endDate" form:"endDate"`
+}

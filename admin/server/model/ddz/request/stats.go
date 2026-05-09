@@ -13,7 +13,9 @@ type DDZDailyStatsSearch struct {
 type DDZLeaderboardSearch struct {
         request.PageInfo
         PlayerName string `json:"playerName" form:"playerName"`
-        OrderBy    string `json:"orderBy" form:"orderBy"` // winCount, gold, arenaCoin, rankScore
+        OrderBy    string `json:"orderBy" form:"orderBy"`     // winCount, gold, arenaCoin, rankScore
+        RankType   string `json:"rankType" form:"rankType"`   // coins, level, wins, winrate
+        Limit      int    `json:"limit" form:"limit"`         // 限制返回数量
 }
 
 // DDZPlayerOnlineSearch 在线玩家查询请求
