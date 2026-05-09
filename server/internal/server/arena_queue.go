@@ -184,8 +184,14 @@ func (q *ArenaMessageQueue) Push(task QueueTask) bool {
 }
 
 // worker 工作线程
+// 🔧【修复】添加 panic 恢复机制
 func (q *ArenaMessageQueue) worker(id int) {
-        defer q.wg.Done()
+        defer func() {
+                q.wg.Done()
+                if r := recover(); r != nil {
+                        log.Printf("[ArenaQueue] ⚠️ 工作线程 %d panic 恢复: %v", id, r)
+                }
+        }()
 
         log.Printf("[ArenaQueue] 工作线程 %d 启动", id)
 
@@ -201,7 +207,14 @@ func (q *ArenaMessageQueue) worker(id int) {
 }
 
 // processTask 处理任务
+// 🔧【修复】添加 panic 恢复机制
 func (q *ArenaMessageQueue) processTask(workerID int, task QueueTask) {
+        defer func() {
+                if r := recover(); r != nil {
+                        log.Printf("[ArenaQueue] ⚠️ Worker %d 处理任务 panic: type=%d, recover=%v", workerID, task.Type, r)
+                }
+        }()
+
         startTime := time.Now()
         var err error
 

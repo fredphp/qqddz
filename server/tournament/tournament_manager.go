@@ -347,7 +347,14 @@ func (tm *TournamentManager) onRoundComplete(sessionID uint64, state *SessionSta
 }
 
 // waitForRankingTimeout 等待排行榜阶段超时
+// 🔧【修复】添加 panic 恢复机制，防止 goroutine 崩溃
 func (tm *TournamentManager) waitForRankingTimeout(sessionID uint64, roundNum, eliminationTarget int) {
+        defer func() {
+                if r := recover(); r != nil {
+                        log.Printf("[TournamentManager] ⚠️ waitForRankingTimeout panic 恢复: sessionID=%d, recover=%v", sessionID, r)
+                }
+        }()
+
         // 等待30秒
         time.Sleep(30 * time.Second)
 
@@ -534,6 +541,7 @@ func (tm *TournamentManager) OnFinalComplete(sessionID uint64, results map[uint6
 }
 
 // endTournament 结束锦标赛
+// 🔧【修复】移除内部锁获取，由调用方负责加锁，避免死锁
 func (tm *TournamentManager) endTournament(sessionID uint64, players PlayerList) error {
         // 确定排名
         result, err := tm.eliminationCtrl.DetermineFinalRankings(sessionID, players)
@@ -544,13 +552,11 @@ func (tm *TournamentManager) endTournament(sessionID uint64, players PlayerList)
         // 广播比赛结束
         tm.broadcast(sessionID, MsgTypeTournamentEnd, tm.eliminationCtrl.GetFinalBroadcast(result))
 
-        // 取消会话上下文
-        tm.mu.Lock()
+        // 取消会话上下文（调用方已持有锁，不需要再次获取）
         if cancel, exists := tm.sessionContexts[sessionID]; exists {
                 cancel()
                 delete(tm.sessionContexts, sessionID)
         }
-        tm.mu.Unlock()
 
         log.Printf("[TournamentManager] 锦标赛结束: sessionID=%d, champion=%d, runner_up=%d, third=%d",
                 sessionID, result.Champion.PlayerID, result.RunnerUp.PlayerID, result.Third.PlayerID)
@@ -575,7 +581,14 @@ func (tm *TournamentManager) getEliminationTarget(state *SessionState) int {
 }
 
 // monitorSession 监控会话状态
+// 🔧【修复】添加 panic 恢复机制，防止 goroutine 崩溃导致整个服务宕机
 func (tm *TournamentManager) monitorSession(ctx context.Context, sessionID uint64) {
+        defer func() {
+                if r := recover(); r != nil {
+                        log.Printf("[TournamentManager] ⚠️ monitorSession panic 恢复: sessionID=%d, recover=%v", sessionID, r)
+                }
+        }()
+
         ticker := time.NewTicker(10 * time.Second)
         defer ticker.Stop()
 

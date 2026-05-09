@@ -499,17 +499,26 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
                                 Limit(needRobots).
                                 Find(&robots).Error
                         
-                        if err == nil && len(robots) > 0 {
-                                for i := range robots {
-                                        robot := &robots[i]
-                                        table.Players = append(table.Players, robot.ID)
-                                        table.RobotPlayers = append(table.RobotPlayers, robot.ID)
-                                        table.PlayerStatuses[robot.ID] = true
-                                        playerToTable[robot.ID] = tableID
-                                        // 🔧【修复】将补位机器人添加到 playerMap，确保总人数计算正确
-                                        playerMap[robot.ID] = robot
-                                        log.Printf("[ArenaStatus] 机器人 %d (%s) 补位到桌号 %d", robot.ID, robot.Nickname, tableID)
-                                }
+                        if err != nil {
+                                log.Printf("[ArenaStatus] ⚠️ 获取机器人失败: %v", err)
+                        } else if len(robots) < needRobots {
+                                log.Printf("[ArenaStatus] ⚠️ 机器人不足，需要 %d，实际 %d", needRobots, len(robots))
+                        }
+                        
+                        // 🔧【修复】即使机器人不足，也尽量添加可用的机器人
+                        for i := 0; i < len(robots); i++ {
+                                robot := &robots[i]
+                                table.Players = append(table.Players, robot.ID)
+                                table.RobotPlayers = append(table.RobotPlayers, robot.ID)
+                                table.PlayerStatuses[robot.ID] = true
+                                playerToTable[robot.ID] = tableID
+                                playerMap[robot.ID] = robot
+                                log.Printf("[ArenaStatus] 机器人 %d (%s) 补位到桌号 %d", robot.ID, robot.Nickname, tableID)
+                        }
+                        
+                        // 🔧【新增】如果仍然不足3人，记录警告但继续游戏
+                        if len(table.Players) < 3 {
+                                log.Printf("[ArenaStatus] ⚠️ 桌号 %d 最终只有 %d 人，游戏可能受影响", tableID, len(table.Players))
                         }
                 }
                 
