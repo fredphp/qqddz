@@ -681,9 +681,15 @@ func ensureArenaGoldLogTableExists(t time.Time) error {
 func InitArenaGold(periodNo string, playerID uint64, initialGold int64) error {
         log.Printf("🔍 [InitArenaGold] 初始化金币: period_no=%s, player_id=%d, initial_gold=%d", periodNo, playerID, initialGold)
 
+        // 获取分表名
+        tableName, err := getArenaParticipationTableNameByPeriodNo(periodNo)
+        if err != nil {
+                return fmt.Errorf("获取分表名失败: %w", err)
+        }
+
         // 查找对应的 participation 记录
         var participation ArenaParticipation
-        if err := DB().Where("period_no = ? AND player_id = ?", periodNo, playerID).First(&participation).Error; err != nil {
+        if err := DB().Table(tableName).Where("period_no = ? AND player_id = ?", periodNo, playerID).First(&participation).Error; err != nil {
                 if err == gorm.ErrRecordNotFound {
                         log.Printf("⚠️ [InitArenaGold] 未找到 participation 记录: period_no=%s, player_id=%d", periodNo, playerID)
                         return nil // 没有 participation 记录时静默返回
@@ -692,7 +698,7 @@ func InitArenaGold(periodNo string, playerID uint64, initialGold int64) error {
         }
 
         // 更新 match_coin
-        if err := DB().Model(&ArenaParticipation{}).
+        if err := DB().Table(tableName).
                 Where("id = ?", participation.ID).
                 Updates(map[string]interface{}{
                         "match_coin":  initialGold,
@@ -722,9 +728,15 @@ func InitArenaGold(periodNo string, playerID uint64, initialGold int64) error {
 func UpdateArenaGold(periodNo string, playerID uint64, changeGold int64, matchID string, reason string) (int64, error) {
         log.Printf("🔍 [UpdateArenaGold] 更新金币: period_no=%s, player_id=%d, change=%d", periodNo, playerID, changeGold)
 
+        // 获取分表名
+        tableName, err := getArenaParticipationTableNameByPeriodNo(periodNo)
+        if err != nil {
+                return 0, fmt.Errorf("获取分表名失败: %w", err)
+        }
+
         // 查找对应的 participation 记录
         var participation ArenaParticipation
-        if err := DB().Where("period_no = ? AND player_id = ?", periodNo, playerID).First(&participation).Error; err != nil {
+        if err := DB().Table(tableName).Where("period_no = ? AND player_id = ?", periodNo, playerID).First(&participation).Error; err != nil {
                 if err == gorm.ErrRecordNotFound {
                         log.Printf("⚠️ [UpdateArenaGold] 未找到 participation 记录: period_no=%s, player_id=%d", periodNo, playerID)
                         return 0, nil // 没有 participation 记录时返回 0
@@ -739,7 +751,7 @@ func UpdateArenaGold(periodNo string, playerID uint64, changeGold int64, matchID
         }
 
         // 更新 match_coin
-        if err := DB().Model(&ArenaParticipation{}).
+        if err := DB().Table(tableName).
                 Where("id = ?", participation.ID).
                 Updates(map[string]interface{}{
                         "match_coin":  afterGold,
@@ -772,9 +784,16 @@ func UpdateArenaGold(periodNo string, playerID uint64, changeGold int64, matchID
 func GetArenaGold(periodNo string, playerID uint64) (int64, error) {
         log.Printf("🔍 [GetArenaGold] 查询金币: period_no=%s, player_id=%d", periodNo, playerID)
 
+        // 获取分表名
+        tableName, err := getArenaParticipationTableNameByPeriodNo(periodNo)
+        if err != nil {
+                log.Printf("❌ [GetArenaGold] 获取分表名失败: err=%v", err)
+                return 0, err
+        }
+
         // 查找对应的 participation 记录
         var participation ArenaParticipation
-        if err := DB().Where("period_no = ? AND player_id = ?", periodNo, playerID).First(&participation).Error; err != nil {
+        if err := DB().Table(tableName).Where("period_no = ? AND player_id = ?", periodNo, playerID).First(&participation).Error; err != nil {
                 if err == gorm.ErrRecordNotFound {
                         log.Printf("⚠️ [GetArenaGold] 未找到 participation 记录: period_no=%s, player_id=%d", periodNo, playerID)
                         return 0, nil // 未找到记录，返回0
