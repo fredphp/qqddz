@@ -133,19 +133,15 @@ func (tm *TournamentManager) StartTournament(sessionID uint64) error {
                 return ErrInsufficientPlayers
         }
 
-        // 🔧【日志】报名人数
+        // 🔧【日志】报名人数（补位前）
         log.Printf("[TOURNAMENT] registered players: %d", len(players))
 
         // 3. 补位机器人（确保人数是3的倍数）
+        // 注意：机器人补位在 arena_status.go 中执行，这里只记录日志
         if len(players)%3 != 0 {
-                // 这里需要调用机器人补位逻辑
-                // 暂时记录日志
                 log.Printf("[TournamentManager] 需要补位机器人: current=%d, need=%d",
                         len(players), (3-len(players)%3))
         }
-
-        // 🔧【日志】补位后人数
-        log.Printf("[TOURNAMENT] padded players: %d", len(players))
 
         // 4. 解析淘汰规则并确定起始轮
         var rules EliminationRules
@@ -563,13 +559,15 @@ func (tm *TournamentManager) endTournament(sessionID uint64, players PlayerList)
 }
 
 // getEliminationTarget 获取当前淘汰目标
+// 🔧【修复】处理 CurrentElimIdx == -1 的情况
 func (tm *TournamentManager) getEliminationTarget(state *SessionState) int {
         if state.EliminationRules == nil || len(state.EliminationRules) == 0 {
                 return 3
         }
 
         idx := state.CurrentElimIdx
-        if idx >= len(state.EliminationRules) {
+        // 🔧【修复】处理索引未初始化或越界的情况
+        if idx < 0 || idx >= len(state.EliminationRules) {
                 return 3
         }
 

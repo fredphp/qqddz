@@ -500,11 +500,14 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
                                 Find(&robots).Error
                         
                         if err == nil && len(robots) > 0 {
-                                for _, robot := range robots {
+                                for i := range robots {
+                                        robot := &robots[i]
                                         table.Players = append(table.Players, robot.ID)
                                         table.RobotPlayers = append(table.RobotPlayers, robot.ID)
                                         table.PlayerStatuses[robot.ID] = true
                                         playerToTable[robot.ID] = tableID
+                                        // 🔧【修复】将补位机器人添加到 playerMap，确保总人数计算正确
+                                        playerMap[robot.ID] = robot
                                         log.Printf("[ArenaStatus] 机器人 %d (%s) 补位到桌号 %d", robot.ID, robot.Nickname, tableID)
                                 }
                         }
