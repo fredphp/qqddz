@@ -1081,15 +1081,24 @@ func (gs *GameSession) sendFinalRankingsForSingleTable(periodNo string, players 
         // 构建排名列表
         rankEntries := make([]protocol.TournamentRankEntry, len(participations))
         for i, p := range participations {
+                // 🔧【修复】获取头像URL
+                avatarURL := ""
+                if p.IsRobot == 0 && p.Player.ID != 0 {
+                        // 真人玩家使用关联的 Player 头像
+                        avatarURL = p.Player.Avatar
+                }
+                // 机器人使用默认头像（可以后续设置为特定的机器人头像）
+
                 rankEntries[i] = protocol.TournamentRankEntry{
                         Rank:       i + 1,
                         PlayerID:   strconv.FormatUint(p.PlayerID, 10),
                         PlayerName: getPlayerDisplayName(p),
+                        Avatar:     avatarURL,
                         MatchCoin:  p.MatchCoin,
                         IsRobot:    p.IsRobot == 1,
                 }
-                log.Printf("🏆 [sendFinalRankingsForSingleTable] 排名 #%d: 玩家 %s (ID=%d), 金币=%d, isRobot=%v",
-                        i+1, getPlayerDisplayName(p), p.PlayerID, p.MatchCoin, p.IsRobot == 1)
+                log.Printf("🏆 [sendFinalRankingsForSingleTable] 排名 #%d: 玩家 %s (ID=%d), 金币=%d, isRobot=%v, avatar=%s",
+                        i+1, getPlayerDisplayName(p), p.PlayerID, p.MatchCoin, p.IsRobot == 1, avatarURL)
         }
 
         // 构建 TOP3 排名列表

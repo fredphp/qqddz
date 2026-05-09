@@ -5953,9 +5953,9 @@ cc.Class({
         popupNode.zIndex = 1000
         popupNode.parent = canvas
         
-        // 弹窗尺寸（增加高度以容纳滚动列表）
+        // 弹窗尺寸（高度改为屏幕高度的85%，避免溢出）
         var popupWidth = 600
-        var popupHeight = 780
+        var popupHeight = Math.floor(winSize.height * 0.85)
         
         // ========== 主背景 ==========
         var bgNode = new cc.Node("Bg")
@@ -6048,11 +6048,29 @@ cc.Class({
             contentNode.y = scrollViewNode.height / 2
             contentNode.parent = scrollViewNode
             
+            // 🔧【修复】过滤掉已在TOP3中的玩家，避免重复显示
+            var top3PlayerIDs = {}
+            for (var i = 0; i < top3.length; i++) {
+                if (top3[i] && top3[i].player_id) {
+                    top3PlayerIDs[top3[i].player_id] = true
+                }
+            }
+            
+            // 只显示第4名及之后的玩家（过滤掉TOP3）
+            var filteredTop20 = []
+            for (var i = 0; i < top20.length; i++) {
+                var rankData = top20[i]
+                // 跳过已在TOP3中的玩家
+                if (rankData && rankData.player_id && !top3PlayerIDs[rankData.player_id]) {
+                    filteredTop20.push(rankData)
+                }
+            }
+            
             // 添加每个排行项
             var itemHeight = 45
             var startY = 0
-            for (var i = 0; i < top20.length; i++) {
-                var rankData = top20[i]
+            for (var i = 0; i < filteredTop20.length; i++) {
+                var rankData = filteredTop20[i]
                 var actualRank = i + 4  // 第4名开始
                 
                 var itemNode = this._createRankListItem(rankData, actualRank, popupWidth - 50)
@@ -6061,7 +6079,7 @@ cc.Class({
             }
             
             // 设置内容高度
-            contentNode.height = Math.max(top20.length * itemHeight, 280)
+            contentNode.height = Math.max(filteredTop20.length * itemHeight, 280)
             
             // 添加触摸滚动
             this._addScrollViewTouch(scrollViewNode, contentNode, 280)
@@ -6184,6 +6202,17 @@ cc.Class({
         rankNode.setPosition(-width/2 + 35, 0)
         rankNode.parent = itemNode
         
+        // 🔧【新增】玩家头像
+        var avatarNode = new cc.Node("Avatar")
+        avatarNode.setPosition(-width/2 + 75, 0)
+        var avatarSprite = avatarNode.addComponent(cc.Sprite)
+        avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
+        avatarNode.setContentSize(32, 32)
+        avatarNode.parent = itemNode
+        
+        // 加载头像
+        this._loadAvatarSprite(avatarSprite, rankData.avatar, rankData.is_robot)
+        
         // 玩家名称
         var nameNode = new cc.Node("Name")
         var nameLabel = nameNode.addComponent(cc.Label)
@@ -6195,9 +6224,9 @@ cc.Class({
         nameLabel.fontSize = 16
         nameLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT
         nameLabel.overflow = cc.Label.Overflow.CLAMP
-        nameNode.width = 180
+        nameNode.width = 150
         nameNode.color = new cc.Color(255, 255, 255)
-        nameNode.setPosition(-width/2 + 130, 0)
+        nameNode.setPosition(-width/2 + 145, 0)
         nameNode.parent = itemNode
         
         // 金币
@@ -6306,6 +6335,26 @@ cc.Class({
         rankNumNode.setPosition(0, 45)
         rankNumNode.parent = entryNode
         
+        // ========== 玩家头像 ==========
+        var avatarNode = new cc.Node("Avatar")
+        avatarNode.setPosition(0, 20)
+        var avatarSprite = avatarNode.addComponent(cc.Sprite)
+        avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
+        avatarNode.setContentSize(50, 50)
+        avatarNode.parent = entryNode
+        
+        // 🔧【新增】加载头像
+        this._loadAvatarSprite(avatarSprite, rankData.avatar, rankData.is_robot)
+        
+        // 头像边框
+        var avatarFrameNode = new cc.Node("AvatarFrame")
+        var avatarFrame = avatarFrameNode.addComponent(cc.Graphics)
+        avatarFrame.strokeColor = borderColor
+        avatarFrame.lineWidth = 2
+        avatarFrame.circle(0, 20, 26)
+        avatarFrame.stroke()
+        avatarFrameNode.parent = entryNode
+        
         // ========== 玩家名称 ==========
         var nameLabelNode = new cc.Node("Name")
         var nameLabel = nameLabelNode.addComponent(cc.Label)
@@ -6353,5 +6402,84 @@ cc.Class({
             robotIndex = parseInt(lastChar) || 1
         }
         return "智能陪练" + robotIndex + "号"
+    },
+    
+    /**
+     * 🔧【新增】加载头像精灵
+     * @param {cc.Sprite} sprite - 目标精灵组件
+     * @param {string} avatarUrl - 头像URL或资源名
+     * @param {boolean} isRobot - 是否是机器人
+     */
+    _loadAvatarSprite: function(sprite, avatarUrl, isRobot) {
+        if (!sprite) return
+        
+        // 机器人使用默认头像（avatar_1 到 avatar_3 随机）
+        if (isRobot) {
+            var robotAvatarIndex = Math.floor(Math.random() * 3) + 1
+            var defaultPath = "UI/headimage/avatar_" + robotAvatarIndex
+            cc.resources.load(defaultPath, cc.SpriteFrame, function(err, spriteFrame) {
+                if (!err && spriteFrame && sprite.isValid) {
+                    sprite.spriteFrame = spriteFrame
+                }
+            })
+            return
+        }
+        
+        // 真人玩家
+        if (!avatarUrl || avatarUrl === "") {
+            // 使用默认头像
+            cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err, spriteFrame) {
+                if (!err && spriteFrame && sprite.isValid) {
+                    sprite.spriteFrame = spriteFrame
+                }
+            })
+            return
+        }
+        
+        // 判断是URL还是本地资源名
+        if (avatarUrl.indexOf("http") === 0 || avatarUrl.indexOf("//") === 0) {
+            // 远程URL
+            cc.assetManager.loadRemote(avatarUrl, { ext: '.png' }, function(err, texture) {
+                if (err || !texture) {
+                    // 加载失败，使用默认头像
+                    cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
+                        if (!err2 && fallbackSprite && sprite.isValid) {
+                            sprite.spriteFrame = fallbackSprite
+                        }
+                    })
+                    return
+                }
+                try {
+                    if (sprite.isValid) {
+                        var spriteFrame = new cc.SpriteFrame(texture)
+                        sprite.spriteFrame = spriteFrame
+                    }
+                } catch (e) {
+                    // 使用默认头像
+                    cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
+                        if (!err2 && fallbackSprite && sprite.isValid) {
+                            sprite.spriteFrame = fallbackSprite
+                        }
+                    })
+                }
+            })
+        } else {
+            // 本地资源名
+            var localPath = "UI/headimage/" + avatarUrl
+            cc.resources.load(localPath, cc.SpriteFrame, function(err, spriteFrame) {
+                if (err || !spriteFrame) {
+                    // 加载失败，使用默认头像
+                    cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
+                        if (!err2 && fallbackSprite && sprite.isValid) {
+                            sprite.spriteFrame = fallbackSprite
+                        }
+                    })
+                    return
+                }
+                if (sprite.isValid) {
+                    sprite.spriteFrame = spriteFrame
+                }
+            })
+        }
     }
 });
