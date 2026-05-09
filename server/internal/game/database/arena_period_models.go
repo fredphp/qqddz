@@ -166,8 +166,7 @@ const (
 // - ArenaPeriodPlayer: 报名专用（分表，便于历史查询）
 // - ArenaParticipation: 比赛过程数据（主表，支持事务操作）
 //
-// 注意：比赛过程数据（金币、淘汰、排名）存储在 ddz_arena_participations 表
-// 比赛结束后，最终排名会同步到本表的 final_rank 字段
+// 注意：比赛过程数据（金币、淘汰、排名）存储在本表的 arena_gold 等字段
 type ArenaPeriodPlayer struct {
         ID              uint64    `gorm:"primaryKey;autoIncrement;comment:记录ID" json:"id"`
         PeriodNo        string    `gorm:"type:varchar(20);not null;index;comment:期号" json:"period_no"`
@@ -179,10 +178,12 @@ type ArenaPeriodPlayer struct {
         SignupFee       int64     `gorm:"type:bigint;not null;default:0;comment:报名费" json:"signup_fee"`
         Status          uint8     `gorm:"type:tinyint unsigned;not null;default:1;index;comment:状态:1-正常,2-取消,3-超时未进入" json:"status"`
 
-        // 玩家比赛状态（简单状态，用于快速查询）
+        // 🔧【恢复】竞技场赛事金币字段（从报名开始就有数据）
+        ArenaGold       int64     `gorm:"type:bigint;not null;default:0;comment:当期赛事金币" json:"arena_gold"`
+        IsEliminated    uint8     `gorm:"type:tinyint unsigned;not null;default:0;comment:是否淘汰:0-否,1-是" json:"is_eliminated"`
+        EliminatedRound *int      `gorm:"type:int;comment:淘汰轮次" json:"eliminated_round"`
+        RankNo          *int      `gorm:"type:int;comment:最终排名" json:"rank_no"`
         PlayerStatus    uint8     `gorm:"type:tinyint unsigned;not null;default:0;index;comment:玩家状态:0-报名,1-比赛中,2-淘汰,3-晋级,4-结束" json:"player_status"`
-        // 最终排名（比赛结束时从 participations 同步）
-        FinalRank       *int      `gorm:"type:int;comment:最终排名(比赛结束时同步)" json:"final_rank"`
 
         CreatedAt       time.Time `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
         UpdatedAt       time.Time `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`
@@ -676,35 +677,87 @@ func ensureArenaGoldLogTableExists(t time.Time) error {
 }
 
 // InitArenaGold 初始化玩家当期赛事金币（报名时调用）
-// 🔧【重构】金币现在存储在 ddz_arena_participations.match_coin
-// 此函数用于初始化机器人补位时的金币
+// 从 room_config.min_gold 读取初始金币值
+// 🔧【关键修复】如果记录不存在，先创建记录再更新金币
 func InitArenaGold(periodNo string, playerID uint64, initialGold int64) error {
-        log.Printf("🔍 [InitArenaGold] 初始化金币: period_no=%s, player_id=%d, initial_gold=%d", periodNo, playerID, initialGold)
-
-        // 获取分表名
-        tableName, err := getArenaParticipationTableNameByPeriodNo(periodNo)
+        t, err := parsePeriodNoToTime(periodNo)
         if err != nil {
-                return fmt.Errorf("获取分表名失败: %w", err)
+                t = time.Now()
         }
 
-        // 查找对应的 participation 记录
-        var participation ArenaParticipation
-        if err := DB().Table(tableName).Where("period_no = ? AND player_id = ?", periodNo, playerID).First(&participation).Error; err != nil {
-                if err == gorm.ErrRecordNotFound {
-                        log.Printf("⚠️ [InitArenaGold] 未找到 participation 记录: period_no=%s, player_id=%d", periodNo, playerID)
-                        return nil // 没有 participation 记录时静默返回
+        tableName := getArenaPeriodPlayerTableNameByTime(t)
+
+        // 🔧【关键修复】先检查记录是否存在
+        var existingPlayer ArenaPeriodPlayer
+        err = DB().Table(tableName).
+                Where("period_no = ? AND player_id = ?", periodNo, playerID).
+                First(&existingPlayer).Error
+
+        if err == gorm.ErrRecordNotFound {
+                // 记录不存在，创建新记录
+                log.Printf("🔍 [InitArenaGold] 记录不存在，创建新记录: period_no=%s, player_id=%d", periodNo, playerID)
+
+                // 解析 periodNo 获取 period_id 和 room_id
+                // periodNo 格式: YYMMDD + 房间ID(2位) + 期序号(4位) = 12位
+                var periodID, roomID uint64
+                if len(periodNo) >= 12 {
+                        // 提取房间ID（第7-8位）
+                        roomID = uint64(periodNo[6]-'0')*10 + uint64(periodNo[7]-'0')
+                        // 提取期序号（第9-12位）
+                        periodID = uint64(periodNo[8]-'0')*1000 + uint64(periodNo[9]-'0')*100 +
+                                uint64(periodNo[10]-'0')*10 + uint64(periodNo[11]-'0')
                 }
-                return fmt.Errorf("查询 participation 记录失败: %w", err)
+
+                // 创建新记录
+                newPlayer := map[string]interface{}{
+                        "period_no":    periodNo,
+                        "period_id":    periodID,
+                        "room_id":      roomID,
+                        "player_id":    playerID,
+                        "signup_time":  time.Now(),
+                        "signup_order": 0, // 机器人报名顺序为0
+                        "status":       ArenaPeriodPlayerStatusNormal,
+                        "arena_gold":   initialGold,
+                        "player_status": ArenaPlayerStatusSignup,
+                        "created_at":   time.Now(),
+                        "updated_at":   time.Now(),
+                }
+
+                if err := DB().Table(tableName).Create(newPlayer).Error; err != nil {
+                        log.Printf("❌ [InitArenaGold] 创建记录失败: period_no=%s, player_id=%d, err=%v", periodNo, playerID, err)
+                        return fmt.Errorf("创建赛事金币记录失败: %w", err)
+                }
+
+                // 写入金币流水
+                if err := CreateArenaGoldLog(&ArenaGoldLog{
+                        PeriodNo:   periodNo,
+                        PlayerID:   playerID,
+                        BeforeGold: 0,
+                        ChangeGold: initialGold,
+                        AfterGold:  initialGold,
+                        Reason:     ArenaGoldReasonInit,
+                }); err != nil {
+                        log.Printf("⚠️ [InitArenaGold] 写入金币流水失败: %v", err)
+                }
+
+                log.Printf("✅ [InitArenaGold] 创建并初始化金币成功: period_no=%s, player_id=%d, arena_gold=%d", periodNo, playerID, initialGold)
+                return nil
+        } else if err != nil {
+                log.Printf("❌ [InitArenaGold] 查询记录失败: period_no=%s, player_id=%d, err=%v", periodNo, playerID, err)
+                return fmt.Errorf("查询赛事金币记录失败: %w", err)
         }
 
-        // 更新 match_coin
-        if err := DB().Table(tableName).
-                Where("id = ?", participation.ID).
+        // 记录已存在，更新金币
+        result := DB().Table(tableName).
+                Where("period_no = ? AND player_id = ?", periodNo, playerID).
                 Updates(map[string]interface{}{
-                        "match_coin":  initialGold,
-                        "updated_at": time.Now(),
-                }).Error; err != nil {
-                return fmt.Errorf("初始化赛事金币失败: %w", err)
+                        "arena_gold":    initialGold,
+                        "player_status": ArenaPlayerStatusSignup,
+                        "updated_at":    time.Now(),
+                })
+
+        if result.Error != nil {
+                return fmt.Errorf("初始化赛事金币失败: %w", result.Error)
         }
 
         // 写入金币流水
@@ -719,42 +772,39 @@ func InitArenaGold(periodNo string, playerID uint64, initialGold int64) error {
                 log.Printf("⚠️ [InitArenaGold] 写入金币流水失败: %v", err)
         }
 
-        log.Printf("✅ [InitArenaGold] 初始化成功: period_no=%s, player_id=%d, match_coin=%d", periodNo, playerID, initialGold)
+        log.Printf("🏟️ [InitArenaGold] 期号=%s, 玩家=%d, 初始金币=%d", periodNo, playerID, initialGold)
         return nil
 }
 
 // UpdateArenaGold 更新玩家当期赛事金币（对局结算时调用）
-// 🔧【重构】金币现在存储在 ddz_arena_participations.match_coin
+// 只更新 arena_gold，不影响 player.gold
 func UpdateArenaGold(periodNo string, playerID uint64, changeGold int64, matchID string, reason string) (int64, error) {
-        log.Printf("🔍 [UpdateArenaGold] 更新金币: period_no=%s, player_id=%d, change=%d", periodNo, playerID, changeGold)
-
-        // 获取分表名
-        tableName, err := getArenaParticipationTableNameByPeriodNo(periodNo)
+        t, err := parsePeriodNoToTime(periodNo)
         if err != nil {
-                return 0, fmt.Errorf("获取分表名失败: %w", err)
+                t = time.Now()
         }
 
-        // 查找对应的 participation 记录
-        var participation ArenaParticipation
-        if err := DB().Table(tableName).Where("period_no = ? AND player_id = ?", periodNo, playerID).First(&participation).Error; err != nil {
-                if err == gorm.ErrRecordNotFound {
-                        log.Printf("⚠️ [UpdateArenaGold] 未找到 participation 记录: period_no=%s, player_id=%d", periodNo, playerID)
-                        return 0, nil // 没有 participation 记录时返回 0
-                }
-                return 0, fmt.Errorf("查询 participation 记录失败: %w", err)
+        tableName := getArenaPeriodPlayerTableNameByTime(t)
+
+        // 先查询当前金币
+        var player ArenaPeriodPlayer
+        if err := DB().Table(tableName).
+                Where("period_no = ? AND player_id = ?", periodNo, playerID).
+                First(&player).Error; err != nil {
+                return 0, fmt.Errorf("查询玩家赛事金币失败: %w", err)
         }
 
-        beforeGold := participation.MatchCoin
+        beforeGold := player.ArenaGold
         afterGold := beforeGold + changeGold
         if afterGold < 0 {
                 afterGold = 0 // 金币不能为负
         }
 
-        // 更新 match_coin
+        // 更新金币
         if err := DB().Table(tableName).
-                Where("id = ?", participation.ID).
+                Where("period_no = ? AND player_id = ?", periodNo, playerID).
                 Updates(map[string]interface{}{
-                        "match_coin":  afterGold,
+                        "arena_gold": afterGold,
                         "updated_at": time.Now(),
                 }).Error; err != nil {
                 return afterGold, fmt.Errorf("更新赛事金币失败: %w", err)
@@ -780,30 +830,30 @@ func UpdateArenaGold(periodNo string, playerID uint64, changeGold int64, matchID
 }
 
 // GetArenaGold 查询玩家当期赛事金币
-// 🔧【重构】金币现在存储在 ddz_arena_participations.match_coin
 func GetArenaGold(periodNo string, playerID uint64) (int64, error) {
-        log.Printf("🔍 [GetArenaGold] 查询金币: period_no=%s, player_id=%d", periodNo, playerID)
-
-        // 获取分表名
-        tableName, err := getArenaParticipationTableNameByPeriodNo(periodNo)
+        t, err := parsePeriodNoToTime(periodNo)
         if err != nil {
-                log.Printf("❌ [GetArenaGold] 获取分表名失败: err=%v", err)
-                return 0, err
+                log.Printf("⚠️ [GetArenaGold] 解析期号失败: periodNo=%s, err=%v, 使用当前时间", periodNo, err)
+                t = time.Now()
         }
 
-        // 查找对应的 participation 记录
-        var participation ArenaParticipation
-        if err := DB().Table(tableName).Where("period_no = ? AND player_id = ?", periodNo, playerID).First(&participation).Error; err != nil {
+        tableName := getArenaPeriodPlayerTableNameByTime(t)
+        log.Printf("🔍 [GetArenaGold] 查询表: %s, period_no=%s, player_id=%d", tableName, periodNo, playerID)
+
+        var player ArenaPeriodPlayer
+        if err := DB().Table(tableName).
+                Where("period_no = ? AND player_id = ?", periodNo, playerID).
+                First(&player).Error; err != nil {
                 if err == gorm.ErrRecordNotFound {
-                        log.Printf("⚠️ [GetArenaGold] 未找到 participation 记录: period_no=%s, player_id=%d", periodNo, playerID)
+                        log.Printf("⚠️ [GetArenaGold] 记录不存在: table=%s, period_no=%s, player_id=%d", tableName, periodNo, playerID)
                         return 0, nil // 未找到记录，返回0
                 }
-                log.Printf("❌ [GetArenaGold] 查询失败: err=%v", err)
+                log.Printf("❌ [GetArenaGold] 查询失败: table=%s, err=%v", tableName, err)
                 return 0, err
         }
 
-        log.Printf("✅ [GetArenaGold] 查询成功: period_no=%s, player_id=%d, match_coin=%d", periodNo, playerID, participation.MatchCoin)
-        return participation.MatchCoin, nil
+        log.Printf("✅ [GetArenaGold] 查询成功: table=%s, period_no=%s, player_id=%d, arena_gold=%d", tableName, periodNo, playerID, player.ArenaGold)
+        return player.ArenaGold, nil
 }
 
 // GetArenaPeriodPlayer 查询玩家期号记录
