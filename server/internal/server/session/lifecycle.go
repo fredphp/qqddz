@@ -1043,12 +1043,12 @@ func (gs *GameSession) sendFinalRankingsForSingleTable(periodNo string, players 
                 rankEntries[i] = protocol.TournamentRankEntry{
                         Rank:       i + 1,
                         PlayerID:   strconv.FormatUint(p.PlayerID, 10),
-                        PlayerName: p.PlayerName,
+                        PlayerName: getPlayerDisplayName(p),
                         MatchCoin:  p.MatchCoin,
                         IsRobot:    p.IsRobot == 1,
                 }
                 log.Printf("🏆 [sendFinalRankingsForSingleTable] 排名 #%d: 玩家 %s (ID=%d), 金币=%d, isRobot=%v",
-                        i+1, p.PlayerName, p.PlayerID, p.MatchCoin, p.IsRobot == 1)
+                        i+1, getPlayerDisplayName(p), p.PlayerID, p.MatchCoin, p.IsRobot == 1)
         }
 
         // 构建 TOP3 排名列表
@@ -1092,7 +1092,7 @@ func (gs *GameSession) sendFinalRankingsForSingleTable(periodNo string, players 
                         Message:      "比赛结束",
                 }
 
-                log.Printf("🏆 [sendFinalRankingsForSingleTable] 发送最终榜单给真人玩家 %s (ID=%d), 我的排名=%d", p.PlayerName, p.PlayerID, myRank)
+                log.Printf("🏆 [sendFinalRankingsForSingleTable] 发送最终榜单给真人玩家 %s (ID=%d), 我的排名=%d", getPlayerDisplayName(p), p.PlayerID, myRank)
                 
                 // 🔧【修复】使用房间玩家连接发送消息
                 rp := gs.room.Players[strconv.FormatUint(p.PlayerID, 10)]
@@ -1207,6 +1207,28 @@ func countRealPlayers(participations []*database.ArenaParticipation) int {
         return count
 }
 
+// getPlayerDisplayName 获取玩家显示名称
+// 🔧【新增】处理机器人名称显示
+func getPlayerDisplayName(p *database.ArenaParticipation) string {
+        // 机器人显示为"智能陪练X号"
+        if p.IsRobot == 1 {
+                // 使用 PlayerID 最后一位数字作为编号
+                robotIndex := p.PlayerID % 10
+                if robotIndex == 0 {
+                        robotIndex = 1
+                }
+                return fmt.Sprintf("智能陪练%d号", robotIndex)
+        }
+        
+        // 真人玩家使用关联的 Player 昵称
+        if p.Player.ID != 0 && p.Player.Nickname != "" {
+                return p.Player.Nickname
+        }
+        
+        // 回退：使用 PlayerID 作为标识
+        return fmt.Sprintf("玩家%d", p.PlayerID)
+}
+
 // scheduleRoomDestruction 延迟销毁房间（给客户端时间显示排名）
 func (gs *GameSession) scheduleRoomDestruction() {
         go func() {
@@ -1254,12 +1276,12 @@ func (gs *GameSession) broadcastFinalRankings() {
                 top3 = append(top3, protocol.TournamentRankEntry{
                         Rank:       i + 1,
                         PlayerID:   strconv.FormatUint(p.PlayerID, 10),
-                        PlayerName: p.PlayerName,
+                        PlayerName: getPlayerDisplayName(p),
                         MatchCoin:  p.MatchCoin,
                         IsRobot:    p.IsRobot == 1,
                 })
                 log.Printf("🏆 [broadcastFinalRankings] TOP3 #%d: 玩家 %s (ID=%d), 金币=%d, isRobot=%v", 
-                        i+1, p.PlayerName, p.PlayerID, p.MatchCoin, p.IsRobot == 1)
+                        i+1, getPlayerDisplayName(p), p.PlayerID, p.MatchCoin, p.IsRobot == 1)
         }
 
         // 4. 构建 TOP20 排名列表
@@ -1271,7 +1293,7 @@ func (gs *GameSession) broadcastFinalRankings() {
                 top20 = append(top20, protocol.TournamentRankEntry{
                         Rank:       i + 1,
                         PlayerID:   strconv.FormatUint(p.PlayerID, 10),
-                        PlayerName: p.PlayerName,
+                        PlayerName: getPlayerDisplayName(p),
                         MatchCoin:  p.MatchCoin,
                         IsRobot:    p.IsRobot == 1,
                 })
@@ -1300,7 +1322,7 @@ func (gs *GameSession) broadcastFinalRankings() {
                         Message:      "比赛结束",
                 }
 
-                log.Printf("🏆 [broadcastFinalRankings] 发送最终榜单给真人玩家 %s (ID=%d), 我的排名=%d", p.PlayerName, p.PlayerID, myRank)
+                log.Printf("🏆 [broadcastFinalRankings] 发送最终榜单给真人玩家 %s (ID=%d), 我的排名=%d", getPlayerDisplayName(p), p.PlayerID, myRank)
                 
                 // 使用房间玩家连接发送消息
                 rp := gs.room.Players[strconv.FormatUint(p.PlayerID, 10)]

@@ -542,6 +542,7 @@ func GetArenaParticipationsByPeriodNo(periodNo string) ([]*ArenaParticipation, e
         err = DB().Table(tableName).
                 Where("period_no = ?", periodNo).
                 Order("match_coin DESC").
+                Preload("Player"). // 预加载玩家信息
                 Find(&participations).Error
 
         return participations, err
