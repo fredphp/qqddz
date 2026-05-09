@@ -1135,14 +1135,20 @@ func (gs *GameSession) sendFinalRankingsForSingleTable(periodNo string, players 
 
                 log.Printf("🏆 [sendFinalRankingsForSingleTable] 发送最终榜单给真人玩家 %s (ID=%d), 我的排名=%d", getPlayerDisplayName(p), p.PlayerID, myRank)
                 
-                // 🔧【修复】使用房间玩家连接发送消息
-                rp := gs.room.Players[strconv.FormatUint(p.PlayerID, 10)]
-                if rp != nil && rp.Client != nil {
-                        rp.Client.SendMessage(codec.MustNewMessage(protocol.MsgTournamentFinalRank, payload))
-                } else {
-                        // 如果找不到房间玩家连接，使用广播
-                        log.Printf("⚠️ [sendFinalRankingsForSingleTable] 找不到玩家 %d 的连接，使用广播", p.PlayerID)
-                        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgTournamentFinalRank, payload))
+                // 🔧【修复】遍历房间玩家，通过 PlayerID（数据库ID）找到正确的连接
+                // room.Players 的 key 是 client.GetID()（客户端ID），不是数据库 PlayerID
+                found := false
+                for _, rp := range gs.room.Players {
+                        if rp != nil && rp.Client != nil && rp.Client.GetPlayerID() == p.PlayerID {
+                                rp.Client.SendMessage(codec.MustNewMessage(protocol.MsgTournamentFinalRank, payload))
+                                found = true
+                                log.Printf("✅ [sendFinalRankingsForSingleTable] 找到玩家 %d 的连接，发送成功", p.PlayerID)
+                                break
+                        }
+                }
+                if !found {
+                        // 如果找不到玩家连接（玩家可能已断开），使用广播
+                        log.Printf("⚠️ [sendFinalRankingsForSingleTable] 找不到玩家 %d 的连接，跳过发送", p.PlayerID)
                 }
         }
 
@@ -1365,14 +1371,20 @@ func (gs *GameSession) broadcastFinalRankings() {
 
                 log.Printf("🏆 [broadcastFinalRankings] 发送最终榜单给真人玩家 %s (ID=%d), 我的排名=%d", getPlayerDisplayName(p), p.PlayerID, myRank)
                 
-                // 使用房间玩家连接发送消息
-                rp := gs.room.Players[strconv.FormatUint(p.PlayerID, 10)]
-                if rp != nil && rp.Client != nil {
-                        rp.Client.SendMessage(codec.MustNewMessage(protocol.MsgTournamentFinalRank, payload))
-                } else {
-                        // 如果找不到房间玩家连接，使用广播
-                        log.Printf("⚠️ [broadcastFinalRankings] 找不到玩家 %d 的连接，使用广播", p.PlayerID)
-                        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgTournamentFinalRank, payload))
+                // 🔧【修复】遍历房间玩家，通过 PlayerID（数据库ID）找到正确的连接
+                // room.Players 的 key 是 client.GetID()（客户端ID），不是数据库 PlayerID
+                found := false
+                for _, rp := range gs.room.Players {
+                        if rp != nil && rp.Client != nil && rp.Client.GetPlayerID() == p.PlayerID {
+                                rp.Client.SendMessage(codec.MustNewMessage(protocol.MsgTournamentFinalRank, payload))
+                                found = true
+                                log.Printf("✅ [broadcastFinalRankings] 找到玩家 %d 的连接，发送成功", p.PlayerID)
+                                break
+                        }
+                }
+                if !found {
+                        // 如果找不到玩家连接（玩家可能已断开），跳过发送
+                        log.Printf("⚠️ [broadcastFinalRankings] 找不到玩家 %d 的连接，跳过发送", p.PlayerID)
                 }
         }
 
