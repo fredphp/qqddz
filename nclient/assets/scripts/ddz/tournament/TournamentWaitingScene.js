@@ -331,23 +331,23 @@ cc.Class({
         // 停止loading动画
         this._stopLoadingAnimation()
 
-        // 加载并显示最终榜单弹窗
-        var self = this
-        cc.resources.load("prefabs/tournament/TournamentFinalRankDialog", function(err, prefab) {
-            if (err) {
-                console.error("加载最终榜单弹窗失败:", err)
-                return
-            }
-
-            var dialog = cc.instantiate(prefab)
-            self.node.addChild(dialog)
-
-            // 设置数据
-            var dialogComp = dialog.getComponent("TournamentFinalRankDialog")
-            if (dialogComp) {
-                dialogComp.setData(data)
-            }
-        })
+        // 🔧【修复】动态创建弹窗，不依赖prefab文件
+        var dialogNode = new cc.Node("TournamentFinalRankDialog")
+        dialogNode.setPosition(0, 0)
+        dialogNode.setContentSize(cc.winSize.width, cc.winSize.height)
+        
+        // 添加脚本组件
+        var dialogComp = dialogNode.addComponent("TournamentFinalRankDialog")
+        
+        // 添加到当前场景
+        this.node.addChild(dialogNode)
+        
+        // 设置数据
+        if (dialogComp) {
+            dialogComp.setData(data)
+        }
+        
+        console.log("🏆 [TournamentWaiting] 最终榜单弹窗已创建")
     },
 
     // ============================================================

@@ -287,19 +287,10 @@ cc.Class({
           this.headimage.node.parent.sortAllChildren()
       }
 
-      // 加载头像
-      var str = data.avatarUrl || data.avatarurl || "avatar_1"
-      var head_image_path = "UI/headimage/" + str
-      var self = this
-      cc.loader.loadRes(head_image_path, cc.SpriteFrame, function(err, spriteFrame) {
-          if (err) {
-              cc.loader.loadRes("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
-                  if (!err2) self._setAvatarSprite(fallbackSprite)
-              })
-              return
-          }
-          self._setAvatarSprite(spriteFrame)
-      })
+      // 🔧【修复】加载头像 - 支持远程URL和本地资源
+      // 服务端可能返回 avatar, avatarUrl, 或 avatarurl 字段
+      var avatarUrl = data.avatar || data.avatarUrl || data.avatarurl || "avatar_1"
+      this._loadAvatar(avatarUrl)
 
       // 准备通知
       this.node.on("player_ready_notify", function(event) {
@@ -354,6 +345,73 @@ cc.Class({
         this.headimage.spriteFrame = spriteFrame
         this.headimage.node.setContentSize(80, 80)
         this.headimage.node.scale = 1
+    },
+
+    /**
+     * 🔧【新增】加载头像 - 支持远程URL和本地资源
+     * @param {string} avatarUrl - 头像URL或本地资源名
+     */
+    _loadAvatar: function(avatarUrl) {
+        var self = this
+        
+        if (!this.headimage) {
+            console.warn("🖼️ [player_node] headimage 未绑定")
+            return
+        }
+
+        // 空值处理
+        if (!avatarUrl || avatarUrl === "") {
+            this._loadDefaultAvatar()
+            return
+        }
+
+        // 判断是否是远程URL
+        if (avatarUrl.indexOf('http://') === 0 || avatarUrl.indexOf('https://') === 0) {
+            // 远程URL头像
+            console.log("🖼️ [player_node] 加载远程头像:", avatarUrl)
+            cc.assetManager.loadRemote(avatarUrl, { ext: '.png' }, function(err, texture) {
+                if (err || !texture) {
+                    console.warn("🖼️ [player_node] 远程头像加载失败，使用默认头像:", err)
+                    self._loadDefaultAvatar()
+                    return
+                }
+                try {
+                    var spriteFrame = new cc.SpriteFrame(texture)
+                    if (spriteFrame) {
+                        self._setAvatarSprite(spriteFrame)
+                        console.log("🖼️ [player_node] 远程头像加载成功")
+                    }
+                } catch (e) {
+                    console.warn("🖼️ [player_node] 创建SpriteFrame失败:", e)
+                    self._loadDefaultAvatar()
+                }
+            })
+        } else {
+            // 本地资源头像
+            console.log("🖼️ [player_node] 加载本地头像:", avatarUrl)
+            var localPath = "UI/headimage/" + avatarUrl
+            cc.loader.loadRes(localPath, cc.SpriteFrame, function(err, spriteFrame) {
+                if (err || !spriteFrame) {
+                    console.warn("🖼️ [player_node] 本地头像加载失败，使用默认头像:", err)
+                    self._loadDefaultAvatar()
+                    return
+                }
+                self._setAvatarSprite(spriteFrame)
+                console.log("🖼️ [player_node] 本地头像加载成功")
+            })
+        }
+    },
+
+    /**
+     * 🔧【新增】加载默认头像
+     */
+    _loadDefaultAvatar: function() {
+        var self = this
+        cc.loader.loadRes("UI/headimage/avatar_1", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err && spriteFrame) {
+                self._setAvatarSprite(spriteFrame)
+            }
+        })
     },
 
     // ============================================================
