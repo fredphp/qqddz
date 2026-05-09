@@ -108,6 +108,8 @@ cc.Class({
      * @param {Object} data - { period_no, total_players, top3, top20, my_rank, my_match_coin }
      */
     setData: function(data) {
+        console.log("🏆 [TournamentFinalRankDialog] 收到数据:", JSON.stringify(data))
+        
         this._data = data
         this._periodNo = data.period_no || ""
         this._totalPlayers = data.total_players || 0
@@ -115,6 +117,12 @@ cc.Class({
         this._top20 = data.top20 || []
         this._myRank = data.my_rank || 0
         this._myMatchCoin = data.my_match_coin || 0
+
+        // 🔧【调试】打印TOP3数据
+        console.log("🏆 [TournamentFinalRankDialog] TOP3数据:")
+        for (var i = 0; i < this._top3.length; i++) {
+            console.log("  #" + (i+1) + ":", this._top3[i].player_name, "金币:", this._top3[i].match_coin, "机器人:", this._top3[i].is_robot)
+        }
 
         this._updateUI()
     },
@@ -175,7 +183,7 @@ cc.Class({
     /**
      * 更新领奖台节点
      * @param {cc.Node} node - 领奖台节点
-     * @param {Object} data - 玩家数据 { player_name, match_coin, avatar, is_robot }
+     * @param {Object} data - 玩家数据 { player_name, match_coin, avatar, is_robot, player_id }
      * @param {number} rank - 排名
      */
     _updatePodiumNode: function(node, data, rank) {
@@ -185,10 +193,17 @@ cc.Class({
             rankLabel.getComponent(cc.Label).string = this._getRankText(rank)
         }
 
+        // 🔧【修复】处理机器人昵称显示
+        var displayName = data.player_name || "玩家"
+        if (data.is_robot) {
+            // 机器人显示为“智能陪练X号”
+            displayName = this._getRobotDisplayName(data.player_id, data.player_name)
+        }
+
         // 昵称标签
         var nameLabel = node.getChildByName("NameLabel")
         if (nameLabel) {
-            nameLabel.getComponent(cc.Label).string = data.player_name || "玩家"
+            nameLabel.getComponent(cc.Label).string = displayName
         }
 
         // 金币标签
@@ -200,13 +215,16 @@ cc.Class({
         // 头像（如果有）
         var avatarSprite = node.getChildByName("AvatarSprite")
         if (avatarSprite) {
-            // TODO: 加载头像
-            // 这里可以根据 data.avatar 或 data.is_robot 设置不同头像
+            // 🔧【修复】机器人使用默认头像
+            if (data.is_robot) {
+                // 机器人使用特定头像（如果有的话）
+                // cc.resources.load("textures/robot_avatar", ...)
+            }
         }
 
-        // 机器人标识
+        // 🔧【修复】机器人标识 - 确保显示
+        var robotTag = node.getChildByName("RobotTag")
         if (data.is_robot) {
-            var robotTag = node.getChildByName("RobotTag")
             if (!robotTag) {
                 // 创建机器人标签
                 robotTag = new cc.Node("RobotTag")
@@ -215,8 +233,14 @@ cc.Class({
                 label.fontSize = 20
                 robotTag.setPosition(50, 20)
                 node.addChild(robotTag)
+            } else {
+                robotTag.active = true
             }
+        } else if (robotTag) {
+            robotTag.active = false
         }
+        
+        console.log("🏆 [_updatePodiumNode] 排名#" + rank + ": " + displayName + ", 金币=" + data.match_coin + ", 机器人=" + data.is_robot)
     },
 
     _updateTop20List: function() {
@@ -249,10 +273,16 @@ cc.Class({
             rankLabel.getComponent(cc.Label).string = this._getRankText(rank)
         }
 
+        // 🔧【修复】处理机器人昵称显示
+        var displayName = data.player_name || "玩家"
+        if (data.is_robot) {
+            displayName = this._getRobotDisplayName(data.player_id, data.player_name)
+        }
+
         // 昵称
         var nameLabel = item.getChildByName("NameLabel")
         if (nameLabel) {
-            nameLabel.getComponent(cc.Label).string = data.player_name || "玩家"
+            nameLabel.getComponent(cc.Label).string = displayName
         }
 
         // 金币
@@ -261,7 +291,7 @@ cc.Class({
             coinLabel.getComponent(cc.Label).string = data.match_coin || 0
         }
 
-        // 机器人标识
+        // 🔧【修复】机器人标识
         var robotTag = item.getChildByName("RobotTag")
         if (robotTag) {
             robotTag.active = data.is_robot || false
@@ -345,5 +375,29 @@ cc.Class({
             default:
                 return "第" + rank + "名"
         }
+    },
+
+    /**
+     * 🔧【新增】获取机器人显示名称
+     * @param {String} playerId - 玩家ID
+     * @param {String} originalName - 原始昵称
+     * @returns {String} 显示名称
+     */
+    _getRobotDisplayName: function(playerId, originalName) {
+        // 如果原始名称已经是“智能陪练X号”格式，直接返回
+        if (originalName && originalName.indexOf("智能陪练") === 0) {
+            return originalName
+        }
+        
+        // 否则，生成“智能陪练X号”格式的名称
+        // 基于playerID生成编号
+        var robotIndex = 1
+        if (playerId) {
+            // 使用playerID最后一位数字作为编号
+            var lastChar = playerId.toString().slice(-1)
+            robotIndex = parseInt(lastChar) || 1
+        }
+        
+        return "智能陪练" + robotIndex + "号"
     }
 });

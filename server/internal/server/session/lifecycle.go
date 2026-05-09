@@ -494,15 +494,19 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 // 🔧【新增】检查当期报名人数
                 periodNo := gs.room.PeriodNo
                 totalPlayers := gs.getArenaTotalPlayers(periodNo)
-                log.Printf("🏟️ [endGame] 竞技场房间 %s 结算完成, 期号=%s, 当期报名人数=%d", gs.room.Code, periodNo, totalPlayers)
+                maxRoundCount := gs.getMaxRoundCount()
+                currentRound := gs.room.GameCount
+                log.Printf("🏟️ [endGame] 竞技场房间 %s 结算完成, 期号=%s, 当期报名人数=%d, 当前轮次=%d/%d", 
+                        gs.room.Code, periodNo, totalPlayers, currentRound, maxRoundCount)
 
-                // 🔧【关键】如果只有一桌（3人），直接显示最终排名
-                if totalPlayers <= 3 && totalPlayers > 0 {
-                        log.Printf("🏆 [endGame] 只有 %d 人（一桌），直接发送最终排名消息", totalPlayers)
+                // 🔧【关键修复】检查是否已完成所有轮次
+                // 无论是单人一桌还是多桌，都必须完成所有轮次后才显示最终排名
+                if currentRound >= maxRoundCount {
+                        log.Printf("🏆 [endGame] 已完成所有轮次 (当前=%d, 最大=%d)，发送最终排名消息", currentRound, maxRoundCount)
                         gs.sendFinalRankingsForSingleTable(periodNo, players)
                 } else {
-                        // 多桌情况：启动30秒倒计时，自动进入下一轮
-                        log.Printf("🏟️ [endGame] 多桌情况，启动30秒倒计时")
+                        // 未完成所有轮次：启动30秒倒计时，自动进入下一轮
+                        log.Printf("🏟️ [endGame] 未完成所有轮次 (当前=%d, 最大=%d)，启动30秒倒计时进入下一轮", currentRound, maxRoundCount)
                         gs.startArenaRoundCountdown()
                 }
         } else {
@@ -868,7 +872,11 @@ func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
         log.Printf("🏟️ [onArenaCountdownEnd] 轮次检查: 当前已完成 %d 局, 最大轮次 %d", currentRound, maxRoundCount)
 
         if currentRound >= maxRoundCount {
-                log.Printf("🏁 [onArenaCountdownEnd] 房间 %s 已完成 %d 轮，竞技场结束", gs.room.Code, currentRound)
+                log.Printf("🏁 [onArenaCountdownEnd] 房间 %s 已完成 %d 轮，竞技场结束，发送最终榜单", gs.room.Code, currentRound)
+                
+                // 🔧【关键修复】发送最终榜单
+                gs.broadcastFinalRankings()
+                
                 // 广播竞技场结束消息
                 gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaMatchEnd, &protocol.ArenaMatchEndPayload{
                         PeriodNo: gs.room.PeriodNo,
@@ -877,7 +885,7 @@ func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
                 }))
                 // 调用游戏结束回调销毁房间
                 if gs.onGameEnd != nil {
-                        gs.onGameEnd(gs.room)
+                        gs.scheduleRoomDestruction()
                 }
                 return
         }
@@ -1014,10 +1022,109 @@ func (gs *GameSession) getArenaTotalPlayers(periodNo string) int {
 
 // sendFinalRankingsForSingleTable 为一桌玩家发送最终排名消息
 // 当只有3人（一桌）时，直接显示冠军、亚军、季军排名
+// 🔧【修复】从数据库获取所有参赛者（包含机器人补位），确保榜单完整
 func (gs *GameSession) sendFinalRankingsForSingleTable(periodNo string, players []protocol.PlayerResult) {
-        log.Printf("🏆 [sendFinalRankingsForSingleTable] 开始发送最终排名, periodNo=%s, 玩家数=%d", periodNo, len(players))
+        log.Printf("🏆 [sendFinalRankingsForSingleTable] 开始发送最终排名, periodNo=%s, 当前房间玩家数=%d", periodNo, len(players))
 
-        // 1. 根据比赛金币排序（从高到低）
+        // 🔧【修复】从数据库获取所有参赛者（包含机器人）
+        participations, err := database.GetArenaParticipationsByPeriodNo(periodNo)
+        if err != nil || len(participations) == 0 {
+                log.Printf("⚠️ [sendFinalRankingsForSingleTable] 获取参赛记录失败或为空: err=%v, 使用当前房间玩家", err)
+                // 回退到使用传入的玩家列表
+                gs.sendFinalRankingsFromPlayerList(periodNo, players)
+                return
+        }
+
+        log.Printf("🏆 [sendFinalRankingsForSingleTable] 从数据库获取到 %d 个参赛者", len(participations))
+
+        // 构建排名列表
+        rankEntries := make([]protocol.TournamentRankEntry, len(participations))
+        for i, p := range participations {
+                rankEntries[i] = protocol.TournamentRankEntry{
+                        Rank:       i + 1,
+                        PlayerID:   strconv.FormatUint(p.PlayerID, 10),
+                        PlayerName: p.PlayerName,
+                        MatchCoin:  p.MatchCoin,
+                        IsRobot:    p.IsRobot == 1,
+                }
+                log.Printf("🏆 [sendFinalRankingsForSingleTable] 排名 #%d: 玩家 %s (ID=%d), 金币=%d, isRobot=%v",
+                        i+1, p.PlayerName, p.PlayerID, p.MatchCoin, p.IsRobot == 1)
+        }
+
+        // 构建 TOP3 排名列表
+        top3 := make([]protocol.TournamentRankEntry, 0, 3)
+        for i := 0; i < 3 && i < len(rankEntries); i++ {
+                top3 = append(top3, rankEntries[i])
+        }
+
+        // 构建 TOP20 排名列表
+        top20 := make([]protocol.TournamentRankEntry, 0, 20)
+        for i := 0; i < 20 && i < len(rankEntries); i++ {
+                top20 = append(top20, rankEntries[i])
+        }
+
+        totalPlayers := len(rankEntries)
+
+        // 🔧【修复】给真人玩家单独发送个性化消息
+        for _, p := range participations {
+                // 只发送给真人玩家（机器人不需要）
+                if p.IsRobot == 1 {
+                        continue
+                }
+
+                // 查找玩家排名
+                myRank := 0
+                myMatchCoin := p.MatchCoin
+                for i, entry := range rankEntries {
+                        if entry.PlayerID == strconv.FormatUint(p.PlayerID, 10) {
+                                myRank = i + 1
+                                break
+                        }
+                }
+
+                payload := &protocol.TournamentFinalRankPayload{
+                        PeriodNo:     periodNo,
+                        TotalPlayers: totalPlayers,
+                        Top3:         top3,
+                        Top20:        top20,
+                        MyRank:       myRank,
+                        MyMatchCoin:  myMatchCoin,
+                        Message:      "比赛结束",
+                }
+
+                log.Printf("🏆 [sendFinalRankingsForSingleTable] 发送最终榜单给真人玩家 %s (ID=%d), 我的排名=%d", p.PlayerName, p.PlayerID, myRank)
+                
+                // 🔧【修复】使用房间玩家连接发送消息
+                rp := gs.room.Players[strconv.FormatUint(p.PlayerID, 10)]
+                if rp != nil && rp.Client != nil {
+                        rp.Client.SendMessage(codec.MustNewMessage(protocol.MsgTournamentFinalRank, payload))
+                } else {
+                        // 如果找不到房间玩家连接，使用广播
+                        log.Printf("⚠️ [sendFinalRankingsForSingleTable] 找不到玩家 %d 的连接，使用广播", p.PlayerID)
+                        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgTournamentFinalRank, payload))
+                }
+        }
+
+        // 广播竞技场结束消息
+        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaMatchEnd, &protocol.ArenaMatchEndPayload{
+                PeriodNo: periodNo,
+                RoomID:   gs.room.RoomConfigID,
+                Message:  "比赛结束",
+        }))
+
+        // 调用游戏结束回调销毁房间
+        if gs.onGameEnd != nil {
+                gs.scheduleRoomDestruction()
+        }
+
+        log.Printf("🏆 [sendFinalRankingsForSingleTable] 最终榜单发送完成, 总人数=%d, 真人=%d", totalPlayers, countRealPlayers(participations))
+}
+
+// sendFinalRankingsFromPlayerList 从玩家列表发送最终排名（回退方案）
+func (gs *GameSession) sendFinalRankingsFromPlayerList(periodNo string, players []protocol.PlayerResult) {
+        log.Printf("🏆 [sendFinalRankingsFromPlayerList] 使用玩家列表发送排名, 玩家数=%d", len(players))
+
+        // 根据比赛金币排序
         sortedPlayers := make([]protocol.PlayerResult, len(players))
         copy(sortedPlayers, players)
 
@@ -1025,52 +1132,79 @@ func (gs *GameSession) sendFinalRankingsForSingleTable(periodNo string, players 
                 return sortedPlayers[i].MatchCoin > sortedPlayers[j].MatchCoin
         })
 
-        // 2. 构建排名列表
-        rankings := make([]protocol.PlayerRankingInfo, 0, len(sortedPlayers))
-        for i, p := range sortedPlayers {
-                rank := i + 1
-                // 🔧【修复】将 string 类型的 PlayerID 转换为 uint64
-                playerIDUint, _ := strconv.ParseUint(p.PlayerID, 10, 64)
-                rankings = append(rankings, protocol.PlayerRankingInfo{
-                        Rank:       rank,
-                        PlayerID:   playerIDUint,
+        // 构建 TOP3
+        top3 := make([]protocol.TournamentRankEntry, 0, 3)
+        for i := 0; i < 3 && i < len(sortedPlayers); i++ {
+                p := sortedPlayers[i]
+                top3 = append(top3, protocol.TournamentRankEntry{
+                        Rank:       i + 1,
+                        PlayerID:   p.PlayerID,
                         PlayerName: p.PlayerName,
                         MatchCoin:  p.MatchCoin,
+                        IsRobot:    false,
                 })
-                log.Printf("🏆 排名 #%d: 玩家 %s (ID=%d), 金币=%d", rank, p.PlayerName, playerIDUint, p.MatchCoin)
         }
 
-        // 3. 获取冠军信息
-        var championID uint64
-        var championName string
-        if len(rankings) > 0 {
-                championID = rankings[0].PlayerID
-                championName = rankings[0].PlayerName
+        // 构建 TOP20
+        top20 := make([]protocol.TournamentRankEntry, 0, 20)
+        for i, p := range sortedPlayers {
+                if i >= 20 {
+                        break
+                }
+                top20 = append(top20, protocol.TournamentRankEntry{
+                        Rank:       i + 1,
+                        PlayerID:   p.PlayerID,
+                        PlayerName: p.PlayerName,
+                        MatchCoin:  p.MatchCoin,
+                        IsRobot:    false,
+                })
         }
 
-        // 4. 构建并发送排名消息
-        payload := &protocol.CompetitionChampionPayload{
-                SessionID:    gs.room.ArenaSessionID,
-                ChampionID:   championID,
-                ChampionName: championName,
-                Reward:       nil, // 一桌比赛暂无特殊奖励
-                Rankings:     rankings,
+        totalPlayers := len(sortedPlayers)
+
+        // 广播消息
+        for _, p := range sortedPlayers {
+                myRank := 0
+                for i, sp := range sortedPlayers {
+                        if sp.PlayerID == p.PlayerID {
+                                myRank = i + 1
+                                break
+                        }
+                }
+
+                payload := &protocol.TournamentFinalRankPayload{
+                        PeriodNo:     periodNo,
+                        TotalPlayers: totalPlayers,
+                        Top3:         top3,
+                        Top20:        top20,
+                        MyRank:       myRank,
+                        MyMatchCoin:  p.MatchCoin,
+                        Message:      "比赛结束",
+                }
+
+                gs.room.Broadcast(codec.MustNewMessage(protocol.MsgTournamentFinalRank, payload))
         }
 
-        log.Printf("🏆 [sendFinalRankingsForSingleTable] 发送排名消息: champion=%s, 排名数=%d", championName, len(rankings))
-        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgCompetitionChampion, payload))
-
-        // 5. 广播竞技场结束消息
         gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaMatchEnd, &protocol.ArenaMatchEndPayload{
                 PeriodNo: periodNo,
                 RoomID:   gs.room.RoomConfigID,
                 Message:  "比赛结束",
         }))
 
-        // 6. 调用游戏结束回调销毁房间
         if gs.onGameEnd != nil {
                 gs.scheduleRoomDestruction()
         }
+}
+
+// countRealPlayers 统计真人玩家数量
+func countRealPlayers(participations []*database.ArenaParticipation) int {
+        count := 0
+        for _, p := range participations {
+                if p.IsRobot == 0 {
+                        count++
+                }
+        }
+        return count
 }
 
 // scheduleRoomDestruction 延迟销毁房间（给客户端时间显示排名）
@@ -1083,4 +1217,101 @@ func (gs *GameSession) scheduleRoomDestruction() {
                 }
                 log.Printf("🏆 [scheduleRoomDestruction] 房间已销毁")
         }()
+}
+
+// broadcastFinalRankings 从数据库获取玩家比赛金币并广播最终榜单
+// 🔧【新增】用于倒计时结束后发送最终排名
+func (gs *GameSession) broadcastFinalRankings() {
+        periodNo := gs.room.PeriodNo
+        if periodNo == "" {
+                log.Printf("⚠️ [broadcastFinalRankings] 期号为空，跳过")
+                return
+        }
+
+        log.Printf("🏆 [broadcastFinalRankings] 开始广播最终榜单, periodNo=%s", periodNo)
+
+        // 1. 从数据库获取所有玩家的比赛金币
+        participations, err := database.GetArenaParticipationsByPeriodNo(periodNo)
+        if err != nil {
+                log.Printf("⚠️ [broadcastFinalRankings] 获取参赛记录失败: %v", err)
+                return
+        }
+
+        if len(participations) == 0 {
+                log.Printf("⚠️ [broadcastFinalRankings] 没有参赛记录")
+                return
+        }
+
+        // 2. 按比赛金币排序
+        sort.Slice(participations, func(i, j int) bool {
+                return participations[i].MatchCoin > participations[j].MatchCoin
+        })
+
+        // 3. 构建 TOP3 排名列表
+        top3 := make([]protocol.TournamentRankEntry, 0, 3)
+        for i := 0; i < 3 && i < len(participations); i++ {
+                p := participations[i]
+                top3 = append(top3, protocol.TournamentRankEntry{
+                        Rank:       i + 1,
+                        PlayerID:   strconv.FormatUint(p.PlayerID, 10),
+                        PlayerName: p.PlayerName,
+                        MatchCoin:  p.MatchCoin,
+                        IsRobot:    p.IsRobot == 1,
+                })
+                log.Printf("🏆 [broadcastFinalRankings] TOP3 #%d: 玩家 %s (ID=%d), 金币=%d, isRobot=%v", 
+                        i+1, p.PlayerName, p.PlayerID, p.MatchCoin, p.IsRobot == 1)
+        }
+
+        // 4. 构建 TOP20 排名列表
+        top20 := make([]protocol.TournamentRankEntry, 0, 20)
+        for i, p := range participations {
+                if i >= 20 {
+                        break
+                }
+                top20 = append(top20, protocol.TournamentRankEntry{
+                        Rank:       i + 1,
+                        PlayerID:   strconv.FormatUint(p.PlayerID, 10),
+                        PlayerName: p.PlayerName,
+                        MatchCoin:  p.MatchCoin,
+                        IsRobot:    p.IsRobot == 1,
+                })
+        }
+
+        // 5. 获取总人数
+        totalPlayers := len(participations)
+
+        // 6. 🔧【修复】给真人玩家单独发送个性化消息
+        for i, p := range participations {
+                // 只发送给真人玩家（机器人不需要）
+                if p.IsRobot == 1 {
+                        continue
+                }
+
+                myRank := i + 1
+                myMatchCoin := p.MatchCoin
+
+                payload := &protocol.TournamentFinalRankPayload{
+                        PeriodNo:     periodNo,
+                        TotalPlayers: totalPlayers,
+                        Top3:         top3,
+                        Top20:        top20,
+                        MyRank:       myRank,
+                        MyMatchCoin:  myMatchCoin,
+                        Message:      "比赛结束",
+                }
+
+                log.Printf("🏆 [broadcastFinalRankings] 发送最终榜单给真人玩家 %s (ID=%d), 我的排名=%d", p.PlayerName, p.PlayerID, myRank)
+                
+                // 使用房间玩家连接发送消息
+                rp := gs.room.Players[strconv.FormatUint(p.PlayerID, 10)]
+                if rp != nil && rp.Client != nil {
+                        rp.Client.SendMessage(codec.MustNewMessage(protocol.MsgTournamentFinalRank, payload))
+                } else {
+                        // 如果找不到房间玩家连接，使用广播
+                        log.Printf("⚠️ [broadcastFinalRankings] 找不到玩家 %d 的连接，使用广播", p.PlayerID)
+                        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgTournamentFinalRank, payload))
+                }
+        }
+
+        log.Printf("🏆 [broadcastFinalRankings] 最终榜单广播完成, 总人数=%d, 真人=%d", totalPlayers, countRealPlayers(participations))
 }

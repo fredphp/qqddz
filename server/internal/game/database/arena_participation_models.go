@@ -530,6 +530,23 @@ func GetParticipationByPeriodAndPlayer(periodNo string, playerID uint64) (*Arena
         return &participation, nil
 }
 
+// GetArenaParticipationsByPeriodNo 根据期号获取所有参赛记录（用于广播最终排名）
+// 🔧【新增】返回所有参赛玩家信息，包含机器人
+func GetArenaParticipationsByPeriodNo(periodNo string) ([]*ArenaParticipation, error) {
+        tableName, err := getArenaParticipationTableNameByPeriodNo(periodNo)
+        if err != nil {
+                return nil, err
+        }
+
+        var participations []*ArenaParticipation
+        err = DB().Table(tableName).
+                Where("period_no = ?", periodNo).
+                Order("match_coin DESC").
+                Find(&participations).Error
+
+        return participations, err
+}
+
 // =============================================
 // 辅助函数
 // =============================================
