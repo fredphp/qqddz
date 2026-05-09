@@ -4,6 +4,7 @@ import (
         "errors"
         "log"
 
+        "github.com/palemoky/fight-the-landlord/internal/cdnutil"
         "github.com/palemoky/fight-the-landlord/internal/game/database"
         "github.com/palemoky/fight-the-landlord/internal/protocol"
         "github.com/palemoky/fight-the-landlord/internal/protocol/codec"
@@ -156,11 +157,14 @@ func (r *Room) GetPlayerInfo(playerID string) protocol.PlayerInfo {
 
         log.Printf("📤 [GetPlayerInfo] 返回玩家信息: UUID=%s, 昵称=%s, 头像=%s, 金币=%d, 竞技币=%d", playerID, playerName, avatar, goldCount, matchCoin)
 
+        // 🔧【修复】使用 CDN 补全头像 URL
+        avatarUrl := cdnutil.CompleteAvatar(avatar)
+
         // 游戏会话由外部调用方管理，此处暂不传入
         return protocol.PlayerInfo{
                 ID:         player.Client.GetID(),
                 Name:       playerName,
-                Avatar:     avatar,
+                Avatar:     avatarUrl,  // 🔧【修复】使用 CDN 补全后的头像 URL
                 Seat:       player.Seat,
                 Ready:      player.Ready,
                 IsLandlord: player.IsLandlord,

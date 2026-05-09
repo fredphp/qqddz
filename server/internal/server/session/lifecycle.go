@@ -9,6 +9,7 @@ import (
         "strconv"
         "time"
 
+        "github.com/palemoky/fight-the-landlord/internal/cdnutil"
         "github.com/palemoky/fight-the-landlord/internal/game/database"
         "github.com/palemoky/fight-the-landlord/internal/game/deal"
         "github.com/palemoky/fight-the-landlord/internal/game/rule"
@@ -1089,6 +1090,9 @@ func (gs *GameSession) sendFinalRankingsForSingleTable(periodNo string, players 
                 }
                 // 机器人使用默认头像（可以后续设置为特定的机器人头像）
 
+                // 🔧【修复】使用 CDN 补全头像 URL
+                avatarURL = cdnutil.CompleteAvatar(avatarURL)
+
                 rankEntries[i] = protocol.TournamentRankEntry{
                         Rank:       i + 1,
                         PlayerID:   strconv.FormatUint(p.PlayerID, 10),
@@ -1192,10 +1196,19 @@ func (gs *GameSession) sendFinalRankingsFromPlayerList(periodNo string, players 
         top3 := make([]protocol.TournamentRankEntry, 0, 3)
         for i := 0; i < 3 && i < len(sortedPlayers); i++ {
                 p := sortedPlayers[i]
+                // 🔧【修复】尝试从房间获取头像信息
+                avatarURL := ""
+                if rp, ok := gs.room.Players[p.PlayerID]; ok && rp != nil && rp.Client != nil {
+                        // 从房间玩家获取头像
+                        avatarURL = gs.room.GetPlayerInfo(p.PlayerID).Avatar
+                }
+                avatarURL = cdnutil.CompleteAvatar(avatarURL)
+
                 top3 = append(top3, protocol.TournamentRankEntry{
                         Rank:       i + 1,
                         PlayerID:   p.PlayerID,
                         PlayerName: p.PlayerName,
+                        Avatar:     avatarURL,
                         MatchCoin:  p.MatchCoin,
                         IsRobot:    false,
                 })
@@ -1207,10 +1220,19 @@ func (gs *GameSession) sendFinalRankingsFromPlayerList(periodNo string, players 
                 if i >= 20 {
                         break
                 }
+                // 🔧【修复】尝试从房间获取头像信息
+                avatarURL := ""
+                if rp, ok := gs.room.Players[p.PlayerID]; ok && rp != nil && rp.Client != nil {
+                        // 从房间玩家获取头像
+                        avatarURL = gs.room.GetPlayerInfo(p.PlayerID).Avatar
+                }
+                avatarURL = cdnutil.CompleteAvatar(avatarURL)
+
                 top20 = append(top20, protocol.TournamentRankEntry{
                         Rank:       i + 1,
                         PlayerID:   p.PlayerID,
                         PlayerName: p.PlayerName,
+                        Avatar:     avatarURL,
                         MatchCoin:  p.MatchCoin,
                         IsRobot:    false,
                 })
@@ -1329,14 +1351,22 @@ func (gs *GameSession) broadcastFinalRankings() {
         top3 := make([]protocol.TournamentRankEntry, 0, 3)
         for i := 0; i < 3 && i < len(participations); i++ {
                 p := participations[i]
+                // 🔧【修复】获取并补全头像 URL
+                avatarURL := ""
+                if p.IsRobot == 0 && p.Player.ID != 0 {
+                        avatarURL = p.Player.Avatar
+                }
+                avatarURL = cdnutil.CompleteAvatar(avatarURL)
+
                 top3 = append(top3, protocol.TournamentRankEntry{
                         Rank:       i + 1,
                         PlayerID:   strconv.FormatUint(p.PlayerID, 10),
                         PlayerName: getPlayerDisplayName(p),
+                        Avatar:     avatarURL,
                         MatchCoin:  p.MatchCoin,
                         IsRobot:    p.IsRobot == 1,
                 })
-                log.Printf("🏆 [broadcastFinalRankings] TOP3 #%d: 玩家 %s (ID=%d), 金币=%d, isRobot=%v", 
+                log.Printf("🏆 [broadcastFinalRankings] TOP3 #%d: 玩家 %s (ID=%d), 金币=%d, isRobot=%v",
                         i+1, getPlayerDisplayName(p), p.PlayerID, p.MatchCoin, p.IsRobot == 1)
         }
 
@@ -1346,10 +1376,18 @@ func (gs *GameSession) broadcastFinalRankings() {
                 if i >= 20 {
                         break
                 }
+                // 🔧【修复】获取并补全头像 URL
+                avatarURL := ""
+                if p.IsRobot == 0 && p.Player.ID != 0 {
+                        avatarURL = p.Player.Avatar
+                }
+                avatarURL = cdnutil.CompleteAvatar(avatarURL)
+
                 top20 = append(top20, protocol.TournamentRankEntry{
                         Rank:       i + 1,
                         PlayerID:   strconv.FormatUint(p.PlayerID, 10),
                         PlayerName: getPlayerDisplayName(p),
+                        Avatar:     avatarURL,
                         MatchCoin:  p.MatchCoin,
                         IsRobot:    p.IsRobot == 1,
                 })
