@@ -158,6 +158,10 @@ type GameSession struct {
         // 🔧【托管】机器人操作计时器（托管状态下使用）
         robotTimer *time.Timer
 
+        // 🔧【新增】竞技场倒计时状态（防止重复启动）
+        arenaCountdownActive bool
+        arenaCountdownMu     sync.Mutex
+
         // 游戏日志记录
         gameLogger *GameLogger
 

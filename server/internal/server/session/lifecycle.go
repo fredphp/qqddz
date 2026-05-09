@@ -27,48 +27,56 @@ func init() {
 
 // Start 开始游戏
 func (gs *GameSession) Start() {
-        gs.mu.Lock()
-        defer gs.mu.Unlock()
-
         log.Printf("🃏 [GameSession.Start] 开始游戏会话, 玩家数: %d", len(gs.players))
 
-        // 检查是否正在发牌（防重复）
-        if globalDealManager.IsDealing(gs.room.Code) {
-                log.Printf("⚠️ [GameSession.Start] 房间 %s 正在发牌，跳过", gs.room.Code)
-                return
+        // 🔧【关键修复】使用局部变量存储需要在锁外调用的函数
+        var startCallLandlordFunc func()
+
+        func() {
+                gs.mu.Lock()
+                defer gs.mu.Unlock()
+
+                // 检查是否正在发牌（防重复）
+                if globalDealManager.IsDealing(gs.room.Code) {
+                        log.Printf("⚠️ [GameSession.Start] 房间 %s 正在发牌，跳过", gs.room.Code)
+                        return
+                }
+
+                // 🔧【新增】增加游戏局数计数
+                gs.room.GameCount++
+                log.Printf("🃏 [GameSession.Start] 房间 %s 第 %d 局游戏", gs.room.Code, gs.room.GameCount)
+
+                // ============================================================
+                // 【核心】游戏阶段控制（服务端权威驱动）
+                // ============================================================
+
+                // 1. 广播准备阶段结束
+                gs.room.Broadcast(codec.MustNewMessage(protocol.MsgReadyEnd, &protocol.PhaseEndPayload{
+                        Phase: "ready",
+                }))
+
+                // 2. 广播发牌阶段开始
+                gs.state = GameStateDeal
+                gs.room.Broadcast(codec.MustNewMessage(protocol.MsgDealStart, &protocol.DealStartPayload{
+                        RoomCode: gs.room.Code,
+                }))
+
+                // 3. 执行发牌
+                gs.dealWithServerAuthority()
+
+                // 4. 广播发牌阶段结束
+                gs.room.Broadcast(codec.MustNewMessage(protocol.MsgDealEnd, &protocol.DealEndPayload{
+                        RoomCode: gs.room.Code,
+                }))
+
+                // 5. 准备在锁外调用 StartCallLandlord
+                startCallLandlordFunc = gs.StartCallLandlord
+        }()
+
+        // 🔧【关键修复】在锁外调用 StartCallLandlord，避免死锁
+        if startCallLandlordFunc != nil {
+                startCallLandlordFunc()
         }
-
-        // 🔧【新增】增加游戏局数计数
-        gs.room.GameCount++
-        log.Printf("🃏 [GameSession.Start] 房间 %s 第 %d 局游戏", gs.room.Code, gs.room.GameCount)
-
-        // ============================================================
-        // 【核心】游戏阶段控制（服务端权威驱动）
-        // ============================================================
-
-        // 1. 广播准备阶段结束
-        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgReadyEnd, &protocol.PhaseEndPayload{
-                Phase: "ready",
-        }))
-
-        // 2. 广播发牌阶段开始
-        gs.state = GameStateDeal
-        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgDealStart, &protocol.DealStartPayload{
-                RoomCode: gs.room.Code,
-        }))
-
-        // 3. 执行发牌
-        gs.dealWithServerAuthority()
-
-        // 4. 广播发牌阶段结束
-        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgDealEnd, &protocol.DealEndPayload{
-                RoomCode: gs.room.Code,
-        }))
-
-        // 5. 解锁后开始抢地主阶段（需要在锁外调用以避免死锁）
-        gs.mu.Unlock()
-        gs.StartCallLandlord()
-        gs.mu.Lock() // 重新获取锁以完成 defer
 }
 
 // dealWithServerAuthority 服务端权威发牌
@@ -805,6 +813,16 @@ const ArenaCountdownDuration = 30
 // 竞技场游戏结束后，服务端控制30秒倒计时，然后自动准备并开始下一轮
 // 🔧【修复】移除锁，因为它在被锁保护的上下文中调用，使用 goroutine 避免阻塞
 func (gs *GameSession) startArenaRoundCountdown() {
+        // 🔧【关键修复】检查是否已有倒计时在运行，防止重复启动
+        gs.arenaCountdownMu.Lock()
+        if gs.arenaCountdownActive {
+                gs.arenaCountdownMu.Unlock()
+                log.Printf("⚠️ [startArenaRoundCountdown] 房间 %s 已有倒计时在运行，跳过", gs.room.Code)
+                return
+        }
+        gs.arenaCountdownActive = true
+        gs.arenaCountdownMu.Unlock()
+
         // 🔧【关键修复】复制必要数据后启动 goroutine，避免死锁
         // 因为调用者（HandlePlayCards 等）持有 gs.mu 锁，这里不能同步获取锁
         roomCode := gs.room.Code
@@ -835,6 +853,14 @@ func (gs *GameSession) startArenaRoundCountdown() {
 func (gs *GameSession) runArenaCountdown(totalSeconds, nextRound int) {
         ticker := time.NewTicker(1 * time.Second)
         defer ticker.Stop()
+
+        // 🔧【关键修复】确保在函数结束时清除倒计时状态
+        defer func() {
+                gs.arenaCountdownMu.Lock()
+                gs.arenaCountdownActive = false
+                gs.arenaCountdownMu.Unlock()
+                log.Printf("🏟️ [runArenaCountdown] 房间 %s 倒计时结束，状态已清除", gs.room.Code)
+        }()
 
         remaining := totalSeconds
         log.Printf("🏟️ [runArenaCountdown] 房间 %s 开始倒计时, 总秒数=%d, 下一轮=%d", gs.room.Code, totalSeconds, nextRound)
