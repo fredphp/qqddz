@@ -30,6 +30,10 @@ const (
         PartitionTypeArenaSignupLog = "arena_signup_log" // 竞技场报名日志表分表
         PartitionTypeArenaPeriodPlayer = "arena_period_player" // 竞技场期号玩家表分表
         PartitionTypeArenaGoldLog = "arena_gold_log" // 🔧【新增】竞技场金币流水表分表
+        // 🔧【新增】以下三个表按月分表
+        PartitionTypeArenaParticipation    = "arena_participation"     // 竞技场参赛记录表分表
+        PartitionTypeTournamentRound       = "tournament_round"        // 锦标赛轮次表分表
+        PartitionTypeTournamentElimination = "tournament_elimination"  // 锦标赛淘汰记录表分表
 )
 
 // partitionManager 分表管理器单例
@@ -122,6 +126,21 @@ func (pm *PartitionManager) createMonthTables(t time.Time) error {
 
         // 创建竞技场金币流水分表
         if err := pm.createArenaGoldLogTable(suffix); err != nil {
+                return err
+        }
+
+        // 🔧【新增】创建竞技场参赛记录分表
+        if err := pm.createArenaParticipationTable(suffix); err != nil {
+                return err
+        }
+
+        // 🔧【新增】创建锦标赛轮次分表
+        if err := pm.createTournamentRoundTable(suffix); err != nil {
+                return err
+        }
+
+        // 🔧【新增】创建锦标赛淘汰记录分表
+        if err := pm.createTournamentEliminationTable(suffix); err != nil {
                 return err
         }
 
@@ -609,6 +628,133 @@ func (pm *PartitionManager) createArenaGoldLogTable(suffix string) error {
         return nil
 }
 
+// 🔧【新增】createArenaParticipationTable 创建竞技场参赛记录分表
+func (pm *PartitionManager) createArenaParticipationTable(suffix string) error {
+        tableName := pm.getTableName("ddz_arena_participations", suffix)
+
+        if pm.isTableExists(tableName) {
+                return nil
+        }
+
+        sql := fmt.Sprintf(`
+                CREATE TABLE IF NOT EXISTS %s (
+                        id bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+                        session_id bigint unsigned NOT NULL COMMENT '比赛会话ID',
+                        player_id bigint unsigned NOT NULL COMMENT '玩家ID',
+                        period_no varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '期号(关联报名记录)',
+                        robot_id bigint unsigned NOT NULL DEFAULT 0 COMMENT '机器人ID(当is_robot=1时等于player_id)',
+                        is_robot tinyint NOT NULL DEFAULT 0 COMMENT '是否机器人:0-否,1-是',
+                        is_tournament_bot tinyint NOT NULL DEFAULT 0 COMMENT '是否为锦标赛补位机器人(不可获奖)',
+                        let_win_enabled tinyint NOT NULL DEFAULT 0 COMMENT '是否启用让牌策略',
+                        match_coin bigint NOT NULL DEFAULT 0 COMMENT '比赛金币(用于排名)',
+                        round_match_coin bigint NOT NULL DEFAULT 0 COMMENT '本轮比赛金币(每轮重置)',
+                        current_round int NOT NULL DEFAULT 0 COMMENT '当前所在轮次',
+                        rank int DEFAULT NULL COMMENT '最终排名',
+                        is_eliminated tinyint unsigned NOT NULL DEFAULT 0 COMMENT '是否淘汰',
+                        eliminated_round int DEFAULT NULL COMMENT '淘汰轮次',
+                        eliminated_reason varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '淘汰原因',
+                        is_champion tinyint unsigned NOT NULL DEFAULT 0 COMMENT '是否冠军',
+                        is_online tinyint unsigned NOT NULL DEFAULT 1 COMMENT '是否在线',
+                        last_table_id varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '最后所在桌号',
+                        current_table_id bigint unsigned DEFAULT NULL COMMENT '当前所在桌ID',
+                        reward_claimed tinyint unsigned NOT NULL DEFAULT 0 COMMENT '奖励是否已领取',
+                        created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                        updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                        PRIMARY KEY (id),
+                        UNIQUE KEY uk_session_player (session_id, player_id),
+                        KEY idx_session_id (session_id),
+                        KEY idx_player_id (player_id),
+                        KEY idx_period_no (period_no),
+                        KEY idx_is_eliminated (is_eliminated),
+                        KEY idx_created_at (created_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='竞技场参赛记录表(月份分表)'
+        `, tableName)
+
+        if err := pm.db.Exec(sql).Error; err != nil {
+                return fmt.Errorf("创建竞技场参赛记录分表 %s 失败: %w", tableName, err)
+        }
+
+        pm.createdTables.Store(tableName, true)
+
+        log.Printf("✅ 创建竞技场参赛记录分表: %s", tableName)
+        return nil
+}
+
+// 🔧【新增】createTournamentRoundTable 创建锦标赛轮次分表
+func (pm *PartitionManager) createTournamentRoundTable(suffix string) error {
+        tableName := pm.getTableName("ddz_tournament_rounds", suffix)
+
+        if pm.isTableExists(tableName) {
+                return nil
+        }
+
+        sql := fmt.Sprintf(`
+                CREATE TABLE IF NOT EXISTS %s (
+                        id bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+                        session_id bigint unsigned NOT NULL COMMENT '比赛会话ID',
+                        round_num int NOT NULL COMMENT '轮次号',
+                        elimination_target int NOT NULL DEFAULT 0 COMMENT '淘汰目标人数',
+                        total_players int NOT NULL DEFAULT 0 COMMENT '总玩家数',
+                        tables_count int NOT NULL DEFAULT 0 COMMENT '桌子数量',
+                        stage varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'PREPARE' COMMENT '阶段',
+                        started_at datetime DEFAULT NULL COMMENT '开始时间',
+                        ended_at datetime DEFAULT NULL COMMENT '结束时间',
+                        created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                        updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                        PRIMARY KEY (id),
+                        UNIQUE KEY uk_session_round (session_id, round_num),
+                        KEY idx_session_id (session_id),
+                        KEY idx_stage (stage),
+                        KEY idx_created_at (created_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='锦标赛轮次表(月份分表)'
+        `, tableName)
+
+        if err := pm.db.Exec(sql).Error; err != nil {
+                return fmt.Errorf("创建锦标赛轮次分表 %s 失败: %w", tableName, err)
+        }
+
+        pm.createdTables.Store(tableName, true)
+
+        log.Printf("✅ 创建锦标赛轮次分表: %s", tableName)
+        return nil
+}
+
+// 🔧【新增】createTournamentEliminationTable 创建锦标赛淘汰记录分表
+func (pm *PartitionManager) createTournamentEliminationTable(suffix string) error {
+        tableName := pm.getTableName("ddz_tournament_eliminations", suffix)
+
+        if pm.isTableExists(tableName) {
+                return nil
+        }
+
+        sql := fmt.Sprintf(`
+                CREATE TABLE IF NOT EXISTS %s (
+                        id bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+                        session_id bigint unsigned NOT NULL COMMENT '比赛会话ID',
+                        round_num int NOT NULL COMMENT '轮次号',
+                        player_id bigint unsigned NOT NULL COMMENT '玩家ID',
+                        rank_before int NOT NULL DEFAULT 0 COMMENT '淘汰前排名',
+                        match_coin bigint NOT NULL DEFAULT 0 COMMENT '淘汰时金币',
+                        eliminated_reason varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '淘汰原因',
+                        created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                        PRIMARY KEY (id),
+                        KEY idx_session_id (session_id),
+                        KEY idx_player_id (player_id),
+                        KEY idx_round_num (round_num),
+                        KEY idx_created_at (created_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='锦标赛淘汰记录表(月份分表)'
+        `, tableName)
+
+        if err := pm.db.Exec(sql).Error; err != nil {
+                return fmt.Errorf("创建锦标赛淘汰记录分表 %s 失败: %w", tableName, err)
+        }
+
+        pm.createdTables.Store(tableName, true)
+
+        log.Printf("✅ 创建锦标赛淘汰记录分表: %s", tableName)
+        return nil
+}
+
 // EnsureTableExists 确保指定日期的分表存在
 func (pm *PartitionManager) EnsureTableExists(tableType, suffix string) error {
         switch tableType {
@@ -634,6 +780,13 @@ func (pm *PartitionManager) EnsureTableExists(tableType, suffix string) error {
                 return pm.createArenaPeriodPlayerTable(suffix)
         case PartitionTypeArenaGoldLog:
                 return pm.createArenaGoldLogTable(suffix)
+        // 🔧【新增】以下三个分表类型
+        case PartitionTypeArenaParticipation:
+                return pm.createArenaParticipationTable(suffix)
+        case PartitionTypeTournamentRound:
+                return pm.createTournamentRoundTable(suffix)
+        case PartitionTypeTournamentElimination:
+                return pm.createTournamentEliminationTable(suffix)
         default:
                 return fmt.Errorf("未知的分表类型: %s", tableType)
         }
@@ -705,6 +858,24 @@ func (pm *PartitionManager) GetArenaGoldLogTableName(t time.Time) string {
         return pm.getTableName("ddz_arena_gold_logs", suffix)
 }
 
+// 🔧【新增】GetArenaParticipationTableName 获取竞技场参赛记录表名（根据时间）
+func (pm *PartitionManager) GetArenaParticipationTableName(t time.Time) string {
+        suffix := t.Format("200601")
+        return pm.getTableName("ddz_arena_participations", suffix)
+}
+
+// 🔧【新增】GetTournamentRoundTableName 获取锦标赛轮次表名（根据时间）
+func (pm *PartitionManager) GetTournamentRoundTableName(t time.Time) string {
+        suffix := t.Format("200601")
+        return pm.getTableName("ddz_tournament_rounds", suffix)
+}
+
+// 🔧【新增】GetTournamentEliminationTableName 获取锦标赛淘汰记录表名（根据时间）
+func (pm *PartitionManager) GetTournamentEliminationTableName(t time.Time) string {
+        suffix := t.Format("200601")
+        return pm.getTableName("ddz_tournament_eliminations", suffix)
+}
+
 // GetCurrentRoomTableName 获取当前月份的房间表名
 func (pm *PartitionManager) GetCurrentRoomTableName() string {
         return pm.GetRoomTableName(time.Now())
@@ -728,6 +899,21 @@ func (pm *PartitionManager) GetCurrentArenaSignupLogTableName() string {
 // GetCurrentArenaPeriodPlayerTableName 获取当前月份的竞技场期号玩家表名
 func (pm *PartitionManager) GetCurrentArenaPeriodPlayerTableName() string {
         return pm.GetArenaPeriodPlayerTableName(time.Now())
+}
+
+// 🔧【新增】GetCurrentArenaParticipationTableName 获取当前月份的竞技场参赛记录表名
+func (pm *PartitionManager) GetCurrentArenaParticipationTableName() string {
+        return pm.GetArenaParticipationTableName(time.Now())
+}
+
+// 🔧【新增】GetCurrentTournamentRoundTableName 获取当前月份的锦标赛轮次表名
+func (pm *PartitionManager) GetCurrentTournamentRoundTableName() string {
+        return pm.GetTournamentRoundTableName(time.Now())
+}
+
+// 🔧【新增】GetCurrentTournamentEliminationTableName 获取当前月份的锦标赛淘汰记录表名
+func (pm *PartitionManager) GetCurrentTournamentEliminationTableName() string {
+        return pm.GetTournamentEliminationTableName(time.Now())
 }
 
 // =============================================
@@ -762,6 +948,21 @@ func GetPartitionArenaSignupLogTable(t time.Time) string {
 // GetPartitionArenaPeriodPlayerTable 获取竞技场期号玩家分表名
 func GetPartitionArenaPeriodPlayerTable(t time.Time) string {
         return GetPartitionManager().GetArenaPeriodPlayerTableName(t)
+}
+
+// 🔧【新增】GetPartitionArenaParticipationTable 获取竞技场参赛记录分表名
+func GetPartitionArenaParticipationTable(t time.Time) string {
+        return GetPartitionManager().GetArenaParticipationTableName(t)
+}
+
+// 🔧【新增】GetPartitionTournamentRoundTable 获取锦标赛轮次分表名
+func GetPartitionTournamentRoundTable(t time.Time) string {
+        return GetPartitionManager().GetTournamentRoundTableName(t)
+}
+
+// 🔧【新增】GetPartitionTournamentEliminationTable 获取锦标赛淘汰记录分表名
+func GetPartitionTournamentEliminationTable(t time.Time) string {
+        return GetPartitionManager().GetTournamentEliminationTableName(t)
 }
 
 // EnsurePartitionTableExists 确保分表存在
