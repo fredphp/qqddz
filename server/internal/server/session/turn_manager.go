@@ -38,10 +38,20 @@ func NewTurnManager(gs *GameSession) *TurnManager {
         }
 }
 
-// AdvanceToNextTurn 统一轮转入口
-// 这是所有出牌/不出操作后推进回合的唯一入口
-// 内部包含完整的轮转逻辑，确保原子性
+// AdvanceToNextTurn 统一轮转入口（公共入口，会获取 gs.mu 锁）
+// 用于外部调用，会自动获取游戏锁
 func (tm *TurnManager) AdvanceToNextTurn(fromPlayerIdx int, isPass bool) {
+        gs := tm.gs
+        gs.mu.Lock()
+        defer gs.mu.Unlock()
+
+        tm.advanceToNextTurnInternal(fromPlayerIdx, isPass)
+}
+
+// advanceToNextTurnInternal 统一轮转内部方法
+// ⚠️ 调用者必须持有 gs.mu 锁！
+// 这是解决机器人轮转卡死问题的关键修复
+func (tm *TurnManager) advanceToNextTurnInternal(fromPlayerIdx int, isPass bool) {
         tm.turnMu.Lock()
         defer tm.turnMu.Unlock()
 
@@ -62,8 +72,6 @@ func (tm *TurnManager) AdvanceToNextTurn(fromPlayerIdx int, isPass bool) {
         turnID := tm.currentTurnID
 
         gs := tm.gs
-        gs.mu.Lock()
-        defer gs.mu.Unlock()
 
         // 验证游戏状态
         if gs.state != GameStatePlaying {
@@ -325,7 +333,7 @@ func (tm *TurnManager) doPlayCardsInternal(playerID string, playerIdx int, cardI
         }
 
         // 【关键】使用统一轮转入口推进到下一个玩家
-        tm.AdvanceToNextTurn(playerIdx, false)
+        tm.advanceToNextTurnInternal(playerIdx, false)
 }
 
 // doPassInternal 内部过牌方法（已持有锁）
@@ -382,7 +390,7 @@ func (tm *TurnManager) doPassInternal(playerID string, playerIdx int) {
         }
 
         // 【关键】使用统一轮转入口推进到下一个玩家
-        tm.AdvanceToNextTurn(playerIdx, true)
+        tm.advanceToNextTurnInternal(playerIdx, true)
 }
 
 // handleTurnTimeout 处理回合超时

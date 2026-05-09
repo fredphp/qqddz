@@ -158,7 +158,7 @@ func (gs *GameSession) HandlePlayCards(playerID string, cardInfos []protocol.Car
         // 🔧【修复】使用统一轮转入口推进到下一个玩家
         // 这是解决机器人轮转卡死问题的关键修复
         log.Printf("[TURN] HandlePlayCards 完成，调用统一轮转入口")
-        gs.turnManager.AdvanceToNextTurn(gs.currentPlayer, false)
+        gs.turnManager.advanceToNextTurnInternal(gs.currentPlayer, false)
 
         return nil
 }
@@ -220,7 +220,7 @@ func (gs *GameSession) HandlePass(playerID string) error {
         // 🔧【修复】使用统一轮转入口推进到下一个玩家
         // 这是解决机器人轮转卡死问题的关键修复
         log.Printf("[TURN] HandlePass 完成，调用统一轮转入口")
-        gs.turnManager.AdvanceToNextTurn(gs.currentPlayer, true)
+        gs.turnManager.advanceToNextTurnInternal(gs.currentPlayer, true)
 
         return nil
 }
