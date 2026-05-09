@@ -364,7 +364,7 @@ func (b *ArenaStatusBroadcaster) handlePeriodChange(roomID uint64, oldPeriodNo, 
 
 // sendMatchStartNotification 发送比赛开始通知给已报名玩家
 // 🔧【重构】报名结束后立即进行多桌分组、创建房间、自动准备、开始游戏
-// 流程：报名结束 → 随机分组（3人一桌，不足补机器人）→ 创建房间 → 加入玩家 → 自动准备 → 开始发牌
+// 流程：报名结束 → 写入数据库 → 随机分组（3人一桌，不足补机器人）→ 创建房间 → 加入玩家 → 自动准备 → 开始发牌
 func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, periodNo string, playerIDs []uint64) {
         if len(playerIDs) == 0 {
                 return
@@ -375,6 +375,48 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
         if err != nil {
                 log.Printf("[ArenaStatus] 获取房间配置失败: roomID=%d, err=%v", roomID, err)
                 return
+        }
+
+        // 🔧【关键修复】比赛开始时写入数据库
+        // 1. 获取初始金币
+        initialGold := roomConfig.MinGold
+        if initialGold <= 0 {
+                initialGold = 10000
+        }
+
+        // 2. 获取期号记录
+        period, _ := database.GetArenaPeriodByPeriodNo(periodNo)
+        var periodID uint64
+        var periodTime time.Time
+        if period != nil {
+                periodID = period.ID
+                periodTime = period.StartTime
+        } else {
+                periodTime = time.Now()
+        }
+
+        // 3. 写入 period_players 表（报名记录）
+        for order, playerID := range playerIDs {
+                playerRecord := &database.ArenaPeriodPlayer{
+                        PeriodNo:    periodNo,
+                        PeriodID:    periodID,
+                        RoomID:      roomID,
+                        PlayerID:    playerID,
+                        SignupTime:  time.Now(),
+                        SignupOrder: order + 1,
+                        Status:      database.ArenaPeriodPlayerStatusNormal,
+                        ArenaGold:   initialGold, // 初始化金币
+                }
+                database.FirstOrCreateArenaPeriodPlayerWithTime(periodID, playerID, playerRecord, periodTime)
+        }
+        log.Printf("[ArenaStatus] ✅ 已写入 period_players 表: periodNo=%s, count=%d, initialGold=%d", periodNo, len(playerIDs), initialGold)
+
+        // 4. 写入 participations 表（参赛记录）
+        err = database.CreateParticipationsForPeriod(0, periodNo, initialGold, playerIDs)
+        if err != nil {
+                log.Printf("[ArenaStatus] ⚠️ 写入 participations 表失败: %v", err)
+        } else {
+                log.Printf("[ArenaStatus] ✅ 已写入 participations 表: periodNo=%s, count=%d", periodNo, len(playerIDs))
         }
 
         // 获取所有玩家信息，区分机器人和真人

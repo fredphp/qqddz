@@ -314,35 +314,31 @@ func (q *ArenaMessageQueue) handlePeriodFinalize(data interface{}) error {
 }
 
 // syncPlayersToDB 批量同步玩家数据到数据库（使用分表）
-// 🔧【修复】添加金币初始化逻辑
+// 🔧【重构】结算时只更新状态，不覆盖金币数据
 func (q *ArenaMessageQueue) syncPlayersToDB(periodID uint64, periodNo string, roomID uint64, players []uint64, periodTime time.Time) {
-        now := time.Now()
-
-        // 🔧【新增】获取房间配置以读取初始金币
-        var initialGold int64 = 10000 // 默认初始金币
-        roomConfig, err := database.GetRoomConfigByID(roomID)
-        if err == nil && roomConfig != nil {
-                initialGold = roomConfig.MinGold
-        }
-        if initialGold <= 0 {
-                initialGold = 10000
-        }
-
+        // 🔧【重要】数据已在比赛开始时写入，这里只确保记录存在
+        // 不覆盖金币数据（arena_gold / match_coin 已在游戏过程中更新）
         for order, playerID := range players {
-                playerRecord := &database.ArenaPeriodPlayer{
-                        PeriodNo:    periodNo,
-                        PeriodID:    periodID,
-                        RoomID:      roomID,
-                        PlayerID:    playerID,
-                        SignupTime:  now,
-                        SignupOrder: order + 1,
-                        Status:      database.ArenaPeriodPlayerStatusNormal,
-                        ArenaGold:   initialGold, // 🔧【修复】初始化金币
+                // 检查记录是否已存在
+                existingRecord, _ := database.GetArenaPeriodPlayer(periodNo, playerID)
+                if existingRecord == nil {
+                        // 记录不存在才创建（这不应该发生，因为比赛开始时已写入）
+                        now := time.Now()
+                        playerRecord := &database.ArenaPeriodPlayer{
+                                PeriodNo:    periodNo,
+                                PeriodID:    periodID,
+                                RoomID:      roomID,
+                                PlayerID:    playerID,
+                                SignupTime:  now,
+                                SignupOrder: order + 1,
+                                Status:      database.ArenaPeriodPlayerStatusNormal,
+                                ArenaGold:   0, // 不设置，让查询时从participations获取
+                        }
+                        database.FirstOrCreateArenaPeriodPlayerWithTime(periodID, playerID, playerRecord, periodTime)
                 }
-                // 使用分表写入（根据期号时间确定分表）
-                database.FirstOrCreateArenaPeriodPlayerWithTime(periodID, playerID, playerRecord, periodTime)
+                // 记录已存在，不做任何操作（保留游戏过程中更新的金币）
         }
-        log.Printf("[ArenaQueue] 同步玩家记录: periodID=%d, count=%d, initialGold=%d", periodID, len(players), initialGold)
+        log.Printf("[ArenaQueue] 同步玩家记录完成: periodID=%d, count=%d (不覆盖金币)", periodID, len(players))
 }
 
 // handleSignupLog 处理报名日志任务（简化版，不写入数据库，数据在结算时批量写入）

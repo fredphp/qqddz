@@ -101,6 +101,62 @@ func CreateParticipationsFromSignups(sessionID uint64, periodNo string, initialG
         })
 }
 
+// CreateParticipationsForPeriod 为期号批量创建参赛记录
+// 🔧【新增】比赛开始时调用，直接根据玩家ID列表创建参赛记录
+func CreateParticipationsForPeriod(sessionID uint64, periodNo string, initialGold int64, playerIDs []uint64) error {
+        if len(playerIDs) == 0 {
+                return nil
+        }
+
+        // 获取分表名
+        tableName, err := getArenaParticipationTableNameByPeriodNo(periodNo)
+        if err != nil {
+                return fmt.Errorf("获取分表名失败: %w", err)
+        }
+
+        // 确保分表存在
+        t, _ := parsePeriodNoToTime(periodNo)
+        if err := ensureArenaParticipationTableExists(t); err != nil {
+                return fmt.Errorf("确保分表存在失败: %w", err)
+        }
+
+        // 获取玩家信息，判断是否为机器人
+        var players []Player
+        DB().Where("id IN ?", playerIDs).Find(&players)
+        playerMap := make(map[uint64]*Player)
+        for i := range players {
+                playerMap[players[i].ID] = &players[i]
+        }
+
+        // 批量创建参赛记录
+        db := DB()
+        return db.Transaction(func(tx *gorm.DB) error {
+                for _, playerID := range playerIDs {
+                        player, exists := playerMap[playerID]
+                        isRobot := exists && player.PlayerType == PlayerTypeRobot
+
+                        participation := map[string]interface{}{
+                                "session_id":   sessionID,
+                                "player_id":    playerID,
+                                "period_no":    periodNo,
+                                "is_robot":     boolToUint8(isRobot),
+                                "match_coin":   initialGold,
+                                "is_online":    1,
+                                "created_at":   time.Now(),
+                                "updated_at":   time.Now(),
+                        }
+
+                        if err := tx.Table(tableName).Create(participation).Error; err != nil {
+                                // 忽略重复记录错误
+                                if !isDuplicateKeyError(err) {
+                                        return fmt.Errorf("创建参赛记录失败: player_id=%d, err=%w", playerID, err)
+                                }
+                        }
+                }
+                return nil
+        })
+}
+
 // AddRobotParticipation 添加机器人参赛记录
 // 用于锦标赛补位
 // 🔧【重构】使用分表存储
