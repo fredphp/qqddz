@@ -70,6 +70,10 @@ type RoomConfig struct {
         MaxPlayers       int            `gorm:"type:int;not null;default:9;comment:最大人数" json:"max_players"`
         MinPlayers       int            `gorm:"type:int;not null;default:3;comment:最小开赛人数" json:"min_players"`
         ChampionRewardID uint           `gorm:"default:null;comment:冠军奖励ID" json:"champion_reward_id"`
+        // 动态淘汰赛新增字段
+        EliminationRules string         `gorm:"type:varchar(255);default:'[60,30,18,9,3]';comment:淘汰规则JSON数组" json:"elimination_rules"`
+        RankWaitSeconds  int            `gorm:"type:int;not null;default:30;comment:排行榜阶段等待秒数" json:"rank_wait_seconds"`
+        MinMatchPlayers  int            `gorm:"type:int;not null;default:1;comment:最小匹配人数" json:"min_match_players"`
         CreatedAt        time.Time      `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
         UpdatedAt        time.Time      `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`
         DeletedAt        gorm.DeletedAt `gorm:"type:datetime;index;comment:删除时间" json:"deleted_at"`

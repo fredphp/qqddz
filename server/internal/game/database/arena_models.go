@@ -110,6 +110,12 @@ type ArenaSession struct {
         Status             uint8      `gorm:"type:tinyint unsigned;not null;default:0;index;comment:状态" json:"status"`
         CurrentRound       int        `gorm:"type:int;not null;default:0;comment:当前轮次" json:"current_round"`
         TotalRounds        int        `gorm:"type:int;not null;default:3;comment:总轮次" json:"total_rounds"`
+        // 动态淘汰赛新增字段
+        EliminationRules     string     `gorm:"type:varchar(255);default:'[60,30,18,9,3]';comment:淘汰规则JSON数组" json:"elimination_rules"`
+        CurrentEliminationIdx int       `gorm:"type:int;not null;default:0;comment:当前淘汰规则索引" json:"current_elimination_idx"`
+        TournamentStage      string     `gorm:"type:varchar(32);default:'SIGNUP';comment:赛事阶段" json:"tournament_stage"`
+        RankWaitUntil        *time.Time `gorm:"type:datetime;comment:排行榜阶段等待截止时间" json:"rank_wait_until"`
+        TablesCompleted      int        `gorm:"type:int;not null;default:0;comment:本轮已完成的桌数" json:"tables_completed"`
         TotalPlayers       int        `gorm:"type:int;not null;default:0;comment:参赛人数" json:"total_players"`
         ActivePlayers      int        `gorm:"type:int;not null;default:0;comment:剩余人数" json:"active_players"`
         SignupFee          int64      `gorm:"type:bigint;not null;default:0;comment:报名费(竞技币)" json:"signup_fee"`
@@ -168,10 +174,13 @@ type ArenaParticipation struct {
         PlayerID        uint64     `gorm:"type:bigint unsigned;uniqueIndex:uk_session_player;not null;index;comment:玩家ID" json:"player_id"`
         RobotID         uint64     `gorm:"type:bigint unsigned;not null;default:0;comment:机器人ID(当is_robot=1时等于player_id)" json:"robot_id"`
         IsRobot         uint8      `gorm:"type:tinyint;not null;default:0;comment:是否机器人:0-否,1-是" json:"is_robot"`
+        // 动态淘汰赛新增字段
+        IsTournamentBot uint8      `gorm:"type:tinyint;not null;default:0;comment:是否为锦标赛补位机器人(不可获奖)" json:"is_tournament_bot"`
         LetWinEnabled   uint8      `gorm:"type:tinyint;not null;default:0;comment:是否启用让牌策略" json:"let_win_enabled"`
         SignupTime      time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:报名时间" json:"signup_time"`
         SignupFee       int64      `gorm:"type:bigint;not null;default:0;comment:报名费(竞技币)" json:"signup_fee"`
         MatchCoin       int64      `gorm:"type:bigint;not null;default:0;comment:比赛金币(临时，仅用于排名)" json:"match_coin"`
+        RoundMatchCoin  int64      `gorm:"type:bigint;not null;default:0;comment:本轮比赛金币(每轮重置)" json:"round_match_coin"`
         CurrentRound    int        `gorm:"type:int;not null;default:0;comment:当前所在轮次" json:"current_round"`
         Rank            *int       `gorm:"type:int;comment:最终排名" json:"rank"`
         IsEliminated    uint8      `gorm:"type:tinyint unsigned;not null;default:0;comment:是否淘汰" json:"is_eliminated"`
@@ -180,6 +189,7 @@ type ArenaParticipation struct {
         IsChampion      uint8      `gorm:"type:tinyint unsigned;not null;default:0;comment:是否冠军" json:"is_champion"`
         IsOnline        uint8      `gorm:"type:tinyint unsigned;not null;default:1;comment:是否在线" json:"is_online"`
         LastTableID     *string    `gorm:"type:varchar(32);comment:最后所在桌号" json:"last_table_id"`
+        CurrentTableID  *uint64    `gorm:"type:bigint unsigned;comment:当前所在桌ID" json:"current_table_id"`
         RewardClaimed   uint8      `gorm:"type:tinyint unsigned;not null;default:0;comment:奖励是否已领取" json:"reward_claimed"`
         CreatedAt       time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
         UpdatedAt       time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`

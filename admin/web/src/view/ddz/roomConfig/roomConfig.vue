@@ -139,6 +139,12 @@
             <span v-else class="text-gray-400">-</span>
           </template>
         </el-table-column>
+        <el-table-column align="center" label="淘汰规则" min-width="140">
+          <template #default="scope">
+            <span v-if="scope.row.roomCategory === 2" class="text-xs">{{ scope.row.eliminationRules || '[60,30,18,9,3]' }}</span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+        </el-table-column>
         <el-table-column align="center" label="机器人" min-width="80">
           <template #default="scope">
             {{ scope.row.botEnabled ? '是(' + scope.row.botCount + ')' : '否' }}
@@ -360,6 +366,38 @@
               <el-button type="primary" icon="plus" @click="addTimeRange">添加时间段</el-button>
             </div>
           </el-form-item>
+          
+          <!-- 动态淘汰赛配置 -->
+          <el-divider content-position="left">动态淘汰赛配置</el-divider>
+          <el-row :gutter="20">
+            <el-col :span="24">
+              <el-form-item label="淘汰规则" prop="eliminationRules">
+                <el-input v-model="formData.eliminationRules" placeholder="如: [60,30,18,9,3] 表示每轮保留人数" style="width: 100%" />
+                <div class="text-xs text-gray-500 mt-1">
+                  JSON数组格式，表示每轮结束后保留的人数。例如 [60,30,18,9,3] 表示：<br/>
+                  - 第1轮保留60人，淘汰其余<br/>
+                  - 第2轮保留30人，淘汰其余<br/>
+                  - 第3轮保留18人，淘汰其余<br/>
+                  - 第4轮保留9人，淘汰其余<br/>
+                  - 第5轮(决赛)保留3人，产生冠亚季军
+                </div>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="排行榜等待(秒)" prop="rankWaitSeconds">
+                <el-input-number v-model="formData.rankWaitSeconds" :min="10" :max="120" style="width: 100%" />
+                <div class="text-xs text-gray-500 mt-1">每轮结束后显示排行榜的等待时间</div>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="最小匹配人数" prop="minMatchPlayers">
+                <el-input-number v-model="formData.minMatchPlayers" :min="1" :max="10" style="width: 100%" />
+                <div class="text-xs text-gray-500 mt-1">不足时自动补机器人</div>
+              </el-form-item>
+            </el-col>
+          </el-row>
         </template>
         <el-row :gutter="20">
           <el-col :span="12">
@@ -457,7 +495,11 @@ const formData = ref({
   matchRoundCount: 3,  // 轮次
   maxPlayers: 9,  // 最大人数
   minPlayers: 3,  // 最小开赛人数
-  championRewardId: null  // 冠军奖励ID
+  championRewardId: null,  // 冠军奖励ID
+  // 动态淘汰赛字段
+  eliminationRules: '[60,30,18,9,3]',  // 淘汰规则
+  rankWaitSeconds: 30,  // 排行榜等待秒数
+  minMatchPlayers: 1  // 最小匹配人数
 })
 
 const getRoomTypeTag = (type) => {
@@ -576,6 +618,16 @@ const openDialog = (type, row = null) => {
     if (formData.value.championRewardId === undefined) {
       formData.value.championRewardId = null
     }
+    // 动态淘汰赛字段默认值
+    if (!formData.value.eliminationRules) {
+      formData.value.eliminationRules = '[60,30,18,9,3]'
+    }
+    if (formData.value.rankWaitSeconds === undefined || formData.value.rankWaitSeconds === null) {
+      formData.value.rankWaitSeconds = 30
+    }
+    if (formData.value.minMatchPlayers === undefined || formData.value.minMatchPlayers === null) {
+      formData.value.minMatchPlayers = 1
+    }
 
   } else {
     formData.value = {
@@ -604,7 +656,11 @@ const openDialog = (type, row = null) => {
       matchRoundCount: 3,
       maxPlayers: 9,
       minPlayers: 3,
-      championRewardId: null
+      championRewardId: null,
+      // 动态淘汰赛字段
+      eliminationRules: '[60,30,18,9,3]',
+      rankWaitSeconds: 30,
+      minMatchPlayers: 1
     }
   }
   dialogVisible.value = true

@@ -230,3 +230,55 @@ Stage Summary:
   - gs.rocketCount = 0
   - gameLogger.Reset()：重置 bombCount、rocketCount、roundNum、playOrder、dealLogs、bidLogs、playLogs
 - 影响范围：仅修改竞技场新一轮开始时的重置逻辑，不影响其他功能
+
+---
+Task ID: 8
+Agent: Main Agent
+Task: 实现动态淘汰赛竞技系统
+
+Work Log:
+- 分析项目结构：server(Go游戏服务)、admin(后台管理)、nclient(Cocos Creator客户端)
+- 分析现有竞技场实现：arena/manager.go、arena_models.go、arena_status.go
+- 设计动态淘汰赛系统架构
+- 创建数据库迁移脚本：
+  - sql/migrations/add_elimination_tournament.sql
+  - 新增字段：elimination_rules、rank_wait_seconds、min_match_players
+  - 新增表：ddz_tournament_rounds、ddz_tournament_eliminations
+- 实现TournamentEngine核心模块：
+  - server/tournament/types.go：类型定义、常量、WebSocket消息类型
+  - server/tournament/state_machine.go：状态机(SIGNUP→PREPARE→PLAYING→RANKING→ELIMINATING→FINAL→FINISHED)
+  - server/tournament/match_scheduler.go：随机分桌调度
+  - server/tournament/rank_calculator.go：排名计算、淘汰线判断
+  - server/tournament/elimination_controller.go：淘汰执行、决赛排名
+  - server/tournament/tournament_manager.go：赛事生命周期管理
+- 更新数据库模型：
+  - server/internal/game/database/models.go：RoomConfig新增字段
+  - server/internal/game/database/arena_models.go：ArenaSession/ArenaParticipation新增字段
+- 更新Admin后台：
+  - admin/server/model/ddz/room_config.go：新增eliminationRules等字段
+  - admin/web/src/view/ddz/roomConfig/roomConfig.vue：新增淘汰赛配置UI
+- 创建完整文档：
+  - docs/dynamic_elimination_tournament.md
+
+Stage Summary:
+- 新增文件：
+  - sql/migrations/add_elimination_tournament.sql（数据库迁移）
+  - server/tournament/*.go（6个核心模块文件）
+  - docs/dynamic_elimination_tournament.md（完整文档）
+- 修改文件：
+  - server/internal/game/database/models.go
+  - server/internal/game/database/arena_models.go
+  - admin/server/model/ddz/room_config.go
+  - admin/web/src/view/ddz/roomConfig/roomConfig.vue
+- 功能实现：
+  - 多轮淘汰机制（配置如[60,30,18,9,3]）
+  - 根据报名人数动态选择起始轮
+  - 掉线玩家直接淘汰（eliminated_reason='offline'）
+  - 机器人补位（is_tournament_bot=1，不可获奖）
+  - 排行榜阶段倒计时（可配置秒数）
+  - 决赛产生冠亚季军
+  - 机器人获奖顺延给真人
+- 设计原则：
+  - 竞技场逻辑完全隔离
+  - 不影响普通场功能
+  - 通过配置项灵活调整

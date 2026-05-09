@@ -35,6 +35,10 @@ type DDZRoomConfig struct {
         MaxPlayers         int    `json:"maxPlayers" gorm:"type:int;not null;default:9;comment:最大人数"`
         MinPlayers         int    `json:"minPlayers" gorm:"type:int;not null;default:3;comment:最小开赛人数"`
         ChampionRewardID   uint   `json:"championRewardId" gorm:"default:null;comment:冠军奖励ID"`
+        // 动态淘汰赛新增字段
+        EliminationRules   string `json:"eliminationRules" gorm:"type:varchar(255);default:'[60,30,18,9,3]';comment:淘汰规则JSON数组"`
+        RankWaitSeconds    int    `json:"rankWaitSeconds" gorm:"type:int;not null;default:30;comment:排行榜阶段等待秒数"`
+        MinMatchPlayers    int    `json:"minMatchPlayers" gorm:"type:int;not null;default:1;comment:最小匹配人数"`
 }
 
 func (DDZRoomConfig) TableName() string {
