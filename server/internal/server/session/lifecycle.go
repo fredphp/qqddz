@@ -5,6 +5,7 @@ import (
         "log"
         "math/rand"
         "sort"
+        "strconv"
         "time"
 
         "github.com/palemoky/fight-the-landlord/internal/game/database"
@@ -1028,13 +1029,15 @@ func (gs *GameSession) sendFinalRankingsForSingleTable(periodNo string, players 
         rankings := make([]protocol.PlayerRankingInfo, 0, len(sortedPlayers))
         for i, p := range sortedPlayers {
                 rank := i + 1
+                // 🔧【修复】将 string 类型的 PlayerID 转换为 uint64
+                playerIDUint, _ := strconv.ParseUint(p.PlayerID, 10, 64)
                 rankings = append(rankings, protocol.PlayerRankingInfo{
                         Rank:       rank,
-                        PlayerID:   p.PlayerID,
+                        PlayerID:   playerIDUint,
                         PlayerName: p.PlayerName,
                         MatchCoin:  p.MatchCoin,
                 })
-                log.Printf("🏆 排名 #%d: 玩家 %s (ID=%d), 金币=%d", rank, p.PlayerName, p.PlayerID, p.MatchCoin)
+                log.Printf("🏆 排名 #%d: 玩家 %s (ID=%d), 金币=%d", rank, p.PlayerName, playerIDUint, p.MatchCoin)
         }
 
         // 3. 获取冠军信息
