@@ -3,6 +3,7 @@ package session
 import (
         "log"
         "sort"
+        "time"
 
         "github.com/palemoky/fight-the-landlord/internal/apperrors"
         "github.com/palemoky/fight-the-landlord/internal/game/card"
@@ -154,9 +155,10 @@ func (gs *GameSession) HandlePlayCards(playerID string, cardInfos []protocol.Car
                 return nil
         }
 
-        // 下一个玩家
-        gs.currentPlayer = (gs.currentPlayer + 1) % 3
-        gs.notifyPlayTurn()
+        // 🔧【修复】使用统一轮转入口推进到下一个玩家
+        // 这是解决机器人轮转卡死问题的关键修复
+        log.Printf("[TURN] HandlePlayCards 完成，调用统一轮转入口")
+        gs.turnManager.AdvanceToNextTurn(gs.currentPlayer, false)
 
         return nil
 }
@@ -215,9 +217,10 @@ func (gs *GameSession) HandlePass(playerID string) error {
                 gs.gameLogger.StartNewRound()
         }
 
-        // 下一个玩家
-        gs.currentPlayer = (gs.currentPlayer + 1) % 3
-        gs.notifyPlayTurn()
+        // 🔧【修复】使用统一轮转入口推进到下一个玩家
+        // 这是解决机器人轮转卡死问题的关键修复
+        log.Printf("[TURN] HandlePass 完成，调用统一轮转入口")
+        gs.turnManager.AdvanceToNextTurn(gs.currentPlayer, true)
 
         return nil
 }
@@ -287,6 +290,9 @@ func (gs *GameSession) GetPlayerCardsCount(playerID string) int {
 }
 
 // notifyPlayTurn 通知当前玩家出牌
+// 🔧【修复】重写此函数，使用统一轮转管理器
+// 注意：此函数现在仅用于游戏开始时的第一个回合
+// 后续回合通过 AdvanceToNextTurn 推进
 func (gs *GameSession) notifyPlayTurn() {
         player := gs.players[gs.currentPlayer]
         mustPlay := gs.lastPlayerIdx == gs.currentPlayer || gs.lastPlayedHand.IsEmpty()
@@ -299,6 +305,9 @@ func (gs *GameSession) notifyPlayTurn() {
                 canBeat = beatingCards != nil
         }
 
+        log.Printf("[TURN] notifyPlayTurn: player=%s, mustPlay=%v, canBeat=%v, IsRobot=%v, IsTrustee=%v",
+                player.Name, mustPlay, canBeat, player.IsRobot(), player.IsTrustee)
+
         // 广播出牌回合消息
         gs.room.Broadcast(codec.MustNewMessage(protocol.MsgPlayTurn, &protocol.PlayTurnPayload{
                 PlayerID: player.ID,
@@ -307,13 +316,33 @@ func (gs *GameSession) notifyPlayTurn() {
                 CanBeat:  canBeat,
         }))
 
-        // 🔧【托管】检查玩家是否处于托管状态（机器人或超时托管）
+        // 🔧【修复】使用统一轮转管理器启动回合
+        // 初始化轮转管理器的状态
+        if gs.turnManager != nil {
+                // 启动倒计时
+                turnID := time.Now().UnixNano()
+                gs.turnMu.Lock()
+                gs.turnManager.currentTurnID = turnID
+                gs.turnMu.Unlock()
+                
+                gs.turnManager.startTurnTimerInternal(gs, turnID)
+
+                // 如果是机器人/托管，调度自动出牌
+                if player.IsRobot() || player.IsTrustee {
+                        log.Printf("[AUTO] notifyPlayTurn: 玩家 %s 是机器人/托管，调度自动出牌", player.Name)
+                        gs.turnManager.scheduleAutoPlayInternal(gs, gs.currentPlayer, turnID)
+                }
+
+                // 启动看门狗
+                gs.turnManager.startWatchdogInternal(gs, turnID)
+                return
+        }
+
+        // 兜底：如果轮转管理器不可用，使用旧逻辑
+        log.Printf("[TURN] ⚠️ 轮转管理器不可用，使用旧逻辑")
         if player.IsRobot() || player.IsTrustee {
                 log.Printf("[TRUSTEE] 玩家 %s 托管状态，准备自动出牌", player.Name)
-                // 🔧【修复】同时启动后备倒计时和机器人快速操作
-                // 1. 启动后备倒计时（30秒）- 如果机器人操作失败，倒计时到期后自动出牌
                 gs.startPlayTimer()
-                // 2. 启动机器人快速操作（800-1500ms）
                 gs.scheduleRobotAction(func() {
                         gs.handleRobotPlay()
                 })

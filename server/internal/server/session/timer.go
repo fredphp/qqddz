@@ -63,10 +63,18 @@ func (gs *GameSession) handlePlayTimeout() {
 }
 
 // doHandlePlayTimeout 实际执行出牌超时处理（不带时间检查）
+// 🔧【修复】重写此函数，使用统一轮转管理器避免锁管理问题
 func (gs *GameSession) doHandlePlayTimeout() {
-        gs.mu.Lock()
-
         log.Printf("[TRUSTEE] doHandlePlayTimeout 开始执行")
+
+        // 🔧【修复】如果轮转管理器可用，使用新的内部方法
+        if gs.turnManager != nil {
+                gs.turnManager.doAutoPlayInternal(gs.currentPlayer)
+                return
+        }
+
+        // 兜底：旧逻辑（保持兼容性）
+        gs.mu.Lock()
 
         if gs.state != GameStatePlaying {
                 log.Printf("[TRUSTEE] 游戏状态不是 Playing，退出: state=%d", gs.state)

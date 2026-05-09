@@ -117,6 +117,9 @@ type GameSession struct {
         deck        card.Deck
         bottomCards []card.Card
 
+        // 🔧【修复】统一轮转管理器 - 解决机器人轮转卡死问题
+        turnManager *TurnManager
+
         // ============================================================
         // 【核心】抢地主四轮规则（A→B→C→A）
         // ============================================================
@@ -206,19 +209,24 @@ func NewGameSession(r *room.Room, lb LeaderboardInterface, gameCfg config.GameCo
         // 初始化游戏日志记录器
         gameLogger := NewGameLogger(r.Code, 1, 1) // 默认房间类型为普通场，房间分类为普通场
 
-        return &GameSession{
-                room:             r,
-                leaderboard:      lb,
-                gameConfig:       gameCfg,
-                state:            GameStateInit,
-                players:          players,
-                onGameEnd:        onGameEnd,
-                firstCallerIdx:   -1,
-                lastCallerIdx:    -1,
-                callHistory:      make([]CallRecord, 0),
-                playerOutStatus:  make(map[int]bool),
-                gameLogger:       gameLogger,
+        gs := &GameSession{
+                room:            r,
+                leaderboard:     lb,
+                gameConfig:      gameCfg,
+                state:           GameStateInit,
+                players:         players,
+                onGameEnd:       onGameEnd,
+                firstCallerIdx:  -1,
+                lastCallerIdx:   -1,
+                callHistory:     make([]CallRecord, 0),
+                playerOutStatus: make(map[int]bool),
+                gameLogger:      gameLogger,
         }
+
+        // 🔧【修复】初始化统一轮转管理器
+        gs.turnManager = NewTurnManager(gs)
+
+        return gs
 }
 
 // GetPlayerByID 通过ID获取玩家
