@@ -532,6 +532,7 @@ func GetParticipationByPeriodAndPlayer(periodNo string, playerID uint64) (*Arena
 
 // GetArenaParticipationsByPeriodNo 根据期号获取所有参赛记录（用于广播最终排名）
 // 🔧【新增】返回所有参赛玩家信息，包含机器人
+// 🔧【修复】分表查询时 Preload 无法正常工作，改为手动加载 Player 信息
 func GetArenaParticipationsByPeriodNo(periodNo string) ([]*ArenaParticipation, error) {
         tableName, err := getArenaParticipationTableNameByPeriodNo(periodNo)
         if err != nil {
@@ -539,13 +540,44 @@ func GetArenaParticipationsByPeriodNo(periodNo string) ([]*ArenaParticipation, e
         }
 
         var participations []*ArenaParticipation
+        // 先查询参赛记录
         err = DB().Table(tableName).
                 Where("period_no = ?", periodNo).
                 Order("match_coin DESC").
-                Preload("Player"). // 预加载玩家信息
                 Find(&participations).Error
+        if err != nil {
+                return nil, err
+        }
 
-        return participations, err
+        // 🔧【修复】手动加载 Player 信息（分表查询时 Preload 无法正常工作）
+        // 收集所有真人玩家的 PlayerID
+        playerIDs := make([]uint64, 0)
+        for _, p := range participations {
+                if p.IsRobot == 0 { // 只加载真人玩家
+                        playerIDs = append(playerIDs, p.PlayerID)
+                }
+        }
+
+        // 批量查询玩家信息
+        if len(playerIDs) > 0 {
+                var players []Player
+                DB().Where("id IN ?", playerIDs).Find(&players)
+
+                // 构建 PlayerID -> Player 映射
+                playerMap := make(map[uint64]Player)
+                for _, player := range players {
+                        playerMap[player.ID] = player
+                }
+
+                // 将 Player 信息填充到 participations
+                for _, p := range participations {
+                        if player, ok := playerMap[p.PlayerID]; ok {
+                                p.Player = player
+                        }
+                }
+        }
+
+        return participations, nil
 }
 
 // =============================================
