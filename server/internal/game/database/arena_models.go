@@ -186,7 +186,7 @@ type ArenaParticipation struct {
         MatchCoin       int64      `gorm:"type:bigint;not null;default:0;comment:比赛金币(用于排名，开赛时初始化)" json:"match_coin"`
         RoundMatchCoin  int64      `gorm:"type:bigint;not null;default:0;comment:本轮比赛金币(每轮重置)" json:"round_match_coin"`
         CurrentRound    int        `gorm:"type:int;not null;default:0;comment:当前所在轮次" json:"current_round"`
-        Rank            *int       `gorm:"type:int;comment:最终排名" json:"rank"`
+        Rank            *int       `gorm:"column:final_rank;type:int;comment:最终排名" json:"rank"` // 列名用final_rank避免MySQL保留字
         IsEliminated    uint8      `gorm:"type:tinyint unsigned;not null;default:0;comment:是否淘汰" json:"is_eliminated"`
         EliminatedRound *int       `gorm:"type:int;comment:淘汰轮次" json:"eliminated_round"`
         EliminatedReason string    `gorm:"type:varchar(32);comment:淘汰原因" json:"eliminated_reason"`

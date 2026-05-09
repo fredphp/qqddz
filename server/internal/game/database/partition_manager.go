@@ -649,7 +649,7 @@ func (pm *PartitionManager) createArenaParticipationTable(suffix string) error {
                         match_coin bigint NOT NULL DEFAULT 0 COMMENT '比赛金币(用于排名)',
                         round_match_coin bigint NOT NULL DEFAULT 0 COMMENT '本轮比赛金币(每轮重置)',
                         current_round int NOT NULL DEFAULT 0 COMMENT '当前所在轮次',
-                        `rank` int DEFAULT NULL COMMENT '最终排名',
+                        final_rank int DEFAULT NULL COMMENT '最终排名',
                         is_eliminated tinyint unsigned NOT NULL DEFAULT 0 COMMENT '是否淘汰',
                         eliminated_round int DEFAULT NULL COMMENT '淘汰轮次',
                         eliminated_reason varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '淘汰原因',
