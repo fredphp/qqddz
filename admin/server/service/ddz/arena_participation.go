@@ -6,7 +6,6 @@ import (
 
         ddzReq "github.com/flipped-aurora/gin-vue-admin/server/model/ddz/request"
         ddzRes "github.com/flipped-aurora/gin-vue-admin/server/model/ddz/response"
-        "gorm.io/gorm"
 )
 
 type DDZArenaParticipationService struct{}
