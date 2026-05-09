@@ -4854,9 +4854,20 @@ cc.Class({
      * - 只显示：输赢、倍数、当前比赛金币
      * - 不显示：继续游戏、返回大厅按钮
      * - 显示："下一局开始 15秒" 倒计时
+     * 
+     * 🔧【新增】如果是最终结算（只有3人），跳过此弹窗，等待 onCompetitionChampion 消息显示排名
      */
     _showCompetitionResultPopup: function(data) {
         var self = this
+        
+        // 🔧【关键】检查是否是最终结算（只有3人参赛）
+        // 如果是最终结算，跳过此弹窗，等待 onCompetitionChampion 消息显示排名
+        if (data.is_final_round) {
+            console.log("🏆 [_showCompetitionResultPopup] 检测到最终结算（只有3人），跳过中间结算弹窗，等待排名消息")
+            // 不显示中间弹窗，直接等待 onCompetitionChampion 消息
+            return
+        }
+        
         var winSize = cc.winSize
         
         var myglobal = window.myglobal

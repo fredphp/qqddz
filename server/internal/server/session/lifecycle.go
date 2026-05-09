@@ -415,6 +415,16 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
         // 🔧【新增】计算竞技场下一轮轮次
         nextRound := gs.room.GameCount + 1
 
+        // 🔧【新增】预先计算竞技场总人数，用于判断是否是最终结算
+        var totalPlayers int
+        var isFinalRound bool
+        if gs.room.RoomCategory == 2 {
+                periodNo := gs.room.PeriodNo
+                totalPlayers = gs.getArenaTotalPlayers(periodNo)
+                isFinalRound = totalPlayers > 0 && totalPlayers <= 3
+                log.Printf("🏟️ [endGame] 竞技场: 当期报名人数=%d, 是否最终结算=%v", totalPlayers, isFinalRound)
+        }
+
         // 广播游戏结束（包含完整结算信息）
         gs.room.Broadcast(codec.MustNewMessage(protocol.MsgGameOver, &protocol.GameOverPayload{
                 WinnerID:    winner.ID,
@@ -432,6 +442,9 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 ArenaCountdown: ArenaCountdownDuration, // 30秒倒计时
                 ArenaRound:     nextRound,
                 MatchCoin:      0, // 比赛金币（TODO: 从竞技场管理器获取）
+                // 🔧【新增】竞技场最终结算标识
+                TotalPlayers:  totalPlayers,
+                IsFinalRound:  isFinalRound,
         }))
 
         role := "农民"
