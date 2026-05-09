@@ -235,12 +235,11 @@ func (ap *ArenaPatcher) fillRobots(sessionID uint64, count int) ([]*FilledRobot,
                         lockedRobotIDs = append(lockedRobotIDs, robot.ID)
 
                         // 创建参赛记录
+                        // 🔧【重构】不再写入 signup_time 和 signup_fee，这些字段保留在 period_players 表
                         participation := &database.ArenaParticipation{
                                 SessionID:    sessionID,
                                 PlayerID:     robot.ID,
                                 RobotID:      robot.ID, // 机器人ID等于玩家ID
-                                SignupTime:   time.Now(),
-                                SignupFee:    0, // 机器人免报名费
                                 MatchCoin:    0,
                                 IsOnline:     1,
                                 IsRobot:      1,

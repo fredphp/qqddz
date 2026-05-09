@@ -526,6 +526,8 @@ func (pm *PartitionManager) createArenaSignupLogTable(suffix string) error {
 }
 
 // createArenaPeriodPlayerTable 创建竞技场期号玩家分表
+// 🔧【重构】移除 arena_gold, is_eliminated, eliminated_round, rank_no 字段
+// 这些字段已迁移到 ddz_arena_participations 表
 func (pm *PartitionManager) createArenaPeriodPlayerTable(suffix string) error {
         tableName := pm.getTableName("ddz_arena_period_players", suffix)
 
@@ -544,11 +546,8 @@ func (pm *PartitionManager) createArenaPeriodPlayerTable(suffix string) error {
                         signup_order int NOT NULL DEFAULT 0 COMMENT '报名顺序',
                         signup_fee bigint NOT NULL DEFAULT 0 COMMENT '报名费',
                         status tinyint unsigned NOT NULL DEFAULT 1 COMMENT '状态:1-正常,2-取消,3-超时未进入',
-                        arena_gold bigint NOT NULL DEFAULT 0 COMMENT '当期赛事金币',
-                        is_eliminated tinyint unsigned NOT NULL DEFAULT 0 COMMENT '是否淘汰:0-否,1-是',
-                        eliminated_round int DEFAULT NULL COMMENT '淘汰轮次',
-                        rank_no int DEFAULT NULL COMMENT '最终排名',
                         player_status tinyint unsigned NOT NULL DEFAULT 0 COMMENT '玩家状态:0-报名,1-比赛中,2-淘汰,3-晋级,4-结束',
+                        final_rank int DEFAULT NULL COMMENT '最终排名(比赛结束时从participations同步)',
                         created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                         updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                         PRIMARY KEY (id),

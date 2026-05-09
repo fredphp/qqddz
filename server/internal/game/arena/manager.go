@@ -213,11 +213,10 @@ func (am *ArenaManager) Signup(sessionID, playerID uint64) (*SignupResult, error
                 }
 
                 // 创建参赛记录
+                // 🔧【重构】不再写入 signup_time 和 signup_fee，这些字段保留在 period_players 表
                 participation := &database.ArenaParticipation{
                         SessionID:  sessionID,
                         PlayerID:   playerID,
-                        SignupTime: time.Now(),
-                        SignupFee:  session.MatchConfig.SignupFee,
                         MatchCoin:  0,
                         IsOnline:   1,
                 }
@@ -299,11 +298,20 @@ func (am *ArenaManager) CancelSignup(sessionID, playerID uint64) error {
                 return ErrSessionAlreadyStarted
         }
 
+        // 🔧【重构】从 period_players 表获取报名费
+        var signupFee int64 = 0
+        if session.PeriodNo != "" {
+                periodPlayer, err := database.GetArenaPeriodPlayer(session.PeriodNo, playerID)
+                if err == nil && periodPlayer != nil {
+                        signupFee = periodPlayer.SignupFee
+                }
+        }
+
         // 4. 使用事务完成取消报名
         err = database.Transaction(func(tx *gorm.DB) error {
                 // 退还报名费
-                if participation.SignupFee > 0 {
-                        if err := am.addArenaCoinTx(tx, playerID, participation.SignupFee, "取消报名退还", sessionID); err != nil {
+                if signupFee > 0 {
+                        if err := am.addArenaCoinTx(tx, playerID, signupFee, "取消报名退还", sessionID); err != nil {
                                 return err
                         }
                 }
