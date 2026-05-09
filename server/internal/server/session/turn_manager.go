@@ -172,8 +172,6 @@ func (tm *TurnManager) scheduleAutoPlayInternal(gs *GameSession, playerIdx int, 
 
 // executeAutoPlay 执行自动出牌（机器人/托管）
 func (tm *TurnManager) executeAutoPlay(playerIdx int, expectedTurnID int64) {
-        gs := tm.gs
-
         // 验证轮次ID（防止过期的调度执行）
         tm.turnMu.Lock()
         if tm.currentTurnID != expectedTurnID {

@@ -321,10 +321,10 @@ func (gs *GameSession) notifyPlayTurn() {
         if gs.turnManager != nil {
                 // 启动倒计时
                 turnID := time.Now().UnixNano()
-                gs.turnMu.Lock()
+                gs.turnManager.turnMu.Lock()
                 gs.turnManager.currentTurnID = turnID
-                gs.turnMu.Unlock()
-                
+                gs.turnManager.turnMu.Unlock()
+
                 gs.turnManager.startTurnTimerInternal(gs, turnID)
 
                 // 如果是机器人/托管，调度自动出牌
