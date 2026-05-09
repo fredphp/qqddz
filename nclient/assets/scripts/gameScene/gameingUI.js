@@ -5926,7 +5926,7 @@ cc.Class({
     },
     
     /**
-     * 🏆【竞技场】显示最终榜单弹窗（美化版）
+     * 🏆【竞技场】显示最终榜单弹窗（完整版 - 带滚动列表）
      * @param {Object} data - { period_no, total_players, top3, top20, my_rank, my_match_coin }
      */
     _showTournamentFinalRankDialog: function(data) {
@@ -5936,7 +5936,7 @@ cc.Class({
         var canvas = cc.find("Canvas") || cc.find("UI_ROOT") || this.node.parent
         if (!canvas) canvas = this.node
         
-        // ========== 遮罩层（渐变半透明）==========
+        // ========== 遮罩层 ==========
         var maskNode = new cc.Node("FinalRankMask")
         maskNode.addComponent(cc.BlockInputEvents)
         maskNode.color = new cc.Color(10, 5, 30)
@@ -5946,83 +5946,61 @@ cc.Class({
         maskNode.zIndex = 999
         maskNode.parent = canvas
         
-        // ========== 弹窗容器（带阴影效果）==========
+        // ========== 弹窗容器 ==========
         var popupNode = new cc.Node("FinalRankPopup")
         popupNode.scale = 0.3
         popupNode.opacity = 0
         popupNode.zIndex = 1000
         popupNode.parent = canvas
         
-        // 弹窗尺寸（更宽更圆润）
-        var popupWidth = 580
-        var popupHeight = 700
+        // 弹窗尺寸（增加高度以容纳滚动列表）
+        var popupWidth = 600
+        var popupHeight = 780
         
-        // ========== 外层装饰边框（发光效果）==========
-        var glowNode = new cc.Node("Glow")
-        var glow = glowNode.addComponent(cc.Graphics)
-        glow.strokeColor = new cc.Color(255, 215, 0, 100)
-        glow.lineWidth = 8
-        glow.roundRect(-popupWidth/2 - 4, -popupHeight/2 - 4, popupWidth + 8, popupHeight + 8, 24)
-        glow.stroke()
-        glowNode.parent = popupNode
-        
-        // ========== 主背景（渐变深紫色）==========
+        // ========== 主背景 ==========
         var bgNode = new cc.Node("Bg")
         var bg = bgNode.addComponent(cc.Graphics)
-        // 深紫金主题色
-        bg.fillColor = new cc.Color(35, 25, 60, 250)
-        bg.roundRect(-popupWidth/2, -popupHeight/2, popupWidth, popupHeight, 20)
+        bg.fillColor = new cc.Color(30, 22, 54, 250)
+        bg.roundRect(-popupWidth/2, -popupHeight/2, popupWidth, popupHeight, 16)
         bg.fill()
-        // 金色边框
         bg.strokeColor = new cc.Color(255, 200, 80)
         bg.lineWidth = 3
-        bg.roundRect(-popupWidth/2, -popupHeight/2, popupWidth, popupHeight, 20)
+        bg.roundRect(-popupWidth/2, -popupHeight/2, popupWidth, popupHeight, 16)
         bg.stroke()
         bgNode.parent = popupNode
         
-        // ========== 顶部装饰横幅 ==========
-        var bannerNode = new cc.Node("Banner")
-        var banner = bannerNode.addComponent(cc.Graphics)
-        banner.fillColor = new cc.Color(180, 130, 50, 200)
-        banner.roundRect(-popupWidth/2 + 10, popupHeight/2 - 80, popupWidth - 20, 70, 10)
-        banner.fill()
-        bannerNode.parent = popupNode
+        // ========== 顶部标题区域 ==========
+        var titleBgNode = new cc.Node("TitleBg")
+        var titleBg = titleBgNode.addComponent(cc.Graphics)
+        titleBg.fillColor = new cc.Color(180, 130, 50, 220)
+        titleBg.roundRect(-popupWidth/2 + 8, popupHeight/2 - 55, popupWidth - 16, 50, 8)
+        titleBg.fill()
+        titleBgNode.parent = popupNode
         
-        // ========== 标题（带光效）==========
         var titleNode = new cc.Node("Title")
         var titleLabel = titleNode.addComponent(cc.Label)
-        titleLabel.string = "比赛结束"
-        titleLabel.fontSize = 36
+        titleLabel.string = "🏆 比赛结束 🏆"
+        titleLabel.fontSize = 32
         titleLabel.enableBold = true
         titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-        titleNode.color = new cc.Color(255, 245, 220)
-        titleNode.y = popupHeight/2 - 50
+        titleNode.color = new cc.Color(255, 250, 220)
+        titleNode.y = popupHeight/2 - 32
         titleNode.parent = popupNode
         
-        // 标题下划线装饰
-        var titleLineNode = new cc.Node("TitleLine")
-        var titleLine = titleLineNode.addComponent(cc.Graphics)
-        titleLine.strokeColor = new cc.Color(255, 200, 80, 150)
-        titleLine.lineWidth = 2
-        titleLine.moveTo(-100, 0)
-        titleLine.lineTo(100, 0)
-        titleLine.stroke()
-        titleLineNode.y = popupHeight/2 - 75
-        titleLineNode.parent = popupNode
-        
-        // ========== 参赛人数 ==========
+        // 参赛人数
         var totalNode = new cc.Node("Total")
         var totalLabel = totalNode.addComponent(cc.Label)
         totalLabel.string = "共 " + (data.total_players || 3) + " 人参赛"
-        totalLabel.fontSize = 18
-        totalNode.color = new cc.Color(180, 180, 200)
-        totalNode.y = popupHeight/2 - 100
+        totalLabel.fontSize = 16
+        totalLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        totalNode.color = new cc.Color(200, 200, 220)
+        totalNode.y = popupHeight/2 - 75
         totalNode.parent = popupNode
         
-        // ========== TOP3 领奖台 ==========
+        // ========== TOP3 领奖台（紧凑布局）==========
         var top3 = data.top3 || []
-        var podiumY = popupHeight/2 - 180
-        var podiumSpacing = 160
+        var podiumY = popupHeight/2 - 145
+        var podiumSpacing = 170
         
         // 银牌（第二名）- 左侧
         if (top3.length >= 2) {
@@ -6031,81 +6009,124 @@ cc.Class({
         
         // 金牌（第一名）- 中间（最高）
         if (top3.length >= 1) {
-            this._createPodiumEntry(popupNode, top3[0], 1, 0, podiumY + 30)
+            this._createPodiumEntry(popupNode, top3[0], 1, 0, podiumY + 20)
         }
         
         // 铜牌（第三名）- 右侧
         if (top3.length >= 3) {
-            this._createPodiumEntry(popupNode, top3[2], 3, podiumSpacing, podiumY - 15)
+            this._createPodiumEntry(popupNode, top3[2], 3, podiumSpacing, podiumY - 10)
         }
         
-        // ========== 分隔线 ==========
-        var separatorNode = new cc.Node("Separator")
-        var separator = separatorNode.addComponent(cc.Graphics)
-        separator.strokeColor = new cc.Color(255, 200, 80, 80)
-        separator.lineWidth = 1
-        separator.moveTo(-popupWidth/2 + 30, 0)
-        separator.lineTo(popupWidth/2 - 30, 0)
-        separator.stroke()
-        separatorNode.y = -popupHeight/2 + 130
-        separatorNode.parent = popupNode
+        // ========== 第4-20名滚动列表区域 ==========
+        var top20 = data.top20 || []
+        if (top20.length > 0) {
+            // 列表区域标题
+            var listTitleNode = new cc.Node("ListTitle")
+            var listTitleLabel = listTitleNode.addComponent(cc.Label)
+            listTitleLabel.string = "—— 排行榜 ——"
+            listTitleLabel.fontSize = 18
+            listTitleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+            listTitleNode.color = new cc.Color(180, 160, 120)
+            listTitleNode.y = popupHeight/2 - 260
+            listTitleNode.parent = popupNode
+            
+            // 创建滚动视图容器
+            var scrollViewNode = new cc.Node("ScrollView")
+            scrollViewNode.width = popupWidth - 40
+            scrollViewNode.height = 280
+            scrollViewNode.y = -30
+            scrollViewNode.parent = popupNode
+            
+            // 添加遮罩组件
+            var mask = scrollViewNode.addComponent(cc.Mask)
+            mask.type = cc.Mask.Type.RECT
+            
+            // 创建内容容器
+            var contentNode = new cc.Node("Content")
+            contentNode.width = popupWidth - 40
+            contentNode.anchorY = 1
+            contentNode.y = scrollViewNode.height / 2
+            contentNode.parent = scrollViewNode
+            
+            // 添加每个排行项
+            var itemHeight = 45
+            var startY = 0
+            for (var i = 0; i < top20.length; i++) {
+                var rankData = top20[i]
+                var actualRank = i + 4  // 第4名开始
+                
+                var itemNode = this._createRankListItem(rankData, actualRank, popupWidth - 50)
+                itemNode.y = startY - i * itemHeight - itemHeight / 2
+                itemNode.parent = contentNode
+            }
+            
+            // 设置内容高度
+            contentNode.height = Math.max(top20.length * itemHeight, 280)
+            
+            // 添加触摸滚动
+            this._addScrollViewTouch(scrollViewNode, contentNode, 280)
+        }
         
-        // ========== 我的排名（高亮背景）==========
+        // ========== 底部区域（我的排名 + 按钮）==========
+        // 分隔线
+        var sepNode = new cc.Node("BottomSep")
+        var sep = sepNode.addComponent(cc.Graphics)
+        sep.strokeColor = new cc.Color(255, 200, 80, 100)
+        sep.lineWidth = 1
+        sep.moveTo(-popupWidth/2 + 30, 0)
+        sep.lineTo(popupWidth/2 - 30, 0)
+        sep.stroke()
+        sepNode.y = -popupHeight/2 + 140
+        sepNode.parent = popupNode
+        
+        // 我的排名背景
         var myRankBgNode = new cc.Node("MyRankBg")
         var myRankBg = myRankBgNode.addComponent(cc.Graphics)
-        myRankBg.fillColor = new cc.Color(60, 50, 100, 180)
-        myRankBg.roundRect(-150, -20, 300, 40, 8)
+        myRankBg.fillColor = new cc.Color(50, 45, 80, 200)
+        myRankBg.roundRect(-200, -22, 400, 44, 8)
         myRankBg.fill()
-        myRankBgNode.y = -popupHeight/2 + 90
+        myRankBg.strokeColor = new cc.Color(255, 200, 80, 150)
+        myRankBg.lineWidth = 1
+        myRankBg.roundRect(-200, -22, 400, 44, 8)
+        myRankBg.stroke()
+        myRankBgNode.y = -popupHeight/2 + 100
         myRankBgNode.parent = popupNode
         
+        // 我的排名文字
         var myRankNode = new cc.Node("MyRank")
         var myRankLabel = myRankNode.addComponent(cc.Label)
-        myRankLabel.string = "我的排名: 第 " + (data.my_rank || 1) + " 名"
-        myRankLabel.fontSize = 24
+        myRankLabel.string = "我的排名: 第 " + (data.my_rank || 1) + " 名  |  比赛金币: " + (data.my_match_coin || 0)
+        myRankLabel.fontSize = 20
         myRankLabel.enableBold = true
         myRankLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         myRankNode.color = new cc.Color(255, 230, 150)
-        myRankNode.y = -popupHeight/2 + 90
+        myRankNode.y = -popupHeight/2 + 100
         myRankNode.parent = popupNode
         
-        // ========== 我的比赛金币 ==========
-        var myCoinNode = new cc.Node("MyCoin")
-        var myCoinLabel = myCoinNode.addComponent(cc.Label)
-        myCoinLabel.string = "比赛金币: " + (data.my_match_coin || 0)
-        myCoinLabel.fontSize = 20
-        myCoinLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-        myCoinNode.color = new cc.Color(180, 255, 180)
-        myCoinNode.y = -popupHeight/2 + 55
-        myCoinNode.parent = popupNode
-        
-        // ========== 确定按钮（圆角渐变效果）==========
+        // ========== 确定按钮 ==========
         var btnNode = new cc.Node("ConfirmBtn")
-        btnNode.width = 160
-        btnNode.height = 55
+        btnNode.width = 180
+        btnNode.height = 50
         
-        // 按钮背景
         var btnBg = btnNode.addComponent(cc.Graphics)
         btnBg.fillColor = new cc.Color(76, 175, 80)
-        btnBg.roundRect(-80, -27.5, 160, 55, 12)
+        btnBg.roundRect(-90, -25, 180, 50, 10)
         btnBg.fill()
-        // 按钮高光边框
         btnBg.strokeColor = new cc.Color(129, 199, 132)
         btnBg.lineWidth = 2
-        btnBg.roundRect(-80, -27.5, 160, 55, 12)
+        btnBg.roundRect(-90, -25, 180, 50, 10)
         btnBg.stroke()
-        btnNode.y = -popupHeight/2 + 5
+        btnNode.y = -popupHeight/2 + 40
         btnNode.parent = popupNode
         
-        // 按钮文字（垂直居中）
         var btnLabel = new cc.Node("Label")
         var btnLabelComp = btnLabel.addComponent(cc.Label)
-        btnLabelComp.string = "确定"
+        btnLabelComp.string = "确  定"
         btnLabelComp.fontSize = 24
         btnLabelComp.enableBold = true
         btnLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         btnLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER
-        btnLabel.setContentSize(160, 55)
+        btnLabel.setContentSize(180, 50)
         btnLabel.color = new cc.Color(255, 255, 255)
         btnLabel.setPosition(0, 0)
         btnLabel.parent = btnNode
@@ -6118,21 +6139,105 @@ cc.Class({
             btnNode.scale = 1
             popupNode.destroy()
             maskNode.destroy()
-            
-            // 返回大厅场景
             cc.director.loadScene("hallScene")
         })
         btnNode.on(cc.Node.EventType.TOUCH_CANCEL, function() {
             btnNode.scale = 1
         })
         
-        // ========== 弹出动画（弹性效果）==========
+        // ========== 弹出动画 ==========
         cc.tween(popupNode)
-            .to(0.15, { scale: 1.05, opacity: 255 }, { easing: 'sineOut' })
-            .to(0.1, { scale: 1.0 }, { easing: 'sineInOut' })
+            .to(0.2, { scale: 1.0, opacity: 255 }, { easing: 'backOut' })
             .start()
         
         console.log("🏆 [_showTournamentFinalRankDialog] 最终榜单弹窗已显示")
+    },
+    
+    /**
+     * 创建排行列表项
+     */
+    _createRankListItem: function(rankData, rank, width) {
+        var itemNode = new cc.Node("RankItem_" + rank)
+        itemNode.width = width
+        itemNode.height = 42
+        
+        // 背景（交替颜色）
+        var bgNode = new cc.Node("Bg")
+        var bg = bgNode.addComponent(cc.Graphics)
+        if (rank % 2 === 0) {
+            bg.fillColor = new cc.Color(45, 38, 70, 180)
+        } else {
+            bg.fillColor = new cc.Color(38, 32, 58, 180)
+        }
+        bg.roundRect(-width/2, -20, width, 40, 6)
+        bg.fill()
+        bgNode.parent = itemNode
+        
+        // 排名
+        var rankNode = new cc.Node("Rank")
+        var rankLabel = rankNode.addComponent(cc.Label)
+        rankLabel.string = String(rank)
+        rankLabel.fontSize = 18
+        rankLabel.enableBold = true
+        rankLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        rankNode.color = new cc.Color(255, 200, 100)
+        rankNode.setPosition(-width/2 + 35, 0)
+        rankNode.parent = itemNode
+        
+        // 玩家名称
+        var nameNode = new cc.Node("Name")
+        var nameLabel = nameNode.addComponent(cc.Label)
+        var playerName = rankData.player_name || "玩家"
+        if (rankData.is_robot) {
+            playerName = this._getRobotDisplayName(rankData.player_id, rankData.player_name)
+        }
+        nameLabel.string = playerName
+        nameLabel.fontSize = 16
+        nameLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT
+        nameLabel.overflow = cc.Label.Overflow.CLAMP
+        nameNode.width = 180
+        nameNode.color = new cc.Color(255, 255, 255)
+        nameNode.setPosition(-width/2 + 130, 0)
+        nameNode.parent = itemNode
+        
+        // 金币
+        var coinNode = new cc.Node("Coin")
+        var coinLabel = coinNode.addComponent(cc.Label)
+        coinLabel.string = (rankData.match_coin || 0) + " 金币"
+        coinLabel.fontSize = 15
+        coinLabel.horizontalAlign = cc.Label.HorizontalAlign.RIGHT
+        coinNode.color = new cc.Color(255, 220, 150)
+        coinNode.setPosition(width/2 - 60, 0)
+        coinNode.parent = itemNode
+        
+        return itemNode
+    },
+    
+    /**
+     * 添加滚动视图触摸事件
+     */
+    _addScrollViewTouch: function(scrollViewNode, contentNode, viewHeight) {
+        var touchStartY = 0
+        var contentStartY = 0
+        var maxOffset = Math.max(0, contentNode.height - viewHeight)
+        
+        scrollViewNode.on(cc.Node.EventType.TOUCH_START, function(event) {
+            touchStartY = event.getLocationY()
+            contentStartY = contentNode.y
+        })
+        
+        scrollViewNode.on(cc.Node.EventType.TOUCH_MOVE, function(event) {
+            var touchY = event.getLocationY()
+            var deltaY = touchY - touchStartY
+            var newY = contentStartY + deltaY
+            
+            // 限制滚动范围
+            var minY = viewHeight / 2 - contentNode.height
+            var maxY = viewHeight / 2
+            
+            newY = Math.max(minY, Math.min(maxY, newY))
+            contentNode.y = newY
+        })
     },
     
     /**
