@@ -13,6 +13,7 @@ import (
 
         "github.com/palemoky/fight-the-landlord/internal/game/database"
         "github.com/palemoky/fight-the-landlord/internal/game/room"
+        "github.com/palemoky/fight-the-landlord/internal/game/tournament"
         "github.com/palemoky/fight-the-landlord/internal/protocol"
         "github.com/palemoky/fight-the-landlord/internal/protocol/codec"
         "github.com/palemoky/fight-the-landlord/internal/types"
@@ -577,7 +578,29 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
 }
 
 // 🔧【新增】发送比赛开始弹窗通知给真人玩家
+// 🔧【修复】动态计算总轮次，根据报名人数和淘汰规则
 func (b *ArenaStatusBroadcaster) sendMatchStartPopup(roomID uint64, periodNo string, roomConfig *database.RoomConfig, realPlayers []uint64, playerMap map[uint64]*database.Player) {
+        // 🔧【修复】动态计算总轮次
+        // 解析淘汰规则
+        var rules tournament.EliminationRules
+        if roomConfig.EliminationRules != "" {
+                if err := json.Unmarshal([]byte(roomConfig.EliminationRules), &rules); err != nil {
+                        log.Printf("[ArenaStatus] 解析淘汰规则失败，使用默认值: %v", err)
+                        rules = tournament.EliminationRules{60, 30, 18, 9, 3}
+                }
+        } else {
+                rules = tournament.EliminationRules{60, 30, 18, 9, 3}
+        }
+
+        // 计算总报名人数（真人 + 机器人）
+        totalPlayers := len(playerMap)
+
+        // 动态计算总轮次
+        totalRounds := rules.GetTotalRounds(totalPlayers)
+
+        // 🔧【日志】输出计算结果
+        log.Printf("[TOURNAMENT] 计算总轮次: players=%d, rules=%v, totalRounds=%d", totalPlayers, rules, totalRounds)
+
         // 构建弹窗消息
         payload := &protocol.ArenaMatchStartPayload{
                 PeriodNo:      periodNo,
@@ -585,15 +608,15 @@ func (b *ArenaStatusBroadcaster) sendMatchStartPopup(roomID uint64, periodNo str
                 RoomName:      roomConfig.RoomName,
                 RoomConfigID:  roomID,
                 SignupFee:     roomConfig.MinArenaCoin,
-                TotalPlayers:  len(realPlayers),
+                TotalPlayers:  totalPlayers,
                 MatchDuration: PeriodTotalMinutes,
-                MatchRounds:   roomConfig.MatchRoundCount, // 🔧【修复】从配置获取轮次数
+                MatchRounds:   totalRounds, // 🔧【修复】动态计算的总轮次
                 Countdown:     EnterPhaseCountdown,
                 Message:       "比赛即将开始，请点击进入！",
         }
-        
+
         msg := codec.MustNewMessage(protocol.MsgArenaMatchStart, payload)
-        
+
         // 发送给所有在线的真人玩家
         b.server.clientsMu.RLock()
         for _, playerID := range realPlayers {
