@@ -169,3 +169,22 @@ type DDZSmsCodeResponse struct {
         IP         string `json:"ip"`
         CreatedAt  string `json:"createdAt"`
 }
+
+// DDZGameRecordWithLogsResponse 游戏记录（含详细日志）响应
+type DDZGameRecordWithLogsResponse struct {
+        DDZGameRecordResponse
+        BidLogs  []DDZBidLogResponse  `json:"bidLogs"`  // 叫地主日志
+        DealLogs []DDZDealLogResponse `json:"dealLogs"` // 发牌日志
+        PlayLogs []DDZPlayLogResponse `json:"playLogs"` // 出牌日志
+}
+
+// DDZRoomGameRecordsResponse 房间游戏活动日志响应
+type DDZRoomGameRecordsResponse struct {
+        RoomCode     string                        `json:"roomCode"`     // 房间编码
+        RoomName     string                        `json:"roomName"`     // 房间名称
+        TotalGames   int64                         `json:"totalGames"`   // 总局数
+        GameRecords  []DDZGameRecordWithLogsResponse `json:"gameRecords"` // 游戏记录列表
+        Total        int64                         `json:"total"`        // 总记录数
+        Page         int                           `json:"page"`         // 当前页
+        PageSize     int                           `json:"pageSize"`     // 每页大小
+}

@@ -143,6 +143,15 @@ export const getRoomDetail = (id) => {
   })
 }
 
+// 获取房间游戏活动日志（含详细日志）
+export const getRoomGameRecords = (data) => {
+  return service({
+    url: '/ddz/room/game-records',
+    method: 'post',
+    data
+  })
+}
+
 // 删除房间
 export const deleteRoom = (data) => {
   return service({

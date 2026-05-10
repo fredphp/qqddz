@@ -585,3 +585,35 @@ func (api *DDZGameLogApi) GetBgImageOptions(c *gin.Context) {
         options := ddzConfigService.GetBgImageOptions()
         response.OkWithDetailed(options, "获取成功", c)
 }
+
+// GetRoomGameRecords 获取房间内所有游戏记录（含详细日志）
+// @Tags     DDZ游戏房间
+// @Summary  获取房间内所有游戏记录（含详细日志）
+// @Security ApiKeyAuth
+// @accept   application/json
+// @Produce  application/json
+// @Param    data  body      ddzReq.DDZRoomGameRecordsSearch  true  "房间编码"
+// @Success  200   {object}  response.Response{data=ddzRes.DDZRoomGameRecordsResponse,msg=string}
+// @Router   /ddz/room/game-records [post]
+func (api *DDZGameLogApi) GetRoomGameRecords(c *gin.Context) {
+        var req ddzReq.DDZRoomGameRecordsSearch
+        err := c.ShouldBindJSON(&req)
+        if err != nil {
+                response.FailWithMessage(err.Error(), c)
+                return
+        }
+        err = utils.Verify(req.PageInfo, utils.PageInfoVerify)
+        if err != nil {
+                response.FailWithMessage(err.Error(), c)
+                return
+        }
+
+        result, err := ddzGameLogService.GetRoomGameRecords(req)
+        if err != nil {
+                global.GVA_LOG.Error("获取房间游戏记录失败!", zap.Error(err))
+                response.FailWithMessage("获取房间游戏记录失败", c)
+                return
+        }
+
+        response.OkWithDetailed(result, "获取成功", c)
+}

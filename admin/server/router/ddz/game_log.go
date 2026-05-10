@@ -43,6 +43,7 @@ func (r *DDZGameLogRouter) InitDDZGameLogRouter(Router *gin.RouterGroup) {
                 // 游戏房间实例 (ddz_rooms 表)
                 ddzGameLogRouterWithoutRecord.POST("room/list", ddzGameLogApi.GetRoomList)
                 ddzGameLogRouterWithoutRecord.GET("room/detail", ddzGameLogApi.GetRoomDetail)
+                ddzGameLogRouterWithoutRecord.POST("room/game-records", ddzGameLogApi.GetRoomGameRecords) // 房间游戏活动日志
                 // 短信验证码
                 ddzGameLogRouterWithoutRecord.POST("smsCode/list", ddzGameLogApi.GetSmsCodeList)
         }

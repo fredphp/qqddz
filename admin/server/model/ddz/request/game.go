@@ -25,3 +25,10 @@ type DDZGameRecordDetail struct {
         ID    uint   `json:"ID" form:"ID" binding:"required"`
         Month string `json:"month" form:"month"` // 月份筛选，格式: 202401
 }
+
+// DDZRoomGameRecordsSearch 按房间编码查询游戏记录请求
+type DDZRoomGameRecordsSearch struct {
+        request.PageInfo
+        RoomCode string `json:"roomCode" form:"roomCode" binding:"required"` // 房间编码（必填）
+        Month    string `json:"month" form:"month"`                         // 月份筛选，格式: 202401，默认当月
+}

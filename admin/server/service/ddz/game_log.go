@@ -1780,3 +1780,104 @@ func (s *DDZGameLogService) playLogToResponse(l PlayLog) ddzRes.DDZPlayLogRespon
                 CreatedAt:      l.CreatedAt.Format("2006-01-02 15:04:05"),
         }
 }
+
+// GetRoomGameRecords 获取房间内所有游戏记录（含详细日志）
+// 用于房间详情页面展示活动日志
+func (s *DDZGameLogService) GetRoomGameRecords(req ddzReq.DDZRoomGameRecordsSearch) (ddzRes.DDZRoomGameRecordsResponse, error) {
+        db := GetDDZDB()
+        limit := req.PageSize
+        offset := req.PageSize * (req.Page - 1)
+
+        // 确定查询的分表
+        month := req.Month
+        if month == "" {
+                month = getCurrentMonth()
+        }
+        gameRecordTable := getTableNameWithMonth("ddz_game_records", month)
+        bidLogTable := getTableNameWithMonth("ddz_bid_logs", month)
+        dealLogTable := getTableNameWithMonth("ddz_deal_logs", month)
+        playLogTable := getTableNameWithMonth("ddz_play_logs", month)
+
+        // 检查游戏记录分表是否存在
+        var tableCount int64
+        db.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", gameRecordTable).Scan(&tableCount)
+        if tableCount == 0 {
+                return ddzRes.DDZRoomGameRecordsResponse{
+                        RoomCode:    req.RoomCode,
+                        GameRecords: []ddzRes.DDZGameRecordWithLogsResponse{},
+                        Total:       0,
+                        Page:        req.Page,
+                        PageSize:    req.PageSize,
+                }, nil
+        }
+
+        // 查询该房间的游戏记录
+        query := db.Table(gameRecordTable).Where("room_code = ?", req.RoomCode)
+
+        var total int64
+        err := query.Count(&total).Error
+        if err != nil {
+                return ddzRes.DDZRoomGameRecordsResponse{}, err
+        }
+
+        var records []GameRecord
+        err = query.Limit(limit).Offset(offset).Order("id desc").Find(&records).Error
+        if err != nil {
+                return ddzRes.DDZRoomGameRecordsResponse{}, err
+        }
+
+        // 转换为响应格式，并获取详细日志
+        gameRecords := make([]ddzRes.DDZGameRecordWithLogsResponse, 0, len(records))
+        for _, r := range records {
+                recordWithLogs := ddzRes.DDZGameRecordWithLogsResponse{
+                        DDZGameRecordResponse: s.gameRecordToResponse(r),
+                        BidLogs:               []ddzRes.DDZBidLogResponse{},
+                        DealLogs:              []ddzRes.DDZDealLogResponse{},
+                        PlayLogs:              []ddzRes.DDZPlayLogResponse{},
+                }
+
+                // 获取叫地主日志
+                var bidLogs []BidLog
+                db.Table(bidLogTable).Where("game_id = ?", r.GameID).Order("bid_order asc").Find(&bidLogs)
+                for _, bl := range bidLogs {
+                        recordWithLogs.BidLogs = append(recordWithLogs.BidLogs, s.bidLogToResponse(bl))
+                }
+
+                // 获取发牌日志
+                var dealLogs []DealLog
+                db.Table(dealLogTable).Where("game_id = ?", r.GameID).Order("id asc").Find(&dealLogs)
+                for _, dl := range dealLogs {
+                        recordWithLogs.DealLogs = append(recordWithLogs.DealLogs, s.dealLogToResponse(dl))
+                }
+
+                // 获取出牌日志
+                var playLogs []PlayLog
+                db.Table(playLogTable).Where("game_id = ?", r.GameID).Order("round_num asc, play_order asc").Find(&playLogs)
+                for _, pl := range playLogs {
+                        recordWithLogs.PlayLogs = append(recordWithLogs.PlayLogs, s.playLogToResponse(pl))
+                }
+
+                gameRecords = append(gameRecords, recordWithLogs)
+        }
+
+        // 获取房间名称
+        roomName := ""
+        roomsTable := getTableNameWithMonth("ddz_rooms", month)
+        db.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", roomsTable).Scan(&tableCount)
+        if tableCount > 0 {
+                var room RoomRecord
+                if err := db.Table(roomsTable).Where("room_code = ?", req.RoomCode).First(&room).Error; err == nil {
+                        roomName = room.RoomName
+                }
+        }
+
+        return ddzRes.DDZRoomGameRecordsResponse{
+                RoomCode:    req.RoomCode,
+                RoomName:    roomName,
+                TotalGames:  total,
+                GameRecords: gameRecords,
+                Total:       total,
+                Page:        req.Page,
+                PageSize:    req.PageSize,
+        }, nil
+}
