@@ -32,7 +32,7 @@
       <div class="gva-btn-list">
         <el-button type="primary" icon="plus" @click="createDialog = true">新建用户账户</el-button>
       </div>
-      <el-table :data="tableData" row-key="ID">
+      <el-table :data="tableData" row-key="ID" :row-class-name="getRowClassName">
         <el-table-column align="center" label="玩家ID" min-width="80" prop="playerId" />
         <el-table-column align="center" label="玩家信息" min-width="180">
           <template #default="scope">
@@ -50,9 +50,14 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column align="center" label="金币" min-width="100">
+        <el-table-column align="center" label="欢乐豆" min-width="100">
           <template #default="scope">
             <span class="currency-value gold">{{ formatNumber(scope.row.playerCoins) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" label="竞技币" min-width="100">
+          <template #default="scope">
+            <span class="currency-value arena">{{ formatNumber(scope.row.playerArenaCoin) }}</span>
           </template>
         </el-table-column>
         <el-table-column align="center" label="手机号" min-width="120" prop="phone">
@@ -477,6 +482,23 @@ const getStatusTag = (status) => {
   return tags[status] || 'info'
 }
 
+// 判断是否为近期活跃用户（最近7天内登录过）
+const isActiveUser = (lastLoginAt) => {
+  if (!lastLoginAt) return false
+  const lastLogin = new Date(lastLoginAt)
+  const now = new Date()
+  const diffDays = (now - lastLogin) / (1000 * 60 * 60 * 24)
+  return diffDays <= 7
+}
+
+// 设置行样式类名
+const getRowClassName = ({ row }) => {
+  if (isActiveUser(row.lastLoginAt)) {
+    return 'active-user-row'
+  }
+  return ''
+}
+
 const onSubmit = () => {
   page.value = 1
   getTableData()
@@ -848,5 +870,14 @@ getTableData()
   color: #e6a23c;
   font-size: 13px;
   margin-top: 16px;
+}
+
+/* 近期活跃用户行样式 */
+:deep(.active-user-row) {
+  background-color: #f0f9eb !important;
+}
+
+:deep(.active-user-row:hover > td) {
+  background-color: #e1f3d8 !important;
 }
 </style>
