@@ -5,16 +5,17 @@ import "github.com/flipped-aurora/gin-vue-admin/server/model/common/request"
 // DDZTournamentRoundSearch 锦标赛轮次查询请求
 type DDZTournamentRoundSearch struct {
         request.PageInfo
-        SessionID uint64 `json:"sessionId" form:"sessionId"`
-        Status    *uint8 `json:"status" form:"status"`
+        SessionID *uint64 `json:"sessionId" form:"sessionId"`
+        Status    *uint8  `json:"status" form:"status"`
 }
 
 // DDZTournamentEliminationSearch 锦标赛淘汰记录查询请求
 type DDZTournamentEliminationSearch struct {
         request.PageInfo
-        SessionID uint64 `json:"sessionId" form:"sessionId"`
-        RoundID   uint64 `json:"roundId" form:"roundId"`
-        PlayerID  uint64 `json:"playerId" form:"playerId"`
+        PeriodNo  string  `json:"periodNo" form:"periodNo"`   // 期号（可选）
+        SessionID *uint64 `json:"sessionId" form:"sessionId"` // 会话ID（可选）
+        RoundID   *uint64 `json:"roundId" form:"roundId"`     // 轮次ID（可选）
+        PlayerID  *uint64 `json:"playerId" form:"playerId"`   // 玩家ID（可选）
 }
 
 // DDZPendingGameDataSearch 待处理数据查询请求

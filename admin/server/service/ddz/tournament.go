@@ -13,8 +13,8 @@ func (s *DDZTournamentService) GetTournamentRoundList(req ddzReq.DDZTournamentRo
         offset := req.PageSize * (req.Page - 1)
 
         db := GetDDZDB().Table("ddz_tournament_rounds")
-        if req.SessionID > 0 {
-                db = db.Where("session_id = ?", req.SessionID)
+        if req.SessionID != nil && *req.SessionID > 0 {
+                db = db.Where("session_id = ?", *req.SessionID)
         }
         if req.Status != nil {
                 db = db.Where("status = ?", *req.Status)
@@ -35,14 +35,18 @@ func (s *DDZTournamentService) GetTournamentEliminationList(req ddzReq.DDZTourna
         offset := req.PageSize * (req.Page - 1)
 
         db := GetDDZDB().Table("ddz_tournament_eliminations")
-        if req.SessionID > 0 {
-                db = db.Where("session_id = ?", req.SessionID)
+        // 通过期号查询（需要关联 session 表）
+        if req.PeriodNo != "" {
+                db = db.Where("session_id IN (SELECT id FROM ddz_tournament_sessions WHERE period_no = ?)", req.PeriodNo)
         }
-        if req.RoundID > 0 {
-                db = db.Where("round_id = ?", req.RoundID)
+        if req.SessionID != nil && *req.SessionID > 0 {
+                db = db.Where("session_id = ?", *req.SessionID)
         }
-        if req.PlayerID > 0 {
-                db = db.Where("player_id = ?", req.PlayerID)
+        if req.RoundID != nil && *req.RoundID > 0 {
+                db = db.Where("round_id = ?", *req.RoundID)
+        }
+        if req.PlayerID != nil && *req.PlayerID > 0 {
+                db = db.Where("player_id = ?", *req.PlayerID)
         }
 
         err = db.Count(&total).Error
