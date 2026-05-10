@@ -212,7 +212,11 @@
         </el-table-column>
 
         <!-- 统计日期列 -->
-        <el-table-column label="统计日期" min-width="120" align="center" prop="statDate" />
+        <el-table-column label="统计日期" min-width="120" align="center">
+          <template #default="scope">
+            {{ scope.row.statDate || '-' }}
+          </template>
+        </el-table-column>
 
         <!-- 操作列 -->
         <el-table-column label="操作" min-width="100" align="center" fixed="right">
@@ -281,6 +285,7 @@
             <div class="detail-stat-item">
               <div class="detail-stat-label">统计日期</div>
               <div class="detail-stat-value">{{ currentPlayer.statDate || '-' }}</div>
+              <div class="detail-stat-hint">该日期的游戏数据</div>
             </div>
             <div class="detail-stat-item">
               <div class="detail-stat-label">总场次</div>
@@ -304,9 +309,10 @@
             </div>
             <div class="detail-stat-item">
               <div class="detail-stat-label">当前金币</div>
-              <div class="detail-stat-value">
+              <div class="detail-stat-value gold-value">
                 💰 {{ (currentPlayer.currentGold || 0).toLocaleString() }}
               </div>
+              <div class="detail-stat-hint">玩家当前账户金币余额</div>
             </div>
             <div class="detail-stat-item">
               <div class="detail-stat-label">炸弹数</div>
@@ -918,6 +924,16 @@ getTableData()
 
 .detail-stat-value--danger {
   color: #ff4d4f;
+}
+
+.detail-stat-hint {
+  font-size: 11px;
+  color: #bfbfbf;
+  margin-top: 2px;
+}
+
+.gold-value {
+  color: #faad14;
 }
 
 .detail-role-section {

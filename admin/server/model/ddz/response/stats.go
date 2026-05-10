@@ -52,25 +52,29 @@ type DDZOverviewStatsResponse struct {
 
 // DDZPlayerStatsResponse 玩家统计响应
 type DDZPlayerStatsResponse struct {
-        PlayerID      string  `json:"playerId"`
-        PlayerName    string  `json:"playerName"`
-        PlayerAvatar  string  `json:"playerAvatar"`
-        Date          string  `json:"date"`
-        GamesPlayed   int     `json:"gamesPlayed"`
-        Wins          int     `json:"wins"`
-        Losses        int     `json:"losses"`
-        Draws         int     `json:"draws"`
-        WinRate       float64 `json:"winRate"`
-        LandlordWins  int     `json:"landlordWins"`
-        LandlordGames int     `json:"landlordGames"`
-        FarmerWins    int     `json:"farmerWins"`
-        FarmerGames   int     `json:"farmerGames"`
-        TotalScore    int64   `json:"totalScore"`
-        MaxWinScore   int64   `json:"maxWinScore"`
-        MaxLoseScore  int64   `json:"maxLoseScore"`
-        OnlineTime    int64   `json:"onlineTime"`
-        SpringCount   int     `json:"springCount"`
-        BombCount     int     `json:"bombCount"`
+        PlayerID        string  `json:"playerId"`
+        PlayerName      string  `json:"playerName"`
+        PlayerAvatar    string  `json:"playerAvatar"`
+        VIPLevel        int     `json:"vipLevel"`
+        StatDate        string  `json:"statDate"`        // 统计日期
+        TotalGames      int     `json:"totalGames"`      // 总场次
+        WinGames        int     `json:"winGames"`        // 胜场
+        LoseGames       int     `json:"loseGames"`       // 负场
+        DrawGames       int     `json:"drawGames"`       // 平局
+        WinRate         float64 `json:"winRate"`         // 胜率
+        LandlordGames   int     `json:"landlordGames"`   // 地主总场次
+        LandlordWins    int     `json:"landlordWins"`    // 地主胜场
+        LandlordWinRate float64 `json:"landlordWinRate"` // 地主胜率
+        FarmerGames     int     `json:"farmerGames"`     // 农民总场次
+        FarmerWins      int     `json:"farmerWins"`      // 农民胜场
+        FarmerWinRate   float64 `json:"farmerWinRate"`   // 农民胜率
+        TotalBombs      int     `json:"totalBombs"`      // 炸弹总数
+        SpringCount     int     `json:"springCount"`     // 春天次数
+        CurrentGold     int64   `json:"currentGold"`     // 当前金币余额
+        TotalScore      int64   `json:"totalScore"`      // 总得分
+        MaxWinScore     int64   `json:"maxWinScore"`     // 单局最大赢分
+        MaxLoseScore    int64   `json:"maxLoseScore"`    // 单局最大输分
+        OnlineTime      int64   `json:"onlineTime"`      // 在线时长(秒)
 }
 
 // DDZPlayerStatsListResponse 玩家统计列表响应

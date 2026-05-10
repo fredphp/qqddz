@@ -212,26 +212,43 @@ func (s *DDZStatsService) GetPlayerStats(req ddzReq.DDZStatsSearch) (list interf
         result := make([]ddzRes.DDZPlayerStatsResponse, 0, len(stats))
         for _, s := range stats {
                 player := playerMap[s.PlayerID]
+
+                // 计算地主胜率
+                var landlordWinRate float64 = 0
+                if s.LandlordGames > 0 {
+                        landlordWinRate = float64(s.LandlordWins) / float64(s.LandlordGames) * 100
+                }
+
+                // 计算农民胜率
+                var farmerWinRate float64 = 0
+                if s.FarmerGames > 0 {
+                        farmerWinRate = float64(s.FarmerWins) / float64(s.FarmerGames) * 100
+                }
+
                 result = append(result, ddzRes.DDZPlayerStatsResponse{
-                        PlayerID:      s.PlayerID,
-                        PlayerName:    player.Nickname,
-                        PlayerAvatar:  player.Avatar,
-                        Date:          s.Date,
-                        GamesPlayed:   s.GamesPlayed,
-                        Wins:          s.Wins,
-                        Losses:        s.Losses,
-                        Draws:         s.Draws,
-                        WinRate:       s.WinRate,
-                        LandlordWins:  s.LandlordWins,
-                        LandlordGames: s.LandlordGames,
-                        FarmerWins:    s.FarmerWins,
-                        FarmerGames:   s.FarmerGames,
-                        TotalScore:    s.TotalScore,
-                        MaxWinScore:   s.MaxWinScore,
-                        MaxLoseScore:  s.MaxLoseScore,
-                        OnlineTime:    s.OnlineTime,
-                        SpringCount:   s.SpringCount,
-                        BombCount:     s.BombCount,
+                        PlayerID:        s.PlayerID,
+                        PlayerName:      player.Nickname,
+                        PlayerAvatar:    player.Avatar,
+                        VIPLevel:        player.VIPLevel,
+                        StatDate:        s.Date,
+                        TotalGames:      s.GamesPlayed,
+                        WinGames:        s.Wins,
+                        LoseGames:       s.Losses,
+                        DrawGames:       s.Draws,
+                        WinRate:         s.WinRate,
+                        LandlordGames:   s.LandlordGames,
+                        LandlordWins:    s.LandlordWins,
+                        LandlordWinRate: landlordWinRate,
+                        FarmerGames:     s.FarmerGames,
+                        FarmerWins:      s.FarmerWins,
+                        FarmerWinRate:   farmerWinRate,
+                        TotalBombs:      s.BombCount,
+                        SpringCount:     s.SpringCount,
+                        CurrentGold:     player.Gold,
+                        TotalScore:      s.TotalScore,
+                        MaxWinScore:     s.MaxWinScore,
+                        MaxLoseScore:    s.MaxLoseScore,
+                        OnlineTime:      s.OnlineTime,
                 })
         }
 
