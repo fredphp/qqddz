@@ -50,12 +50,6 @@ WHERE NOT EXISTS (SELECT 1 FROM `sys_base_menus` WHERE `name` = 'ddzArenaSignupL
 -- 游戏记录 - 新增子菜单
 -- =====================================================
 
--- 新增：发牌记录 (不存在于 hlddz.sql)
-INSERT INTO `sys_base_menus` (`created_at`, `updated_at`, `menu_level`, `parent_id`, `path`, `name`, `hidden`, `component`, `sort`, `title`, `icon`, `close_tab`)
-SELECT NOW(), NOW(), 1, (SELECT `id` FROM `sys_base_menus` WHERE `name` = 'ddzGame' LIMIT 1), 'dealRecord', 'ddzDealRecord', 0, 'view/ddz/dealRecord/dealRecord.vue', 24, '发牌记录', 'postcard', 0
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM `sys_base_menus` WHERE `name` = 'ddzDealRecord');
-
 -- =====================================================
 -- 房间管理 - 新增子菜单
 -- =====================================================
@@ -238,11 +232,6 @@ INSERT INTO `sys_apis` (`created_at`, `updated_at`, `path`, `description`, `api_
 SELECT NOW(), NOW(), '/ddz/gameDetail/gamePlayRecordList', '获取出牌记录列表', '斗地主游戏详情', 'POST'
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `sys_apis` WHERE `path` = '/ddz/gameDetail/gamePlayRecordList' AND `method` = 'POST');
-
-INSERT INTO `sys_apis` (`created_at`, `updated_at`, `path`, `description`, `api_group`, `method`)
-SELECT NOW(), NOW(), '/ddz/gameDetail/dealRecordList', '获取发牌记录列表', '斗地主游戏详情', 'POST'
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM `sys_apis` WHERE `path` = '/ddz/gameDetail/dealRecordList' AND `method` = 'POST');
 
 -- 统计详情API (不存在于 hlddz.sql)
 INSERT INTO `sys_apis` (`created_at`, `updated_at`, `path`, `description`, `api_group`, `method`)

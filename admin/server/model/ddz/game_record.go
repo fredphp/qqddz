@@ -70,18 +70,3 @@ type DDZGamePlayRecord struct {
 func (DDZGamePlayRecord) TableName() string {
         return "ddz_game_play_records"
 }
-
-// DDZDealRecord 发牌记录
-type DDZDealRecord struct {
-        global.GVA_MODEL
-        GameID        string `json:"gameId" gorm:"uniqueIndex;comment:游戏记录ID"`
-        Player0Cards  string `json:"player0Cards" gorm:"type:text;comment:玩家0手牌"`
-        Player1Cards  string `json:"player1Cards" gorm:"type:text;comment:玩家1手牌"`
-        Player2Cards  string `json:"player2Cards" gorm:"type:text;comment:玩家2手牌"`
-        DizhuCards    string `json:"dizhuCards" gorm:"comment:地主牌(三张底牌)"`
-        FirstPlayer   int    `json:"firstPlayer" gorm:"comment:首发玩家位置"`
-}
-
-func (DDZDealRecord) TableName() string {
-        return "ddz_deal_records"
-}
