@@ -39,7 +39,17 @@
     <div class="gva-table-box">
       <el-table :data="tableData" row-key="ID" stripe>
         <el-table-column align="center" label="ID" min-width="60" prop="ID" />
-        <el-table-column align="center" label="玩家ID" min-width="120" prop="playerId" />
+        <el-table-column align="center" label="用户名" min-width="120" show-overflow-tooltip>
+          <template #default="scope">
+            <span
+              class="copyable-text"
+              :title="scope.row.nickname"
+              @dblclick="copyToClipboard(scope.row.nickname)"
+            >
+              {{ scope.row.nickname }}
+            </span>
+          </template>
+        </el-table-column>
         <el-table-column align="center" label="头像" min-width="70">
           <template #default="scope">
             <el-avatar
@@ -1192,6 +1202,25 @@ const handleGenerateRobots = async () => {
     generateLoading.value = false
   }
 }
+
+// 复制文本到剪贴板
+const copyToClipboard = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('已复制: ' + text)
+  } catch (err) {
+    // 降级方案
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand('copy')
+    document.body.removeChild(textarea)
+    ElMessage.success('已复制: ' + text)
+  }
+}
 </script>
 
 <style scoped>
@@ -1511,5 +1540,18 @@ const handleGenerateRobots = async () => {
 .avatar-preview-close:hover {
   background: #fff;
   transform: scale(1.1);
+}
+
+/* 可复制文本样式 */
+.copyable-text {
+  cursor: pointer;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.copyable-text:hover {
+  color: #409eff;
 }
 </style>
