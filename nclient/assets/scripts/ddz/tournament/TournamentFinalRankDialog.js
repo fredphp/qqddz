@@ -212,30 +212,30 @@ cc.Class({
      * 🔧【新增】创建前三名领奖台
      */
     _createTop3Podium: function(parentNode) {
-        // 领奖台Y坐标基准
-        var podiumY = 50
+        // 领奖台Y坐标基准 - 整体下移
+        var podiumY = 20
         
-        // 🔧【修复】增加元素间距
         // 冠军（中间，最大）
-        this.championNode = this._createPodiumItem(1, 0, podiumY + 30, 1.2)
+        this.championNode = this._createPodiumItem(1, 0, podiumY + 20, 1.1)
         this.championNode.parent = parentNode
 
         // 亚军（左侧）
-        this.runnerUpNode = this._createPodiumItem(2, -250, podiumY - 10, 1.0)
+        this.runnerUpNode = this._createPodiumItem(2, -220, podiumY, 1.0)
         this.runnerUpNode.parent = parentNode
 
         // 季军（右侧）
-        this.thirdPlaceNode = this._createPodiumItem(3, 250, podiumY - 10, 1.0)
+        this.thirdPlaceNode = this._createPodiumItem(3, 220, podiumY, 1.0)
         this.thirdPlaceNode.parent = parentNode
 
         // 创建领奖台底部
-        var podiumBaseY = podiumY - 80
+        var podiumBaseY = podiumY - 100
         this._createPodiumBase(parentNode, podiumBaseY)
     },
 
     /**
      * 🔧【新增】创建单个领奖台项目
      * 布局顺序（从上到下）：名次 → 头像 → 昵称 → 金币
+     * 每个元素之间有明确的间距
      */
     _createPodiumItem: function(rank, x, y, scale) {
         var node = new cc.Node("PodiumItem_" + rank)
@@ -243,12 +243,13 @@ cc.Class({
         node.scale = scale || 1
 
         // ========== 布局计算 ==========
+        // 以头像中心为基准(Y=0)，其他元素相对定位
         // 从上到下依次排列：名次 → 头像 → 昵称 → 金币
         var layoutConfig = {
-            rankY: 90,       // 名次Y坐标（最上面）
-            avatarY: 35,     // 头像Y坐标（名次下方）
-            nameY: -25,      // 昵称Y坐标（头像下方）
-            coinY: -55       // 金币Y坐标（昵称下方）
+            rankY: 55,       // 名次Y坐标（头像上方55px）
+            avatarY: 0,      // 头像Y坐标（基准位置）
+            nameY: -50,      // 昵称Y坐标（头像下方50px）
+            coinY: -75       // 金币Y坐标（昵称下方25px）
         };
 
         // ========== 名次标签（最上面）==========
@@ -256,7 +257,7 @@ cc.Class({
         rankLabelNode.setPosition(0, layoutConfig.rankY)
         var rankLabel = rankLabelNode.addComponent(cc.Label)
         rankLabel.string = this._getRankText(rank)
-        rankLabel.fontSize = 26
+        rankLabel.fontSize = 22
         rankLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         rankLabelNode.color = rank === 1 ? new cc.Color(255, 215, 0) : new cc.Color(200, 200, 220)
         var rankOutline = rankLabelNode.addComponent(cc.LabelOutline)
@@ -267,17 +268,17 @@ cc.Class({
         // ========== 头像区域（名次下方）==========
         var avatarContainer = new cc.Node("AvatarContainer")
         avatarContainer.setPosition(0, layoutConfig.avatarY)
-        avatarContainer.setContentSize(70, 70)
+        avatarContainer.setContentSize(60, 60)  // 稍微缩小头像
         
         // 头像背景（圆形）
         var avatarBg = new cc.Node("AvatarBg")
         var avatarBgGraphics = avatarBg.addComponent(cc.Graphics)
         avatarBgGraphics.fillColor = new cc.Color(60, 70, 100)
-        avatarBgGraphics.circle(0, 0, 38)
+        avatarBgGraphics.circle(0, 0, 32)  // 半径32
         avatarBgGraphics.fill()
         avatarBgGraphics.strokeColor = rank === 1 ? new cc.Color(255, 215, 0) : new cc.Color(150, 150, 180)
-        avatarBgGraphics.lineWidth = 3
-        avatarBgGraphics.circle(0, 0, 38)
+        avatarBgGraphics.lineWidth = 2
+        avatarBgGraphics.circle(0, 0, 32)
         avatarBgGraphics.stroke()
         avatarBg.parent = avatarContainer
 
@@ -285,7 +286,7 @@ cc.Class({
         var avatarSpriteNode = new cc.Node("AvatarSprite")
         var avatarSprite = avatarSpriteNode.addComponent(cc.Sprite)
         avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
-        avatarSpriteNode.setContentSize(68, 68)
+        avatarSpriteNode.setContentSize(56, 56)
         avatarSpriteNode.parent = avatarContainer
 
         avatarContainer.parent = node
@@ -295,7 +296,7 @@ cc.Class({
         nameLabelNode.setPosition(0, layoutConfig.nameY)
         var nameLabel = nameLabelNode.addComponent(cc.Label)
         nameLabel.string = "玩家昵称"
-        nameLabel.fontSize = 20
+        nameLabel.fontSize = 18
         nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         nameLabelNode.color = new cc.Color(255, 255, 255)
         var nameOutline = nameLabelNode.addComponent(cc.LabelOutline)
@@ -307,8 +308,8 @@ cc.Class({
         var coinLabelNode = new cc.Node("CoinLabel")
         coinLabelNode.setPosition(0, layoutConfig.coinY)
         var coinLabel = coinLabelNode.addComponent(cc.Label)
-        coinLabel.string = "0"
-        coinLabel.fontSize = 18
+        coinLabel.string = "0金币"
+        coinLabel.fontSize = 16
         coinLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         coinLabelNode.color = new cc.Color(255, 200, 100)
         var coinOutline = coinLabelNode.addComponent(cc.LabelOutline)
@@ -328,25 +329,25 @@ cc.Class({
         championBase.setPosition(0, y)
         var cg1 = championBase.addComponent(cc.Graphics)
         cg1.fillColor = new cc.Color(180, 140, 60, 200)
-        cg1.roundRect(-80, -30, 160, 60, 8)
+        cg1.roundRect(-70, -25, 140, 50, 8)
         cg1.fill()
         championBase.parent = parentNode
 
         // 亚军台（中等）
         var runnerUpBase = new cc.Node("RunnerUpBase")
-        runnerUpBase.setPosition(-250, y - 20)
+        runnerUpBase.setPosition(-220, y - 15)
         var cg2 = runnerUpBase.addComponent(cc.Graphics)
         cg2.fillColor = new cc.Color(120, 120, 140, 200)
-        cg2.roundRect(-70, -25, 140, 50, 6)
+        cg2.roundRect(-60, -20, 120, 40, 6)
         cg2.fill()
         runnerUpBase.parent = parentNode
 
         // 季军台（最低）
         var thirdBase = new cc.Node("ThirdBase")
-        thirdBase.setPosition(250, y - 20)
+        thirdBase.setPosition(220, y - 15)
         var cg3 = thirdBase.addComponent(cc.Graphics)
         cg3.fillColor = new cc.Color(140, 100, 80, 200)
-        cg3.roundRect(-70, -25, 140, 50, 6)
+        cg3.roundRect(-60, -20, 120, 40, 6)
         cg3.fill()
         thirdBase.parent = parentNode
     },
@@ -559,7 +560,7 @@ cc.Class({
         if (coinLabel) {
             var label = coinLabel.getComponent(cc.Label)
             if (label) {
-                label.string = this._formatCoin(data.match_coin || 0)
+                label.string = this._formatCoin(data.match_coin || 0) + "金币"
             }
         }
 
