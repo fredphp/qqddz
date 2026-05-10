@@ -39,15 +39,16 @@ type DDZLeaderboardListResponse struct {
 
 // DDZOverviewStatsResponse 概览统计响应
 type DDZOverviewStatsResponse struct {
-        TotalPlayers     int64   `json:"totalPlayers"`
-        ActivePlayers    int64   `json:"activePlayers"`
-        OnlinePlayers    int64   `json:"onlinePlayers"`
-        TotalGames       int64   `json:"totalGames"`
-        TodayGames       int64   `json:"todayGames"`
-        TodayNewPlayers  int64   `json:"todayNewPlayers"`
-        AvgOnlineTime    float64 `json:"avgOnlineTime"`
-        AvgGameDuration  float64 `json:"avgGameDuration"`
-        TotalCoins       int64   `json:"totalCoins"`
+        TotalPlayers       int64   `json:"totalPlayers"`
+        ActivePlayers      int64   `json:"activePlayers"`      // 7天活跃玩家
+        OnlinePlayers      int64   `json:"onlinePlayers"`      // 当前在线玩家
+        TotalGames         int64   `json:"totalGames"`         // 总游戏场次
+        TodayGames         int64   `json:"todayGames"`         // 今日游戏场次
+        TodayNewPlayers    int64   `json:"todayNewPlayers"`    // 今日新增玩家
+        TodayActivePlayers int64   `json:"todayActivePlayers"` // 今日活跃玩家
+        AvgOnlineTime      float64 `json:"avgOnlineTime"`      // 平均在线时长
+        AvgGameDuration    float64 `json:"avgGameDuration"`    // 平均游戏时长(秒)
+        TotalCoins         int64   `json:"totalCoins"`         // 总金币存量
 }
 
 // DDZPlayerStatsResponse 玩家统计响应

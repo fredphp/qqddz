@@ -20,6 +20,15 @@
           <div class="stat-card__label">活跃玩家(7天)</div>
         </div>
       </div>
+      <div class="stat-card stat-card--today-active">
+        <div class="stat-card__icon">
+          <el-icon :size="32"><Avatar /></el-icon>
+        </div>
+        <div class="stat-card__content">
+          <div class="stat-card__value">{{ formatNumber(overviewData.todayActivePlayers) }}</div>
+          <div class="stat-card__label">今日活跃玩家</div>
+        </div>
+      </div>
       <div class="stat-card stat-card--games">
         <div class="stat-card__icon">
           <el-icon :size="32"><Trophy /></el-icon>
@@ -45,6 +54,15 @@
         <div class="stat-card__content">
           <div class="stat-card__value">{{ formatNumber(overviewData.todayNewPlayers) }}</div>
           <div class="stat-card__label">今日新增玩家</div>
+        </div>
+      </div>
+      <div class="stat-card stat-card--duration">
+        <div class="stat-card__icon">
+          <el-icon :size="32"><Clock /></el-icon>
+        </div>
+        <div class="stat-card__content">
+          <div class="stat-card__value">{{ formatDuration(overviewData.avgGameDuration) }}</div>
+          <div class="stat-card__label">平均游戏时长</div>
         </div>
       </div>
       <div class="stat-card stat-card--coins">
@@ -149,7 +167,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getOverviewStats, getDailyStats } from '@/api/ddz/stats'
-import { Search, Refresh, User, UserFilled, Trophy, Timer, Plus, Coin } from '@element-plus/icons-vue'
+import { Search, Refresh, User, UserFilled, Trophy, Timer, Plus, Coin, Clock, Avatar } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 defineOptions({
@@ -169,10 +187,13 @@ const loading = ref(false)
 const overviewData = ref({
   totalPlayers: 0,
   activePlayers: 0,
+  onlinePlayers: 0,
   todayGames: 0,
   todayNewPlayers: 0,
+  todayActivePlayers: 0,
   totalGames: 0,
-  totalCoins: 0
+  totalCoins: 0,
+  avgGameDuration: 0
 })
 
 const formatNumber = (num) => {
@@ -270,12 +291,18 @@ onMounted(() => {
 /* 概览统计卡片 */
 .overview-section {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 20px;
 }
 
-@media (max-width: 1600px) {
+@media (max-width: 1400px) {
+  .overview-section {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1200px) {
   .overview-section {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -316,9 +343,11 @@ onMounted(() => {
 
 .stat-card--players::before { background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); }
 .stat-card--active::before { background: linear-gradient(180deg, #11998e 0%, #38ef7d 100%); }
+.stat-card--today-active::before { background: linear-gradient(180deg, #00c6fb 0%, #005bea 100%); }
 .stat-card--games::before { background: linear-gradient(180deg, #f093fb 0%, #f5576c 100%); }
 .stat-card--today-games::before { background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%); }
 .stat-card--new-players::before { background: linear-gradient(180deg, #fa709a 0%, #fee140 100%); }
+.stat-card--duration::before { background: linear-gradient(180deg, #a18cd1 0%, #fbc2eb 100%); }
 .stat-card--coins::before { background: linear-gradient(180deg, #f5af19 0%, #f12711 100%); }
 
 .stat-card:hover {
@@ -339,9 +368,11 @@ onMounted(() => {
 
 .stat-card--players .stat-card__icon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
 .stat-card--active .stat-card__icon { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+.stat-card--today-active .stat-card__icon { background: linear-gradient(135deg, #00c6fb 0%, #005bea 100%); }
 .stat-card--games .stat-card__icon { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
 .stat-card--today-games .stat-card__icon { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
 .stat-card--new-players .stat-card__icon { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+.stat-card--duration .stat-card__icon { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
 .stat-card--coins .stat-card__icon { background: linear-gradient(135deg, #f5af19 0%, #f12711 100%); }
 
 .stat-card__content { flex: 1; }

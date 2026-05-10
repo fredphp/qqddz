@@ -16,44 +16,59 @@ var DDZStatsServiceApp = new(DDZStatsService)
 func (s *DDZStatsService) GetOverviewStats() (ddzRes.DDZOverviewStatsResponse, error) {
         db := GetDDZDB()
         var totalPlayers, activePlayers, totalGames int64
-        var todayGames, todayNewPlayers int64
+        var todayGames, todayNewPlayers, todayActivePlayers int64
         var totalGold int64
+        var avgGameDuration float64
 
-        today := time.Now().Format("2006-01-02")
+        now := time.Now()
+        today := now.Format("2006-01-02")
+        tomorrow := now.AddDate(0, 0, 1).Format("2006-01-02")
 
         // 总玩家数
         db.Model(&ddz.DDZPlayer{}).Count(&totalPlayers)
 
         // 活跃玩家数(最近7天登录过的玩家)
-        sevenDaysAgo := time.Now().AddDate(0, 0, -7)
+        sevenDaysAgo := now.AddDate(0, 0, -7)
         db.Model(&ddz.DDZPlayer{}).
                 Where("last_login_at >= ?", sevenDaysAgo).
                 Count(&activePlayers)
+
+        // 今日活跃玩家（今日登录过的玩家）
+        db.Model(&ddz.DDZPlayer{}).
+                Where("last_login_at >= ? AND last_login_at < ?", today, tomorrow).
+                Count(&todayActivePlayers)
 
         // 总游戏场次
         db.Model(&ddz.DDZGameRecord{}).Count(&totalGames)
 
         // 今日游戏场次
         db.Model(&ddz.DDZGameRecord{}).
-                Where("DATE(started_at) = ?", today).Count(&todayGames)
+                Where("started_at >= ? AND started_at < ?", today, tomorrow).Count(&todayGames)
 
         // 今日新增玩家
         db.Model(&ddz.DDZPlayer{}).
-                Where("DATE(created_at) = ?", today).Count(&todayNewPlayers)
+                Where("created_at >= ? AND created_at < ?", today, tomorrow).Count(&todayNewPlayers)
 
         // 总金币
         db.Model(&ddz.DDZPlayer{}).Select("COALESCE(SUM(gold), 0)").Scan(&totalGold)
 
+        // 平均游戏时长（从游戏记录计算）
+        db.Model(&ddz.DDZGameRecord{}).
+                Where("duration_seconds > 0").
+                Select("COALESCE(AVG(duration_seconds), 0)").
+                Scan(&avgGameDuration)
+
         return ddzRes.DDZOverviewStatsResponse{
-                TotalPlayers:    totalPlayers,
-                ActivePlayers:   activePlayers,
-                OnlinePlayers:   0, // 需要从游戏服务器获取
-                TotalGames:      totalGames,
-                TodayGames:      todayGames,
-                TodayNewPlayers: todayNewPlayers,
-                AvgOnlineTime:   0,
-                AvgGameDuration: 0,
-                TotalCoins:      totalGold,
+                TotalPlayers:     totalPlayers,
+                ActivePlayers:    activePlayers,
+                OnlinePlayers:    0, // 需要从游戏服务器获取
+                TotalGames:       totalGames,
+                TodayGames:       todayGames,
+                TodayNewPlayers:  todayNewPlayers,
+                TodayActivePlayers: todayActivePlayers,
+                AvgOnlineTime:    0,
+                AvgGameDuration:  avgGameDuration,
+                TotalCoins:       totalGold,
         }, nil
 }
 
