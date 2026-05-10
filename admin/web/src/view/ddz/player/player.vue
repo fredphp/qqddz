@@ -78,11 +78,7 @@
             <span class="currency-value arena">{{ formatNumber(scope.row.arenaCoin) }}</span>
           </template>
         </el-table-column>
-        <el-table-column align="center" label="钻石" min-width="80">
-          <template #default="scope">
-            <span class="currency-value diamond">{{ formatNumber(scope.row.diamonds) }}</span>
-          </template>
-        </el-table-column>
+        <!-- 钻石列暂时隐藏 -->
         <el-table-column align="center" label="等级" min-width="60" prop="level" />
         <el-table-column align="center" label="VIP" min-width="70">
           <template #default="scope">
@@ -183,9 +179,7 @@
         <el-descriptions-item label="竞技币">
           <span class="currency-value arena">{{ formatNumber(currentPlayer.arenaCoin) }}</span>
         </el-descriptions-item>
-        <el-descriptions-item label="钻石">
-          <span class="currency-value diamond">{{ formatNumber(currentPlayer.diamonds) }}</span>
-        </el-descriptions-item>
+        <!-- 钻石暂时隐藏 -->
         <el-descriptions-item label="等级">{{ currentPlayer.level }}</el-descriptions-item>
         <el-descriptions-item label="VIP等级">VIP{{ currentPlayer.vipLevel }}</el-descriptions-item>
         <el-descriptions-item label="胜场">{{ currentPlayer.winCount }}</el-descriptions-item>
@@ -278,10 +272,7 @@
             <div class="balance-label">竞技币</div>
             <div class="balance-value">{{ formatNumber(currencyForm.arenaCoin) }}</div>
           </div>
-          <div class="balance-card diamond">
-            <div class="balance-label">钻石</div>
-            <div class="balance-value">{{ formatNumber(currencyForm.diamonds) }}</div>
-          </div>
+          <!-- 钻石暂时隐藏 -->
         </div>
 
         <!-- 调整表单 -->
@@ -294,9 +285,7 @@
               <el-radio-button value="arenaCoin">
                 <span class="currency-radio arena">竞技币</span>
               </el-radio-button>
-              <el-radio-button value="diamond">
-                <span class="currency-radio diamond">钻石</span>
-              </el-radio-button>
+              <!-- 钻石选项暂时隐藏 -->
             </el-radio-group>
           </el-form-item>
           <el-form-item label="调整方式">
@@ -353,7 +342,7 @@
           <el-radio-group v-model="logCurrencyType" @change="loadCoinLogs">
             <el-radio-button value="gold">金币流水</el-radio-button>
             <el-radio-button value="arenaCoin">竞技币流水</el-radio-button>
-            <el-radio-button value="diamond">钻石流水</el-radio-button>
+            <!-- 钻石流水暂时隐藏 -->
           </el-radio-group>
         </div>
         <el-table :data="logData" stripe max-height="400">

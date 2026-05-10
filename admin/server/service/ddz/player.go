@@ -150,7 +150,8 @@ func (s *DDZPlayerService) GetPlayerList(req ddzReq.DDZPlayerSearch) (list inter
         }
 
         var players []ddz.DDZPlayer
-        err = query.Limit(limit).Offset(offset).Order("id desc").Find(&players).Error
+        // 排序：真人用户（player_type=1）优先，然后按ID倒序
+        err = query.Limit(limit).Offset(offset).Order("player_type ASC, id desc").Find(&players).Error
         if err != nil {
                 return nil, 0, err
         }
