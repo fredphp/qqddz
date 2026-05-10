@@ -97,6 +97,14 @@ func bizModel() error {
                 ddz.DDZPlayerStat{},
                 // 机器人配置
                 ddz.DDZRobotConfig{},
+                // 玩家状态日志
+                ddz.DDZPlayerStatusLog{},
+                // 货币日志
+                ddz.DDZGoldLog{},
+                ddz.DDZDiamondLog{},
+                ddz.DDZArenaCoinLog{},
+                // 广告奖励
+                ddz.DDZAdReward{},
         )
 
         // 重新启用外键约束检查
