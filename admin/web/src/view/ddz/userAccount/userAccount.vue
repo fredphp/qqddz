@@ -263,7 +263,7 @@
     </el-dialog>
 
     <!-- 编辑用户对话框 -->
-    <el-dialog v-model="editDialog" title="编辑用户账户" width="550px" destroy-on-close>
+    <el-dialog v-model="editDialog" title="编辑用户账户" width="550px">
       <div class="edit-dialog-content">
         <!-- 玩家信息卡片 -->
         <div class="player-info-card">
@@ -300,7 +300,7 @@
 
         <el-divider content-position="left">账户信息</el-divider>
 
-        <el-form ref="editForm" :model="editForm" label-width="80px" class="edit-form">
+        <el-form ref="editFormRef" :model="editForm" label-width="80px" class="edit-form">
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="手机号" :error="phoneError">
@@ -524,7 +524,7 @@ const editUser = (row) => {
     ID: row.ID,
     playerId: row.playerId,
     phone: row.phone || '',
-    status: row.status,
+    status: row.status !== undefined ? row.status : 1,
     loginType: row.loginType,
     loginTypeText: row.loginTypeText,
     deviceType: row.deviceType,
