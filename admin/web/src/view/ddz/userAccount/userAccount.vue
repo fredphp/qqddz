@@ -34,9 +34,25 @@
       </div>
       <el-table :data="tableData" row-key="ID">
         <el-table-column align="center" label="玩家ID" min-width="80" prop="playerId" />
-        <el-table-column align="center" label="昵称" min-width="120">
+        <el-table-column align="center" label="玩家信息" min-width="180">
           <template #default="scope">
-            <span>{{ scope.row.playerNickname || '-' }}</span>
+            <div class="player-info">
+              <el-avatar :size="40" :src="scope.row.playerAvatar || scope.row.wxAvatar" shape="square">
+                <el-icon :size="20"><User /></el-icon>
+              </el-avatar>
+              <div class="player-detail">
+                <div class="player-name">{{ scope.row.playerNickname || scope.row.wxNickname || '-' }}</div>
+                <div class="player-meta">
+                  <el-tag v-if="scope.row.playerVipLevel > 0" type="warning" size="small" class="mr-1">VIP{{ scope.row.playerVipLevel }}</el-tag>
+                  <el-tag type="info" size="small">Lv.{{ scope.row.playerLevel || 1 }}</el-tag>
+                </div>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" label="金币" min-width="100">
+          <template #default="scope">
+            <span class="currency-value gold">{{ formatNumber(scope.row.playerCoins) }}</span>
           </template>
         </el-table-column>
         <el-table-column align="center" label="手机号" min-width="120" prop="phone">
@@ -49,6 +65,14 @@
             <el-tag :type="getLoginTypeTag(scope.row.loginType)">
               {{ scope.row.loginTypeText }}
             </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" label="设备" min-width="80">
+          <template #default="scope">
+            <el-tag v-if="scope.row.deviceType" :type="getDeviceTypeTag(scope.row.deviceType)" size="small">
+              {{ getDeviceTypeText(scope.row.deviceType) }}
+            </el-tag>
+            <span v-else>-</span>
           </template>
         </el-table-column>
         <el-table-column align="center" label="登录次数" min-width="80" prop="loginCount" />
@@ -131,16 +155,29 @@
     </el-dialog>
 
     <!-- 用户详情对话框 -->
-    <el-dialog v-model="detailDialog" title="用户账户详情" width="600px">
+    <el-dialog v-model="detailDialog" title="用户账户详情" width="700px">
       <el-descriptions :column="2" border>
         <el-descriptions-item label="账户ID">{{ currentUser.ID }}</el-descriptions-item>
         <el-descriptions-item label="玩家ID">{{ currentUser.playerId }}</el-descriptions-item>
         <el-descriptions-item label="玩家昵称">{{ currentUser.playerNickname || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="玩家等级">Lv.{{ currentUser.playerLevel || 1 }}</el-descriptions-item>
+        <el-descriptions-item label="VIP等级">
+          <el-tag v-if="currentUser.playerVipLevel > 0" type="warning">VIP{{ currentUser.playerVipLevel }}</el-tag>
+          <span v-else>普通用户</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="金币">
+          <span class="currency-value gold">{{ formatNumber(currentUser.playerCoins) }}</span>
+        </el-descriptions-item>
         <el-descriptions-item label="手机号">{{ currentUser.phone || '-' }}</el-descriptions-item>
         <el-descriptions-item label="微信OpenID">{{ currentUser.wxOpenId || '-' }}</el-descriptions-item>
         <el-descriptions-item label="微信昵称">{{ currentUser.wxNickname || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="微信头像">
+          <el-avatar v-if="currentUser.wxAvatar" :src="currentUser.wxAvatar" :size="32" />
+          <span v-else>-</span>
+        </el-descriptions-item>
         <el-descriptions-item label="登录类型">{{ currentUser.loginTypeText }}</el-descriptions-item>
         <el-descriptions-item label="设备类型">{{ currentUser.deviceType || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="设备ID">{{ currentUser.deviceId || '-' }}</el-descriptions-item>
         <el-descriptions-item label="登录次数">{{ currentUser.loginCount }}</el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="getStatusTag(currentUser.status)">
@@ -149,7 +186,9 @@
         </el-descriptions-item>
         <el-descriptions-item label="最后登录时间">{{ currentUser.lastLoginAt || '-' }}</el-descriptions-item>
         <el-descriptions-item label="最后登录IP">{{ currentUser.lastLoginIp || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间" :span="2">{{ currentUser.createdAt }}</el-descriptions-item>
+        <el-descriptions-item label="Token过期">{{ currentUser.tokenExpireAt || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ currentUser.createdAt }}</el-descriptions-item>
+        <el-descriptions-item label="更新时间" :span="2">{{ currentUser.updatedAt }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
 
@@ -254,7 +293,7 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowDown } from '@element-plus/icons-vue'
+import { ArrowDown, User } from '@element-plus/icons-vue'
 import {
   getUserAccountList,
   createUserAccount,
@@ -319,17 +358,28 @@ const editForm = ref({
 })
 
 const formatNumber = (num) => {
+  if (!num) return '0'
   if (num >= 100000000) {
     return (num / 100000000).toFixed(2) + '亿'
   } else if (num >= 10000) {
     return (num / 10000).toFixed(2) + '万'
   }
-  return num?.toLocaleString() || '0'
+  return num.toLocaleString()
 }
 
 const getLoginTypeTag = (type) => {
   const tags = { 1: 'primary', 2: 'success', 3: 'info' }
   return tags[type] || 'info'
+}
+
+const getDeviceTypeTag = (type) => {
+  const tags = { 'ios': 'primary', 'android': 'success', 'web': 'info' }
+  return tags[type] || 'info'
+}
+
+const getDeviceTypeText = (type) => {
+  const texts = { 'ios': 'iOS', 'android': '安卓', 'web': 'Web' }
+  return texts[type] || type
 }
 
 const getStatusTag = (status) => {
@@ -485,13 +535,21 @@ getTableData()
 .player-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
-.player-nickname {
-  max-width: 100px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.player-detail {
+  text-align: left;
+}
+.player-name {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.player-meta {
+  display: flex;
+  gap: 4px;
+}
+.mr-1 {
+  margin-right: 4px;
 }
 .text-gray {
   color: #909399;
