@@ -303,8 +303,17 @@
         <el-form ref="editForm" :model="editForm" label-width="80px" class="edit-form">
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item label="手机号">
-                <el-input v-model="editForm.phone" placeholder="请输入手机号" clearable />
+              <el-form-item label="手机号" :error="phoneError">
+                <el-input 
+                  v-model="editForm.phone" 
+                  placeholder="请输入手机号" 
+                  clearable
+                  @input="phoneError = ''"
+                >
+                  <template #suffix>
+                    <el-icon v-if="phoneChecking" class="is-loading"><Loading /></el-icon>
+                  </template>
+                </el-input>
               </el-form-item>
             </el-col>
             <el-col :span="12">
@@ -345,7 +354,7 @@
       </div>
       <template #footer>
         <el-button @click="editDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleEdit">保存修改</el-button>
+        <el-button type="primary" :loading="phoneChecking" @click="handleEdit">保存修改</el-button>
       </template>
     </el-dialog>
   </div>
@@ -354,13 +363,14 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowDown, User, InfoFilled } from '@element-plus/icons-vue'
+import { ArrowDown, User, InfoFilled, Loading } from '@element-plus/icons-vue'
 import { getUrl } from '@/utils/image'
 import {
   getUserAccountList,
   createUserAccount,
   deleteUserAccount,
-  updateUserAccount
+  updateUserAccount,
+  checkPhoneExists
 } from '@/api/ddz/userAccount'
 import { getPlayerList, getCoinLogList } from '@/api/ddz/player'
 
@@ -426,6 +436,13 @@ const editForm = ref({
   playerCoins: 0,
   playerArenaCoin: 0
 })
+
+// 保存原始手机号用于比较
+const originalPhone = ref('')
+
+// 手机号验证状态
+const phoneChecking = ref(false)
+const phoneError = ref('')
 
 // 默认头像
 const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
@@ -518,6 +535,9 @@ const editUser = (row) => {
     playerCoins: row.playerCoins,
     playerArenaCoin: row.playerArenaCoin
   }
+  // 保存原始手机号
+  originalPhone.value = row.phone || ''
+  phoneError.value = ''
   editDialog.value = true
 }
 
@@ -538,6 +558,25 @@ const handleCreate = async () => {
 }
 
 const handleEdit = async () => {
+  // 如果手机号被修改了，需要检查手机号是否已存在
+  if (editForm.value.phone && editForm.value.phone !== originalPhone.value) {
+    phoneChecking.value = true
+    try {
+      const checkRes = await checkPhoneExists(editForm.value.phone, editForm.value.ID)
+      phoneChecking.value = false
+      if (checkRes.code === 0 && checkRes.data.exists) {
+        phoneError.value = '该手机号已被其他账户使用'
+        ElMessage.error('该手机号已被其他账户使用')
+        return
+      }
+    } catch (e) {
+      phoneChecking.value = false
+      ElMessage.error('检查手机号失败')
+      return
+    }
+  }
+  phoneError.value = ''
+  
   const res = await updateUserAccount(editForm.value)
   if (res.code === 0) {
     ElMessage.success('更新成功')

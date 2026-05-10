@@ -306,3 +306,38 @@ func (api *DDZUserAccountApi) ResetToken(c *gin.Context) {
 
         response.OkWithMessage("重置成功，用户已被强制下线", c)
 }
+
+// CheckPhoneExists
+// @Tags     DDZ用户账户管理
+// @Summary  检查手机号是否已存在
+// @Security ApiKeyAuth
+// @accept   application/json
+// @Produce  application/json
+// @Param    phone       query  string  true  "手机号"
+// @Param    excludeId   query  uint    false "排除的账户ID（编辑时使用）"
+// @Success  200  {object}  response.Response{data=map[string]interface{}}  "检查结果"
+// @Router   /ddz/userAccount/checkPhone [get]
+func (api *DDZUserAccountApi) CheckPhoneExists(c *gin.Context) {
+        phone := c.Query("phone")
+        if phone == "" {
+                response.FailWithMessage("手机号不能为空", c)
+                return
+        }
+
+        excludeIDStr := c.Query("excludeId")
+        excludeID := uint(0)
+        if excludeIDStr != "" {
+                excludeID = utils.StringToUint(excludeIDStr)
+        }
+
+        exists, err := ddzUserAccountService.CheckPhoneExists(phone, excludeID)
+        if err != nil {
+                global.GVA_LOG.Error("检查手机号失败!", zap.Error(err))
+                response.FailWithMessage("检查手机号失败: "+err.Error(), c)
+                return
+        }
+
+        response.OkWithDetailed(map[string]interface{}{
+                "exists": exists,
+        }, "检查完成", c)
+}

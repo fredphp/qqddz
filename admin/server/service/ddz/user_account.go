@@ -433,3 +433,18 @@ func (s *DDZUserAccountService) ResetToken(accountID uint) error {
                 "updated_at":              time.Now(),
         }).Error
 }
+
+// CheckPhoneExists 检查手机号是否已存在
+func (s *DDZUserAccountService) CheckPhoneExists(phone string, excludeID uint) (bool, error) {
+        db := GetDDZDB()
+        var count int64
+        query := db.Model(&ddz.DDZUserAccount{}).Where("phone = ?", phone)
+        if excludeID > 0 {
+                query = query.Where("id != ?", excludeID)
+        }
+        err := query.Count(&count).Error
+        if err != nil {
+                return false, err
+        }
+        return count > 0, nil
+}

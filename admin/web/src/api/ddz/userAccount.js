@@ -89,3 +89,12 @@ export const getLoginLogList = (data) => {
     data
   })
 }
+
+// 检查手机号是否已存在
+export const checkPhoneExists = (phone, excludeId) => {
+  return service({
+    url: '/ddz/userAccount/checkPhone',
+    method: 'get',
+    params: { phone, excludeId }
+  })
+}
