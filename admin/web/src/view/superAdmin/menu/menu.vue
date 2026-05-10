@@ -151,7 +151,8 @@
                   <span>如果菜单包含子菜单，请创建router-view二级路由页面或者</span>
                   <el-button
                     size="small"
-                    type="text"
+                    type="primary"
+                    link
                     @click="form.component = 'view/routerHolder.vue'"
                   >
                     点我设置
