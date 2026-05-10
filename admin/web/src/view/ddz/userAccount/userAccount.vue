@@ -33,7 +33,6 @@
         <el-button type="primary" icon="plus" @click="createDialog = true">新建用户账户</el-button>
       </div>
       <el-table :data="tableData" row-key="ID">
-        <el-table-column align="center" label="ID" min-width="60" prop="ID" />
         <el-table-column align="center" label="玩家ID" min-width="80" prop="playerId" />
         <el-table-column align="center" label="昵称" min-width="120">
           <template #default="scope">
