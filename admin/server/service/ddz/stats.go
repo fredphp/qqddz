@@ -191,10 +191,31 @@ func (s *DDZStatsService) GetPlayerStats(req ddzReq.DDZStatsSearch) (list interf
                 return nil, 0, err
         }
 
+        // 收集所有玩家ID
+        playerIDs := make([]string, 0, len(stats))
+        for _, s := range stats {
+                if s.PlayerID != "" {
+                        playerIDs = append(playerIDs, s.PlayerID)
+                }
+        }
+
+        // 批量查询玩家信息
+        playerMap := make(map[string]ddz.DDZPlayer)
+        if len(playerIDs) > 0 {
+                var players []ddz.DDZPlayer
+                db.Where("username IN ?", playerIDs).Find(&players)
+                for _, p := range players {
+                        playerMap[p.Username] = p
+                }
+        }
+
         result := make([]ddzRes.DDZPlayerStatsResponse, 0, len(stats))
         for _, s := range stats {
+                player := playerMap[s.PlayerID]
                 result = append(result, ddzRes.DDZPlayerStatsResponse{
                         PlayerID:      s.PlayerID,
+                        PlayerName:    player.Nickname,
+                        PlayerAvatar:  player.Avatar,
                         Date:          s.Date,
                         GamesPlayed:   s.GamesPlayed,
                         Wins:          s.Wins,
