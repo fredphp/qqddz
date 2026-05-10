@@ -5,13 +5,13 @@ import "github.com/flipped-aurora/gin-vue-admin/server/model/common/request"
 // DDZPlayerSearch 玩家搜索请求
 type DDZPlayerSearch struct {
         request.PageInfo
-        PlayerID   string `json:"playerId" form:"playerId"`
-        Nickname   string `json:"nickname" form:"nickname"`
-        Status     *int   `json:"status" form:"status"`
-        VipLevel   int    `json:"vipLevel" form:"vipLevel"`
-        MinCoins   int64  `json:"minCoins" form:"minCoins"`
-        MaxCoins   int64  `json:"maxCoins" form:"maxCoins"`
-        PlayerType *int   `json:"playerType" form:"playerType"` // 玩家类型: 1-平台用户 2-机器人
+        PlayerID   NullUint64 `json:"playerId" form:"playerId"`
+        Nickname   string     `json:"nickname" form:"nickname"`
+        Status     *int       `json:"status" form:"status"`
+        VipLevel   int        `json:"vipLevel" form:"vipLevel"`
+        MinCoins   int64      `json:"minCoins" form:"minCoins"`
+        MaxCoins   int64      `json:"maxCoins" form:"maxCoins"`
+        PlayerType *int       `json:"playerType" form:"playerType"` // 玩家类型: 1-平台用户 2-机器人
 }
 
 // DDZPlayerBan 封禁玩家请求

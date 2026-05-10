@@ -121,8 +121,8 @@ func (s *DDZPlayerService) GetPlayerList(req ddzReq.DDZPlayerSearch) (list inter
         offset := req.PageSize * (req.Page - 1)
         query := db.Model(&ddz.DDZPlayer{})
 
-        if req.PlayerID != "" {
-                query = query.Where("username = ? OR id = ?", req.PlayerID, req.PlayerID)
+        if req.PlayerID.Valid {
+                query = query.Where("username = ? OR id = ?", req.PlayerID.Value, req.PlayerID.Value)
         }
         if req.Nickname != "" {
                 query = query.Where("nickname LIKE ?", "%"+req.Nickname+"%")
