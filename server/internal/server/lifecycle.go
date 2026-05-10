@@ -10,6 +10,7 @@ import (
         "runtime"
         "time"
 
+        "github.com/palemoky/fight-the-landlord/internal/game/robot"
         "github.com/palemoky/fight-the-landlord/internal/protocol"
         "github.com/palemoky/fight-the-landlord/internal/protocol/codec"
 )
@@ -140,6 +141,10 @@ func (s *Server) sendShutdownNotification() {
 // Shutdown 关闭服务器
 func (s *Server) Shutdown() {
         time.Sleep(s.config.Game.RoomCleanupDelayDuration())
+
+        // 停止机器人状态重置服务
+        robot.StopRobotStatusResetService()
+        log.Println("🤖 机器人状态重置服务已停止")
 
         // 关闭所有客户端连接
         s.clientsMu.Lock()

@@ -14,6 +14,7 @@ import (
 
         "github.com/palemoky/fight-the-landlord/internal/config"
         "github.com/palemoky/fight-the-landlord/internal/game/match"
+        "github.com/palemoky/fight-the-landlord/internal/game/robot"
         "github.com/palemoky/fight-the-landlord/internal/game/room"
         "github.com/palemoky/fight-the-landlord/internal/protocol"
         "github.com/palemoky/fight-the-landlord/internal/protocol/codec"
@@ -306,6 +307,10 @@ func (s *Server) Start() error {
                 s.arenaBroadcaster.Start()
                 log.Println("🏟️ 竞技场状态广播器已启动")
         }
+
+        // 🔧【新增】启动机器人状态重置服务
+        robot.StartRobotStatusResetService()
+        log.Println("🤖 机器人状态重置服务已启动")
 
         log.Printf("🚀 服务器启动在 ws://%s/ws (CPU核心数: %d)", addr, runtime.NumCPU())
         server := &http.Server{
