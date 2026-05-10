@@ -13,8 +13,8 @@ func (s *DDZTournamentService) GetTournamentRoundList(req ddzReq.DDZTournamentRo
         offset := req.PageSize * (req.Page - 1)
 
         db := GetDDZDB().Table("ddz_tournament_rounds")
-        if req.SessionID != nil && *req.SessionID > 0 {
-                db = db.Where("session_id = ?", *req.SessionID)
+        if req.SessionID.Valid && req.SessionID.Value > 0 {
+                db = db.Where("session_id = ?", req.SessionID.Value)
         }
         if req.Status != nil {
                 db = db.Where("status = ?", *req.Status)
@@ -39,14 +39,14 @@ func (s *DDZTournamentService) GetTournamentEliminationList(req ddzReq.DDZTourna
         if req.PeriodNo != "" {
                 db = db.Where("session_id IN (SELECT id FROM ddz_tournament_sessions WHERE period_no = ?)", req.PeriodNo)
         }
-        if req.SessionID != nil && *req.SessionID > 0 {
-                db = db.Where("session_id = ?", *req.SessionID)
+        if req.SessionID.Valid && req.SessionID.Value > 0 {
+                db = db.Where("session_id = ?", req.SessionID.Value)
         }
-        if req.RoundID != nil && *req.RoundID > 0 {
-                db = db.Where("round_id = ?", *req.RoundID)
+        if req.RoundID.Valid && req.RoundID.Value > 0 {
+                db = db.Where("round_id = ?", req.RoundID.Value)
         }
-        if req.PlayerID != nil && *req.PlayerID > 0 {
-                db = db.Where("player_id = ?", *req.PlayerID)
+        if req.PlayerID.Valid && req.PlayerID.Value > 0 {
+                db = db.Where("player_id = ?", req.PlayerID.Value)
         }
 
         err = db.Count(&total).Error
