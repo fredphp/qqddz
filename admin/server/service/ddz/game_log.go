@@ -1647,11 +1647,13 @@ func (s *DDZGameLogService) toBidLogResponse(l ddz.DDZBidLog) ddzRes.DDZBidLogRe
 func (s *DDZGameLogService) toDealLogResponse(l ddz.DDZDealLog) ddzRes.DDZDealLogResponse {
         db := GetDDZDB()
         
-        // 获取玩家昵称
+        // 获取玩家昵称和头像
         playerName := ""
+        playerAvatar := ""
         var player ddz.DDZPlayer
         if err := db.Where("id = ?", l.PlayerID).First(&player).Error; err == nil {
                 playerName = player.Nickname
+                playerAvatar = player.Avatar
         }
         
         // 玩家角色文本
@@ -1665,6 +1667,7 @@ func (s *DDZGameLogService) toDealLogResponse(l ddz.DDZDealLog) ddzRes.DDZDealLo
                 GameID:         l.GameID,
                 PlayerID:       l.PlayerID,
                 PlayerName:     playerName,
+                PlayerAvatar:   playerAvatar,
                 PlayerRole:     l.PlayerRole,
                 PlayerRoleText: playerRoleText,
                 HandCards:      l.HandCards,
@@ -1769,11 +1772,13 @@ func (s *DDZGameLogService) bidLogToResponse(l BidLog) ddzRes.DDZBidLogResponse 
 func (s *DDZGameLogService) dealLogToResponse(l DealLog) ddzRes.DDZDealLogResponse {
         db := GetDDZDB()
         
-        // 获取玩家昵称
+        // 获取玩家昵称和头像
         playerName := ""
+        playerAvatar := ""
         var player ddz.DDZPlayer
         if err := db.Where("id = ?", l.PlayerID).First(&player).Error; err == nil {
                 playerName = player.Nickname
+                playerAvatar = player.Avatar
         }
         
         // 玩家角色文本
@@ -1787,6 +1792,7 @@ func (s *DDZGameLogService) dealLogToResponse(l DealLog) ddzRes.DDZDealLogRespon
                 GameID:         l.GameID,
                 PlayerID:       l.PlayerID,
                 PlayerName:     playerName,
+                PlayerAvatar:   playerAvatar,
                 PlayerRole:     int(l.PlayerRole),
                 PlayerRoleText: playerRoleText,
                 HandCards:      l.HandCards,
