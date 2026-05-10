@@ -43,9 +43,10 @@ func (s *DDZGoldLogService) GetGoldLogList(req ddzReq.DDZGoldLogSearch) (list in
 
         result := make([]ddzRes.DDZGoldLogResponse, 0, len(logs))
         for _, l := range logs {
-                result = append(result, ddzRes.DDZGoldLogResponse{
+                resp := ddzRes.DDZGoldLogResponse{
                         ID:             l.ID,
                         PlayerID:       l.PlayerID,
+                        BeforeGold:     l.BalanceAfter - l.ChangeAmount,
                         ChangeAmount:   l.ChangeAmount,
                         BalanceAfter:   l.BalanceAfter,
                         ChangeType:     int(l.ChangeType),
@@ -53,7 +54,14 @@ func (s *DDZGoldLogService) GetGoldLogList(req ddzReq.DDZGoldLogSearch) (list in
                         RelatedID:      l.RelatedID,
                         Remark:         l.Remark,
                         CreatedAt:      l.CreatedAt.Format("2006-01-02 15:04:05"),
-                })
+                }
+                // 获取玩家信息
+                var player ddz.DDZPlayer
+                if err := db.Where("id = ?", l.PlayerID).First(&player).Error; err == nil {
+                        resp.PlayerName = player.Nickname
+                        resp.PlayerAvatar = player.Avatar
+                }
+                result = append(result, resp)
         }
 
         return result, total, nil
@@ -92,9 +100,10 @@ func (s *DDZGoldLogService) GetArenaCoinLogList(req ddzReq.DDZArenaCoinLogSearch
 
         result := make([]ddzRes.DDZArenaCoinLogResponse, 0, len(logs))
         for _, l := range logs {
-                result = append(result, ddzRes.DDZArenaCoinLogResponse{
+                resp := ddzRes.DDZArenaCoinLogResponse{
                         ID:             l.ID,
                         PlayerID:       l.PlayerID,
+                        BeforeBalance:  l.BalanceAfter - l.ChangeAmount,
                         ChangeAmount:   l.ChangeAmount,
                         BalanceAfter:   l.BalanceAfter,
                         ChangeType:     int(l.ChangeType),
@@ -102,7 +111,14 @@ func (s *DDZGoldLogService) GetArenaCoinLogList(req ddzReq.DDZArenaCoinLogSearch
                         RelatedID:      l.RelatedID,
                         Remark:         l.Remark,
                         CreatedAt:      l.CreatedAt.Format("2006-01-02 15:04:05"),
-                })
+                }
+                // 获取玩家信息
+                var player ddz.DDZPlayer
+                if err := db.Where("id = ?", l.PlayerID).First(&player).Error; err == nil {
+                        resp.PlayerName = player.Nickname
+                        resp.PlayerAvatar = player.Avatar
+                }
+                result = append(result, resp)
         }
 
         return result, total, nil
