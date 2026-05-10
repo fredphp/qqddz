@@ -71,6 +71,9 @@ func bizModel() error {
         dropIndex(db, "ddz_user_accounts", "idx_ddz_user_accounts_wx_open_id")
         dropIndex(db, "ddz_user_accounts", "idx_ddz_user_accounts_phone")
         dropIndex(db, "ddz_user_accounts", "idx_ddz_user_accounts_player_id")
+        // 删除 ddz_daily_stats 表的冲突索引（之前可能手动创建过）
+        dropIndex(db, "ddz_daily_stats", "idx_ddz_daily_stats_date")
+        dropIndex(db, "ddz_daily_stats", "idx_ddz_daily_stats_stat_date")
 
         // 清理空字符串，改为 NULL
         cleanEmptyUniqueFields(db)

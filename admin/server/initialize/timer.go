@@ -26,7 +26,8 @@ func Timer() {
 
                 // 🔧【新增】清理僵尸房间定时任务 - 每5分钟执行一次
                 // 将长时间处于"游戏中"状态但实际已无活动的房间更新为"已关闭"
-                _, err = global.GVA_Timer.AddTaskByFunc("CleanupStaleRooms", "*/5 * * * *", func() {
+                // 注意：使用 cron.WithSeconds() 时需要 6 字段表达式：秒 分 时 日 月 周
+                _, err = global.GVA_Timer.AddTaskByFunc("CleanupStaleRooms", "0 */5 * * * *", func() {
                         task.CleanupStaleRoomsWithLog()
                 }, "定时清理僵尸房间（游戏中状态超过30分钟无更新）", option...)
                 if err != nil {
