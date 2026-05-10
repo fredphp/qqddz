@@ -416,6 +416,35 @@ func (gs *GameSession) broadcastCallResult(playerID, playerName, action string) 
         log.Printf("📢 [broadcastCallResult] 玩家 %s 操作: %s, 轮次: %d, 顺序: %d, 性别: %s",
                 playerName, action, gs.callRound, order, gender)
 
+        // 🔧【新增】记录叫地主日志到 gameLogger
+        // bidType: 0-不叫, 1-叫地主, 2-抢地主
+        var bidType uint8
+        if action == "call" {
+                if gs.callRound == 1 {
+                        bidType = 1 // 叫地主
+                } else {
+                        bidType = 2 // 抢地主
+                }
+        } else {
+                bidType = 0 // 不叫
+        }
+
+        // 判断是否成功成为地主（暂时无法确定，在 finishCallLandlord 中更新）
+        var isSuccess uint8 = 0
+        if action == "call" && gs.lastCallerIdx >= 0 {
+                // 检查当前玩家是否是最后一个抢的人（可能是地主）
+                for i, p := range gs.players {
+                        if p.ID == playerID && i == gs.lastCallerIdx {
+                                isSuccess = 1
+                                break
+                        }
+                }
+        }
+
+        gs.gameLogger.RecordBidLog(playerID, order, bidType, 0, isSuccess)
+        log.Printf("📝 [broadcastCallResult] 记录叫地主日志: playerID=%s, order=%d, bidType=%d, isSuccess=%d",
+                playerID, order, bidType, isSuccess)
+
         // 新版消息
         gs.room.Broadcast(codec.MustNewMessage(protocol.MsgCallLandlordResult, &protocol.CallLandlordResultPayload{
                 PlayerID:   playerID,

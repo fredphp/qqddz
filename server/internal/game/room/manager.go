@@ -110,6 +110,24 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface, roomConfigID uin
                 log.Printf("💾 房间 %s (名称: %s, 配置ID: %d) 已保存到分表，创建者ID: %d, 昵称: %s", code, roomName, roomConfigID, creatorID, client.GetName())
         }
 
+        // 🔧【新增】保存房间玩家到分表
+        if creatorID > 0 {
+                roomPlayer := &database.PartitionRoomPlayer{
+                        RoomCode:  code,
+                        PlayerID:  creatorID,
+                        SeatIndex: 0,
+                        IsCreator: 1,
+                        IsReady:   1, // 房主自动准备
+                        IsOffline: 0,
+                        JoinedAt:  time.Now(),
+                }
+                if err := database.CreatePartitionRoomPlayer(roomPlayer); err != nil {
+                        log.Printf("⚠️ 创建房间玩家记录失败: %v", err)
+                } else {
+                        log.Printf("💾 房间玩家记录已保存: 房间 %s, 玩家ID: %d", code, creatorID)
+                }
+        }
+
         // 保存到 Redis
         if rm.store != nil && rm.store.IsReady() {
                 ctx := context.Background()
@@ -198,6 +216,22 @@ func (rm *RoomManager) JoinRoom(client types.ClientInterface, code string) (*Roo
                 } else {
                         log.Printf("💾 房间 %s 玩家 %s (ID: %d) 已更新到分表", code, client.GetName(), joinerID)
                 }
+
+                // 🔧【新增】保存房间玩家到分表
+                roomPlayer := &database.PartitionRoomPlayer{
+                        RoomCode:  code,
+                        PlayerID:  joinerID,
+                        SeatIndex: uint8(seat),
+                        IsCreator: 0,
+                        IsReady:   0,
+                        IsOffline: 0,
+                        JoinedAt:  time.Now(),
+                }
+                if err := database.CreatePartitionRoomPlayer(roomPlayer); err != nil {
+                        log.Printf("⚠️ 创建房间玩家记录失败: %v", err)
+                } else {
+                        log.Printf("💾 房间玩家记录已保存: 房间 %s, 玩家ID: %d, 座位: %d", code, joinerID, seat)
+                }
         } else {
                 log.Printf("⚠️ 玩家 %s 的 PlayerID 为空，跳过数据库更新", client.GetName())
         }
@@ -285,6 +319,15 @@ func (rm *RoomManager) LeaveRoom(client types.ClientInterface) {
         client.SetRoom("")
 
         log.Printf("👋 玩家 %s 离开房间 %s (座位 %d)", client.GetName(), roomCode, player.Seat)
+
+        // 🔧【新增】更新房间玩家分表（设置离开时间）
+        if playerID := client.GetPlayerID(); playerID > 0 {
+                if err := database.RemovePartitionRoomPlayer(roomCode, playerID, room.CreatedAt); err != nil {
+                        log.Printf("⚠️ 更新房间玩家分表失败: %v", err)
+                } else {
+                        log.Printf("💾 房间玩家记录已更新: 房间 %s, 玩家ID: %d 已离开", roomCode, playerID)
+                }
+        }
 
         // 如果房间空了，删除房间
         if len(room.Players) == 0 {

@@ -839,3 +839,112 @@ func UpdatePartitionArenaPeriodPlayerStatus(periodID, playerID uint64, status ui
                 Where("period_id = ? AND player_id = ?", periodID, playerID).
                 Update("status", status).Error
 }
+
+// =============================================
+// 分表房间玩家操作函数
+// =============================================
+
+// PartitionRoomPlayer 分表房间玩家模型
+type PartitionRoomPlayer struct {
+        ID         uint64     `gorm:"primaryKey;autoIncrement;comment:主键ID" json:"id"`
+        RoomCode   string     `gorm:"type:varchar(10);uniqueIndex:idx_room_player;not null;index;comment:房间号" json:"room_code"`
+        PlayerID   uint64     `gorm:"type:bigint unsigned;uniqueIndex:idx_room_player;not null;index;comment:玩家ID" json:"player_id"`
+        SeatIndex  uint8      `gorm:"type:tinyint unsigned;not null;default:0;index;comment:座位号:0-2" json:"seat_index"`
+        IsCreator  uint8      `gorm:"type:tinyint unsigned;not null;default:0;comment:是否房主:0-否,1-是" json:"is_creator"`
+        IsReady    uint8      `gorm:"type:tinyint unsigned;not null;default:0;comment:是否准备:0-否,1-是" json:"is_ready"`
+        IsOffline  uint8      `gorm:"type:tinyint unsigned;not null;default:0;comment:是否离线:0-在线,1-离线" json:"is_offline"`
+        JoinedAt   time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:加入时间" json:"joined_at"`
+        LeftAt     *time.Time `gorm:"type:datetime;comment:离开时间" json:"left_at"`
+        CreatedAt  time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
+        UpdatedAt  time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`
+}
+
+// CreatePartitionRoomPlayer 创建房间玩家到分表
+func CreatePartitionRoomPlayer(roomPlayer *PartitionRoomPlayer) error {
+        joinedAt := roomPlayer.JoinedAt
+        if joinedAt.IsZero() {
+                joinedAt = time.Now()
+        }
+
+        tableName := GetPartitionManager().GetRoomPlayerTableName(joinedAt)
+        suffix := joinedAt.Format("200601")
+
+        // 确保分表存在
+        if err := GetPartitionManager().EnsureTableExists(PartitionTypeRoomPlayer, suffix); err != nil {
+                return fmt.Errorf("确保房间玩家分表存在失败: %w", err)
+        }
+
+        return DB().Table(tableName).Create(roomPlayer).Error
+}
+
+// GetPartitionRoomPlayersByRoomCode 根据房间号获取房间玩家
+func GetPartitionRoomPlayersByRoomCode(roomCode string, createdAt time.Time) ([]PartitionRoomPlayer, error) {
+        tableName := GetPartitionManager().GetRoomPlayerTableName(createdAt)
+        suffix := createdAt.Format("200601")
+
+        // 确保分表存在
+        if err := GetPartitionManager().EnsureTableExists(PartitionTypeRoomPlayer, suffix); err != nil {
+                return nil, fmt.Errorf("确保房间玩家分表存在失败: %w", err)
+        }
+
+        var players []PartitionRoomPlayer
+        err := DB().Table(tableName).
+                Where("room_code = ? AND left_at IS NULL", roomCode).
+                Order("seat_index ASC").
+                Find(&players).Error
+        return players, err
+}
+
+// RemovePartitionRoomPlayer 从分表房间移除玩家（设置离开时间）
+func RemovePartitionRoomPlayer(roomCode string, playerID uint64, createdAt time.Time) error {
+        tableName := GetPartitionManager().GetRoomPlayerTableName(createdAt)
+        suffix := createdAt.Format("200601")
+
+        // 确保分表存在
+        if err := GetPartitionManager().EnsureTableExists(PartitionTypeRoomPlayer, suffix); err != nil {
+                return fmt.Errorf("确保房间玩家分表存在失败: %w", err)
+        }
+
+        now := time.Now()
+        return DB().Table(tableName).
+                Where("room_code = ? AND player_id = ? AND left_at IS NULL", roomCode, playerID).
+                Update("left_at", &now).Error
+}
+
+// UpdatePartitionRoomPlayerReady 更新房间玩家准备状态
+func UpdatePartitionRoomPlayerReady(roomCode string, playerID uint64, isReady bool, createdAt time.Time) error {
+        tableName := GetPartitionManager().GetRoomPlayerTableName(createdAt)
+        suffix := createdAt.Format("200601")
+
+        // 确保分表存在
+        if err := GetPartitionManager().EnsureTableExists(PartitionTypeRoomPlayer, suffix); err != nil {
+                return fmt.Errorf("确保房间玩家分表存在失败: %w", err)
+        }
+
+        readyVal := uint8(0)
+        if isReady {
+                readyVal = 1
+        }
+        return DB().Table(tableName).
+                Where("room_code = ? AND player_id = ? AND left_at IS NULL", roomCode, playerID).
+                Update("is_ready", readyVal).Error
+}
+
+// UpdatePartitionRoomPlayerOffline 更新房间玩家离线状态
+func UpdatePartitionRoomPlayerOffline(roomCode string, playerID uint64, isOffline bool, createdAt time.Time) error {
+        tableName := GetPartitionManager().GetRoomPlayerTableName(createdAt)
+        suffix := createdAt.Format("200601")
+
+        // 确保分表存在
+        if err := GetPartitionManager().EnsureTableExists(PartitionTypeRoomPlayer, suffix); err != nil {
+                return fmt.Errorf("确保房间玩家分表存在失败: %w", err)
+        }
+
+        offlineVal := uint8(0)
+        if isOffline {
+                offlineVal = 1
+        }
+        return DB().Table(tableName).
+                Where("room_code = ? AND player_id = ? AND left_at IS NULL", roomCode, playerID).
+                Update("is_offline", offlineVal).Error
+}

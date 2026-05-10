@@ -348,19 +348,82 @@ func (s *DDZStatsService) GetRoomPlayerList(req ddzReq.DDZRoomPlayerSearch) (lis
         limit := req.PageSize
         offset := req.PageSize * (req.Page - 1)
 
-        db := GetDDZDB().Table("ddz_room_players")
-        if req.RoomID.Valid && req.RoomID.Value > 0 {
-                db = db.Where("room_id = ?", req.RoomID.Value)
+        // 解析时间范围，默认查询最近3个月
+        now := time.Now()
+        startDate := now.AddDate(0, -3, 0)
+        endDate := now
+
+        if req.StartDate != "" {
+                if t, err := time.Parse("2006-01-02", req.StartDate); err == nil {
+                        startDate = t
+                }
         }
-        if req.PlayerID.Valid && req.PlayerID.Value > 0 {
-                db = db.Where("player_id = ?", req.PlayerID.Value)
+        if req.EndDate != "" {
+                if t, err := time.Parse("2006-01-02", req.EndDate); err == nil {
+                        endDate = t
+                }
         }
 
-        err = db.Count(&total).Error
-        if err != nil {
-                return nil, 0, err
+        // 收集需要查询的所有分表
+        db := GetDDZDB()
+        var allResults []ddz.DDZRoomPlayer
+
+        startMonth := time.Date(startDate.Year(), startDate.Month(), 1, 0, 0, 0, 0, startDate.Location())
+        endMonth := time.Date(endDate.Year(), endDate.Month(), 1, 0, 0, 0, 0, endDate.Location())
+
+        for m := startMonth; !m.After(endMonth); m = m.AddDate(0, 1, 0) {
+                suffix := m.Format("200601")
+                tableName := "ddz_room_players_" + suffix
+
+                // 检查表是否存在
+                var count int64
+                db.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", tableName).Scan(&count)
+                if count == 0 {
+                        continue
+                }
+
+                // 构建查询条件
+                query := db.Table(tableName)
+                if req.RoomID.Valid && req.RoomID.Value > 0 {
+                        query = query.Where("room_id = ?", req.RoomID.Value)
+                }
+                if req.PlayerID.Valid && req.PlayerID.Value > 0 {
+                        query = query.Where("player_id = ?", req.PlayerID.Value)
+                }
+                if req.RoomCode != "" {
+                        query = query.Where("room_code = ?", req.RoomCode)
+                }
+
+                var results []ddz.DDZRoomPlayer
+                if err := query.Find(&results).Error; err != nil {
+                        continue
+                }
+                allResults = append(allResults, results...)
         }
 
-        err = db.Order("id DESC").Limit(limit).Offset(offset).Find(&list).Error
-        return list, total, err
+        // 计算总数
+        total = int64(len(allResults))
+
+        // 按 ID 倒序排序（使用 joined_at 时间）
+        // 由于是跨表查询，需要手动排序和分页
+        // 简化版本：按 joined_at 降序排序
+        for i := 0; i < len(allResults); i++ {
+                for j := i + 1; j < len(allResults); j++ {
+                        if allResults[i].JoinedAt.Before(allResults[j].JoinedAt) {
+                                allResults[i], allResults[j] = allResults[j], allResults[i]
+                        }
+                }
+        }
+
+        // 分页
+        if offset >= len(allResults) {
+                return []ddz.DDZRoomPlayer{}, total, nil
+        }
+        end := offset + limit
+        if end > len(allResults) {
+                end = len(allResults)
+        }
+
+        list = allResults[offset:end]
+        return list, total, nil
 }

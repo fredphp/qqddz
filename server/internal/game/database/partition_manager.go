@@ -34,6 +34,8 @@ const (
         PartitionTypeArenaParticipation    = "arena_participation"     // 竞技场参赛记录表分表
         PartitionTypeTournamentRound       = "tournament_round"        // 锦标赛轮次表分表
         PartitionTypeTournamentElimination = "tournament_elimination"  // 锦标赛淘汰记录表分表
+        // 🔧【新增】房间玩家表分表
+        PartitionTypeRoomPlayer = "room_player" // 房间玩家表分表
 )
 
 // partitionManager 分表管理器单例
@@ -141,6 +143,11 @@ func (pm *PartitionManager) createMonthTables(t time.Time) error {
 
         // 🔧【新增】创建锦标赛淘汰记录分表
         if err := pm.createTournamentEliminationTable(suffix); err != nil {
+                return err
+        }
+
+        // 🔧【新增】创建房间玩家分表
+        if err := pm.createRoomPlayerTable(suffix); err != nil {
                 return err
         }
 
@@ -756,6 +763,45 @@ func (pm *PartitionManager) createTournamentEliminationTable(suffix string) erro
         return nil
 }
 
+// 🔧【新增】createRoomPlayerTable 创建房间玩家分表
+func (pm *PartitionManager) createRoomPlayerTable(suffix string) error {
+        tableName := pm.getTableName("ddz_room_players", suffix)
+
+        if pm.isTableExists(tableName) {
+                return nil
+        }
+
+        sql := fmt.Sprintf(`
+                CREATE TABLE IF NOT EXISTS %s (
+                        id bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+                        room_code varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '房间号',
+                        player_id bigint unsigned NOT NULL COMMENT '玩家ID',
+                        seat_index tinyint unsigned NOT NULL DEFAULT 0 COMMENT '座位号:0-2',
+                        is_creator tinyint unsigned NOT NULL DEFAULT 0 COMMENT '是否房主:0-否,1-是',
+                        is_ready tinyint unsigned NOT NULL DEFAULT 0 COMMENT '是否准备:0-否,1-是',
+                        is_offline tinyint unsigned NOT NULL DEFAULT 0 COMMENT '是否离线:0-在线,1-离线',
+                        joined_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '加入时间',
+                        left_at datetime DEFAULT NULL COMMENT '离开时间',
+                        created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                        updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                        PRIMARY KEY (id),
+                        UNIQUE KEY idx_room_player (room_code, player_id),
+                        KEY idx_room_code (room_code),
+                        KEY idx_player_id (player_id),
+                        KEY idx_joined_at (joined_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='房间玩家表(月份分表)'
+        `, tableName)
+
+        if err := pm.db.Exec(sql).Error; err != nil {
+                return fmt.Errorf("创建房间玩家分表 %s 失败: %w", tableName, err)
+        }
+
+        pm.createdTables.Store(tableName, true)
+
+        log.Printf("✅ 创建房间玩家分表: %s", tableName)
+        return nil
+}
+
 // EnsureTableExists 确保指定日期的分表存在
 func (pm *PartitionManager) EnsureTableExists(tableType, suffix string) error {
         switch tableType {
@@ -788,6 +834,9 @@ func (pm *PartitionManager) EnsureTableExists(tableType, suffix string) error {
                 return pm.createTournamentRoundTable(suffix)
         case PartitionTypeTournamentElimination:
                 return pm.createTournamentEliminationTable(suffix)
+        // 🔧【新增】房间玩家分表类型
+        case PartitionTypeRoomPlayer:
+                return pm.createRoomPlayerTable(suffix)
         default:
                 return fmt.Errorf("未知的分表类型: %s", tableType)
         }
@@ -877,6 +926,12 @@ func (pm *PartitionManager) GetTournamentEliminationTableName(t time.Time) strin
         return pm.getTableName("ddz_tournament_eliminations", suffix)
 }
 
+// 🔧【新增】GetRoomPlayerTableName 获取房间玩家表名（根据时间）
+func (pm *PartitionManager) GetRoomPlayerTableName(t time.Time) string {
+        suffix := t.Format("200601")
+        return pm.getTableName("ddz_room_players", suffix)
+}
+
 // GetCurrentRoomTableName 获取当前月份的房间表名
 func (pm *PartitionManager) GetCurrentRoomTableName() string {
         return pm.GetRoomTableName(time.Now())
@@ -915,6 +970,11 @@ func (pm *PartitionManager) GetCurrentTournamentRoundTableName() string {
 // 🔧【新增】GetCurrentTournamentEliminationTableName 获取当前月份的锦标赛淘汰记录表名
 func (pm *PartitionManager) GetCurrentTournamentEliminationTableName() string {
         return pm.GetTournamentEliminationTableName(time.Now())
+}
+
+// 🔧【新增】GetCurrentRoomPlayerTableName 获取当前月份的房间玩家表名
+func (pm *PartitionManager) GetCurrentRoomPlayerTableName() string {
+        return pm.GetRoomPlayerTableName(time.Now())
 }
 
 // =============================================

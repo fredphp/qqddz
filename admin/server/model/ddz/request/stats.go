@@ -28,6 +28,9 @@ type DDZPlayerOnlineSearch struct {
 // DDZRoomPlayerSearch 房间玩家查询请求
 type DDZRoomPlayerSearch struct {
         request.PageInfo
-        RoomID   NullUint64 `json:"roomId" form:"roomId"`
-        PlayerID NullUint64 `json:"playerId" form:"playerId"`
+        RoomID    NullUint64 `json:"roomId" form:"roomId"`
+        PlayerID  NullUint64 `json:"playerId" form:"playerId"`
+        StartDate string     `json:"startDate" form:"startDate"` // 开始日期
+        EndDate   string     `json:"endDate" form:"endDate"`     // 结束日期
+        RoomCode  string     `json:"roomCode" form:"roomCode"`   // 房间号
 }

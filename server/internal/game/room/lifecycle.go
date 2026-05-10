@@ -120,6 +120,10 @@ func (rm *RoomManager) handleOfflineInWaitingRoom(room *Room, player *RoomPlayer
                 if err := database.RemovePlayerFromPartitionRoom(roomCode, playerID, roomCreatedAt); err != nil {
                         log.Printf("⚠️ 更新房间分表失败: %v", err)
                 }
+                // 🔧【新增】更新房间玩家分表（设置离开时间）
+                if err := database.RemovePartitionRoomPlayer(roomCode, playerID, roomCreatedAt); err != nil {
+                        log.Printf("⚠️ 更新房间玩家分表失败: %v", err)
+                }
         }
 
         // 更新 Redis
@@ -158,6 +162,13 @@ func (rm *RoomManager) handleOfflineInGame(room *Room, player *RoomPlayer, clien
         player.Client = nil // 清空客户端引用
 
         log.Printf("🤖 机器人接管: %s (房间: %s, 状态: %s)", client.GetName(), roomCode, room.State.String())
+
+        // 🔧【新增】更新房间玩家分表离线状态
+        if playerID := client.GetPlayerID(); playerID > 0 {
+                if err := database.UpdatePartitionRoomPlayerOffline(roomCode, playerID, true, room.CreatedAt); err != nil {
+                        log.Printf("⚠️ 更新房间玩家离线状态失败: %v", err)
+                }
+        }
 
         // 通知其他玩家
         for id, p := range room.Players {
