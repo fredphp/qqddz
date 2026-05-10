@@ -57,28 +57,80 @@ func (s *DDZStatsService) GetOverviewStats() (ddzRes.DDZOverviewStatsResponse, e
         }, nil
 }
 
-// GetDailyStats 获取每日统计
+// DailyStatsRow 每日统计行（从原始数据计算）
+type DailyStatsRow struct {
+        Date            string
+        TotalPlayers    int64
+        NewPlayers      int64
+        ActivePlayers   int64
+        TotalGames      int64
+        AvgGameDuration float64
+        MaxOnline       int64
+        TotalOnlineTime int64
+        PeakTime        string
+}
+
+// GetDailyStats 获取每日统计（从原始数据实时计算）
 func (s *DDZStatsService) GetDailyStats(req ddzReq.DDZDailyStatsSearch) ([]ddzRes.DDZDailyStatsResponse, error) {
-        db := GetDDZDB()
-        var stats []ddz.DDZDailyStats
-        err := db.Where("date >= ? AND date <= ?", req.StartDate, req.EndDate).
-                Order("date asc").Find(&stats).Error
+        // 解析日期范围
+        startDate, err := time.Parse("2006-01-02", req.StartDate)
         if err != nil {
-                return nil, err
+                startDate = time.Now().AddDate(0, 0, -7)
+        }
+        endDate, err := time.Parse("2006-01-02", req.EndDate)
+        if err != nil {
+                endDate = time.Now()
         }
 
-        result := make([]ddzRes.DDZDailyStatsResponse, 0, len(stats))
-        for _, s := range stats {
+        var result []ddzRes.DDZDailyStatsResponse
+        db := GetDDZDB()
+
+        // 遍历每一天
+        for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) {
+                dateStr := d.Format("2006-01-02")
+
+                // 1. 截止当日的总玩家数
+                var totalPlayers int64
+                db.Model(&ddz.DDZPlayer{}).
+                        Where("DATE(created_at) <= ?", dateStr).
+                        Count(&totalPlayers)
+
+                // 2. 当日新增玩家
+                var newPlayers int64
+                db.Model(&ddz.DDZPlayer{}).
+                        Where("DATE(created_at) = ?", dateStr).
+                        Count(&newPlayers)
+
+                // 3. 当日活跃玩家（当天登录过的）
+                var activePlayers int64
+                nextDay := d.AddDate(0, 0, 1).Format("2006-01-02")
+                db.Model(&ddz.DDZPlayer{}).
+                        Where("last_login_at >= ? AND last_login_at < ?", dateStr, nextDay).
+                        Count(&activePlayers)
+
+                // 4. 当日游戏场次
+                var totalGames int64
+                db.Model(&ddz.DDZGameRecord{}).
+                        Where("DATE(started_at) = ?", dateStr).
+                        Count(&totalGames)
+
+                // 5. 平均游戏时长（从游戏记录计算）
+                var avgDuration float64
+                db.Model(&ddz.DDZGameRecord{}).
+                        Where("DATE(started_at) = ? AND duration_seconds > 0", dateStr).
+                        Select("COALESCE(AVG(duration_seconds), 0)").
+                        Scan(&avgDuration)
+
                 result = append(result, ddzRes.DDZDailyStatsResponse{
-                        Date:            s.Date,
-                        TotalPlayers:    s.TotalPlayers,
-                        NewPlayers:      s.NewPlayers,
-                        ActivePlayers:   s.ActivePlayers,
-                        TotalGames:      s.TotalGames,
-                        AvgGameDuration: s.AvgGameDuration,
-                        MaxOnline:       s.MaxOnline,
-                        TotalOnlineTime: s.TotalOnlineTime,
-                        PeakTime:        s.PeakTime,
+                        Date:            dateStr,
+                        TotalPlayers:    totalPlayers,
+                        NewPlayers:      newPlayers,
+                        ActivePlayers:   activePlayers,
+                        TotalGames:      totalGames,
+                        AvgGameDuration: avgDuration,
+                        MaxOnline:       0, // 需要从在线记录计算
+                        TotalOnlineTime: 0,
+                        PeakTime:        "",
                 })
         }
 
@@ -163,22 +215,17 @@ func (s *DDZStatsService) GetLeaderboard(req ddzReq.DDZLeaderboardSearch) (ddzRe
         }, nil
 }
 
-// GetPlayerStats 获取玩家统计
+// GetPlayerStats 获取玩家统计（直接从玩家表获取汇总数据）
 func (s *DDZStatsService) GetPlayerStats(req ddzReq.DDZStatsSearch) (list interface{}, total int64, err error) {
         db := GetDDZDB()
         limit := req.PageSize
         offset := req.PageSize * (req.Page - 1)
-        query := db.Model(&ddz.DDZPlayerStats{})
+
+        // 直接从玩家表获取统计数据
+        query := db.Model(&ddz.DDZPlayer{})
 
         if req.PlayerID != "" {
-                query = query.Where("player_id = ?", req.PlayerID)
-        }
-        // 使用 created_at 替代 date 字段查询
-        if req.StartDate != "" {
-                query = query.Where("created_at >= ?", req.StartDate)
-        }
-        if req.EndDate != "" {
-                query = query.Where("created_at <= ?", req.EndDate+" 23:59:59")
+                query = query.Where("username = ? OR nickname = ?", req.PlayerID, req.PlayerID)
         }
 
         err = query.Count(&total).Error
@@ -186,94 +233,70 @@ func (s *DDZStatsService) GetPlayerStats(req ddzReq.DDZStatsSearch) (list interf
                 return nil, 0, err
         }
 
-        var stats []ddz.DDZPlayerStats
-        err = query.Limit(limit).Offset(offset).Order("created_at desc").Find(&stats).Error
+        var players []ddz.DDZPlayer
+        err = query.Limit(limit).Offset(offset).Order("id desc").Find(&players).Error
         if err != nil {
                 return nil, 0, err
         }
 
-        // 收集所有玩家ID
-        playerIDs := make([]string, 0, len(stats))
-        for _, s := range stats {
-                if s.PlayerID != "" {
-                        playerIDs = append(playerIDs, s.PlayerID)
-                }
-        }
-
-        // 批量查询玩家信息
-        playerMap := make(map[string]ddz.DDZPlayer)
-        if len(playerIDs) > 0 {
-                var players []ddz.DDZPlayer
-                db.Where("username IN ?", playerIDs).Find(&players)
-                for _, p := range players {
-                        playerMap[p.Username] = p
-                }
-        }
-
-        result := make([]ddzRes.DDZPlayerStatsResponse, 0, len(stats))
-        for _, s := range stats {
-                player := playerMap[s.PlayerID]
-
-                // 计算地主胜率
-                var landlordWinRate float64 = 0
-                if s.LandlordGames > 0 {
-                        landlordWinRate = float64(s.LandlordWins) / float64(s.LandlordGames) * 100
+        result := make([]ddzRes.DDZPlayerStatsResponse, 0, len(players))
+        for _, p := range players {
+                // 计算胜率
+                totalGames := p.WinCount + p.LoseCount
+                winRate := float64(0)
+                if totalGames > 0 {
+                        winRate = float64(p.WinCount) / float64(totalGames) * 100
                 }
 
-                // 计算农民胜率
-                var farmerWinRate float64 = 0
-                if s.FarmerGames > 0 {
-                        farmerWinRate = float64(s.FarmerWins) / float64(s.FarmerGames) * 100
-                }
-
-                // 使用 created_at 格式化日期
-                statDate := s.CreatedAt.Format("2006-01-02")
-
+                // 从玩家表直接获取统计数据
                 result = append(result, ddzRes.DDZPlayerStatsResponse{
-                        PlayerID:        s.PlayerID,
-                        PlayerName:      player.Nickname,
-                        PlayerAvatar:    player.Avatar,
-                        VIPLevel:        player.VIPLevel,
-                        StatDate:        statDate,
-                        TotalGames:      s.GamesPlayed,
-                        WinGames:        s.Wins,
-                        LoseGames:       s.Losses,
-                        DrawGames:       s.Draws,
-                        WinRate:         s.WinRate,
-                        LandlordGames:   s.LandlordGames,
-                        LandlordWins:    s.LandlordWins,
-                        LandlordWinRate: landlordWinRate,
-                        FarmerGames:     s.FarmerGames,
-                        FarmerWins:      s.FarmerWins,
-                        FarmerWinRate:   farmerWinRate,
-                        TotalBombs:      s.BombCount,
-                        SpringCount:     s.SpringCount,
-                        CurrentGold:     player.Gold,
-                        TotalScore:      s.TotalScore,
-                        MaxWinScore:     s.MaxWinScore,
-                        MaxLoseScore:    s.MaxLoseScore,
-                        OnlineTime:      s.OnlineTime,
+                        PlayerID:      p.Username,
+                        PlayerName:    p.Nickname,
+                        PlayerAvatar:  p.Avatar,
+                        VIPLevel:      p.VIPLevel,
+                        StatDate:      p.CreatedAt.Format("2006-01-02"),
+                        TotalGames:    totalGames,
+                        WinGames:      p.WinCount,
+                        LoseGames:     p.LoseCount,
+                        DrawGames:     0,
+                        WinRate:       winRate,
+                        CurrentGold:   p.Gold,
+                        OnlineTime:    0,
                 })
         }
 
         return result, total, nil
 }
 
-// GetDailyActiveChart 获取每日活跃图表数据
+// GetDailyActiveChart 获取每日活跃图表数据（从玩家登录记录计算）
 func (s *DDZStatsService) GetDailyActiveChart(startDate, endDate string) (ddzRes.DDZChartResponse, error) {
-        db := GetDDZDB()
-        var stats []ddz.DDZDailyStats
-        err := db.Where("date >= ? AND date <= ?", startDate, endDate).
-                Order("date asc").Find(&stats).Error
+        // 解析日期范围
+        start, err := time.Parse("2006-01-02", startDate)
         if err != nil {
-                return ddzRes.DDZChartResponse{}, err
+                start = time.Now().AddDate(0, 0, -7)
+        }
+        end, err := time.Parse("2006-01-02", endDate)
+        if err != nil {
+                end = time.Now()
         }
 
-        labels := make([]string, 0, len(stats))
-        data := make([]float64, 0, len(stats))
-        for _, s := range stats {
-                labels = append(labels, s.Date)
-                data = append(data, float64(s.ActivePlayers))
+        db := GetDDZDB()
+        labels := make([]string, 0)
+        data := make([]float64, 0)
+
+        // 遍历每一天
+        for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
+                dateStr := d.Format("2006-01-02")
+                nextDay := d.AddDate(0, 0, 1).Format("2006-01-02")
+
+                // 统计当天登录过的玩家数
+                var count int64
+                db.Model(&ddz.DDZPlayer{}).
+                        Where("last_login_at >= ? AND last_login_at < ?", dateStr, nextDay).
+                        Count(&count)
+
+                labels = append(labels, dateStr)
+                data = append(data, float64(count))
         }
 
         return ddzRes.DDZChartResponse{
@@ -283,21 +306,34 @@ func (s *DDZStatsService) GetDailyActiveChart(startDate, endDate string) (ddzRes
         }, nil
 }
 
-// GetDailyGamesChart 获取每日游戏场次图表数据
+// GetDailyGamesChart 获取每日游戏场次图表数据（从游戏记录计算）
 func (s *DDZStatsService) GetDailyGamesChart(startDate, endDate string) (ddzRes.DDZChartResponse, error) {
-        db := GetDDZDB()
-        var stats []ddz.DDZDailyStats
-        err := db.Where("date >= ? AND date <= ?", startDate, endDate).
-                Order("date asc").Find(&stats).Error
+        // 解析日期范围
+        start, err := time.Parse("2006-01-02", startDate)
         if err != nil {
-                return ddzRes.DDZChartResponse{}, err
+                start = time.Now().AddDate(0, 0, -7)
+        }
+        end, err := time.Parse("2006-01-02", endDate)
+        if err != nil {
+                end = time.Now()
         }
 
-        labels := make([]string, 0, len(stats))
-        data := make([]float64, 0, len(stats))
-        for _, s := range stats {
-                labels = append(labels, s.Date)
-                data = append(data, float64(s.TotalGames))
+        db := GetDDZDB()
+        labels := make([]string, 0)
+        data := make([]float64, 0)
+
+        // 遍历每一天
+        for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
+                dateStr := d.Format("2006-01-02")
+
+                // 统计当天的游戏场次
+                var count int64
+                db.Model(&ddz.DDZGameRecord{}).
+                        Where("DATE(started_at) = ?", dateStr).
+                        Count(&count)
+
+                labels = append(labels, dateStr)
+                data = append(data, float64(count))
         }
 
         return ddzRes.DDZChartResponse{
@@ -307,26 +343,91 @@ func (s *DDZStatsService) GetDailyGamesChart(startDate, endDate string) (ddzRes.
         }, nil
 }
 
-// GetDailyStatsList 获取每日统计列表
+// GetDailyStatsList 获取每日统计列表（从原始数据实时计算）
 func (s *DDZStatsService) GetDailyStatsList(req ddzReq.DDZDailyStatsSearch) (list []ddz.DDZDailyStats, total int64, err error) {
-        limit := req.PageSize
-        offset := req.PageSize * (req.Page - 1)
-
-        db := GetDDZDB().Model(&ddz.DDZDailyStats{})
-        if req.StartDate != "" {
-                db = db.Where("date >= ?", req.StartDate)
-        }
-        if req.EndDate != "" {
-                db = db.Where("date <= ?", req.EndDate)
-        }
-
-        err = db.Count(&total).Error
+        // 解析日期范围
+        startDate, err := time.Parse("2006-01-02", req.StartDate)
         if err != nil {
-                return nil, 0, err
+                startDate = time.Now().AddDate(0, 0, -7)
+        }
+        endDate, err := time.Parse("2006-01-02", req.EndDate)
+        if err != nil {
+                endDate = time.Now()
         }
 
-        err = db.Order("date DESC").Limit(limit).Offset(offset).Find(&list).Error
-        return list, total, err
+        db := GetDDZDB()
+        var allStats []ddz.DDZDailyStats
+
+        // 遍历每一天，从原始数据计算统计
+        for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) {
+                dateStr := d.Format("2006-01-02")
+                nextDay := d.AddDate(0, 0, 1).Format("2006-01-02")
+
+                // 1. 截止当日的总玩家数
+                var totalPlayers int64
+                db.Model(&ddz.DDZPlayer{}).
+                        Where("DATE(created_at) <= ?", dateStr).
+                        Count(&totalPlayers)
+
+                // 2. 当日新增玩家
+                var newPlayers int64
+                db.Model(&ddz.DDZPlayer{}).
+                        Where("DATE(created_at) = ?", dateStr).
+                        Count(&newPlayers)
+
+                // 3. 当日活跃玩家
+                var activePlayers int64
+                db.Model(&ddz.DDZPlayer{}).
+                        Where("last_login_at >= ? AND last_login_at < ?", dateStr, nextDay).
+                        Count(&activePlayers)
+
+                // 4. 当日游戏场次
+                var totalGames int64
+                db.Model(&ddz.DDZGameRecord{}).
+                        Where("DATE(started_at) = ?", dateStr).
+                        Count(&totalGames)
+
+                // 5. 平均游戏时长
+                var avgDuration float64
+                db.Model(&ddz.DDZGameRecord{}).
+                        Where("DATE(started_at) = ? AND duration_seconds > 0", dateStr).
+                        Select("COALESCE(AVG(duration_seconds), 0)").
+                        Scan(&avgDuration)
+
+                allStats = append(allStats, ddz.DDZDailyStats{
+                        Date:            dateStr,
+                        TotalPlayers:    int(totalPlayers),
+                        NewPlayers:      int(newPlayers),
+                        ActivePlayers:   int(activePlayers),
+                        TotalGames:      int(totalGames),
+                        AvgGameDuration: avgDuration,
+                })
+        }
+
+        // 计算总数和分页
+        total = int64(len(allStats))
+
+        // 分页
+        offset := req.PageSize * (req.Page - 1)
+        if offset >= len(allStats) {
+                return []ddz.DDZDailyStats{}, total, nil
+        }
+        end := offset + req.PageSize
+        if end > len(allStats) {
+                end = len(allStats)
+        }
+
+        // 按日期倒序排列
+        for i := 0; i < len(allStats); i++ {
+                for j := i + 1; j < len(allStats); j++ {
+                        if allStats[i].Date < allStats[j].Date {
+                                allStats[i], allStats[j] = allStats[j], allStats[i]
+                        }
+                }
+        }
+
+        list = allStats[offset:end]
+        return list, total, nil
 }
 
 // GetLeaderboardList 获取排行榜列表
