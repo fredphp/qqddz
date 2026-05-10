@@ -235,19 +235,28 @@ cc.Class({
 
     /**
      * 🔧【新增】创建单个领奖台项目
+     * 布局顺序（从上到下）：名次 → 头像 → 昵称 → 金币
      */
     _createPodiumItem: function(rank, x, y, scale) {
         var node = new cc.Node("PodiumItem_" + rank)
         node.setPosition(x, y)
         node.scale = scale || 1
 
-        // ========== 名次标签 ==========
-        // 🔧【修复】增加名次与头像的间距（从5px增加到15px）
+        // ========== 布局计算 ==========
+        // 从上到下依次排列：名次 → 头像 → 昵称 → 金币
+        var layoutConfig = {
+            rankY: 90,       // 名次Y坐标（最上面）
+            avatarY: 35,     // 头像Y坐标（名次下方）
+            nameY: -25,      // 昵称Y坐标（头像下方）
+            coinY: -55       // 金币Y坐标（昵称下方）
+        };
+
+        // ========== 名次标签（最上面）==========
         var rankLabelNode = new cc.Node("RankLabel")
-        rankLabelNode.setPosition(0, 75)  // 头像上方75px（增加间距）
+        rankLabelNode.setPosition(0, layoutConfig.rankY)
         var rankLabel = rankLabelNode.addComponent(cc.Label)
         rankLabel.string = this._getRankText(rank)
-        rankLabel.fontSize = 28
+        rankLabel.fontSize = 26
         rankLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         rankLabelNode.color = rank === 1 ? new cc.Color(255, 215, 0) : new cc.Color(200, 200, 220)
         var rankOutline = rankLabelNode.addComponent(cc.LabelOutline)
@@ -255,10 +264,9 @@ cc.Class({
         rankOutline.width = 2
         rankLabelNode.parent = node
 
-        // ========== 头像区域 ==========
-        // 🔧【修复】创建圆形头像框，确保头像居中显示
+        // ========== 头像区域（名次下方）==========
         var avatarContainer = new cc.Node("AvatarContainer")
-        avatarContainer.setPosition(0, 20)
+        avatarContainer.setPosition(0, layoutConfig.avatarY)
         avatarContainer.setContentSize(70, 70)
         
         // 头像背景（圆形）
@@ -282,13 +290,12 @@ cc.Class({
 
         avatarContainer.parent = node
 
-        // ========== 昵称标签 ==========
-        // 🔧【修复】增加昵称与头像的间距（从5px增加到20px）
+        // ========== 昵称标签（头像下方）==========
         var nameLabelNode = new cc.Node("NameLabel")
-        nameLabelNode.setPosition(0, -35)  // 头像下方35px（增加间距）
+        nameLabelNode.setPosition(0, layoutConfig.nameY)
         var nameLabel = nameLabelNode.addComponent(cc.Label)
         nameLabel.string = "玩家昵称"
-        nameLabel.fontSize = 22
+        nameLabel.fontSize = 20
         nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         nameLabelNode.color = new cc.Color(255, 255, 255)
         var nameOutline = nameLabelNode.addComponent(cc.LabelOutline)
@@ -296,13 +303,12 @@ cc.Class({
         nameOutline.width = 1
         nameLabelNode.parent = node
 
-        // ========== 金币标签 ==========
-        // 🔧【修复】增加金币与昵称的间距（从5px增加到18px）
+        // ========== 金币标签（昵称下方）==========
         var coinLabelNode = new cc.Node("CoinLabel")
-        coinLabelNode.setPosition(0, -65)  // 昵称下方30px
+        coinLabelNode.setPosition(0, layoutConfig.coinY)
         var coinLabel = coinLabelNode.addComponent(cc.Label)
         coinLabel.string = "0"
-        coinLabel.fontSize = 20
+        coinLabel.fontSize = 18
         coinLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         coinLabelNode.color = new cc.Color(255, 200, 100)
         var coinOutline = coinLabelNode.addComponent(cc.LabelOutline)
@@ -347,42 +353,55 @@ cc.Class({
 
     /**
      * 🔧【新增】创建我的排名区域
+     * 修复：文字相对于显示框上下居中显示
      */
     _createMyRankArea: function(parentNode) {
         var container = new cc.Node("MyRankContainer")
         container.setPosition(0, -180)
-        container.setContentSize(400, 80)
+        container.setContentSize(500, 50)  // 🔧【修复】调整容器尺寸
 
-        // 背景框
+        // 背景框 - 确保足够容纳文字
         var bgNode = new cc.Node("Bg")
         var bgGraphics = bgNode.addComponent(cc.Graphics)
         bgGraphics.fillColor = new cc.Color(40, 50, 80, 200)
-        bgGraphics.roundRect(-200, -35, 400, 70, 10)
+        bgGraphics.roundRect(-250, -25, 500, 50, 10)  // 🔧【修复】调整背景大小匹配容器
         bgGraphics.fill()
         bgGraphics.strokeColor = new cc.Color(100, 120, 160)
         bgGraphics.lineWidth = 2
-        bgGraphics.roundRect(-200, -35, 400, 70, 10)
+        bgGraphics.roundRect(-250, -25, 500, 50, 10)
         bgGraphics.stroke()
         bgNode.parent = container
 
         // 🔧【修复】我的排名标签 - 确保文字垂直居中
         var myRankNode = new cc.Node("MyRankLabel")
-        myRankNode.setPosition(-100, 0)  // Y设为0确保垂直居中
+        myRankNode.setPosition(-120, 0)  // Y设为0确保垂直居中
         var myRankLabel = myRankNode.addComponent(cc.Label)
         myRankLabel.string = "我的排名：第--名"
-        myRankLabel.fontSize = 22
+        myRankLabel.fontSize = 20
+        myRankLabel.lineHeight = 24  // 🔧【修复】设置行高确保垂直居中
         myRankLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         myRankLabel.verticalAlign = cc.Label.VerticalAlign.CENTER
         myRankNode.color = new cc.Color(100, 200, 255)
         myRankNode.parent = container
         this.myRankLabel = myRankLabel
 
+        // 分隔符
+        var separatorNode = new cc.Node("Separator")
+        separatorNode.setPosition(0, 0)
+        var sepLabel = separatorNode.addComponent(cc.Label)
+        sepLabel.string = "|"
+        sepLabel.fontSize = 20
+        sepLabel.lineHeight = 24
+        separatorNode.color = new cc.Color(150, 150, 180)
+        separatorNode.parent = container
+
         // 金币标签
         var myCoinNode = new cc.Node("MyCoinLabel")
-        myCoinNode.setPosition(120, 0)  // Y设为0确保垂直居中
+        myCoinNode.setPosition(130, 0)  // Y设为0确保垂直居中
         var myCoinLabel = myCoinNode.addComponent(cc.Label)
-        myCoinLabel.string = "最终金币：0"
-        myCoinLabel.fontSize = 22
+        myCoinLabel.string = "比赛金币：0"
+        myCoinLabel.fontSize = 20
+        myCoinLabel.lineHeight = 24  // 🔧【修复】设置行高确保垂直居中
         myCoinLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         myCoinLabel.verticalAlign = cc.Label.VerticalAlign.CENTER
         myCoinNode.color = new cc.Color(255, 200, 100)
@@ -483,7 +502,7 @@ cc.Class({
 
         // 更新我的金币
         if (this.myCoinLabel) {
-            this.myCoinLabel.string = "最终金币：" + this._myMatchCoin
+            this.myCoinLabel.string = "比赛金币：" + this._myMatchCoin
         }
     },
 
