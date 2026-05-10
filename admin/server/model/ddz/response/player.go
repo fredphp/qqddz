@@ -35,6 +35,12 @@ type DDZPlayerResponse struct {
         DeviceID     string  `json:"deviceId"`
         CreatedAt    string  `json:"createdAt"`
         UpdatedAt    string  `json:"updatedAt"`
+        // 账户相关信息（从 ddz_user_accounts 关联查询）
+        Phone         string `json:"phone"`         // 手机号
+        LoginType     int    `json:"loginType"`     // 登录类型: 1-手机号 2-微信 3-游客
+        LoginTypeText string `json:"loginTypeText"` // 登录类型文本
+        DeviceType    string `json:"deviceType"`    // 设备类型: ios/android/web
+        LoginCount    int    `json:"loginCount"`    // 登录次数
 }
 
 // DDZPlayerListResponse 玩家列表响应

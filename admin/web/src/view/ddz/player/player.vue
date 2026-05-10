@@ -90,6 +90,27 @@
             <span v-else class="text-muted">-</span>
           </template>
         </el-table-column>
+        <el-table-column align="center" label="手机号" min-width="120">
+          <template #default="scope">
+            <span>{{ scope.row.phone || '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" label="登录类型" min-width="90">
+          <template #default="scope">
+            <el-tag v-if="scope.row.loginType" :type="getLoginTypeTag(scope.row.loginType)" size="small">
+              {{ scope.row.loginTypeText }}
+            </el-tag>
+            <span v-else class="text-muted">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" label="设备" min-width="80">
+          <template #default="scope">
+            <el-tag v-if="scope.row.deviceType" :type="getDeviceTypeTag(scope.row.deviceType)" size="small">
+              {{ getDeviceTypeText(scope.row.deviceType) }}
+            </el-tag>
+            <span v-else class="text-muted">-</span>
+          </template>
+        </el-table-column>
         <el-table-column align="center" label="状态" min-width="90">
           <template #default="scope">
             <el-tag :type="getStatusType(scope.row.status)" size="small">
@@ -184,6 +205,20 @@
         <el-descriptions-item v-if="currentPlayer.statusExpire" label="到期时间">
           {{ currentPlayer.statusExpire }}
         </el-descriptions-item>
+        <el-descriptions-item label="手机号">{{ currentPlayer.phone || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="登录类型">
+          <el-tag v-if="currentPlayer.loginType" :type="getLoginTypeTag(currentPlayer.loginType)" size="small">
+            {{ currentPlayer.loginTypeText }}
+          </el-tag>
+          <span v-else>-</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="设备类型">
+          <el-tag v-if="currentPlayer.deviceType" :type="getDeviceTypeTag(currentPlayer.deviceType)" size="small">
+            {{ getDeviceTypeText(currentPlayer.deviceType) }}
+          </el-tag>
+          <span v-else>-</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="登录次数">{{ currentPlayer.loginCount || 0 }}</el-descriptions-item>
       </el-descriptions>
       <template #footer>
         <el-button @click="detailDialog = false">关闭</el-button>
@@ -783,6 +818,24 @@ const getActionTagType = (actionType) => {
     case 4: return 'success' // 解封
     default: return 'info'
   }
+}
+
+// 获取登录类型标签样式
+const getLoginTypeTag = (loginType) => {
+  const tags = { 1: 'primary', 2: 'success', 3: 'info' }
+  return tags[loginType] || 'info'
+}
+
+// 获取设备类型标签样式
+const getDeviceTypeTag = (deviceType) => {
+  const tags = { 'ios': 'primary', 'android': 'success', 'web': 'info', 'robot': 'warning' }
+  return tags[deviceType] || 'info'
+}
+
+// 获取设备类型文本
+const getDeviceTypeText = (deviceType) => {
+  const texts = { 'ios': 'iOS', 'android': '安卓', 'web': 'Web', 'robot': '机器人' }
+  return texts[deviceType] || deviceType
 }
 
 // 预计余额计算

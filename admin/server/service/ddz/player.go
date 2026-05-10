@@ -155,10 +155,31 @@ func (s *DDZPlayerService) GetPlayerList(req ddzReq.DDZPlayerSearch) (list inter
                 return nil, 0, err
         }
 
+        // 收集玩家ID，批量查询账户信息
+        playerIDs := make([]uint, 0, len(players))
+        for _, p := range players {
+                playerIDs = append(playerIDs, uint(p.ID))
+        }
+
+        // 批量查询账户信息
+        accountMap := make(map[uint]ddz.DDZUserAccount)
+        if len(playerIDs) > 0 {
+                var accounts []ddz.DDZUserAccount
+                db.Table("ddz_user_accounts").Where("player_id IN ?", playerIDs).Find(&accounts)
+                for _, acc := range accounts {
+                        accountMap[acc.PlayerID] = acc
+                }
+        }
+
         // 转换为响应格式
         playerList := make([]ddzRes.DDZPlayerResponse, 0, len(players))
         for _, p := range players {
-                playerList = append(playerList, s.toPlayerResponse(p))
+                account, exists := accountMap[uint(p.ID)]
+                if exists {
+                        playerList = append(playerList, s.toPlayerResponseWithAccount(p, account))
+                } else {
+                        playerList = append(playerList, s.toPlayerResponse(p))
+                }
         }
 
         return playerList, total, nil
@@ -834,6 +855,40 @@ func (s *DDZPlayerService) toPlayerResponse(p ddz.DDZPlayer) ddzRes.DDZPlayerRes
                 DeviceID:       "",
                 CreatedAt:      p.CreatedAt.Format("2006-01-02 15:04:05"),
                 UpdatedAt:      p.UpdatedAt.Format("2006-01-02 15:04:05"),
+                // 账户信息默认值
+                Phone:         "",
+                LoginType:     0,
+                LoginTypeText: "-",
+                DeviceType:    "",
+                LoginCount:    0,
+        }
+}
+
+// toPlayerResponseWithAccount 转换为响应格式（包含账户信息）
+func (s *DDZPlayerService) toPlayerResponseWithAccount(p ddz.DDZPlayer, account ddz.DDZUserAccount) ddzRes.DDZPlayerResponse {
+        response := s.toPlayerResponse(p)
+
+        // 填充账户信息
+        response.Phone = account.Phone
+        response.LoginType = account.LoginType
+        response.LoginTypeText = s.getLoginTypeText(account.LoginType)
+        response.DeviceType = account.DeviceType
+        response.LoginCount = account.LoginCount
+
+        return response
+}
+
+// getLoginTypeText 获取登录类型文本
+func (s *DDZPlayerService) getLoginTypeText(loginType int) string {
+        switch loginType {
+        case 1:
+                return "手机号"
+        case 2:
+                return "微信"
+        case 3:
+                return "游客"
+        default:
+                return "-"
         }
 }
 
