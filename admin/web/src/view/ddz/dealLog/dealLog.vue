@@ -9,7 +9,7 @@
             placeholder="请输入游戏ID" 
             clearable 
             :prefix-icon="Search"
-            style="width: 200px" 
+            style="width: 220px" 
           />
         </el-form-item>
         <el-form-item label="玩家ID">
@@ -21,12 +21,6 @@
             style="width: 160px" 
           />
         </el-form-item>
-        <el-form-item label="玩家角色">
-          <el-select v-model="searchInfo.playerRole" placeholder="全部角色" clearable style="width: 120px">
-            <el-option label="地主" :value="1" />
-            <el-option label="农民" :value="2" />
-          </el-select>
-        </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="onSubmit">查询</el-button>
           <el-button :icon="Refresh" @click="onReset">重置</el-button>
@@ -37,13 +31,24 @@
     <!-- 统计概览卡片 -->
     <div class="overview-section">
       <div class="stat-card-wrapper">
-        <div class="stat-card stat-card--total">
+        <div class="stat-card stat-card--games">
           <div class="stat-card__icon">
             <el-icon :size="28"><Tickets /></el-icon>
           </div>
           <div class="stat-card__content">
+            <div class="stat-card__value">{{ overviewStats.gameCount }}</div>
+            <div class="stat-card__label">游戏局数</div>
+          </div>
+        </div>
+      </div>
+      <div class="stat-card-wrapper">
+        <div class="stat-card stat-card--records">
+          <div class="stat-card__icon">
+            <el-icon :size="28"><Document /></el-icon>
+          </div>
+          <div class="stat-card__content">
             <div class="stat-card__value">{{ overviewStats.totalRecords }}</div>
-            <div class="stat-card__label">总发牌记录</div>
+            <div class="stat-card__label">发牌记录</div>
           </div>
         </div>
       </div>
@@ -54,7 +59,7 @@
           </div>
           <div class="stat-card__content">
             <div class="stat-card__value">{{ overviewStats.landlordCount }}</div>
-            <div class="stat-card__label">地主发牌次数</div>
+            <div class="stat-card__label">地主次数</div>
           </div>
         </div>
       </div>
@@ -65,270 +70,178 @@
           </div>
           <div class="stat-card__content">
             <div class="stat-card__value">{{ overviewStats.farmerCount }}</div>
-            <div class="stat-card__label">农民发牌次数</div>
-          </div>
-        </div>
-      </div>
-      <div class="stat-card-wrapper">
-        <div class="stat-card stat-card--games">
-          <div class="stat-card__icon">
-            <el-icon :size="28"><Grid /></el-icon>
-          </div>
-          <div class="stat-card__content">
-            <div class="stat-card__value">{{ overviewStats.gameCount }}</div>
-            <div class="stat-card__label">涉及游戏局数</div>
+            <div class="stat-card__label">农民次数</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 数据表格 -->
-    <div class="table-section">
-      <el-table 
-        :data="tableData" 
-        row-key="ID"
-        class="custom-table"
-        :header-cell-style="{ 
-          background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)', 
-          color: '#fff', 
-          fontWeight: '600',
-          fontSize: '14px',
-          height: '50px'
-        }"
-        :cell-style="{ padding: '14px 12px' }"
-      >
-        <!-- 玩家信息列 -->
-        <el-table-column label="玩家信息" min-width="150">
-          <template #default="scope">
-            <div class="player-cell">
-              <div class="player-avatar-wrapper">
-                <el-avatar 
-                  v-if="scope.row.playerAvatar" 
-                  :size="40" 
-                  :src="getUrl(scope.row.playerAvatar)" 
-                  class="player-avatar"
-                />
-                <el-avatar 
-                  v-else 
-                  :size="40" 
-                  class="player-avatar player-avatar--default"
-                >
-                  {{ (scope.row.playerName || scope.row.playerId || '?').toString().substring(0, 1).toUpperCase() }}
-                </el-avatar>
-                <span class="role-badge" :class="scope.row.playerRole === 1 ? 'landlord' : 'farmer'">
-                  {{ scope.row.playerRole === 1 ? '👑' : '🌾' }}
-                </span>
-              </div>
-              <div class="player-info">
-                <div class="player-name">{{ scope.row.playerName || '未知玩家' }}</div>
-                <div class="player-id">ID: {{ scope.row.playerId }}</div>
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-
-        <!-- 角色列 -->
-        <el-table-column label="角色" min-width="100" align="center">
-          <template #default="scope">
-            <div class="role-cell" :class="scope.row.playerRole === 1 ? 'is-landlord' : 'is-farmer'">
-              <span class="role-icon">{{ scope.row.playerRole === 1 ? '👑' : '🌾' }}</span>
-              <span class="role-text">{{ scope.row.playerRole === 1 ? '地主' : '农民' }}</span>
-            </div>
-          </template>
-        </el-table-column>
-
-        <!-- 手牌列 -->
-        <el-table-column label="手牌" min-width="320">
-          <template #default="scope">
-            <div class="cards-cell">
-              <div class="cards-preview">
-                <div class="cards-container">
-                  <template v-if="scope.row.handCards">
-                    <span 
-                      v-for="(card, index) in parseCards(scope.row.handCards).slice(0, 8)" 
-                      :key="index"
-                      class="card-item"
-                      :class="getCardClass(card)"
-                    >
-                      {{ formatCard(card) }}
-                    </span>
-                    <span v-if="parseCards(scope.row.handCards).length > 8" class="card-more">
-                      +{{ parseCards(scope.row.handCards).length - 8 }}
-                    </span>
-                  </template>
-                  <span v-else class="no-cards">-</span>
-                </div>
-              </div>
-              <div class="cards-count-badge">{{ scope.row.cardsCount || 0 }}张</div>
-            </div>
-          </template>
-        </el-table-column>
-
-        <!-- 底牌列 -->
-        <el-table-column label="底牌" min-width="150" align="center">
-          <template #default="scope">
-            <div v-if="scope.row.landlordCards && scope.row.playerRole === 1" class="landlord-cards">
-              <div class="cards-container small">
-                <span 
-                  v-for="(card, index) in parseCards(scope.row.landlordCards)" 
-                  :key="index"
-                  class="card-item small"
-                  :class="getCardClass(card)"
-                >
-                  {{ formatCard(card) }}
-                </span>
-              </div>
-            </div>
-            <span v-else class="no-landlord-cards">—</span>
-          </template>
-        </el-table-column>
-
-        <!-- 游戏ID列 -->
-        <el-table-column label="游戏ID" min-width="160" align="center">
-          <template #default="scope">
-            <div class="game-id-cell">
-              <el-tooltip :content="scope.row.gameId" placement="top">
-                <span class="game-id-text">{{ formatGameId(scope.row.gameId) }}</span>
+    <!-- 游戏列表 -->
+    <div class="game-list-section">
+      <div v-if="groupedGames.length === 0" class="empty-state">
+        <el-empty description="暂无发牌记录" />
+      </div>
+      
+      <div v-for="(game, index) in groupedGames" :key="game.gameId" class="game-card">
+        <!-- 游戏头部 -->
+        <div class="game-header" @click="toggleGame(game.gameId)">
+          <div class="game-info">
+            <div class="game-number">#{{ (page - 1) * pageSize + index + 1 }}</div>
+            <div class="game-id">
+              <el-tooltip :content="game.gameId" placement="top">
+                <span>游戏ID: {{ formatGameId(game.gameId) }}</span>
               </el-tooltip>
               <el-button 
                 type="primary" 
                 link 
                 size="small" 
                 :icon="CopyDocument"
-                @click="copyGameId(scope.row.gameId)"
+                @click.stop="copyGameId(game.gameId)"
                 class="copy-btn"
               />
             </div>
-          </template>
-        </el-table-column>
-
-        <!-- 时间列 -->
-        <el-table-column label="发牌时间" min-width="160" align="center">
-          <template #default="scope">
-            <div class="time-cell">
-              <el-icon :size="14"><Clock /></el-icon>
-              <span>{{ scope.row.createdAt }}</span>
+            <div class="game-time">
+              <el-icon><Clock /></el-icon>
+              {{ game.records[0]?.createdAt || '-' }}
             </div>
-          </template>
-        </el-table-column>
+          </div>
+          <div class="game-players">
+            <template v-for="record in game.records" :key="record.ID">
+              <div class="player-mini-card" :class="record.playerRole === 1 ? 'landlord' : 'farmer'">
+                <el-avatar 
+                  v-if="record.playerAvatar" 
+                  :size="32" 
+                  :src="getUrl(record.playerAvatar)"
+                />
+                <el-avatar v-else :size="32" class="avatar-default">
+                  {{ (record.playerName || '?').substring(0, 1) }}
+                </el-avatar>
+                <span class="player-mini-role">{{ record.playerRole === 1 ? '👑' : '🌾' }}</span>
+              </div>
+            </template>
+          </div>
+          <div class="game-expand">
+            <el-icon :class="{ 'is-expanded': expandedGames.includes(game.gameId) }">
+              <ArrowDown />
+            </el-icon>
+          </div>
+        </div>
 
-        <!-- 操作列 -->
-        <el-table-column label="操作" min-width="100" align="center" fixed="right">
-          <template #default="scope">
-            <el-button 
-              type="primary" 
-              link 
-              :icon="View" 
-              @click="viewDetail(scope.row)"
-              class="action-btn"
-            >
-              详情
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+        <!-- 游戏详情 -->
+        <el-collapse-transition>
+          <div v-show="expandedGames.includes(game.gameId)" class="game-detail">
+            <!-- 地主区域 -->
+            <div class="player-section landlord-section" v-if="game.landlord">
+              <div class="player-header">
+                <div class="player-avatar-area">
+                  <el-avatar 
+                    v-if="game.landlord.playerAvatar" 
+                    :size="48" 
+                    :src="getUrl(game.landlord.playerAvatar)"
+                    class="player-avatar"
+                  />
+                  <el-avatar v-else :size="48" class="player-avatar avatar-default">
+                    {{ (game.landlord.playerName || '?').substring(0, 1) }}
+                  </el-avatar>
+                  <span class="role-badge landlord">👑 地主</span>
+                </div>
+                <div class="player-info">
+                  <div class="player-name">{{ game.landlord.playerName || '未知玩家' }}</div>
+                  <div class="player-id">ID: {{ game.landlord.playerId }}</div>
+                </div>
+              </div>
+              
+              <div class="cards-area">
+                <div class="cards-row">
+                  <div class="cards-label">手牌 ({{ game.landlord.cardsCount || 20 }}张)</div>
+                  <div class="cards-display">
+                    <span 
+                      v-for="(card, idx) in parseCards(game.landlord.handCards)" 
+                      :key="idx"
+                      class="card-item"
+                      :class="getCardClass(card)"
+                    >
+                      {{ formatCard(card) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="cards-row landlord-cards-row" v-if="game.landlord.landlordCards">
+                  <div class="cards-label highlight">底牌 ({{ parseCards(game.landlord.landlordCards).length }}张)</div>
+                  <div class="cards-display landlord-cards">
+                    <span 
+                      v-for="(card, idx) in parseCards(game.landlord.landlordCards)" 
+                      :key="idx"
+                      class="card-item"
+                      :class="getCardClass(card)"
+                    >
+                      {{ formatCard(card) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-      <!-- 分页 -->
-      <div class="pagination-section">
-        <el-pagination
-          :current-page="page"
-          :page-size="pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="total"
-          layout="total, sizes, prev, pager, next, jumper"
-          @current-change="handleCurrentChange"
-          @size-change="handleSizeChange"
-          background
-        />
+            <!-- 农民区域 -->
+            <div class="farmers-section">
+              <div 
+                v-for="farmer in game.farmers" 
+                :key="farmer.ID" 
+                class="player-section farmer-section"
+              >
+                <div class="player-header">
+                  <div class="player-avatar-area">
+                    <el-avatar 
+                      v-if="farmer.playerAvatar" 
+                      :size="48" 
+                      :src="getUrl(farmer.playerAvatar)"
+                      class="player-avatar"
+                    />
+                    <el-avatar v-else :size="48" class="player-avatar avatar-default">
+                      {{ (farmer.playerName || '?').substring(0, 1) }}
+                    </el-avatar>
+                    <span class="role-badge farmer">🌾 农民</span>
+                  </div>
+                  <div class="player-info">
+                    <div class="player-name">{{ farmer.playerName || '未知玩家' }}</div>
+                    <div class="player-id">ID: {{ farmer.playerId }}</div>
+                  </div>
+                </div>
+                
+                <div class="cards-area">
+                  <div class="cards-row">
+                    <div class="cards-label">手牌 ({{ farmer.cardsCount || 17 }}张)</div>
+                    <div class="cards-display">
+                      <span 
+                        v-for="(card, idx) in parseCards(farmer.handCards)" 
+                        :key="idx"
+                        class="card-item"
+                        :class="getCardClass(card)"
+                      >
+                        {{ formatCard(card) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-collapse-transition>
       </div>
     </div>
 
-    <!-- 详情弹窗 -->
-    <el-dialog 
-      v-model="detailDialog" 
-      title="发牌日志详情" 
-      width="700px"
-      class="detail-dialog"
-      :close-on-click-modal="false"
-    >
-      <div v-if="currentLog" class="detail-content">
-        <!-- 玩家信息 -->
-        <div class="detail-header">
-          <el-avatar 
-            v-if="currentLog.playerAvatar" 
-            :size="56" 
-            :src="getUrl(currentLog.playerAvatar)"
-            class="detail-avatar"
-          />
-          <el-avatar 
-            v-else 
-            :size="56" 
-            class="detail-avatar detail-avatar--default"
-          >
-            {{ (currentLog.playerName || currentLog.playerId || '?').toString().substring(0, 1).toUpperCase() }}
-          </el-avatar>
-          <div class="detail-player-info">
-            <div class="detail-player-name">{{ currentLog.playerName || '未知玩家' }}</div>
-            <div class="detail-player-id">玩家ID: {{ currentLog.playerId }}</div>
-          </div>
-          <div class="detail-role-badge" :class="currentLog.playerRole === 1 ? 'landlord' : 'farmer'">
-            {{ currentLog.playerRole === 1 ? '👑 地主' : '🌾 农民' }}
-          </div>
-        </div>
-
-        <!-- 手牌展示 -->
-        <div class="detail-section">
-          <div class="detail-section-title">手牌 ({{ currentLog.cardsCount || 0 }}张)</div>
-          <div class="detail-cards-display">
-            <template v-if="currentLog.handCards">
-              <span 
-                v-for="(card, index) in parseCards(currentLog.handCards)" 
-                :key="index"
-                class="detail-card-item"
-                :class="getCardClass(card)"
-              >
-                {{ formatCard(card) }}
-              </span>
-            </template>
-            <span v-else class="no-cards">暂无手牌数据</span>
-          </div>
-        </div>
-
-        <!-- 底牌展示（仅地主） -->
-        <div class="detail-section" v-if="currentLog.playerRole === 1 && currentLog.landlordCards">
-          <div class="detail-section-title">底牌 (3张)</div>
-          <div class="detail-cards-display landlord">
-            <span 
-              v-for="(card, index) in parseCards(currentLog.landlordCards)" 
-              :key="index"
-              class="detail-card-item"
-              :class="getCardClass(card)"
-            >
-              {{ formatCard(card) }}
-            </span>
-          </div>
-        </div>
-
-        <!-- 游戏信息 -->
-        <div class="detail-section">
-          <div class="detail-section-title">游戏信息</div>
-          <div class="detail-grid">
-            <div class="detail-item full-width">
-              <span class="detail-label">游戏ID</span>
-              <span class="detail-value game-id">{{ currentLog.gameId }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">记录ID</span>
-              <span class="detail-value">{{ currentLog.ID }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">发牌时间</span>
-              <span class="detail-value">{{ currentLog.createdAt }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </el-dialog>
+    <!-- 分页 -->
+    <div class="pagination-section" v-if="total > 0">
+      <el-pagination
+        :current-page="page"
+        :page-size="pageSize"
+        :page-sizes="[10, 20, 50]"
+        :total="total"
+        layout="total, sizes, prev, pager, next, jumper"
+        @current-change="handleCurrentChange"
+        @size-change="handleSizeChange"
+        background
+      />
+    </div>
   </div>
 </template>
 
@@ -336,8 +249,8 @@
 import { ref, computed } from 'vue'
 import { getDealLogList } from '@/api/ddz/gameLog'
 import { 
-  Search, Refresh, User, Tickets, Grid, 
-  Clock, View, CopyDocument 
+  Search, Refresh, User, Tickets, Document, Grid, 
+  Clock, CopyDocument, ArrowDown 
 } from '@element-plus/icons-vue'
 import { getUrl } from '@/utils/image'
 import { ElMessage } from 'element-plus'
@@ -348,17 +261,39 @@ defineOptions({
 
 const searchInfo = ref({
   gameId: '',
-  playerId: '',
-  playerRole: null
+  playerId: ''
 })
 
 const page = ref(1)
 const total = ref(0)
 const pageSize = ref(10)
 const tableData = ref([])
+const expandedGames = ref([])
 
-const detailDialog = ref(false)
-const currentLog = ref(null)
+// 按游戏ID分组
+const groupedGames = computed(() => {
+  const groups = {}
+  
+  tableData.value.forEach(record => {
+    if (!groups[record.gameId]) {
+      groups[record.gameId] = {
+        gameId: record.gameId,
+        records: [],
+        landlord: null,
+        farmers: []
+      }
+    }
+    groups[record.gameId].records.push(record)
+    
+    if (record.playerRole === 1) {
+      groups[record.gameId].landlord = record
+    } else {
+      groups[record.gameId].farmers.push(record)
+    }
+  })
+  
+  return Object.values(groups)
+})
 
 // 计算概览统计
 const overviewStats = computed(() => {
@@ -391,11 +326,10 @@ const formatCard = (card) => {
   const cardMap = {
     '14': 'A', '15': '2', '16': '3', '17': '4', '18': '5', '19': '6', '20': '7',
     '21': '8', '22': '9', '23': '10', '24': 'J', '25': 'Q', '26': 'K',
-    '27': '小王', '28': '大王',
+    '27': '小', '28': '大',
     '1': 'A', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7',
     '8': '8', '9': '9', '10': '10', '11': 'J', '12': 'Q', '13': 'K'
   }
-  // 提取牌面值（去掉花色前缀）
   const value = card.replace(/^[shdc]/i, '')
   return cardMap[value] || value
 }
@@ -403,14 +337,9 @@ const formatCard = (card) => {
 // 获取牌的样式类
 const getCardClass = (card) => {
   if (!card) return ''
-  // 小王
   if (card === '27' || card.toLowerCase().includes('joker1')) return 'card-joker-small'
-  // 大王
   if (card === '28' || card.toLowerCase().includes('joker2')) return 'card-joker-big'
-  
-  // 红色牌（红桃、方块）
-  if (card.startsWith('h') || card.startsWith('d') || 
-      card.startsWith('H') || card.startsWith('D')) {
+  if (card.startsWith('h') || card.startsWith('d') || card.startsWith('H') || card.startsWith('D')) {
     return 'card-red'
   }
   return 'card-black'
@@ -428,6 +357,15 @@ const copyGameId = (gameId) => {
   })
 }
 
+const toggleGame = (gameId) => {
+  const index = expandedGames.value.indexOf(gameId)
+  if (index > -1) {
+    expandedGames.value.splice(index, 1)
+  } else {
+    expandedGames.value.push(gameId)
+  }
+}
+
 const onSubmit = () => {
   page.value = 1
   getTableData()
@@ -436,8 +374,7 @@ const onSubmit = () => {
 const onReset = () => {
   searchInfo.value = {
     gameId: '',
-    playerId: '',
-    playerRole: null
+    playerId: ''
   }
   getTableData()
 }
@@ -452,20 +389,19 @@ const handleCurrentChange = (val) => {
   getTableData()
 }
 
-const viewDetail = (row) => {
-  currentLog.value = row
-  detailDialog.value = true
-}
-
 const getTableData = async () => {
   const res = await getDealLogList({
     page: page.value,
-    pageSize: pageSize.value,
+    pageSize: pageSize.value * 3, // 获取3倍数据以分组
     ...searchInfo.value
   })
   if (res.code === 0) {
     tableData.value = res.data.list
-    total.value = res.data.total
+    total.value = Math.ceil(res.data.total / 3) // 按3人一局计算
+    // 默认展开第一个
+    if (groupedGames.value.length > 0 && expandedGames.value.length === 0) {
+      expandedGames.value.push(groupedGames.value[0].gameId)
+    }
   }
 }
 
@@ -540,21 +476,10 @@ getTableData()
   height: 100%;
 }
 
-.stat-card--total::before {
-  background: linear-gradient(180deg, #11998e 0%, #38ef7d 100%);
-}
-
-.stat-card--landlord::before {
-  background: linear-gradient(180deg, #f093fb 0%, #f5576c 100%);
-}
-
-.stat-card--farmer::before {
-  background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%);
-}
-
-.stat-card--games::before {
-  background: linear-gradient(180deg, #fa709a 0%, #fee140 100%);
-}
+.stat-card--games::before { background: linear-gradient(180deg, #11998e 0%, #38ef7d 100%); }
+.stat-card--records::before { background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); }
+.stat-card--landlord::before { background: linear-gradient(180deg, #f093fb 0%, #f5576c 100%); }
+.stat-card--farmer::before { background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%); }
 
 .stat-card:hover {
   transform: translateY(-4px);
@@ -572,165 +497,270 @@ getTableData()
   color: #fff;
 }
 
-.stat-card--total .stat-card__icon {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+.stat-card--games .stat-card__icon { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+.stat-card--records .stat-card__icon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.stat-card--landlord .stat-card__icon { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.stat-card--farmer .stat-card__icon { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+
+.role-emoji { font-size: 28px; }
+
+.stat-card__content { flex: 1; }
+.stat-card__value { font-size: 28px; font-weight: 700; color: #1a1a2e; line-height: 1.2; }
+.stat-card__label { font-size: 14px; color: #8c8c8c; margin-top: 4px; }
+
+/* 游戏列表 */
+.game-list-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.stat-card--landlord .stat-card__icon {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+.empty-state {
+  background: #fff;
+  border-radius: 12px;
+  padding: 60px 20px;
+  text-align: center;
 }
 
-.stat-card--farmer .stat-card__icon {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+.game-card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
 }
 
-.stat-card--games .stat-card__icon {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+.game-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
-.role-emoji {
-  font-size: 28px;
+.game-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #f6f8fc 0%, #fff 100%);
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.stat-card__content {
+.game-header:hover {
+  background: linear-gradient(135deg, #e6f7ff 0%, #f0faff 100%);
+}
+
+.game-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   flex: 1;
 }
 
-.stat-card__value {
-  font-size: 28px;
+.game-number {
+  font-size: 16px;
   font-weight: 700;
-  color: #1a1a2e;
-  line-height: 1.2;
+  color: #1890ff;
+  min-width: 50px;
 }
 
-.stat-card__label {
-  font-size: 14px;
+.game-id {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-size: 13px;
+  color: #595959;
+  background: #f5f5f5;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+.copy-btn { opacity: 0.6; }
+.copy-btn:hover { opacity: 1; }
+
+.game-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
   color: #8c8c8c;
-  margin-top: 4px;
 }
 
-/* 表格区域 */
-.table-section {
+.game-players {
+  display: flex;
+  gap: 8px;
+  margin: 0 20px;
+}
+
+.player-mini-card {
+  position: relative;
+}
+
+.player-mini-card.landlord .avatar-default {
+  background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+  color: #7c5800;
+}
+
+.player-mini-card.farmer .avatar-default {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  color: #fff;
+}
+
+.player-mini-role {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  font-size: 12px;
+}
+
+.game-expand {
+  color: #8c8c8c;
+  transition: transform 0.3s ease;
+}
+
+.game-expand .is-expanded {
+  transform: rotate(180deg);
+}
+
+/* 游戏详情 */
+.game-detail {
+  padding: 20px;
+  background: #fafbfc;
+}
+
+.player-section {
   background: #fff;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.custom-table {
-  border-radius: 8px;
-  overflow: hidden;
+.player-section:last-child {
+  margin-bottom: 0;
 }
 
-/* 玩家单元格 */
-.player-cell {
+.landlord-section {
+  border-left: 4px solid #ffd700;
+  background: linear-gradient(135deg, #fffbe6 0%, #fff 100%);
+}
+
+.farmer-section {
+  border-left: 4px solid #52c41a;
+}
+
+.farmers-section {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+@media (max-width: 768px) {
+  .farmers-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+.player-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
-.player-avatar-wrapper {
+.player-avatar-area {
   position: relative;
-  flex-shrink: 0;
 }
 
 .player-avatar {
-  border: 2px solid #e8e8e8;
+  border: 3px solid #e8e8e8;
 }
 
-.player-avatar--default {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+.avatar-default {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
   font-weight: 600;
 }
 
 .role-badge {
   position: absolute;
-  bottom: -4px;
-  right: -4px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
 }
 
 .role-badge.landlord {
   background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+  color: #7c5800;
 }
 
 .role-badge.farmer {
   background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  color: #fff;
 }
 
 .player-info {
-  text-align: left;
-}
-
-.player-name {
-  font-weight: 600;
-  color: #1a1a2e;
-  font-size: 14px;
-}
-
-.player-id {
-  font-size: 12px;
-  color: #8c8c8c;
-}
-
-/* 角色单元格 */
-.role-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 16px;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.role-cell.is-landlord {
-  background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
-  color: #7c5800;
-}
-
-.role-cell.is-farmer {
-  background: #e6f7ff;
-  color: #1890ff;
-}
-
-.role-icon {
-  font-size: 14px;
-}
-
-/* 手牌单元格 */
-.cards-cell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.cards-preview {
   flex: 1;
 }
 
-.cards-container {
+.player-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+.player-id {
+  font-size: 13px;
+  color: #8c8c8c;
+}
+
+/* 扑克牌区域 */
+.cards-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cards-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cards-label {
+  font-size: 13px;
+  color: #8c8c8c;
+  min-width: 70px;
+  padding-top: 8px;
+}
+
+.cards-label.highlight {
+  color: #fa8c16;
+  font-weight: 600;
+}
+
+.cards-display {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
 }
 
-.cards-container.small {
-  gap: 2px;
+.landlord-cards {
+  background: linear-gradient(135deg, #fff7e6 0%, #fffbe6 100%);
+  padding: 8px;
+  border-radius: 8px;
 }
 
 .card-item {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
+  min-width: 26px;
   height: 36px;
   padding: 0 6px;
   background: linear-gradient(145deg, #fff 0%, #f5f5f5 100%);
@@ -738,286 +768,30 @@ getTableData()
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-.card-item.small {
-  min-width: 24px;
-  height: 30px;
-  font-size: 11px;
-}
-
-.card-item.card-red {
-  color: #ff4d4f;
-}
-
-.card-item.card-black {
-  color: #262626;
-}
-
+.card-item.card-red { color: #ff4d4f; }
+.card-item.card-black { color: #262626; }
 .card-item.card-joker-small {
   background: linear-gradient(145deg, #000 0%, #333 100%);
   color: #fff;
   border-color: #000;
 }
-
 .card-item.card-joker-big {
   background: linear-gradient(145deg, #ff4d4f 0%, #ff7875 100%);
   color: #fff;
   border-color: #ff4d4f;
 }
 
-.card-more {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 28px;
-  height: 36px;
-  background: #f0f0f0;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #8c8c8c;
-}
-
-.cards-count-badge {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 10px;
-  white-space: nowrap;
-}
-
-.no-cards {
-  color: #bfbfbf;
-  font-size: 13px;
-}
-
-/* 底牌 */
-.landlord-cards {
-  display: flex;
-  justify-content: center;
-}
-
-.no-landlord-cards {
-  color: #bfbfbf;
-}
-
-/* 游戏ID单元格 */
-.game-id-cell {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  justify-content: center;
-}
-
-.game-id-text {
-  font-family: 'Monaco', 'Consolas', monospace;
-  font-size: 12px;
-  color: #595959;
-  background: #f5f5f5;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.copy-btn {
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.game-id-cell:hover .copy-btn {
-  opacity: 1;
-}
-
-/* 时间单元格 */
-.time-cell {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #595959;
-  font-size: 13px;
-}
-
-/* 操作按钮 */
-.action-btn {
-  font-weight: 500;
-}
-
 /* 分页区域 */
 .pagination-section {
   display: flex;
   justify-content: flex-end;
-  padding: 16px 0 0;
-}
-
-/* 详情弹窗 */
-.detail-dialog :deep(.el-dialog__header) {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  padding: 16px 20px;
-  margin-right: 0;
-}
-
-.detail-dialog :deep(.el-dialog__title) {
-  color: #fff;
-  font-weight: 600;
-}
-
-.detail-dialog :deep(.el-dialog__headerbtn .el-dialog__close) {
-  color: #fff;
-}
-
-.detail-content {
   padding: 20px 0;
-}
-
-.detail-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #f0f0f0;
-  margin-bottom: 20px;
-}
-
-.detail-avatar {
-  border: 3px solid #11998e;
-}
-
-.detail-avatar--default {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  color: #fff;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.detail-player-info {
-  flex: 1;
-}
-
-.detail-player-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1a1a2e;
-  margin-bottom: 4px;
-}
-
-.detail-player-id {
-  font-size: 13px;
-  color: #8c8c8c;
-}
-
-.detail-role-badge {
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.detail-role-badge.landlord {
-  background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
-  color: #7c5800;
-}
-
-.detail-role-badge.farmer {
-  background: #e6f7ff;
-  color: #1890ff;
-}
-
-.detail-section {
-  margin-bottom: 20px;
-}
-
-.detail-section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1a1a2e;
-  margin-bottom: 12px;
-  padding-left: 10px;
-  border-left: 3px solid #11998e;
-}
-
-.detail-cards-display {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 16px;
-  background: #fafafa;
-  border-radius: 8px;
-}
-
-.detail-cards-display.landlord {
-  background: linear-gradient(135deg, #fffbe6 0%, #fff1b8 100%);
-}
-
-.detail-card-item {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 36px;
-  height: 48px;
-  padding: 0 8px;
-  background: linear-gradient(145deg, #fff 0%, #f5f5f5 100%);
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
-  font-size: 16px;
-  font-weight: 700;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
-}
-
-.detail-card-item.card-red {
-  color: #ff4d4f;
-}
-
-.detail-card-item.card-black {
-  color: #262626;
-}
-
-.detail-card-item.card-joker-small {
-  background: linear-gradient(145deg, #000 0%, #333 100%);
-  color: #fff;
-  border-color: #000;
-}
-
-.detail-card-item.card-joker-big {
-  background: linear-gradient(145deg, #ff4d4f 0%, #ff7875 100%);
-  color: #fff;
-  border-color: #ff4d4f;
-}
-
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.detail-item {
-  background: #fafafa;
-  border-radius: 8px;
-  padding: 12px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.detail-item.full-width {
-  grid-column: span 2;
-}
-
-.detail-label {
-  font-size: 13px;
-  color: #8c8c8c;
-}
-
-.detail-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1a1a2e;
-}
-
-.detail-value.game-id {
-  font-family: 'Monaco', 'Consolas', monospace;
-  font-size: 12px;
-  word-break: break-all;
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-top: 16px;
 }
 </style>
