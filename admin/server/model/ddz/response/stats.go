@@ -3,12 +3,12 @@ package response
 // DDZDailyStatsResponse 每日统计响应
 type DDZDailyStatsResponse struct {
         Date            string  `json:"date"`
-        TotalPlayers    int     `json:"totalPlayers"`
-        NewPlayers      int     `json:"newPlayers"`
-        ActivePlayers   int     `json:"activePlayers"`
-        TotalGames      int     `json:"totalGames"`
+        TotalPlayers    int64   `json:"totalPlayers"`
+        NewPlayers      int64   `json:"newPlayers"`
+        ActivePlayers   int64   `json:"activePlayers"`
+        TotalGames      int64   `json:"totalGames"`
         AvgGameDuration float64 `json:"avgGameDuration"`
-        MaxOnline       int     `json:"maxOnline"`
+        MaxOnline       int64   `json:"maxOnline"`
         TotalOnlineTime int64   `json:"totalOnlineTime"`
         PeakTime        string  `json:"peakTime"`
 }

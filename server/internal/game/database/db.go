@@ -1192,8 +1192,6 @@ func UpdateDailyStatsOnRegister(tx *gorm.DB, registerTime time.Time) error {
         var stats DailyStats
         err := tx.Where("stat_date = ?", statDate).First(&stats).Error
 
-        nextDay := statDate.AddDate(0, 0, 1).Format("2006-01-02")
-
         if err == gorm.ErrRecordNotFound {
                 // 创建新的统计记录
                 stats = DailyStats{
