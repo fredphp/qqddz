@@ -37,11 +37,11 @@
         <el-table-column align="center" label="玩家信息" min-width="180">
           <template #default="scope">
             <div class="player-info">
-              <el-avatar :size="40" :src="scope.row.playerAvatar || scope.row.wxAvatar" shape="square">
+              <el-avatar :size="40" :src="getUrl(scope.row.playerAvatar) || defaultAvatar" shape="square">
                 <el-icon :size="20"><User /></el-icon>
               </el-avatar>
               <div class="player-detail">
-                <div class="player-name">{{ scope.row.playerNickname || scope.row.wxNickname || '-' }}</div>
+                <div class="player-name">{{ scope.row.playerNickname || '-' }}</div>
                 <div class="player-meta">
                   <el-tag v-if="scope.row.playerVipLevel > 0" type="warning" size="small" class="mr-1">VIP{{ scope.row.playerVipLevel }}</el-tag>
                   <el-tag type="info" size="small">Lv.{{ scope.row.playerLevel || 1 }}</el-tag>
@@ -263,28 +263,75 @@
     </el-dialog>
 
     <!-- 编辑用户对话框 -->
-    <el-dialog v-model="editDialog" title="编辑用户账户" width="500px">
-      <el-form ref="editForm" :model="editForm" label-width="100px">
-        <el-form-item label="手机号">
-          <el-input v-model="editForm.phone" />
-        </el-form-item>
-        <el-form-item label="微信昵称">
-          <el-input v-model="editForm.wxNickname" />
-        </el-form-item>
-        <el-form-item label="微信头像">
-          <el-input v-model="editForm.wxAvatar" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="editForm.status" style="width: 100%">
-            <el-option label="正常" :value="1" />
-            <el-option label="禁用" :value="0" />
-            <el-option label="封禁" :value="2" />
-          </el-select>
-        </el-form-item>
-      </el-form>
+    <el-dialog v-model="editDialog" title="编辑用户账户" width="550px" destroy-on-close>
+      <div class="edit-dialog-content">
+        <!-- 玩家信息卡片 -->
+        <div class="player-info-card">
+          <el-avatar :size="56" :src="getUrl(editForm.playerAvatar) || defaultAvatar" shape="square">
+            <el-icon :size="28"><User /></el-icon>
+          </el-avatar>
+          <div class="player-info-details">
+            <div class="player-info-name">{{ editForm.playerNickname || '未知玩家' }}</div>
+            <div class="player-info-meta">
+              <span class="player-id-label">玩家ID: {{ editForm.playerId }}</span>
+              <el-tag v-if="editForm.playerVipLevel > 0" type="warning" size="small">VIP{{ editForm.playerVipLevel }}</el-tag>
+              <el-tag type="info" size="small">Lv.{{ editForm.playerLevel || 1 }}</el-tag>
+            </div>
+            <div class="player-info-coins">
+              <span class="coin-label">金币:</span>
+              <span class="coin-value gold">{{ formatNumber(editForm.playerCoins) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <el-divider content-position="left">账户信息</el-divider>
+
+        <el-form ref="editForm" :model="editForm" label-width="80px" class="edit-form">
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="手机号">
+                <el-input v-model="editForm.phone" placeholder="请输入手机号" clearable />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="状态">
+                <el-select v-model="editForm.status" style="width: 100%">
+                  <el-option label="正常" :value="1">
+                    <el-tag type="success" size="small">正常</el-tag>
+                  </el-option>
+                  <el-option label="禁用" :value="0">
+                    <el-tag type="danger" size="small">禁用</el-tag>
+                  </el-option>
+                  <el-option label="封禁" :value="2">
+                    <el-tag type="danger" size="small">封禁</el-tag>
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item label="登录类型">
+            <el-tag :type="getLoginTypeTag(editForm.loginType)">
+              {{ editForm.loginTypeText || '-' }}
+            </el-tag>
+            <span class="readonly-hint">（登录类型不可修改）</span>
+          </el-form-item>
+          <el-form-item label="设备类型">
+            <el-tag v-if="editForm.deviceType" :type="getDeviceTypeTag(editForm.deviceType)">
+              {{ getDeviceTypeText(editForm.deviceType) }}
+            </el-tag>
+            <span v-else class="text-muted">-</span>
+            <span class="readonly-hint">（设备类型不可修改）</span>
+          </el-form-item>
+        </el-form>
+
+        <div class="edit-tips">
+          <el-icon><InfoFilled /></el-icon>
+          <span>提示：如需修改玩家头像或昵称，请前往玩家管理页面操作</span>
+        </div>
+      </div>
       <template #footer>
         <el-button @click="editDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleEdit">确定</el-button>
+        <el-button type="primary" @click="handleEdit">保存修改</el-button>
       </template>
     </el-dialog>
   </div>
@@ -293,7 +340,8 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowDown, User } from '@element-plus/icons-vue'
+import { ArrowDown, User, InfoFilled } from '@element-plus/icons-vue'
+import { getUrl } from '@/utils/image'
 import {
   getUserAccountList,
   createUserAccount,
@@ -351,11 +399,21 @@ const createRules = {
 
 const editForm = ref({
   ID: null,
+  playerId: '',
   phone: '',
-  wxNickname: '',
-  wxAvatar: '',
-  status: 1
+  status: 1,
+  loginType: 0,
+  loginTypeText: '',
+  deviceType: '',
+  playerNickname: '',
+  playerAvatar: '',
+  playerLevel: 1,
+  playerVipLevel: 0,
+  playerCoins: 0
 })
+
+// 默认头像
+const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
 
 const formatNumber = (num) => {
   if (!num) return '0'
@@ -432,10 +490,17 @@ const viewUser = (row) => {
 const editUser = (row) => {
   editForm.value = {
     ID: row.ID,
+    playerId: row.playerId,
     phone: row.phone || '',
-    wxNickname: row.wxNickname || '',
-    wxAvatar: row.wxAvatar || '',
-    status: row.status
+    status: row.status,
+    loginType: row.loginType,
+    loginTypeText: row.loginTypeText,
+    deviceType: row.deviceType,
+    playerNickname: row.playerNickname,
+    playerAvatar: row.playerAvatar,
+    playerLevel: row.playerLevel,
+    playerVipLevel: row.playerVipLevel,
+    playerCoins: row.playerCoins
   }
   editDialog.value = true
 }
@@ -589,5 +654,87 @@ getTableData()
 .log-subtract {
   color: #f56c6c;
   font-weight: 600;
+}
+
+/* 编辑弹窗样式 */
+.edit-dialog-content {
+  padding: 0 10px;
+}
+
+.player-info-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.player-info-details {
+  flex: 1;
+}
+
+.player-info-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 6px;
+}
+
+.player-info-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.player-id-label {
+  color: #909399;
+  font-size: 12px;
+}
+
+.player-info-coins {
+  margin-top: 4px;
+}
+
+.coin-label {
+  color: #909399;
+  font-size: 12px;
+  margin-right: 4px;
+}
+
+.coin-value {
+  font-weight: 600;
+}
+
+.coin-value.gold {
+  color: #f59e0b;
+}
+
+.edit-form {
+  margin-top: 10px;
+}
+
+.readonly-hint {
+  color: #909399;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+.text-muted {
+  color: #c0c4cc;
+}
+
+.edit-tips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: #fdf6ec;
+  border-radius: 4px;
+  color: #e6a23c;
+  font-size: 13px;
+  margin-top: 16px;
 }
 </style>
