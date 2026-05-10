@@ -101,7 +101,7 @@
                 <el-avatar 
                   v-if="scope.row.playerAvatar" 
                   :size="48" 
-                  :src="scope.row.playerAvatar" 
+                  :src="getUrl(scope.row.playerAvatar)" 
                   class="player-avatar"
                 />
                 <el-avatar 
@@ -263,7 +263,7 @@
           <el-avatar 
             v-if="currentPlayer.playerAvatar" 
             :size="64" 
-            :src="currentPlayer.playerAvatar"
+            :src="getUrl(currentPlayer.playerAvatar)"
             class="detail-avatar"
           />
           <el-avatar 
@@ -378,6 +378,7 @@
 import { ref, computed } from 'vue'
 import { getPlayerStatList } from '@/api/ddz/gameLog'
 import { User, TrendCharts, Trophy, Flag, CaretTop, CaretBottom, Search, Refresh, View } from '@element-plus/icons-vue'
+import { getUrl } from '@/utils/image'
 
 defineOptions({
   name: 'DDZPlayerStat'
