@@ -284,10 +284,11 @@ func (s *DDZUserAccountService) GetLoginLogList(req ddzReq.DDZLoginLogSearch) (l
         logList := make([]ddzRes.DDZLoginLogResponse, 0, len(logs))
         for _, l := range logs {
                 resp := s.toLoginLogResponse(l)
-                // 获取玩家昵称
+                // 获取玩家昵称和头像
                 var player ddz.DDZPlayer
                 if err := db.Where("id = ?", l.PlayerID).First(&player).Error; err == nil {
                         resp.PlayerNickname = player.Nickname
+                        resp.PlayerAvatar = player.Avatar
                 }
                 logList = append(logList, resp)
         }

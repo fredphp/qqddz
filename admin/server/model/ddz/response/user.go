@@ -49,4 +49,5 @@ type DDZLoginLogResponse struct {
         CreatedAt   string `json:"createdAt"`
         // 关联信息
         PlayerNickname string `json:"playerNickname"`
+        PlayerAvatar   string `json:"playerAvatar"`
 }
