@@ -123,10 +123,10 @@ func (s *DDZStatsService) GetDailyStats(req ddzReq.DDZDailyStatsSearch) ([]ddzRe
 
                 result = append(result, ddzRes.DDZDailyStatsResponse{
                         Date:            dateStr,
-                        TotalPlayers:    totalPlayers,
-                        NewPlayers:      newPlayers,
-                        ActivePlayers:   activePlayers,
-                        TotalGames:      totalGames,
+                        TotalPlayers:    int(totalPlayers),
+                        NewPlayers:      int(newPlayers),
+                        ActivePlayers:   int(activePlayers),
+                        TotalGames:      int(totalGames),
                         AvgGameDuration: avgDuration,
                         MaxOnline:       0, // 需要从在线记录计算
                         TotalOnlineTime: 0,
