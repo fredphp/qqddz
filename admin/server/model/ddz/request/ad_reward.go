@@ -6,8 +6,8 @@ import "github.com/flipped-aurora/gin-vue-admin/server/model/common/request"
 type DDZAdRewardSearch struct {
         request.PageInfo
         PlayerID     NullUint64 `json:"playerId" form:"playerId"`
-        AdType       *int       `json:"adType" form:"adType"`
-        CurrencyType *int       `json:"currencyType" form:"currencyType"`
+        AdType       NullInt    `json:"adType" form:"adType"`
+        CurrencyType NullInt    `json:"currencyType" form:"currencyType"`
         StartDate    string     `json:"startDate" form:"startDate"`
         EndDate      string     `json:"endDate" form:"endDate"`
 }

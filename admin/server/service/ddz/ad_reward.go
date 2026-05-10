@@ -20,11 +20,11 @@ func (s *DDZAdRewardService) GetAdRewardList(req ddzReq.DDZAdRewardSearch) (list
         if req.PlayerID.Valid {
                 query = query.Where("player_id = ?", req.PlayerID.Value)
         }
-        if req.AdType != nil {
-                query = query.Where("ad_type = ?", *req.AdType)
+        if req.AdType.Valid {
+                query = query.Where("ad_type = ?", req.AdType.Value)
         }
-        if req.CurrencyType != nil {
-                query = query.Where("currency_type = ?", *req.CurrencyType)
+        if req.CurrencyType.Valid {
+                query = query.Where("currency_type = ?", req.CurrencyType.Value)
         }
         if req.StartDate != "" {
                 query = query.Where("created_at >= ?", req.StartDate+" 00:00:00")
