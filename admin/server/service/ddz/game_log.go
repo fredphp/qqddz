@@ -1812,7 +1812,9 @@ func (s *DDZGameLogService) GetRoomGameRecords(req ddzReq.DDZRoomGameRecordsSear
         }
 
         // 查询该房间的游戏记录
-        query := db.Table(gameRecordTable).Where("room_code = ?", req.RoomCode)
+        // 注意：游戏服务器将房间号存储在 room_id 字段（room_code 可能为空）
+        // 所以需要同时查询 room_code 和 room_id 两个字段
+        query := db.Table(gameRecordTable).Where("room_code = ? OR room_id = ?", req.RoomCode, req.RoomCode)
 
         var total int64
         err := query.Count(&total).Error
@@ -1866,6 +1868,7 @@ func (s *DDZGameLogService) GetRoomGameRecords(req ddzReq.DDZRoomGameRecordsSear
         db.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", roomsTable).Scan(&tableCount)
         if tableCount > 0 {
                 var room RoomRecord
+                // ddz_rooms 表中 room_code 字段有数据，直接用 room_code 查询
                 if err := db.Table(roomsTable).Where("room_code = ?", req.RoomCode).First(&room).Error; err == nil {
                         roomName = room.RoomName
                 }
