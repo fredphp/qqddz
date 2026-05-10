@@ -2,82 +2,108 @@ package upload
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
-	"github.com/google/uuid"
+	"github.com/flipped-aurora/gin-vue-admin/server/utils"
+	"go.uber.org/zap"
 )
 
-// Local 本地文件存储
+var mu sync.Mutex
+
 type Local struct{}
 
-// UploadFile 上传文件到本地
-func (l *Local) UploadFile(file *multipart.FileHeader) (string, string, error) {
-	// 读取文件内容
-	f, err := file.Open()
-	if err != nil {
-		return "", "", err
-	}
-	defer f.Close()
+//@author: [piexlmax](https://github.com/piexlmax)
+//@author: [ccfish86](https://github.com/ccfish86)
+//@author: [SliverHorn](https://github.com/SliverHorn)
+//@object: *Local
+//@function: UploadFile
+//@description: 上传文件
+//@param: file *multipart.FileHeader
+//@return: string, string, error
 
-	// 生成存储路径
+func (*Local) UploadFile(file *multipart.FileHeader) (string, string, error) {
+	// 读取文件后缀
 	ext := filepath.Ext(file.Filename)
-	filename := fmt.Sprintf("%s%s", uuid.New().String(), ext)
-	uploadPath := global.GVA_CONFIG.Local.Path
+	// 读取文件名并加密
+	name := strings.TrimSuffix(file.Filename, ext)
+	name = utils.MD5V([]byte(name))
+	// 拼接新文件名
+	filename := name + "_" + time.Now().Format("20060102150405") + ext
+	// 尝试创建此路径
+	mkdirErr := os.MkdirAll(global.GVA_CONFIG.Local.StorePath, os.ModePerm)
+	if mkdirErr != nil {
+		global.GVA_LOG.Error("function os.MkdirAll() failed", zap.Any("err", mkdirErr.Error()))
+		return "", "", errors.New("function os.MkdirAll() failed, err:" + mkdirErr.Error())
+	}
+	// 拼接路径和文件名
+	p := global.GVA_CONFIG.Local.StorePath + "/" + filename
+	filepath := global.GVA_CONFIG.Local.Path + "/" + filename
 
-	// 确保目录存在
-	if err := os.MkdirAll(uploadPath, 0755); err != nil {
-		return "", "", err
+	f, openError := file.Open() // 读取文件
+	if openError != nil {
+		global.GVA_LOG.Error("function file.Open() failed", zap.Any("err", openError.Error()))
+		return "", "", errors.New("function file.Open() failed, err:" + openError.Error())
+	}
+	defer f.Close() // 创建文件 defer 关闭
+
+	out, createErr := os.Create(p)
+	if createErr != nil {
+		global.GVA_LOG.Error("function os.Create() failed", zap.Any("err", createErr.Error()))
+
+		return "", "", errors.New("function os.Create() failed, err:" + createErr.Error())
+	}
+	defer out.Close() // 创建文件 defer 关闭
+
+	_, copyErr := io.Copy(out, f) // 传输（拷贝）文件
+	if copyErr != nil {
+		global.GVA_LOG.Error("function io.Copy() failed", zap.Any("err", copyErr.Error()))
+		return "", "", errors.New("function io.Copy() failed, err:" + copyErr.Error())
+	}
+	return filepath, filename, nil
+}
+
+//@author: [piexlmax](https://github.com/piexlmax)
+//@author: [ccfish86](https://github.com/ccfish86)
+//@author: [SliverHorn](https://github.com/SliverHorn)
+//@object: *Local
+//@function: DeleteFile
+//@description: 删除文件
+//@param: key string
+//@return: error
+
+func (*Local) DeleteFile(key string) error {
+	// 检查 key 是否为空
+	if key == "" {
+		return errors.New("key不能为空")
 	}
 
-	// 按日期创建子目录
-	dateDir := time.Now().Format("2006/01/02")
-	fullPath := filepath.Join(uploadPath, dateDir)
-	if err := os.MkdirAll(fullPath, 0755); err != nil {
-		return "", "", err
+	// 验证 key 是否包含非法字符或尝试访问存储路径之外的文件
+	if strings.Contains(key, "..") || strings.ContainsAny(key, `\/:*?"<>|`) {
+		return errors.New("非法的key")
 	}
 
-	// 目标文件路径
-	dstPath := filepath.Join(fullPath, filename)
-	key := filepath.Join(dateDir, filename)
+	p := filepath.Join(global.GVA_CONFIG.Local.StorePath, key)
 
-	// 创建目标文件
-	dst, err := os.Create(dstPath)
+	// 检查文件是否存在
+	if _, err := os.Stat(p); os.IsNotExist(err) {
+		return errors.New("文件不存在")
+	}
+
+	// 使用文件锁防止并发删除
+	mu.Lock()
+	defer mu.Unlock()
+
+	err := os.Remove(p)
 	if err != nil {
-		return "", "", err
-	}
-	defer dst.Close()
-
-	// 复制文件内容
-	if _, err := io.Copy(dst, f); err != nil {
-		return "", "", err
+		return errors.New("文件删除失败: " + err.Error())
 	}
 
-	// 返回文件URL和key
-	url := filepath.Join("/", uploadPath, key)
-	return url, key, nil
-}
-
-// DeleteFile 删除本地文件
-func (l *Local) DeleteFile(key string) error {
-	uploadPath := global.GVA_CONFIG.Local.Path
-	fullPath := filepath.Join(uploadPath, key)
-
-	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-		return nil
-	}
-
-	return os.Remove(fullPath)
-}
-
-func init() {
-	// 确保上传目录存在
-	if global.GVA_CONFIG.Local.Path != "" {
-		os.MkdirAll(global.GVA_CONFIG.Local.Path, 0755)
-	}
+	return nil
 }
