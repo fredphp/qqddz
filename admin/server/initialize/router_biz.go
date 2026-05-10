@@ -27,7 +27,8 @@ func initBizRouter(routers ...*gin.RouterGroup) {
                 ddzRouter.InitDDZGameLogRouter(privateGroup)     // 斗地主游戏日志路由
                 ddzRouter.InitDDZRewardRouter(privateGroup)      // 斗地主奖励路由
                 ddzRouter.InitDDZArenaRegistrationRouter(privateGroup) // 斗地主竞技场报名路由
-                ddzRouter.InitDDZConfigRouter(privateGroup)      // 斗地主配置路由
+                // 注意：InitDDZConfigRouter 已移除，因为与 InitDDZGameConfigRouter 路由冲突
+                // ddzRouter.InitDDZConfigRouter(privateGroup)    // 斗地主配置路由（已移除）
                 ddzRouter.InitDDZArenaPeriodRouter(privateGroup) // 斗地主期号管理路由
                 ddzRouter.InitDDZRobotConfigRouter(privateGroup) // 斗地主机器人配置路由
                 ddzRouter.InitDDZAdRewardRouter(privateGroup)    // 斗地主广告奖励日志路由
