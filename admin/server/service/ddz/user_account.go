@@ -154,6 +154,7 @@ func (s *DDZUserAccountService) GetUserAccountList(req ddzReq.DDZUserAccountSear
                         resp.PlayerLevel = player.Level
                         resp.PlayerVipLevel = player.VIPLevel
                         resp.PlayerCoins = player.Gold
+                        resp.PlayerArenaCoin = player.ArenaCoin
                 }
                 accountList = append(accountList, resp)
         }
@@ -179,6 +180,7 @@ func (s *DDZUserAccountService) GetUserAccountByID(id uint) (ddzRes.DDZUserAccou
                 resp.PlayerLevel = player.Level
                 resp.PlayerVipLevel = player.VIPLevel
                 resp.PlayerCoins = player.Gold
+                resp.PlayerArenaCoin = player.ArenaCoin
         }
 
         return resp, nil

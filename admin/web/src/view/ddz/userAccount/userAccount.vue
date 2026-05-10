@@ -277,9 +277,23 @@
               <el-tag v-if="editForm.playerVipLevel > 0" type="warning" size="small">VIP{{ editForm.playerVipLevel }}</el-tag>
               <el-tag type="info" size="small">Lv.{{ editForm.playerLevel || 1 }}</el-tag>
             </div>
-            <div class="player-info-coins">
-              <span class="coin-label">金币:</span>
-              <span class="coin-value gold">{{ formatNumber(editForm.playerCoins) }}</span>
+          </div>
+        </div>
+
+        <!-- 货币余额卡片 -->
+        <div class="balance-cards">
+          <div class="balance-card gold">
+            <div class="balance-icon">💰</div>
+            <div class="balance-info">
+              <div class="balance-label">欢乐豆</div>
+              <div class="balance-value">{{ formatNumber(editForm.playerCoins) }}</div>
+            </div>
+          </div>
+          <div class="balance-card arena">
+            <div class="balance-icon">🏆</div>
+            <div class="balance-info">
+              <div class="balance-label">竞技币</div>
+              <div class="balance-value">{{ formatNumber(editForm.playerArenaCoin) }}</div>
             </div>
           </div>
         </div>
@@ -409,7 +423,8 @@ const editForm = ref({
   playerAvatar: '',
   playerLevel: 1,
   playerVipLevel: 0,
-  playerCoins: 0
+  playerCoins: 0,
+  playerArenaCoin: 0
 })
 
 // 默认头像
@@ -500,7 +515,8 @@ const editUser = (row) => {
     playerAvatar: row.playerAvatar,
     playerLevel: row.playerLevel,
     playerVipLevel: row.playerVipLevel,
-    playerCoins: row.playerCoins
+    playerCoins: row.playerCoins,
+    playerArenaCoin: row.playerArenaCoin
   }
   editDialog.value = true
 }
@@ -710,6 +726,63 @@ getTableData()
 
 .coin-value.gold {
   color: #f59e0b;
+}
+
+/* 货币余额卡片 */
+.balance-cards {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.balance-card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e4e7ed;
+}
+
+.balance-card.gold {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #fcd34d;
+}
+
+.balance-card.arena {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #93c5fd;
+}
+
+.balance-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.balance-info {
+  flex: 1;
+}
+
+.balance-label {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 2px;
+}
+
+.balance-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.balance-card.gold .balance-value {
+  color: #d97706;
+}
+
+.balance-card.arena .balance-value {
+  color: #2563eb;
 }
 
 .edit-form {
