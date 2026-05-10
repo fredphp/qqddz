@@ -2023,7 +2023,7 @@ cc.Class({
                         return {
                             accountid: p.id,
                             nick_name: p.name,
-                            avatarUrl: "avatar_1",
+                            avatarUrl: p.avatar || "avatar_1",  // 🔧【修复】使用实际头像URL
                             gold_count: p.gold_count || 0,
                             goldcount: p.gold_count || 0,
                             seatindex: (p.seat !== undefined ? p.seat : idx) + 1,
@@ -5143,7 +5143,7 @@ cc.Class({
                         return {
                             accountid: p.id,
                             nick_name: p.name,
-                            avatarUrl: "avatar_1",
+                            avatarUrl: p.avatar || "avatar_1",  // 🔧【修复】使用实际头像URL
                             gold_count: p.gold_count || 0,  // 🔧【修复】使用服务端发送的金币数量
                             goldcount: p.gold_count || 0,   // 兼容旧客户端
                             seatindex: (p.seat !== undefined ? p.seat : idx) + 1,  // 座位索引从1开始
@@ -5279,6 +5279,12 @@ cc.Class({
         
         // 🔧【修复】使用加载图片替代文字
         cc.resources.load('UI/loading_image', cc.SpriteFrame, function(err, spriteFrame) {
+            // 🔧【关键修复】检查节点是否仍然有效
+            if (!maskNode || !maskNode.isValid) {
+                console.log("加载图片回调时节点已销毁，跳过");
+                return;
+            }
+            
             if (err || !spriteFrame) {
                 console.warn("加载 loading_image.png 失败，使用文字提示");
                 // 降级：使用文字提示
