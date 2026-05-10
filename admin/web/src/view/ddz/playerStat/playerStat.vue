@@ -188,16 +188,12 @@
           </template>
         </el-table-column>
 
-        <!-- 金币变化列 -->
-        <el-table-column label="金币变化" min-width="120" align="center">
+        <!-- 当前金币列 -->
+        <el-table-column label="当前金币" min-width="120" align="center">
           <template #default="scope">
-            <div 
-              class="gold-cell" 
-              :class="{ 'gold-cell--positive': scope.row.totalGoldChange >= 0, 'gold-cell--negative': scope.row.totalGoldChange < 0 }"
-            >
-              <el-icon v-if="scope.row.totalGoldChange >= 0" :size="16"><CaretTop /></el-icon>
-              <el-icon v-else :size="16"><CaretBottom /></el-icon>
-              <span>{{ Math.abs(scope.row.totalGoldChange || 0).toLocaleString() }}</span>
+            <div class="gold-cell">
+              <span class="gold-icon">💰</span>
+              <span class="gold-value">{{ (scope.row.currentGold || 0).toLocaleString() }}</span>
             </div>
           </template>
         </el-table-column>
@@ -307,12 +303,9 @@
               </div>
             </div>
             <div class="detail-stat-item">
-              <div class="detail-stat-label">金币变化</div>
-              <div 
-                class="detail-stat-value"
-                :class="currentPlayer.totalGoldChange >= 0 ? 'detail-stat-value--success' : 'detail-stat-value--danger'"
-              >
-                {{ currentPlayer.totalGoldChange >= 0 ? '+' : '' }}{{ currentPlayer.totalGoldChange || 0 }}
+              <div class="detail-stat-label">当前金币</div>
+              <div class="detail-stat-value">
+                💰 {{ (currentPlayer.currentGold || 0).toLocaleString() }}
               </div>
             </div>
             <div class="detail-stat-item">
@@ -377,7 +370,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { getPlayerStatList } from '@/api/ddz/gameLog'
-import { User, TrendCharts, Trophy, Flag, CaretTop, CaretBottom, Search, Refresh, View } from '@element-plus/icons-vue'
+import { User, TrendCharts, Trophy, Flag, Search, Refresh, View } from '@element-plus/icons-vue'
 import { getUrl } from '@/utils/image'
 
 defineOptions({
@@ -781,7 +774,7 @@ getTableData()
   color: #8c8c8c;
 }
 
-/* 金币变化单元格 */
+/* 当前金币单元格 */
 .gold-cell {
   display: flex;
   align-items: center;
@@ -789,14 +782,15 @@ getTableData()
   gap: 4px;
   font-weight: 700;
   font-size: 15px;
+  color: #faad14;
 }
 
-.gold-cell--positive {
-  color: #52c41a;
+.gold-icon {
+  font-size: 16px;
 }
 
-.gold-cell--negative {
-  color: #ff4d4f;
+.gold-value {
+  color: #faad14;
 }
 
 /* 炸弹单元格 */

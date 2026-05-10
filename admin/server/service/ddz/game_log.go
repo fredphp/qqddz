@@ -405,7 +405,8 @@ func (s *DDZGameLogService) GetPlayerStatList(req ddzReq.DDZPlayerStatSearch) (l
                         FarmerGames:     p.FarmerCount,
                         FarmerWins:      p.WinCount / 3 * 2, // 简化计算
                         FarmerWinRate:   farmerWinRate,
-                        TotalGoldChange: p.Gold,
+                        CurrentGold:     p.Gold,        // 当前金币余额
+                        VipLevel:        p.VIPLevel,    // VIP等级
                         CreatedAt:       p.CreatedAt.Format("2006-01-02 15:04:05"),
                 })
         }

@@ -66,9 +66,8 @@ type DDZPlayerStatResponse struct {
         FarmerGames     int     `json:"farmerGames"`
         FarmerWins      int     `json:"farmerWins"`
         FarmerWinRate   float64 `json:"farmerWinRate"`
-        TotalGoldChange int64   `json:"totalGoldChange"`
-        MaxWinGold      int64   `json:"maxWinGold"`
-        MaxLoseGold     int64   `json:"maxLoseGold"`
+        CurrentGold     int64   `json:"currentGold"`     // 当前金币余额
+        VipLevel        int     `json:"vipLevel"`        // VIP等级
         TotalBombs      int     `json:"totalBombs"`
         TotalRockets    int     `json:"totalRockets"`
         SpringCount     int     `json:"springCount"`
