@@ -76,31 +76,68 @@ func (s *DDZUserAccountService) GetUserAccountList(req ddzReq.DDZUserAccountSear
         db := GetDDZDB()
         limit := req.PageSize
         offset := req.PageSize * (req.Page - 1)
-        query := db.Model(&ddz.DDZUserAccount{})
+
+        // 构建查询条件
+        conditions := ""
+        args := make([]interface{}, 0)
 
         if req.Phone != "" {
-                query = query.Where("phone LIKE ?", "%"+req.Phone+"%")
+                if conditions != "" {
+                        conditions += " AND "
+                }
+                conditions += "ddz_user_accounts.phone LIKE ?"
+                args = append(args, "%"+req.Phone+"%")
         }
         if req.PlayerID != "" {
-                query = query.Where("player_id = ?", req.PlayerID)
+                if conditions != "" {
+                        conditions += " AND "
+                }
+                conditions += "ddz_user_accounts.player_id = ?"
+                args = append(args, req.PlayerID)
         }
         if req.LoginType != nil {
-                query = query.Where("login_type = ?", *req.LoginType)
+                if conditions != "" {
+                        conditions += " AND "
+                }
+                conditions += "ddz_user_accounts.login_type = ?"
+                args = append(args, *req.LoginType)
         }
         if req.Status != nil {
-                query = query.Where("status = ?", *req.Status)
+                if conditions != "" {
+                        conditions += " AND "
+                }
+                conditions += "ddz_user_accounts.status = ?"
+                args = append(args, *req.Status)
         }
         if req.WxNickname != "" {
-                query = query.Where("wx_nickname LIKE ?", "%"+req.WxNickname+"%")
+                if conditions != "" {
+                        conditions += " AND "
+                }
+                conditions += "ddz_user_accounts.wx_nickname LIKE ?"
+                args = append(args, "%"+req.WxNickname+"%")
         }
 
-        err = query.Count(&total).Error
+        // 统计总数
+        countQuery := db.Model(&ddz.DDZUserAccount{})
+        if conditions != "" {
+                countQuery = countQuery.Where(conditions, args...)
+        }
+        err = countQuery.Count(&total).Error
         if err != nil {
                 return nil, 0, err
         }
 
         var accounts []ddz.DDZUserAccount
-        err = query.Limit(limit).Offset(offset).Order("id desc").Find(&accounts).Error
+        // 通过 JOIN 玩家表实现真人用户优先排序
+        dataQuery := db.Table("ddz_user_accounts").
+                Select("ddz_user_accounts.*").
+                Joins("LEFT JOIN ddz_players ON ddz_user_accounts.player_id = ddz_players.id")
+        if conditions != "" {
+                dataQuery = dataQuery.Where(conditions, args...)
+        }
+        err = dataQuery.Limit(limit).Offset(offset).
+                Order("ddz_players.player_type ASC, ddz_user_accounts.id desc").
+                Find(&accounts).Error
         if err != nil {
                 return nil, 0, err
         }
