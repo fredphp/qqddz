@@ -30,9 +30,13 @@ cc.Class({
     
     // 加载图片旋转动画
     update: function(dt) {
+        // _showMessageCenter 的加载图片旋转
         if (this._loadingImageAnimating && this._loadingImageNode && this._loadingImageNode.isValid) {
-            // 每帧旋转 45 度/秒
             this._loadingImageNode.angle += dt * 180;
+        }
+        // _showQuickEnterAnimation 的加载图片旋转
+        if (this._quickEnterAnimating && this._quickEnterLoadingNode && this._quickEnterLoadingNode.isValid) {
+            this._quickEnterLoadingNode.angle += dt * 180;
         }
     },
     
@@ -5253,7 +5257,7 @@ cc.Class({
         }
     },
     
-    // 🔧【新增】显示快速进入动画
+    // 🔧【新增】显示快速进入动画（使用加载图片）
     _showQuickEnterAnimation: function() {
         var self = this;
         
@@ -5273,24 +5277,40 @@ cc.Class({
         maskNode.addComponent(cc.BlockInputEvents);
         maskNode.parent = this.node;
         
-        // 添加加载文字
-        var loadingNode = new cc.Node("LoadingText");
-        loadingNode.y = 0;
-        var loadingLabel = loadingNode.addComponent(cc.Label);
-        loadingLabel.string = "正在进入游戏...";
-        loadingLabel.fontSize = 32;
-        loadingLabel.lineHeight = 40;
-        loadingLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        loadingNode.color = cc.color(255, 255, 255);
-        loadingNode.parent = maskNode;
-        
-        // 添加点动画
-        var dots = 0;
-        var updateDots = function() {
-            dots = (dots + 1) % 4;
-            loadingLabel.string = "正在进入游戏" + ".".repeat(dots);
-        };
-        this.schedule(updateDots, 0.3);
+        // 🔧【修复】使用加载图片替代文字
+        cc.resources.load('UI/loading_image', cc.SpriteFrame, function(err, spriteFrame) {
+            if (err || !spriteFrame) {
+                console.warn("加载 loading_image.png 失败，使用文字提示");
+                // 降级：使用文字提示
+                var loadingNode = new cc.Node("LoadingText");
+                loadingNode.y = 0;
+                var loadingLabel = loadingNode.addComponent(cc.Label);
+                loadingLabel.string = "正在进入游戏...";
+                loadingLabel.fontSize = 32;
+                loadingLabel.lineHeight = 40;
+                loadingLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+                loadingNode.color = cc.color(255, 255, 255);
+                loadingNode.parent = maskNode;
+                return;
+            }
+            
+            // 创建加载图片节点
+            var loadingImageNode = new cc.Node("LoadingImage");
+            loadingImageNode.setContentSize(cc.size(120, 120));
+            loadingImageNode.anchorX = 0.5;
+            loadingImageNode.anchorY = 0.5;
+            
+            var sprite = loadingImageNode.addComponent(cc.Sprite);
+            sprite.spriteFrame = spriteFrame;
+            sprite.type = cc.Sprite.Type.SIMPLE;
+            sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+            
+            loadingImageNode.parent = maskNode;
+            
+            // 添加旋转动画（180度/秒）
+            self._quickEnterLoadingNode = loadingImageNode;
+            self._quickEnterAnimating = true;
+        });
         
         // 淡入动画
         cc.tween(maskNode)
