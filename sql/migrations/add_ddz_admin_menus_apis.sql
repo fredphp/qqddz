@@ -193,6 +193,18 @@ SELECT NOW(), NOW(), '/ddz/arenaTable/list', '获取桌号列表', '斗地主桌
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `sys_apis` WHERE `path` = '/ddz/arenaTable/list' AND `method` = 'POST');
 
+-- 竞技场金币流水API (不存在于 hlddz.sql)
+INSERT INTO `sys_apis` (`created_at`, `updated_at`, `path`, `description`, `api_group`, `method`)
+SELECT NOW(), NOW(), '/ddz/arenaGoldLog/list', '获取竞技场金币流水列表', '斗地主竞技场金币流水', 'POST'
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `sys_apis` WHERE `path` = '/ddz/arenaGoldLog/list' AND `method` = 'POST');
+
+-- 广告奖励日志API (不存在于 hlddz.sql)
+INSERT INTO `sys_apis` (`created_at`, `updated_at`, `path`, `description`, `api_group`, `method`)
+SELECT NOW(), NOW(), '/ddz/adReward/list', '获取广告奖励日志列表', '斗地主广告奖励', 'POST'
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `sys_apis` WHERE `path` = '/ddz/adReward/list' AND `method` = 'POST');
+
 -- 游戏配置API - 仅添加不存在的API (hlddz.sql 中已有 /ddz/gameConfig/list 和 /ddz/gameConfig/update)
 INSERT INTO `sys_apis` (`created_at`, `updated_at`, `path`, `description`, `api_group`, `method`)
 SELECT NOW(), NOW(), '/ddz/gameConfig/create', '创建游戏配置', '斗地主游戏配置', 'POST'
