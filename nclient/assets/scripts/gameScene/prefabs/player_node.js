@@ -41,12 +41,14 @@ cc.Class({
       this.readyimage.active = false
       this.offlineimage.active = false
       if (this.trusteeimage) this.trusteeimage.active = false  // 🔧【托管】初始化托管图标
+      if (this.masterIcon) this.masterIcon.active = false  // 🔧【修复】初始化地主图标为隐藏
       this.currentCardCount = 17
       this.cardlist_node = []
       
       // 游戏开始事件
       this.node.on("gamestart_event", function(event) {
         this.readyimage.active = false
+        if (this.masterIcon) this.masterIcon.active = false  // 🔧【修复】游戏开始时隐藏地主图标
         if (this.card_node) {
             this.card_node.active = false
             this.card_node.removeAllChildren(true)
