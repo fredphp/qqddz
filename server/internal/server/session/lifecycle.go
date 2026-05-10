@@ -523,6 +523,14 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 // 普通场：玩家手动选择继续游戏或返回大厅
                 log.Printf("🎮 [endGame] 普通场房间 %s 结算完成，等待玩家选择", gs.room.Code)
 
+                // 🔧【关键修复】更新数据库房间状态为已结束
+                // 这样即使服务器重启或玩家断开，数据库中的状态也是正确的
+                if err := database.UpdatePartitionRoomStatus(gs.room.Code, database.RoomStatusFinished, gs.room.CreatedAt); err != nil {
+                        log.Printf("⚠️ [endGame] 更新房间状态为已结束失败: %v", err)
+                } else {
+                        log.Printf("✅ [endGame] 房间 %s 数据库状态已更新为已结束", gs.room.Code)
+                }
+
                 // 重置房间为等待状态，让玩家可以重新准备
                 for _, p := range gs.players {
                         rp := gs.room.Players[p.ID]
