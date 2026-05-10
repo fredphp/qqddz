@@ -28,6 +28,14 @@ cc.Class({
         this._initWithPlayerData();
     },
     
+    // 加载图片旋转动画
+    update: function(dt) {
+        if (this._loadingImageAnimating && this._loadingImageNode && this._loadingImageNode.isValid) {
+            // 每帧旋转 45 度/秒
+            this._loadingImageNode.angle += dt * 180;
+        }
+    },
+    
     _waitForMyglobal: function() {
         var self = this;
         var attempts = 0;
@@ -4839,7 +4847,8 @@ cc.Class({
         var socket = myglobal && myglobal.socket ? myglobal.socket : null;
         
         if (!socket) {
-            self._showMessageCenter("服务器连接异常，请稍后重试");
+            self._hideMessageCenter();
+            self._showMessage("服务器连接异常，请稍后重试");
             return;
         }
         
@@ -4903,7 +4912,8 @@ cc.Class({
             } else if (attempts < maxAttempts) {
                 setTimeout(tryConnect, 200);  // 🔧【优化】减少间隔到200ms
             } else {
-                self._showMessageCenter("连接服务器失败，请检查网络后重试");
+                self._hideMessageCenter();
+                self._showMessage("连接服务器失败，请检查网络后重试");
             }
         };
         
@@ -4917,7 +4927,8 @@ cc.Class({
         var socket = myglobal && myglobal.socket ? myglobal.socket : null;
         
         if (!socket || !socket.request_enter_room) {
-            self._showMessageCenter("服务器连接异常，请稍后重试");
+            self._hideMessageCenter();
+            self._showMessage("服务器连接异常，请稍后重试");
             return;
         }
         
@@ -4942,17 +4953,18 @@ cc.Class({
                     myglobal.playerData.bottom = roomConfig.base_score || 1;
                     myglobal.playerData.rate = roomConfig.multiplier || 1;
                 }
-                self._showMessageCenter("匹配成功，进入游戏...");
                 self._enterGameScene(data);
             } else {
-                self._showMessageCenter("匹配失败，请稍后重试");
+                self._hideMessageCenter();
+                self._showMessage("匹配失败，请稍后重试");
             }
         });
         
         // 设置超时
         this._enterRoomTimeout = setTimeout(function() {
             self._enterRoomTimeout = null;
-            self._showMessageCenter("匹配超时，请检查网络连接");
+            self._hideMessageCenter();
+            self._showMessage("匹配超时，请检查网络连接");
         }, 15000);  // 增加超时时间到15秒
     },
     
@@ -4987,7 +4999,8 @@ cc.Class({
         var socket = myglobal && myglobal.socket ? myglobal.socket : null;
         
         if (!socket || !socket.createRoom) {
-            self._showMessageCenter("服务器连接异常，请稍后重试");
+            self._hideMessageCenter();
+            self._showMessage("服务器连接异常，请稍后重试");
             return;
         }
         
@@ -5033,10 +5046,10 @@ cc.Class({
                     myglobal.socket.saveReconnectInfo();
                 }
                 
-                self._showMessageCenter("进入游戏成功");
                 self._enterGameScene(roomData);
             } else {
-                self._showMessageCenter("创建房间失败，请稍后重试");
+                self._hideMessageCenter();
+                self._showMessage("创建房间失败，请稍后重试");
             }
         });
     },
@@ -5058,7 +5071,8 @@ cc.Class({
             } else if (attempts < maxAttempts) {
                 setTimeout(tryConnect, 200);  // 🔧【优化】减少间隔到200ms
             } else {
-                self._showMessageCenter("连接服务器失败，请检查网络后重试");
+                self._hideMessageCenter();
+                self._showMessage("连接服务器失败，请检查网络后重试");
             }
         };
         
@@ -5096,7 +5110,8 @@ cc.Class({
         var socket = myglobal && myglobal.socket ? myglobal.socket : null;
         
         if (!socket || !socket.joinRoom) {
-            self._showMessageCenter("服务器连接异常，请稍后重试");
+            self._hideMessageCenter();
+            self._showMessage("服务器连接异常，请稍后重试");
             return;
         }
         
@@ -5140,10 +5155,10 @@ cc.Class({
                 myglobal.roomData = roomData;
                 myglobal.playerData.bottom = roomConfig.base_score || 1;
                 myglobal.playerData.rate = roomConfig.multiplier || 1;
-                self._showMessageCenter("加入房间成功");
                 self._enterGameScene(roomData);
             } else {
-                self._showMessageCenter("加入房间失败，房间可能不存在");
+                self._hideMessageCenter();
+                self._showMessage("加入房间失败，房间可能不存在");
             }
         });
     },
@@ -5165,7 +5180,8 @@ cc.Class({
             } else if (attempts < maxAttempts) {
                 setTimeout(tryConnect, 200);  // 🔧【优化】减少间隔到200ms
             } else {
-                self._showMessageCenter("连接服务器失败，请检查网络后重试");
+                self._hideMessageCenter();
+                self._showMessage("连接服务器失败，请检查网络后重试");
             }
         };
         
@@ -5179,8 +5195,6 @@ cc.Class({
         var attempts = 0;
         var maxAttempts = 10;  // 最多等待5秒
         
-        this._showMessageCenter("正在连接服务器...");
-        
         var tryEnter = function() {
             attempts++;
             var isWebSocketOpen = socket && socket.isWebSocketOpen ? socket.isWebSocketOpen() : false;
@@ -5193,7 +5207,8 @@ cc.Class({
             } else {
                 // 连接超时，提示用户检查网络
                 console.error("WebSocket 连接超时");
-                self._showMessageCenter("连接服务器超时，请检查网络设置");
+                self._hideMessageCenter();
+                self._showMessage("连接服务器超时，请检查网络设置");
             }
         };
         
@@ -5209,6 +5224,9 @@ cc.Class({
     
     _enterGameScene: function(roomData) {
         var startTime = Date.now();
+        
+        // 隐藏加载提示
+        this._hideMessageCenter();
         
         // 🔧【优化】显示快速进入动画
         this._showQuickEnterAnimation();
@@ -5313,7 +5331,7 @@ cc.Class({
         }, 2);
     },
     
-    // 在屏幕中央显示提示信息（更显眼）
+    // 在屏幕中央显示加载图片（使用统一的 loading_image.png）
     _showMessageCenter: function(message) {
         // 安全检查：确保节点存在
         if (!this.node || !this.node.isValid) {
@@ -5321,6 +5339,7 @@ cc.Class({
             return;
         }
         
+        var self = this;
         var tipNode = this.node.getChildByName("center_tip");
         if (tipNode) tipNode.destroy();
         
@@ -5334,55 +5353,68 @@ cc.Class({
         tipNode.zIndex = 2000;
         tipNode.parent = this.node;
         
-        // 添加橙色渐变背景（两端透明效果）
-        var bgNode = new cc.Node("Bg");
-        var bg = bgNode.addComponent(cc.Graphics);
+        // 添加半透明背景遮罩
+        var maskNode = new cc.Node("Mask");
+        maskNode.setContentSize(cc.size(screenWidth, screenHeight));
+        var maskGraphics = maskNode.addComponent(cc.Graphics);
+        maskGraphics.fillColor = cc.color(0, 0, 0, 100);  // 半透明黑色背景
+        maskGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight);
+        maskGraphics.fill();
+        maskNode.parent = tipNode;
         
-        // 绘制橙色渐变背景（两端透明，中间不透明）
-        // 分段绘制，模拟渐变效果
-        var totalWidth = 400;
-        var totalHeight = 60;
-        var startX = -200;
-        var startY = -30;
-        var segments = 20;  // 分成20段
-        var segmentWidth = totalWidth / segments;
-        
-        // 橙色基础色 RGB(255, 140, 0)
-        var baseR = 255;
-        var baseG = 140;
-        var baseB = 0;
-        var maxAlpha = 230;  // 中间最大透明度
-        
-        for (var i = 0; i < segments; i++) {
-            // 计算当前段的透明度：两端透明，中间不透明（高斯分布效果）
-            var progress = i / (segments - 1);  // 0 到 1
-            var alpha = maxAlpha * Math.sin(progress * Math.PI);  // 使用正弦函数实现平滑渐变
+        // 加载 loading_image.png 图片
+        cc.resources.load('UI/loading_image', cc.SpriteFrame, function(err, spriteFrame) {
+            if (err || !spriteFrame) {
+                console.warn("加载 loading_image.png 失败，使用文字提示");
+                // 降级：使用文字提示
+                var labelNode = new cc.Node("Label");
+                var label = labelNode.addComponent(cc.Label);
+                label.string = message;
+                label.fontSize = 26;
+                label.lineHeight = 36;
+                label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+                labelNode.color = cc.color(255, 255, 255);
+                labelNode.parent = tipNode;
+                return;
+            }
             
-            bg.fillColor = cc.color(baseR, baseG, baseB, Math.round(alpha));
-            bg.rect(startX + i * segmentWidth, startY, segmentWidth + 1, totalHeight);
-            bg.fill();
+            // 创建加载图片节点
+            var loadingNode = new cc.Node("LoadingImage");
+            loadingNode.setContentSize(cc.size(120, 120));  // 设置加载图片大小
+            loadingNode.anchorX = 0.5;
+            loadingNode.anchorY = 0.5;
+            
+            var sprite = loadingNode.addComponent(cc.Sprite);
+            sprite.spriteFrame = spriteFrame;
+            sprite.type = cc.Sprite.Type.SIMPLE;
+            sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+            
+            loadingNode.parent = tipNode;
+            
+            // 标记正在动画中
+            self._loadingImageAnimating = true;
+            self._loadingImageNode = loadingNode;
+        });
+        
+        // 不自动消失，需要手动调用 _hideMessageCenter 隐藏
+        // 保存引用以便后续销毁
+        this._centerTipNode = tipNode;
+    },
+    
+    // 隐藏中央提示
+    _hideMessageCenter: function() {
+        this._loadingImageAnimating = false;
+        this._loadingImageNode = null;
+        
+        if (this._centerTipNode && this._centerTipNode.isValid) {
+            this._centerTipNode.destroy();
+            this._centerTipNode = null;
         }
         
-        // 添加圆角遮罩
-        bg.fillColor = cc.color(0, 0, 0, 0);
-        bg.roundRect(startX, startY, totalWidth, totalHeight, 10);
-        
-        bgNode.parent = tipNode;
-        
-        // 添加文字（居中显示）
-        var labelNode = new cc.Node("Label");
-        var label = labelNode.addComponent(cc.Label);
-        label.string = message;
-        label.fontSize = 26;
-        label.lineHeight = 36;
-        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        labelNode.color = cc.color(255, 255, 255);
-        labelNode.parent = tipNode;
-        
-        // 2秒后自动消失
-        this.scheduleOnce(function() {
-            if (tipNode && tipNode.isValid) tipNode.destroy();
-        }, 2);
+        var tipNode = this.node.getChildByName("center_tip");
+        if (tipNode && tipNode.isValid) {
+            tipNode.destroy();
+        }
     },
     
     _removeNoticeBoard: function() {
