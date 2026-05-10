@@ -13,21 +13,21 @@ type DDZDailyStatsSearch struct {
 type DDZLeaderboardSearch struct {
         request.PageInfo
         PlayerName string `json:"playerName" form:"playerName"`
-        OrderBy    string `json:"orderBy" form:"orderBy"`     // winCount, gold, arenaCoin, rankScore
-        RankType   string `json:"rankType" form:"rankType"`   // coins, level, wins, winrate
-        Limit      int    `json:"limit" form:"limit"`         // 限制返回数量
+        OrderBy    string `json:"orderBy" form:"orderBy"`   // winCount, gold, arenaCoin, rankScore
+        RankType   string `json:"rankType" form:"rankType"` // coins, level, wins, winrate
+        Limit      int    `json:"limit" form:"limit"`       // 限制返回数量
 }
 
 // DDZPlayerOnlineSearch 在线玩家查询请求
 type DDZPlayerOnlineSearch struct {
         request.PageInfo
-        PlayerID uint64 `json:"playerId" form:"playerId"`
-        LoginIP  string `json:"loginIp" form:"loginIp"`
+        PlayerID NullUint64 `json:"playerId" form:"playerId"`
+        LoginIP  string     `json:"loginIp" form:"loginIp"`
 }
 
 // DDZRoomPlayerSearch 房间玩家查询请求
 type DDZRoomPlayerSearch struct {
         request.PageInfo
-        RoomID   uint64 `json:"roomId" form:"roomId"`
-        PlayerID uint64 `json:"playerId" form:"playerId"`
+        RoomID   NullUint64 `json:"roomId" form:"roomId"`
+        PlayerID NullUint64 `json:"playerId" form:"playerId"`
 }

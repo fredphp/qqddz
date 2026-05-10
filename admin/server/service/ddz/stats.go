@@ -327,8 +327,8 @@ func (s *DDZStatsService) GetPlayerOnlineList(req ddzReq.DDZPlayerOnlineSearch) 
         offset := req.PageSize * (req.Page - 1)
 
         db := GetDDZDB().Model(&ddz.DDZPlayerOnline{})
-        if req.PlayerID > 0 {
-                db = db.Where("player_id = ?", req.PlayerID)
+        if req.PlayerID.Valid && req.PlayerID.Value > 0 {
+                db = db.Where("player_id = ?", req.PlayerID.Value)
         }
         if req.LoginIP != "" {
                 db = db.Where("login_ip LIKE ?", "%"+req.LoginIP+"%")
@@ -349,11 +349,11 @@ func (s *DDZStatsService) GetRoomPlayerList(req ddzReq.DDZRoomPlayerSearch) (lis
         offset := req.PageSize * (req.Page - 1)
 
         db := GetDDZDB().Table("ddz_room_players")
-        if req.RoomID > 0 {
-                db = db.Where("room_id = ?", req.RoomID)
+        if req.RoomID.Valid && req.RoomID.Value > 0 {
+                db = db.Where("room_id = ?", req.RoomID.Value)
         }
-        if req.PlayerID > 0 {
-                db = db.Where("player_id = ?", req.PlayerID)
+        if req.PlayerID.Valid && req.PlayerID.Value > 0 {
+                db = db.Where("player_id = ?", req.PlayerID.Value)
         }
 
         err = db.Count(&total).Error
