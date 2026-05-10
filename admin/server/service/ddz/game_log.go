@@ -1806,11 +1806,13 @@ func (s *DDZGameLogService) dealLogToResponse(l DealLog) ddzRes.DDZDealLogRespon
 func (s *DDZGameLogService) playLogToResponse(l PlayLog) ddzRes.DDZPlayLogResponse {
         db := GetDDZDB()
         
-        // 获取玩家昵称
+        // 获取玩家昵称和头像
         playerName := ""
+        playerAvatar := ""
         var player ddz.DDZPlayer
         if err := db.Where("id = ?", l.PlayerID).First(&player).Error; err == nil {
                 playerName = player.Nickname
+                playerAvatar = player.Avatar
         }
         
         // 玩家角色文本
@@ -1833,6 +1835,7 @@ func (s *DDZGameLogService) playLogToResponse(l PlayLog) ddzRes.DDZPlayLogRespon
                 GameID:         l.GameID,
                 PlayerID:       l.PlayerID,
                 PlayerName:     playerName,
+                PlayerAvatar:   playerAvatar,
                 PlayerRole:     int(l.PlayerRole),
                 PlayerRoleText: playerRoleText,
                 RoundNum:       l.RoundNum,

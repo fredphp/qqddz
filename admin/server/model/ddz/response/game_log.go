@@ -37,6 +37,7 @@ type DDZPlayLogResponse struct {
         GameID         string `json:"gameId"`
         PlayerID       uint64 `json:"playerId"`
         PlayerName     string `json:"playerName"`
+        PlayerAvatar   string `json:"playerAvatar"`
         PlayerRole     int    `json:"playerRole"`
         PlayerRoleText string `json:"playerRoleText"`
         RoundNum       int    `json:"roundNum"`
