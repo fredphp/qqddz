@@ -144,100 +144,151 @@
     </div>
 
     <!-- 详情对话框 -->
-    <el-dialog v-model="detailDialog" title="游戏记录详情" width="900px">
-      <el-tabs v-model="activeTab">
-        <el-tab-pane label="基本信息" name="info">
-          <el-descriptions :column="3" border>
-            <el-descriptions-item label="游戏ID">{{ currentRecord.gameId }}</el-descriptions-item>
-            <el-descriptions-item label="房间类型">{{ currentRecord.roomTypeName }}</el-descriptions-item>
-            <el-descriptions-item label="房间分类">
-              <el-tag :type="currentRecord.roomCategory === 2 ? 'danger' : 'success'">
-                {{ currentRecord.roomCategory === 2 ? '竞技场' : '普通场' }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="地主">{{ currentRecord.landlordName }}</el-descriptions-item>
-            <el-descriptions-item label="农民1">{{ currentRecord.farmer1Name }}</el-descriptions-item>
-            <el-descriptions-item label="农民2">{{ currentRecord.farmer2Name }}</el-descriptions-item>
-            <el-descriptions-item label="底分">{{ currentRecord.baseScore }}</el-descriptions-item>
-            <el-descriptions-item label="倍数">{{ currentRecord.multiplier }}</el-descriptions-item>
-            <el-descriptions-item label="炸弹数">{{ currentRecord.bombCount }}</el-descriptions-item>
-          </el-descriptions>
+    <el-dialog v-model="detailDialog" title="游戏记录详情" width="1100px" top="5vh">
+      <div v-if="detailLoading" class="loading-container">
+        <el-icon class="is-loading"><loading /></el-icon>
+        <span>加载中...</span>
+      </div>
+      <template v-else>
+        <!-- 游戏基本信息 -->
+        <el-descriptions :column="4" border>
+          <el-descriptions-item label="游戏ID">{{ currentRecord.gameId }}</el-descriptions-item>
+          <el-descriptions-item label="房间类型">{{ currentRecord.roomTypeName }}</el-descriptions-item>
+          <el-descriptions-item label="房间分类">
+            <el-tag :type="currentRecord.roomCategory === 2 ? 'danger' : 'success'">
+              {{ currentRecord.roomCategory === 2 ? '竞技场' : '普通场' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="游戏结果">
+            <el-tag :type="currentRecord.result === 1 ? 'danger' : 'success'">
+              {{ currentRecord.resultText }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="地主">{{ currentRecord.landlordName || currentRecord.landlordId }}</el-descriptions-item>
+          <el-descriptions-item label="农民1">{{ currentRecord.farmer1Name || currentRecord.farmer1Id }}</el-descriptions-item>
+          <el-descriptions-item label="农民2">{{ currentRecord.farmer2Name || currentRecord.farmer2Id }}</el-descriptions-item>
+          <el-descriptions-item label="底分/倍数">{{ currentRecord.baseScore }}/{{ currentRecord.multiplier }}</el-descriptions-item>
+        </el-descriptions>
 
-          <!-- 金币输赢（普通场显示） -->
-          <el-divider v-if="currentRecord.roomCategory === 1 || !currentRecord.roomCategory" content-position="left">金币输赢</el-divider>
-          <el-descriptions v-if="currentRecord.roomCategory === 1 || !currentRecord.roomCategory" :column="3" border>
-            <el-descriptions-item label="地主输赢">
-              <span :class="currentRecord.landlordWinGold >= 0 ? 'text-success' : 'text-danger'">
-                {{ currentRecord.landlordWinGold >= 0 ? '+' : '' }}{{ currentRecord.landlordWinGold }}
-              </span>
-            </el-descriptions-item>
-            <el-descriptions-item label="农民1输赢">
-              <span :class="currentRecord.farmer1WinGold >= 0 ? 'text-success' : 'text-danger'">
-                {{ currentRecord.farmer1WinGold >= 0 ? '+' : '' }}{{ currentRecord.farmer1WinGold }}
-              </span>
-            </el-descriptions-item>
-            <el-descriptions-item label="农民2输赢">
-              <span :class="currentRecord.farmer2WinGold >= 0 ? 'text-success' : 'text-danger'">
-                {{ currentRecord.farmer2WinGold >= 0 ? '+' : '' }}{{ currentRecord.farmer2WinGold }}
-              </span>
-            </el-descriptions-item>
-          </el-descriptions>
+        <!-- 输赢信息 -->
+        <el-divider content-position="left">输赢详情</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <div class="player-result landlord">
+              <div class="player-name">{{ currentRecord.landlordName || '地主' }} (地主)</div>
+              <div class="player-score" :class="currentRecord.landlordWinGold >= 0 ? 'positive' : 'negative'">
+                金币: {{ currentRecord.landlordWinGold >= 0 ? '+' : '' }}{{ currentRecord.landlordWinGold }}
+              </div>
+              <div class="player-score" v-if="currentRecord.landlordWinArenaCoin" :class="currentRecord.landlordWinArenaCoin >= 0 ? 'positive' : 'negative'">
+                竞技币: {{ currentRecord.landlordWinArenaCoin >= 0 ? '+' : '' }}{{ currentRecord.landlordWinArenaCoin }}
+              </div>
+            </div>
+          </el-col>
+          <el-col :span="8">
+            <div class="player-result farmer">
+              <div class="player-name">{{ currentRecord.farmer1Name || '农民1' }}</div>
+              <div class="player-score" :class="currentRecord.farmer1WinGold >= 0 ? 'positive' : 'negative'">
+                金币: {{ currentRecord.farmer1WinGold >= 0 ? '+' : '' }}{{ currentRecord.farmer1WinGold }}
+              </div>
+              <div class="player-score" v-if="currentRecord.farmer1WinArenaCoin" :class="currentRecord.farmer1WinArenaCoin >= 0 ? 'positive' : 'negative'">
+                竞技币: {{ currentRecord.farmer1WinArenaCoin >= 0 ? '+' : '' }}{{ currentRecord.farmer1WinArenaCoin }}
+              </div>
+            </div>
+          </el-col>
+          <el-col :span="8">
+            <div class="player-result farmer">
+              <div class="player-name">{{ currentRecord.farmer2Name || '农民2' }}</div>
+              <div class="player-score" :class="currentRecord.farmer2WinGold >= 0 ? 'positive' : 'negative'">
+                金币: {{ currentRecord.farmer2WinGold >= 0 ? '+' : '' }}{{ currentRecord.farmer2WinGold }}
+              </div>
+              <div class="player-score" v-if="currentRecord.farmer2WinArenaCoin" :class="currentRecord.farmer2WinArenaCoin >= 0 ? 'positive' : 'negative'">
+                竞技币: {{ currentRecord.farmer2WinArenaCoin >= 0 ? '+' : '' }}{{ currentRecord.farmer2WinArenaCoin }}
+              </div>
+            </div>
+          </el-col>
+        </el-row>
 
-          <!-- 竞技币输赢（竞技场显示） -->
-          <el-divider v-if="currentRecord.roomCategory === 2" content-position="left">竞技币输赢</el-divider>
-          <el-descriptions v-if="currentRecord.roomCategory === 2" :column="3" border>
-            <el-descriptions-item label="地主输赢">
-              <span :class="currentRecord.landlordWinArenaCoin >= 0 ? 'text-success' : 'text-danger'">
-                {{ currentRecord.landlordWinArenaCoin >= 0 ? '+' : '' }}{{ currentRecord.landlordWinArenaCoin }}
-              </span>
-            </el-descriptions-item>
-            <el-descriptions-item label="农民1输赢">
-              <span :class="currentRecord.farmer1WinArenaCoin >= 0 ? 'text-success' : 'text-danger'">
-                {{ currentRecord.farmer1WinArenaCoin >= 0 ? '+' : '' }}{{ currentRecord.farmer1WinArenaCoin }}
-              </span>
-            </el-descriptions-item>
-            <el-descriptions-item label="农民2输赢">
-              <span :class="currentRecord.farmer2WinArenaCoin >= 0 ? 'text-success' : 'text-danger'">
-                {{ currentRecord.farmer2WinArenaCoin >= 0 ? '+' : '' }}{{ currentRecord.farmer2WinArenaCoin }}
-              </span>
-            </el-descriptions-item>
-          </el-descriptions>
+        <!-- 时间信息 -->
+        <el-divider content-position="left">时间信息</el-divider>
+        <el-descriptions :column="3" border>
+          <el-descriptions-item label="开始时间">{{ currentRecord.startedAt }}</el-descriptions-item>
+          <el-descriptions-item label="结束时间">{{ currentRecord.endedAt }}</el-descriptions-item>
+          <el-descriptions-item label="游戏时长">{{ currentRecord.durationText }}</el-descriptions-item>
+        </el-descriptions>
 
-          <el-divider content-position="left">时间信息</el-divider>
-          <el-descriptions :column="3" border>
-            <el-descriptions-item label="开始时间">{{ currentRecord.startedAt }}</el-descriptions-item>
-            <el-descriptions-item label="结束时间">{{ currentRecord.endedAt }}</el-descriptions-item>
-            <el-descriptions-item label="游戏时长">{{ currentRecord.durationText }}</el-descriptions-item>
-          </el-descriptions>
-        </el-tab-pane>
-        <el-tab-pane label="叫地主" name="bid">
-          <el-table :data="currentRecord.bidLogs" size="small">
-            <el-table-column prop="bidOrder" label="顺序" width="60" />
-            <el-table-column prop="playerName" label="玩家" />
-            <el-table-column prop="bidTypeText" label="操作" />
-            <el-table-column prop="bidScore" label="叫分" />
-            <el-table-column prop="successText" label="成为地主" />
-          </el-table>
-        </el-tab-pane>
-        <el-tab-pane label="发牌记录" name="deal">
-          <el-table :data="currentRecord.dealLogs" size="small">
-            <el-table-column prop="playerName" label="玩家" />
-            <el-table-column prop="playerRoleText" label="角色" />
-            <el-table-column prop="cardsCount" label="牌数" />
-            <el-table-column prop="handCards" label="手牌" show-overflow-tooltip />
-            <el-table-column prop="landlordCards" label="底牌" />
-          </el-table>
-        </el-tab-pane>
-        <el-tab-pane label="出牌记录" name="play">
-          <el-table :data="currentRecord.playLogs" size="small" max-height="400">
-            <el-table-column prop="roundNum" label="回合" width="60" />
-            <el-table-column prop="playerName" label="玩家" />
-            <el-table-column prop="playTypeText" label="操作" />
-            <el-table-column prop="cards" label="出的牌" show-overflow-tooltip />
-            <el-table-column prop="cardPattern" label="牌型" />
-          </el-table>
-        </el-tab-pane>
-      </el-tabs>
+        <!-- 详细日志Tab -->
+        <el-divider content-position="left">详细日志</el-divider>
+        <el-tabs type="border-card" size="small">
+          <el-tab-pane label="叫地主">
+            <el-table :data="currentRecord.bidLogs" size="small" v-if="currentRecord.bidLogs && currentRecord.bidLogs.length > 0">
+              <el-table-column prop="bidOrder" label="顺序" width="60" />
+              <el-table-column prop="playerName" label="玩家" width="120" />
+              <el-table-column label="操作" width="100">
+                <template #default="scope">
+                  <el-tag :type="getBidTypeTag(scope.row.bidType)" size="small">
+                    {{ scope.row.bidTypeText }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="bidScore" label="叫分" width="80" />
+              <el-table-column label="成为地主" width="100">
+                <template #default="scope">
+                  <el-tag :type="scope.row.isSuccess ? 'success' : 'info'" size="small">
+                    {{ scope.row.successText }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-empty v-else description="无叫地主记录" :image-size="60" />
+          </el-tab-pane>
+          <el-tab-pane label="发牌记录">
+            <el-table :data="currentRecord.dealLogs" size="small" v-if="currentRecord.dealLogs && currentRecord.dealLogs.length > 0">
+              <el-table-column prop="playerName" label="玩家" width="120" />
+              <el-table-column label="角色" width="80">
+                <template #default="scope">
+                  <el-tag :type="scope.row.playerRole === 1 ? 'danger' : 'success'" size="small">
+                    {{ scope.row.playerRoleText }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="cardsCount" label="牌数" width="60" />
+              <el-table-column prop="handCards" label="手牌" show-overflow-tooltip />
+              <el-table-column prop="landlordCards" label="底牌" width="80" />
+            </el-table>
+            <el-empty v-else description="无发牌记录" :image-size="60" />
+          </el-tab-pane>
+          <el-tab-pane label="出牌记录">
+            <el-table :data="currentRecord.playLogs" size="small" max-height="300" v-if="currentRecord.playLogs && currentRecord.playLogs.length > 0">
+              <el-table-column prop="roundNum" label="回合" width="60" />
+              <el-table-column prop="playerName" label="玩家" width="100" />
+              <el-table-column label="角色" width="70">
+                <template #default="scope">
+                  <el-tag :type="scope.row.playerRole === 1 ? 'danger' : 'success'" size="small">
+                    {{ scope.row.playerRoleText }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="90">
+                <template #default="scope">
+                  <el-tag :type="scope.row.playType === 1 ? 'primary' : 'info'" size="small">
+                    {{ scope.row.playTypeText }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="cards" label="出的牌" show-overflow-tooltip />
+              <el-table-column prop="cardPattern" label="牌型" width="80" />
+              <el-table-column label="特殊" width="80">
+                <template #default="scope">
+                  <el-tag v-if="scope.row.isRocket" type="danger" size="small">火箭</el-tag>
+                  <el-tag v-else-if="scope.row.isBomb" type="warning" size="small">炸弹</el-tag>
+                  <span v-else>-</span>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-empty v-else description="无出牌记录" :image-size="60" />
+          </el-tab-pane>
+        </el-tabs>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -245,6 +296,7 @@
 <script setup>
 import { ref } from 'vue'
 import { getGameRecordList, getGameRecordDetail } from '@/api/ddz/gameLog'
+import { Loading } from '@element-plus/icons-vue'
 
 defineOptions({
   name: 'DDZGameRecord'
@@ -266,8 +318,13 @@ const pageSize = ref(10)
 const tableData = ref([])
 
 const detailDialog = ref(false)
-const activeTab = ref('info')
+const detailLoading = ref(false)
 const currentRecord = ref({})
+
+const getBidTypeTag = (type) => {
+  const map = { 0: 'info', 1: 'primary', 2: 'warning' }
+  return map[type] || 'info'
+}
 
 const onSubmit = () => {
   page.value = 1
@@ -310,14 +367,20 @@ const getTableData = async () => {
 }
 
 const viewDetail = async (row) => {
-  const res = await getGameRecordDetail(row.ID)
-  if (res.code === 0) {
-    currentRecord.value = res.data.gameRecord
-    currentRecord.value.bidLogs = res.data.bidLogs || []
-    currentRecord.value.dealLogs = res.data.dealLogs || []
-    currentRecord.value.playLogs = res.data.playLogs || []
-    activeTab.value = 'info'
-    detailDialog.value = true
+  detailDialog.value = true
+  detailLoading.value = true
+  currentRecord.value = {}
+
+  try {
+    const res = await getGameRecordDetail(row.ID, searchInfo.value.month)
+    if (res.code === 0) {
+      currentRecord.value = res.data.gameRecord
+      currentRecord.value.bidLogs = res.data.bidLogs || []
+      currentRecord.value.dealLogs = res.data.dealLogs || []
+      currentRecord.value.playLogs = res.data.playLogs || []
+    }
+  } finally {
+    detailLoading.value = false
   }
 }
 
@@ -339,5 +402,53 @@ getTableData()
 }
 .text-xs {
   font-size: 12px;
+}
+
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #909399;
+}
+
+.loading-container .el-icon {
+  margin-right: 8px;
+  font-size: 20px;
+}
+
+.player-result {
+  padding: 15px;
+  background: #fff;
+  border-radius: 4px;
+  text-align: center;
+  border: 1px solid #ebeef5;
+}
+
+.player-result.landlord {
+  border-left: 3px solid #f56c6c;
+}
+
+.player-result.farmer {
+  border-left: 3px solid #67c23a;
+}
+
+.player-name {
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #303133;
+}
+
+.player-score {
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+.player-score.positive {
+  color: #67c23a;
+}
+
+.player-score.negative {
+  color: #f56c6c;
 }
 </style>

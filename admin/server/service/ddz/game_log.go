@@ -117,30 +117,59 @@ func (s *DDZGameLogService) GetGameRecordList(req ddzReq.DDZGameRecordSearch) (l
 }
 
 // GetGameRecordDetail 获取游戏记录详情
-func (s *DDZGameLogService) GetGameRecordDetail(id uint) (ddzRes.DDZGameRecordDetailResponse, error) {
+// 支持分表查询，month参数格式: 202605
+func (s *DDZGameLogService) GetGameRecordDetail(id uint, month string) (ddzRes.DDZGameRecordDetailResponse, error) {
         db := GetDDZDB()
-        var record ddz.DDZGameRecord
-        err := db.First(&record, id).Error
+
+        // 确定查询的分表
+        if month == "" {
+                month = getCurrentMonth()
+        }
+        gameRecordTable := getTableNameWithMonth("ddz_game_records", month)
+        bidLogTable := getTableNameWithMonth("ddz_bid_logs", month)
+        dealLogTable := getTableNameWithMonth("ddz_deal_logs", month)
+        playLogTable := getTableNameWithMonth("ddz_play_logs", month)
+
+        // 检查游戏记录分表是否存在
+        var tableCount int64
+        db.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", gameRecordTable).Scan(&tableCount)
+        if tableCount == 0 {
+                return ddzRes.DDZGameRecordDetailResponse{}, errors.New("游戏记录不存在")
+        }
+
+        // 查询游戏记录
+        var record GameRecord
+        err := db.Table(gameRecordTable).Where("id = ?", id).First(&record).Error
         if err != nil {
                 return ddzRes.DDZGameRecordDetailResponse{}, err
         }
 
         resp := ddzRes.DDZGameRecordDetailResponse{
-                GameRecord: s.toGameRecordResponse(record),
+                GameRecord: s.gameRecordToResponse(record),
         }
 
-        // 获取发牌记录
-        var dealRecord ddz.DDZDealRecord
-        if err := db.Where("game_id = ?", record.ID).First(&dealRecord).Error; err == nil {
-                resp.DealRecord = s.toDealRecordResponse(dealRecord)
+        // 获取叫地主日志
+        var bidLogs []BidLog
+        db.Table(bidLogTable).Where("game_id = ?", record.GameID).Order("bid_order asc").Find(&bidLogs)
+        resp.BidLogs = make([]ddzRes.DDZBidLogResponse, 0, len(bidLogs))
+        for _, bl := range bidLogs {
+                resp.BidLogs = append(resp.BidLogs, s.bidLogToResponse(bl))
         }
 
-        // 获取出牌记录
-        var playRecords []ddz.DDZGamePlayRecord
-        db.Where("game_id = ?", record.ID).Order("turn_index asc").Find(&playRecords)
-        resp.PlayRecords = make([]ddzRes.DDZPlayRecordResponse, 0, len(playRecords))
-        for _, pr := range playRecords {
-                resp.PlayRecords = append(resp.PlayRecords, s.toPlayRecordResponse(pr))
+        // 获取发牌日志
+        var dealLogs []DealLog
+        db.Table(dealLogTable).Where("game_id = ?", record.GameID).Order("id asc").Find(&dealLogs)
+        resp.DealLogs = make([]ddzRes.DDZDealLogResponse, 0, len(dealLogs))
+        for _, dl := range dealLogs {
+                resp.DealLogs = append(resp.DealLogs, s.dealLogToResponse(dl))
+        }
+
+        // 获取出牌日志
+        var playLogs []PlayLog
+        db.Table(playLogTable).Where("game_id = ?", record.GameID).Order("round_num asc, play_order asc").Find(&playLogs)
+        resp.PlayLogs = make([]ddzRes.DDZPlayLogResponse, 0, len(playLogs))
+        for _, pl := range playLogs {
+                resp.PlayLogs = append(resp.PlayLogs, s.playLogToResponse(pl))
         }
 
         return resp, nil

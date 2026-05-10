@@ -57,8 +57,9 @@ func (api *DDZGameLogApi) GetGameRecordList(c *gin.Context) {
 // @Security ApiKeyAuth
 // @accept   application/json
 // @Produce  application/json
-// @Param    id   query     uint  true  "游戏记录ID"
-// @Success  200  {object}  response.Response{data=ddzRes.DDZGameRecordDetailResponse,msg=string}
+// @Param    id     query     uint     true  "游戏记录ID"
+// @Param    month  query     string   false "月份，格式: 202605，默认当月"
+// @Success  200    {object}  response.Response{data=ddzRes.DDZGameRecordDetailResponse,msg=string}
 // @Router   /ddz/gameRecord/detail [get]
 func (api *DDZGameLogApi) GetGameRecordDetail(c *gin.Context) {
         id := c.Query("id")
@@ -68,7 +69,9 @@ func (api *DDZGameLogApi) GetGameRecordDetail(c *gin.Context) {
         }
 
         recordID := utils.StringToUint(id)
-        detail, err := ddzGameLogService.GetGameRecordDetail(recordID)
+        month := c.Query("month") // 获取月份参数
+
+        detail, err := ddzGameLogService.GetGameRecordDetail(recordID, month)
         if err != nil {
                 global.GVA_LOG.Error("获取游戏记录详情失败!", zap.Error(err))
                 response.FailWithMessage("获取游戏记录详情失败", c)

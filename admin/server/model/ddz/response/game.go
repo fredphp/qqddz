@@ -57,9 +57,12 @@ type DDZGameRecordListResponse struct {
 
 // DDZGameRecordDetailResponse 游戏记录详情响应
 type DDZGameRecordDetailResponse struct {
-        GameRecord  DDZGameRecordResponse `json:"gameRecord"`
-        DealRecord  DDZDealRecordResponse `json:"dealRecord"`
-        PlayRecords []DDZPlayRecordResponse `json:"playRecords"`
+        GameRecord  DDZGameRecordResponse  `json:"gameRecord"`
+        BidLogs     []DDZBidLogResponse    `json:"bidLogs"`     // 叫地主日志
+        DealLogs    []DDZDealLogResponse   `json:"dealLogs"`    // 发牌日志
+        PlayLogs    []DDZPlayLogResponse   `json:"playLogs"`    // 出牌日志
+        DealRecord  DDZDealRecordResponse  `json:"dealRecord"`  // 兼容旧字段
+        PlayRecords []DDZPlayRecordResponse `json:"playRecords"` // 兼容旧字段
 }
 
 // DDZDealRecordResponse 发牌记录响应

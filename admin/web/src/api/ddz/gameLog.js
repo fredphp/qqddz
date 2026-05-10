@@ -12,11 +12,11 @@ export const getGameRecordList = (data) => {
 }
 
 // 获取游戏记录详情
-export const getGameRecordDetail = (id) => {
+export const getGameRecordDetail = (id, month = '') => {
   return service({
     url: '/ddz/gameRecord/detail',
     method: 'get',
-    params: { id }
+    params: { id, month }
   })
 }
 
