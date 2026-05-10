@@ -72,7 +72,7 @@
       <div class="stat-card-wrapper">
         <div class="stat-card stat-card--games">
           <div class="stat-card__icon">
-            <el-icon :size="28"><VideoGame /></el-icon>
+            <el-icon :size="28"><Grid /></el-icon>
           </div>
           <div class="stat-card__content">
             <div class="stat-card__value">{{ overviewStats.gameCount }}</div>
@@ -336,7 +336,7 @@
 import { ref, computed } from 'vue'
 import { getDealLogList } from '@/api/ddz/gameLog'
 import { 
-  Search, Refresh, User, Tickets, VideoGame, 
+  Search, Refresh, User, Tickets, Grid, 
   Clock, View, CopyDocument 
 } from '@element-plus/icons-vue'
 import { getUrl } from '@/utils/image'
