@@ -24,11 +24,11 @@ func (s *DDZStatsService) GetOverviewStats() (ddzRes.DDZOverviewStatsResponse, e
         // 总玩家数
         db.Model(&ddz.DDZPlayer{}).Count(&totalPlayers)
 
-        // 活跃玩家数(最近7天)
-        sevenDaysAgo := time.Now().AddDate(0, 0, -7).Format("2006-01-02")
-        db.Model(&ddz.DDZPlayerStats{}).
-                Where("date >= ?", sevenDaysAgo).
-                Distinct("player_id").Count(&activePlayers)
+        // 活跃玩家数(最近7天登录过的玩家)
+        sevenDaysAgo := time.Now().AddDate(0, 0, -7)
+        db.Model(&ddz.DDZPlayer{}).
+                Where("last_login_at >= ?", sevenDaysAgo).
+                Count(&activePlayers)
 
         // 总游戏场次
         db.Model(&ddz.DDZGameRecord{}).Count(&totalGames)
@@ -173,11 +173,12 @@ func (s *DDZStatsService) GetPlayerStats(req ddzReq.DDZStatsSearch) (list interf
         if req.PlayerID != "" {
                 query = query.Where("player_id = ?", req.PlayerID)
         }
+        // 使用 created_at 替代 date 字段查询
         if req.StartDate != "" {
-                query = query.Where("date >= ?", req.StartDate)
+                query = query.Where("created_at >= ?", req.StartDate)
         }
         if req.EndDate != "" {
-                query = query.Where("date <= ?", req.EndDate)
+                query = query.Where("created_at <= ?", req.EndDate+" 23:59:59")
         }
 
         err = query.Count(&total).Error
@@ -186,7 +187,7 @@ func (s *DDZStatsService) GetPlayerStats(req ddzReq.DDZStatsSearch) (list interf
         }
 
         var stats []ddz.DDZPlayerStats
-        err = query.Limit(limit).Offset(offset).Order("date desc").Find(&stats).Error
+        err = query.Limit(limit).Offset(offset).Order("created_at desc").Find(&stats).Error
         if err != nil {
                 return nil, 0, err
         }
@@ -225,12 +226,15 @@ func (s *DDZStatsService) GetPlayerStats(req ddzReq.DDZStatsSearch) (list interf
                         farmerWinRate = float64(s.FarmerWins) / float64(s.FarmerGames) * 100
                 }
 
+                // 使用 created_at 格式化日期
+                statDate := s.CreatedAt.Format("2006-01-02")
+
                 result = append(result, ddzRes.DDZPlayerStatsResponse{
                         PlayerID:        s.PlayerID,
                         PlayerName:      player.Nickname,
                         PlayerAvatar:    player.Avatar,
                         VIPLevel:        player.VIPLevel,
-                        StatDate:        s.Date,
+                        StatDate:        statDate,
                         TotalGames:      s.GamesPlayed,
                         WinGames:        s.Wins,
                         LoseGames:       s.Losses,
