@@ -742,3 +742,30 @@ type AdRewardLog struct {
 func (AdRewardLog) TableName() string {
         return "ddz_ad_rewards"
 }
+
+// =============================================
+// 每日统计模型
+// =============================================
+
+// DailyStats 每日统计汇总表模型
+// 🔧【新增】实时统计当天玩家信息，用于后台管理展示
+type DailyStats struct {
+        ID               uint64    `gorm:"primaryKey;autoIncrement;comment:统计ID" json:"id"`
+        StatDate         time.Time `gorm:"type:date;uniqueIndex;not null;comment:统计日期" json:"stat_date"`
+        TotalPlayers     int64     `gorm:"type:bigint;not null;default:0;comment:截止当日总玩家数" json:"total_players"`
+        NewPlayers       int64     `gorm:"type:bigint;not null;default:0;comment:当日新增玩家数" json:"new_players"`
+        ActivePlayers    int64     `gorm:"type:bigint;not null;default:0;comment:当日活跃玩家数" json:"active_players"`
+        TotalGames       int64     `gorm:"type:bigint;not null;default:0;comment:当日游戏场次" json:"total_games"`
+        TotalDuration    int64     `gorm:"type:bigint;not null;default:0;comment:当日总游戏时长(秒)" json:"total_duration"`
+        AvgGameDuration  float64   `gorm:"type:decimal(10,2);not null;default:0;comment:平均游戏时长(秒)" json:"avg_game_duration"`
+        MaxOnline        int64     `gorm:"type:bigint;not null;default:0;comment:当日最高在线人数" json:"max_online"`
+        PeakTime         *time.Time `gorm:"type:datetime;comment:高峰时间" json:"peak_time"`
+        TotalOnlineTime  int64     `gorm:"type:bigint;not null;default:0;comment:当日总在线时长(秒)" json:"total_online_time"`
+        CreatedAt        time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
+        UpdatedAt        time.Time  `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`
+}
+
+// TableName 指定每日统计表名
+func (DailyStats) TableName() string {
+        return "ddz_daily_stats"
+}

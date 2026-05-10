@@ -212,6 +212,8 @@ func (d *Database) AutoMigrate() error {
                 &WriteQueueErrorLog{},
                 // 待处理数据持久化表
                 &PendingGameData{},
+                // 每日统计表
+                &DailyStats{},
         )
 }
 
@@ -1049,7 +1051,209 @@ func SaveGameResult(record *GameRecord, dealLogs []DealLog, bidLogs []BidLog, pl
                         return err
                 }
 
+                // 🔧【新增】更新每日统计
+                if err := UpdateDailyStatsWithTx(tx, record.StartedAt, record.DurationSeconds); err != nil {
+                        // 每日统计更新失败不影响主流程，只记录日志
+                        log.Printf("⚠️ [SaveGameResult] 更新每日统计失败: %v", err)
+                }
+
                 log.Printf("💾 [SaveGameResult] 游戏记录已保存到分表: %s, GameID=%s", gameRecordTable, record.GameID)
                 return nil
         })
+}
+
+// =============================================
+// 每日统计相关函数
+// =============================================
+
+// UpdateDailyStatsWithTx 在事务中更新每日统计
+// 🔧【新增】实时统计当天玩家信息
+func UpdateDailyStatsWithTx(tx *gorm.DB, gameStartTime time.Time, durationSeconds int) error {
+        // 获取游戏开始时间的日期（只取年月日）
+        statDate := time.Date(gameStartTime.Year(), gameStartTime.Month(), gameStartTime.Day(), 0, 0, 0, 0, gameStartTime.Location())
+
+        // 尝试获取当天的统计记录
+        var stats DailyStats
+        err := tx.Where("stat_date = ?", statDate).First(&stats).Error
+
+        if err == gorm.ErrRecordNotFound {
+                // 创建新的统计记录
+                stats = DailyStats{
+                        StatDate:        statDate,
+                        TotalPlayers:    0, // 稍后计算
+                        NewPlayers:      0, // 稍后计算
+                        ActivePlayers:   0, // 稍后计算
+                        TotalGames:      1,
+                        TotalDuration:   int64(durationSeconds),
+                        AvgGameDuration: float64(durationSeconds),
+                }
+
+                // 计算截止当日的总玩家数
+                var totalPlayers int64
+                if err := tx.Model(&Player{}).Where("DATE(created_at) <= ?", statDate.Format("2006-01-02")).Count(&totalPlayers).Error; err != nil {
+                        log.Printf("⚠️ [UpdateDailyStats] 计算总玩家数失败: %v", err)
+                }
+                stats.TotalPlayers = totalPlayers
+
+                // 计算当日新增玩家数
+                var newPlayers int64
+                nextDay := statDate.AddDate(0, 0, 1).Format("2006-01-02")
+                if err := tx.Model(&Player{}).Where("created_at >= ? AND created_at < ?", statDate.Format("2006-01-02"), nextDay).Count(&newPlayers).Error; err != nil {
+                        log.Printf("⚠️ [UpdateDailyStats] 计算新增玩家数失败: %v", err)
+                }
+                stats.NewPlayers = newPlayers
+
+                // 计算当日活跃玩家数
+                var activePlayers int64
+                if err := tx.Model(&Player{}).Where("last_login_at >= ? AND last_login_at < ?", statDate.Format("2006-01-02"), nextDay).Count(&activePlayers).Error; err != nil {
+                        log.Printf("⚠️ [UpdateDailyStats] 计算活跃玩家数失败: %v", err)
+                }
+                stats.ActivePlayers = activePlayers
+
+                return tx.Create(&stats).Error
+        }
+
+        if err != nil {
+                return fmt.Errorf("查询每日统计失败: %w", err)
+        }
+
+        // 更新现有记录
+        stats.TotalGames++
+        stats.TotalDuration += int64(durationSeconds)
+
+        // 重新计算平均游戏时长
+        if stats.TotalGames > 0 {
+                stats.AvgGameDuration = float64(stats.TotalDuration) / float64(stats.TotalGames)
+        }
+
+        return tx.Save(&stats).Error
+}
+
+// UpdateDailyStatsOnLogin 玩家登录时更新每日统计
+// 🔧【新增】更新当日活跃玩家数
+func UpdateDailyStatsOnLogin(tx *gorm.DB, loginTime time.Time) error {
+        statDate := time.Date(loginTime.Year(), loginTime.Month(), loginTime.Day(), 0, 0, 0, 0, loginTime.Location())
+
+        // 尝试获取当天的统计记录
+        var stats DailyStats
+        err := tx.Where("stat_date = ?", statDate).First(&stats).Error
+
+        nextDay := statDate.AddDate(0, 0, 1).Format("2006-01-02")
+
+        if err == gorm.ErrRecordNotFound {
+                // 创建新的统计记录
+                stats = DailyStats{
+                        StatDate:      statDate,
+                        TotalPlayers:  0,
+                        NewPlayers:    0,
+                        ActivePlayers: 1, // 当前登录的玩家
+                        TotalGames:    0,
+                        TotalDuration: 0,
+                }
+
+                // 计算截止当日的总玩家数
+                var totalPlayers int64
+                if err := tx.Model(&Player{}).Where("DATE(created_at) <= ?", statDate.Format("2006-01-02")).Count(&totalPlayers).Error; err != nil {
+                        log.Printf("⚠️ [UpdateDailyStatsOnLogin] 计算总玩家数失败: %v", err)
+                }
+                stats.TotalPlayers = totalPlayers
+
+                // 计算当日新增玩家数
+                var newPlayers int64
+                if err := tx.Model(&Player{}).Where("created_at >= ? AND created_at < ?", statDate.Format("2006-01-02"), nextDay).Count(&newPlayers).Error; err != nil {
+                        log.Printf("⚠️ [UpdateDailyStatsOnLogin] 计算新增玩家数失败: %v", err)
+                }
+                stats.NewPlayers = newPlayers
+
+                return tx.Create(&stats).Error
+        }
+
+        if err != nil {
+                return fmt.Errorf("查询每日统计失败: %w", err)
+        }
+
+        // 重新计算当日活跃玩家数（更准确）
+        var activePlayers int64
+        if err := tx.Model(&Player{}).Where("last_login_at >= ? AND last_login_at < ?", statDate.Format("2006-01-02"), nextDay).Count(&activePlayers).Error; err != nil {
+                log.Printf("⚠️ [UpdateDailyStatsOnLogin] 计算活跃玩家数失败: %v", err)
+                return err
+        }
+        stats.ActivePlayers = activePlayers
+
+        return tx.Save(&stats).Error
+}
+
+// UpdateDailyStatsOnRegister 玩家注册时更新每日统计
+// 🔧【新增】更新当日新增玩家数和总玩家数
+func UpdateDailyStatsOnRegister(tx *gorm.DB, registerTime time.Time) error {
+        statDate := time.Date(registerTime.Year(), registerTime.Month(), registerTime.Day(), 0, 0, 0, 0, registerTime.Location())
+
+        // 尝试获取当天的统计记录
+        var stats DailyStats
+        err := tx.Where("stat_date = ?", statDate).First(&stats).Error
+
+        nextDay := statDate.AddDate(0, 0, 1).Format("2006-01-02")
+
+        if err == gorm.ErrRecordNotFound {
+                // 创建新的统计记录
+                stats = DailyStats{
+                        StatDate:      statDate,
+                        TotalPlayers:  1, // 新注册的玩家
+                        NewPlayers:    1,
+                        ActivePlayers: 1, // 注册后立即活跃
+                        TotalGames:    0,
+                        TotalDuration: 0,
+                }
+
+                return tx.Create(&stats).Error
+        }
+
+        if err != nil {
+                return fmt.Errorf("查询每日统计失败: %w", err)
+        }
+
+        // 更新新增玩家数和总玩家数
+        stats.NewPlayers++
+
+        // 重新计算截止当日的总玩家数
+        var totalPlayers int64
+        if err := tx.Model(&Player{}).Where("DATE(created_at) <= ?", statDate.Format("2006-01-02")).Count(&totalPlayers).Error; err == nil {
+                stats.TotalPlayers = totalPlayers
+        }
+
+        return tx.Save(&stats).Error
+}
+
+// GetOrCreateDailyStats 获取或创建当日统计记录
+// 🔧【新增】供外部调用，确保当日统计记录存在
+func GetOrCreateDailyStats(db *gorm.DB, date time.Time) (*DailyStats, error) {
+        statDate := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+
+        var stats DailyStats
+        err := db.Where("stat_date = ?", statDate).First(&stats).Error
+
+        if err == gorm.ErrRecordNotFound {
+                // 创建新的统计记录
+                nextDay := statDate.AddDate(0, 0, 1).Format("2006-01-02")
+
+                stats = DailyStats{
+                        StatDate: statDate,
+                }
+
+                // 计算各项统计
+                db.Model(&Player{}).Where("DATE(created_at) <= ?", statDate.Format("2006-01-02")).Count(&stats.TotalPlayers)
+                db.Model(&Player{}).Where("created_at >= ? AND created_at < ?", statDate.Format("2006-01-02"), nextDay).Count(&stats.NewPlayers)
+                db.Model(&Player{}).Where("last_login_at >= ? AND last_login_at < ?", statDate.Format("2006-01-02"), nextDay).Count(&stats.ActivePlayers)
+
+                if err := db.Create(&stats).Error; err != nil {
+                        return nil, err
+                }
+                return &stats, nil
+        }
+
+        if err != nil {
+                return nil, err
+        }
+
+        return &stats, nil
 }

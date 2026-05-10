@@ -268,6 +268,11 @@ func (h *AuthHandler) PhoneLogin(w http.ResponseWriter, r *http.Request) {
                         "last_login_at": &now,
                         "last_login_ip": clientIP,
                 })
+
+                // 🔧【新增】更新每日统计（活跃玩家数）
+                if err := database.UpdateDailyStatsOnLogin(db, now); err != nil {
+                        log.Printf("⚠️ 更新每日统计失败: %v", err)
+                }
         }
 
         // 记录登录成功日志
@@ -368,6 +373,11 @@ func (h *AuthHandler) getOrCreatePlayerByPhone(phone string) (*database.Player, 
                         return fmt.Errorf("创建账户失败: %w", err)
                 }
                 log.Printf("✅ 账户创建成功 - 账户ID: %d", newAccount.ID)
+
+                // 🔧【新增】更新每日统计（新增玩家数）
+                if err := database.UpdateDailyStatsOnRegister(tx, now); err != nil {
+                        log.Printf("⚠️ 更新每日统计失败: %v", err)
+                }
 
                 return nil
         })

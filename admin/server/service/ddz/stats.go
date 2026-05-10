@@ -70,7 +70,7 @@ type DailyStatsRow struct {
         PeakTime        string
 }
 
-// GetDailyStats 获取每日统计（从原始数据实时计算）
+// GetDailyStats 获取每日统计（优先从每日统计表读取，表为空则实时计算）
 func (s *DDZStatsService) GetDailyStats(req ddzReq.DDZDailyStatsSearch) ([]ddzRes.DDZDailyStatsResponse, error) {
         // 解析日期范围
         startDate, err := time.Parse("2006-01-02", req.StartDate)
@@ -82,8 +82,39 @@ func (s *DDZStatsService) GetDailyStats(req ddzReq.DDZDailyStatsSearch) ([]ddzRe
                 endDate = time.Now()
         }
 
-        var result []ddzRes.DDZDailyStatsResponse
         db := GetDDZDB()
+
+        // 🔧【优化】优先从每日统计表读取
+        var existingStats []ddz.DDZDailyStats
+        db.Where("stat_date >= ? AND stat_date <= ?", startDate.Format("2006-01-02"), endDate.Format("2006-01-02")).
+                Order("stat_date asc").
+                Find(&existingStats)
+
+        // 如果统计表有数据，直接返回
+        if len(existingStats) > 0 {
+                result := make([]ddzRes.DDZDailyStatsResponse, 0, len(existingStats))
+                for _, s := range existingStats {
+                        peakTime := ""
+                        if s.PeakTime != "" {
+                                peakTime = s.PeakTime
+                        }
+                        result = append(result, ddzRes.DDZDailyStatsResponse{
+                                Date:            s.Date,
+                                TotalPlayers:    int(s.TotalPlayers),
+                                NewPlayers:      int(s.NewPlayers),
+                                ActivePlayers:   int(s.ActivePlayers),
+                                TotalGames:      int(s.TotalGames),
+                                AvgGameDuration: s.AvgGameDuration,
+                                MaxOnline:       int(s.MaxOnline),
+                                TotalOnlineTime: s.TotalOnlineTime,
+                                PeakTime:        peakTime,
+                        })
+                }
+                return result, nil
+        }
+
+        // 统计表为空，实时计算
+        var result []ddzRes.DDZDailyStatsResponse
 
         // 遍历每一天
         for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) {
