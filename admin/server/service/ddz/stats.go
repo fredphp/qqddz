@@ -442,10 +442,10 @@ func (s *DDZStatsService) GetDailyStatsList(req ddzReq.DDZDailyStatsSearch) (lis
 
                 allStats = append(allStats, ddz.DDZDailyStats{
                         Date:            dateStr,
-                        TotalPlayers:    int(totalPlayers),
-                        NewPlayers:      int(newPlayers),
-                        ActivePlayers:   int(activePlayers),
-                        TotalGames:      int(totalGames),
+                        TotalPlayers:    totalPlayers,
+                        NewPlayers:      newPlayers,
+                        ActivePlayers:   activePlayers,
+                        TotalGames:      totalGames,
                         AvgGameDuration: avgDuration,
                 })
         }
