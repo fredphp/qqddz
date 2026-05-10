@@ -620,3 +620,93 @@ func getPlayerStatusText(status uint8) string {
                 return "未知"
         }
 }
+
+// GetArenaPeriodLeaderboard 获取期数排行榜
+func (s *DDZArenaPeriodService) GetArenaPeriodLeaderboard(req ddzReq.ArenaPeriodLeaderboardSearch) ([]ddzRes.ArenaPeriodLeaderboardResponse, error) {
+        db := GetDDZDB()
+        if req.Limit <= 0 {
+                req.Limit = 50
+        }
+
+        // 先获取期号信息，找到对应的session_id
+        var sessionID uint64
+        var periodNo string
+        now := time.Now()
+        for i := 0; i < 6; i++ {
+                t := now.AddDate(0, -i, 0)
+                tableName := getArenaPeriodTableName(t)
+                if !ensureTableExists(db, tableName) {
+                        continue
+                }
+
+                err := db.Table(tableName).Select("session_id, period_no").Where("id = ?", req.PeriodID).Scan(&struct {
+                        SessionID *uint64 `gorm:"column:session_id"`
+                        PeriodNo  string  `gorm:"column:period_no"`
+                }{}).Row().Scan(&sessionID, &periodNo)
+                if err == nil && sessionID > 0 {
+                        break
+                }
+        }
+
+        if sessionID == 0 {
+                return []ddzRes.ArenaPeriodLeaderboardResponse{}, nil
+        }
+
+        // 从参赛记录中获取排行榜数据
+        var participations []struct {
+                PlayerID       uint64 `gorm:"column:player_id"`
+                PlayerName     string `gorm:"column:player_name"`
+                PlayerAvatar   string `gorm:"column:player_avatar"`
+                MatchCoin      int64  `gorm:"column:match_coin"`
+                IsEliminated   uint8  `gorm:"column:is_eliminated"`
+                IsChampion     uint8  `gorm:"column:is_champion"`
+                EliminatedRound *int  `gorm:"column:eliminated_round"`
+                Rank           *int   `gorm:"column:rank"`
+        }
+
+        // 查询参赛记录分表
+        for i := 0; i < 6; i++ {
+                t := now.AddDate(0, -i, 0)
+                tableName := getArenaParticipationTableName(t)
+                if !ensureTableExists(db, tableName) {
+                        continue
+                }
+
+                query := db.Table(tableName+" p").
+                        Select(`p.player_id, p.match_coin, p.is_eliminated, p.is_champion,
+                                p.eliminated_round, p.rank,
+                                COALESCE(pl.nickname, '') as player_name,
+                                COALESCE(pl.avatar, '') as player_avatar`).
+                        Joins("LEFT JOIN ddz_players pl ON p.player_id = pl.id").
+                        Where("p.session_id = ?", sessionID).
+                        Order("p.match_coin DESC, p.rank ASC").
+                        Limit(req.Limit)
+
+                if err := query.Find(&participations).Error; err == nil && len(participations) > 0 {
+                        break
+                }
+        }
+
+        // 转换为响应格式
+        result := make([]ddzRes.ArenaPeriodLeaderboardResponse, 0, len(participations))
+        for i, p := range participations {
+                rank := i + 1
+                eliminatedRound := 0
+                if p.EliminatedRound != nil {
+                        eliminatedRound = *p.EliminatedRound
+                }
+
+                result = append(result, ddzRes.ArenaPeriodLeaderboardResponse{
+                        Rank:            rank,
+                        PlayerID:        p.PlayerID,
+                        PlayerName:      p.PlayerName,
+                        PlayerAvatar:    p.PlayerAvatar,
+                        MatchCoin:       p.MatchCoin,
+                        IsEliminated:    p.IsEliminated == 1,
+                        IsChampion:      p.IsChampion == 1,
+                        EliminatedRound: eliminatedRound,
+                })
+        }
+
+        return result, nil
+}

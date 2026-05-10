@@ -224,3 +224,30 @@ func (api *DDZArenaPeriodApi) GetArenaPeriodStats(c *gin.Context) {
 
         response.OkWithDetailed(stats, "获取成功", c)
 }
+
+// GetArenaPeriodLeaderboard
+// @Tags     竞技场期号管理
+// @Summary  获取期数排行榜
+// @Security ApiKeyAuth
+// @accept   application/json
+// @Produce  application/json
+// @Param    data  body      ddzReq.ArenaPeriodLeaderboardSearch  true  "期数ID"
+// @Success  200   {object}  response.Response{data=[]ddzRes.ArenaPeriodLeaderboardResponse,msg=string}  "获取期数排行榜"
+// @Router   /ddz/arenaPeriod/leaderboard [post]
+func (api *DDZArenaPeriodApi) GetArenaPeriodLeaderboard(c *gin.Context) {
+        var req ddzReq.ArenaPeriodLeaderboardSearch
+        err := c.ShouldBindJSON(&req)
+        if err != nil {
+                response.FailWithMessage(err.Error(), c)
+                return
+        }
+
+        list, err := ddzArenaPeriodService.GetArenaPeriodLeaderboard(req)
+        if err != nil {
+                global.GVA_LOG.Error("获取期数排行榜失败!", zap.Error(err))
+                response.FailWithMessage("获取期数排行榜失败", c)
+                return
+        }
+
+        response.OkWithDetailed(list, "获取成功", c)
+}

@@ -61,3 +61,12 @@ export const getArenaPeriodStats = () => {
     method: 'get'
   })
 }
+
+// 获取期数排行榜
+export const getArenaPeriodLeaderboard = (data) => {
+  return service({
+    url: '/ddz/arenaPeriod/leaderboard',
+    method: 'post',
+    data
+  })
+}
