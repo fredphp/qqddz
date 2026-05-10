@@ -13,8 +13,8 @@ func (s *DDZArenaMatchConfigService) GetArenaMatchConfigList(req ddzReq.DDZArena
         offset := req.PageSize * (req.Page - 1)
 
         db := GetDDZDB().Table("ddz_arena_match_config")
-        if req.RoomConfigID > 0 {
-                db = db.Where("room_config_id = ?", req.RoomConfigID)
+        if req.RoomConfigID.Valid && req.RoomConfigID.Value > 0 {
+                db = db.Where("room_config_id = ?", req.RoomConfigID.Value)
         }
         if req.Status != nil {
                 db = db.Where("status = ?", *req.Status)

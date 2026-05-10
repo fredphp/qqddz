@@ -13,8 +13,8 @@ func (s *DDZArenaSignupLogService) GetArenaSignupLogList(req ddzReq.DDZArenaSign
         offset := req.PageSize * (req.Page - 1)
 
         db := GetDDZDB().Table("ddz_arena_signup_logs")
-        if req.PlayerID > 0 {
-                db = db.Where("player_id = ?", req.PlayerID)
+        if req.PlayerID.Valid && req.PlayerID.Value > 0 {
+                db = db.Where("player_id = ?", req.PlayerID.Value)
         }
         if req.PeriodNo != "" {
                 db = db.Where("period_no = ?", req.PeriodNo)

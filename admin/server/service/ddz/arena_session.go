@@ -16,8 +16,8 @@ func (s *DDZArenaSessionService) GetArenaSessionList(req ddzReq.DDZArenaSessionS
         if req.PeriodNo != "" {
                 db = db.Where("period_no = ?", req.PeriodNo)
         }
-        if req.RoomConfigID > 0 {
-                db = db.Where("room_config_id = ?", req.RoomConfigID)
+        if req.RoomConfigID.Valid && req.RoomConfigID.Value > 0 {
+                db = db.Where("room_config_id = ?", req.RoomConfigID.Value)
         }
         if req.Status != nil {
                 db = db.Where("status = ?", *req.Status)

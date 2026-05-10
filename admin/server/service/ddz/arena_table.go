@@ -13,11 +13,11 @@ func (s *DDZArenaTableService) GetArenaTableList(req ddzReq.DDZArenaTableSearch)
         offset := req.PageSize * (req.Page - 1)
 
         db := GetDDZDB().Table("ddz_arena_tables")
-        if req.SessionID > 0 {
-                db = db.Where("session_id = ?", req.SessionID)
+        if req.SessionID.Valid && req.SessionID.Value > 0 {
+                db = db.Where("session_id = ?", req.SessionID.Value)
         }
-        if req.RoundID > 0 {
-                db = db.Where("round_id = ?", req.RoundID)
+        if req.RoundID.Valid && req.RoundID.Value > 0 {
+                db = db.Where("round_id = ?", req.RoundID.Value)
         }
 
         err = db.Count(&total).Error

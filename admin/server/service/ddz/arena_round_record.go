@@ -13,8 +13,8 @@ func (s *DDZArenaRoundRecordService) GetArenaRoundRecordList(req ddzReq.DDZArena
         offset := req.PageSize * (req.Page - 1)
 
         db := GetDDZDB().Table("ddz_arena_round_records")
-        if req.SessionID > 0 {
-                db = db.Where("session_id = ?", req.SessionID)
+        if req.SessionID.Valid && req.SessionID.Value > 0 {
+                db = db.Where("session_id = ?", req.SessionID.Value)
         }
         if req.Status != nil {
                 db = db.Where("status = ?", *req.Status)
