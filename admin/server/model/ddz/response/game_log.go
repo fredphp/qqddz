@@ -2,17 +2,18 @@ package response
 
 // DDZBidLogResponse 叫地主日志响应
 type DDZBidLogResponse struct {
-        ID          uint   `json:"ID"`
-        GameID      string `json:"gameId"`
-        PlayerID    uint64 `json:"playerId"`
-        PlayerName  string `json:"playerName"`
-        BidOrder    int    `json:"bidOrder"`
-        BidType     int    `json:"bidType"`
-        BidTypeText string `json:"bidTypeText"`
-        BidScore    int    `json:"bidScore"`
-        IsSuccess   int    `json:"isSuccess"`
-        SuccessText string `json:"successText"`
-        CreatedAt   string `json:"createdAt"`
+        ID           uint   `json:"ID"`
+        GameID       string `json:"gameId"`
+        PlayerID     uint64 `json:"playerId"`
+        PlayerName   string `json:"playerName"`
+        PlayerAvatar string `json:"playerAvatar"`
+        BidOrder     int    `json:"bidOrder"`
+        BidType      int    `json:"bidType"`
+        BidTypeText  string `json:"bidTypeText"`
+        BidScore     int    `json:"bidScore"`
+        IsSuccess    bool   `json:"isSuccess"`
+        SuccessText  string `json:"successText"`
+        CreatedAt    string `json:"createdAt"`
 }
 
 // DDZDealLogResponse 发牌日志响应

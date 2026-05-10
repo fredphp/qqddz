@@ -1720,11 +1720,13 @@ func (s *DDZGameLogService) toPlayLogResponse(l ddz.DDZPlayLog) ddzRes.DDZPlayLo
 func (s *DDZGameLogService) bidLogToResponse(l BidLog) ddzRes.DDZBidLogResponse {
         db := GetDDZDB()
         
-        // 获取玩家昵称
+        // 获取玩家昵称和头像
         playerName := ""
+        playerAvatar := ""
         var player ddz.DDZPlayer
         if err := db.Where("id = ?", l.PlayerID).First(&player).Error; err == nil {
                 playerName = player.Nickname
+                playerAvatar = player.Avatar
         }
         
         // 叫地主类型文本
@@ -1738,22 +1740,24 @@ func (s *DDZGameLogService) bidLogToResponse(l BidLog) ddzRes.DDZBidLogResponse 
         
         // 是否成功文本
         successText := "失败"
-        if l.IsSuccess == 1 {
+        isSuccess := l.IsSuccess == 1
+        if isSuccess {
                 successText = "成功"
         }
         
         return ddzRes.DDZBidLogResponse{
-                ID:          uint(l.ID),
-                GameID:      l.GameID,
-                PlayerID:    l.PlayerID,
-                PlayerName:  playerName,
-                BidOrder:    l.BidOrder,
-                BidType:     l.BidType,
-                BidTypeText: bidTypeText,
-                BidScore:    l.BidScore,
-                IsSuccess:   l.IsSuccess,
-                SuccessText: successText,
-                CreatedAt:   l.CreatedAt.Format("2006-01-02 15:04:05"),
+                ID:           uint(l.ID),
+                GameID:       l.GameID,
+                PlayerID:     l.PlayerID,
+                PlayerName:   playerName,
+                PlayerAvatar: playerAvatar,
+                BidOrder:     l.BidOrder,
+                BidType:      l.BidType,
+                BidTypeText:  bidTypeText,
+                BidScore:     l.BidScore,
+                IsSuccess:    isSuccess,
+                SuccessText:  successText,
+                CreatedAt:    l.CreatedAt.Format("2006-01-02 15:04:05"),
         }
 }
 
