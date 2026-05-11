@@ -20,6 +20,16 @@ import (
 )
 
 // =============================================
+// 类型定义
+// =============================================
+
+// MatchTimeRange 开赛时间段
+type MatchTimeRange struct {
+        Start string `json:"start"` // 开始时间，格式 "HH:MM"
+        End   string `json:"end"`   // 结束时间，格式 "HH:MM"
+}
+
+// =============================================
 // 常量定义
 // =============================================
 
@@ -1336,7 +1346,7 @@ func (b *ArenaStatusBroadcaster) calculateRoomArenaStatus(roomID uint64, roomNam
         }
 
         // 解析开赛时间段
-        var timeRanges []database.MatchTimeRange
+        var timeRanges []MatchTimeRange
         if matchTimeRanges != "" {
                 if err := json.Unmarshal([]byte(matchTimeRanges), &timeRanges); err != nil {
                         // 解析失败，保持 timeRanges 为空
@@ -1363,7 +1373,7 @@ func (b *ArenaStatusBroadcaster) calculateRoomArenaStatus(roomID uint64, roomNam
 
         // 查找当前所在的时间段，或下一个即将开始的时间段
         var startTime, endTime time.Time
-        var matchedRange *database.MatchTimeRange
+        var matchedRange *MatchTimeRange
         var isWaitingForStart = false // 是否在等待下一轮开始
 
         for _, tr := range timeRanges {

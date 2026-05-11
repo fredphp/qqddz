@@ -12,6 +12,12 @@ import (
         "gorm.io/gorm"
 )
 
+// MatchTimeRange 开赛时间段
+type MatchTimeRange struct {
+        Start string `json:"start"` // 开始时间，格式 "HH:MM"
+        End   string `json:"end"`   // 结束时间，格式 "HH:MM"
+}
+
 // ArenaHandler 竞技场处理器
 type ArenaHandler struct {
         redis RedisClient // Redis客户端
@@ -497,7 +503,7 @@ type PeriodInfo struct {
 // getCurrentPeriodInfo 获取当前期号信息
 func (h *ArenaHandler) getCurrentPeriodInfo(roomID uint64, roomConfig *database.RoomConfig) (*PeriodInfo, error) {
         // 解析开赛时间段
-        var timeRanges []database.MatchTimeRange
+        var timeRanges []MatchTimeRange
         if roomConfig.MatchTimeRanges != "" {
                 if err := json.Unmarshal([]byte(roomConfig.MatchTimeRanges), &timeRanges); err != nil {
                         log.Printf("⚠️ 解析时间段失败: %v", err)
@@ -513,7 +519,7 @@ func (h *ArenaHandler) getCurrentPeriodInfo(roomID uint64, roomConfig *database.
 
         // 查找当前所在的时间段
         var startTime time.Time
-        var matchedRange *database.MatchTimeRange
+        var matchedRange *MatchTimeRange
 
         for _, tr := range timeRanges {
                 st := parseTimeWithToday(tr.Start, now)
