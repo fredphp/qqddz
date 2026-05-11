@@ -345,3 +345,32 @@ Stage Summary:
   - 调整：弹窗尺寸、元素位置、视觉对齐
 - 设计参考：多乐斗地主、欢乐斗地主、JJ斗地主
 - 业务逻辑：保持原有接口不变(onPhoneLogin、onGetCode、onWechatLogin、onClose)
+
+---
+Task ID: 10
+Agent: Main Agent
+Task: 修复登录弹窗被Widget拉伸为全屏的问题
+
+Work Log:
+- 分析问题：登录弹窗在手机端显示为整页，而不是居中悬浮弹窗
+- 排查根因：panel_bg 节点的 Widget 组件 _alignFlags=45（全拉伸）
+- 修复方案：
+  1. 删除 panel_bg 节点的 Widget 组件引用
+  2. 给 mask_bg 添加 Widget 组件实现全屏遮罩
+  3. 添加手机端弹窗缩放适配（scale自适应，不改宽高）
+- 更新脚本：
+  - 添加 _initPanelScale() 方法
+  - 小屏幕(height<700)缩放0.88
+  - 中等屏幕(height<800)缩放0.92
+  - 动画逻辑适配缩放后的目标值
+
+Stage Summary:
+- 修改文件：
+  - nclient/assets/resources/prefabs/phone_login.prefab
+  - nclient/assets/scripts/prefabs/phone_login.js
+- 问题根因：panel_bg 的 Widget 组件导致弹窗被拉伸到父容器全尺寸
+- 修复内容：
+  - panel_bg: 删除 Widget 组件，改为固定尺寸 500x560
+  - mask_bg: 添加 Widget 组件实现全屏遮罩
+  - content_panel: 固定尺寸 500x560，通过 scale 适配不同屏幕
+- 提交：eafb53c "fix: 修复登录弹窗被Widget拉伸为全屏的问题"

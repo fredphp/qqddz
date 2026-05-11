@@ -731,29 +731,30 @@ cc.Class({
 
     _createPhoneLoginPopup: function(prefab) {
         
-        // 使用prefab实例化弹窗
+        // 动态创建弹窗（使用正确的背景图和尺寸）
         try {
-            var popup = cc.instantiate(prefab);
-            popup.parent = this.node;
-            popup.setPosition(0, 0);
-            popup.zIndex = 1000;
+            var popup = this._createPhoneLoginDynamic();
             this._phoneLoginPopup = popup;
-            console.log("【登录弹窗】使用prefab实例化成功");
         } catch (e) {
             console.error("创建手机登录弹窗失败:", e);
             this._showError("无法显示登录弹窗: " + e.message);
         }
     },
 
-    // 动态创建手机登录弹窗 - 🔧【重构】中国风斗地主登录弹窗
-    // 弹窗尺寸：520 x 680，使用新背景图 login_bg
+    // 动态创建手机登录弹窗 - 使用正确的背景图和尺寸
     _createPhoneLoginDynamic: function() {
         var self = this;
+
+        // ==================== 弹窗尺寸（屏幕60%宽度，最小300）====================
+        var winW = cc.winSize.width;
+        var winH = cc.winSize.height;
+        var panelWidth = Math.max(300, Math.min(winW * 0.6, winW * 0.8));
+        var panelHeight = panelWidth * 1.3; // 高度按比例
 
         // ==================== 弹窗根节点 ====================
         var popup = new cc.Node("LoginDialog");
         popup.parent = this.node;
-        popup.setContentSize(cc.size(1280, 720));
+        popup.setContentSize(cc.size(winW, winH));
         popup.setPosition(0, 0);
         popup.zIndex = 1000;
 
@@ -763,16 +764,14 @@ cc.Class({
         // ==================== 半透明背景遮罩 ====================
         var mask = new cc.Node("Mask");
         mask.parent = popup;
-        mask.setContentSize(cc.size(1280, 720));
+        mask.setContentSize(cc.size(winW, winH));
         mask.setPosition(0, 0);
         var maskSprite = mask.addComponent(cc.Sprite);
         maskSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         mask.color = new cc.Color(0, 0, 0);
-        mask.opacity = 180;
+        mask.opacity = 150;
 
-        // ==================== 弹窗面板参数 ====================
-        var panelWidth = 520;
-        var panelHeight = 680;
+        // ==================== 弹窗面板 ====================
         var panel = new cc.Node("Panel");
         panel.parent = popup;
         panel.setContentSize(cc.size(panelWidth, panelHeight));
@@ -780,14 +779,14 @@ cc.Class({
         panel.scale = 0.7;
         panel.opacity = 0;
 
-        // ==================== 弹窗背景（使用 login_bg 图片）====================
+        // ==================== 弹窗背景（使用正确的 login_bg 图片）====================
         var bg = new cc.Node("Bg");
         bg.parent = panel;
         bg.setContentSize(cc.size(panelWidth, panelHeight));
         bg.setPosition(0, 0);
         
-        // 加载新背景图
-        cc.resources.load("images/login_bg", cc.SpriteFrame, function(err, spriteFrame) {
+        // 加载背景图（使用 UI/login/login_bg.png）
+        cc.resources.load("UI/login/login_bg", cc.SpriteFrame, function(err, spriteFrame) {
             if (err) {
                 console.warn("加载 login_bg 失败，使用默认背景:", err);
                 // 降级：使用渐变背景
@@ -821,11 +820,10 @@ cc.Class({
         titleOutline.width = 3;
 
         // ==================== 关闭按钮（右上角圆形，红金色，46x46）====================
-        // 位置：x: 230, y: 295 (相对于面板中心)
         var closeBtn = new cc.Node("BtnClose");
         closeBtn.parent = panel;
         closeBtn.setContentSize(cc.size(46, 46));
-        closeBtn.setPosition(230, 295);
+        closeBtn.setPosition(panelWidth/2 - 35, panelHeight/2 - 35);
         
         // 红金色圆形背景
         var closeGfx = closeBtn.addComponent(cc.Graphics);
@@ -858,10 +856,10 @@ cc.Class({
         }, this);
 
         // ==================== 表单布局参数 ====================
-        // 输入框统一规格：宽400，高58
-        var inputWidth = 400;
-        var inputHeight = 58;
-        var formY = panelHeight/2 - 120; // 表单起始Y坐标
+        // 输入框宽度根据面板宽度动态计算
+        var inputWidth = Math.min(panelWidth - 40, 400);
+        var inputHeight = 50;
+        var formY = panelHeight/2 - 100; // 表单起始Y坐标
 
         // ==================== 手机号输入框 ====================
         var phoneBg = new cc.Node("PhoneInput");
@@ -903,12 +901,11 @@ cc.Class({
         phoneEditBox.maxLength = 11;
         phoneEditBox.backgroundColor = new cc.Color(255, 255, 255, 0);
 
-        formY -= inputHeight + 30; // 间距30
+        formY -= inputHeight + 25; // 间距
 
         // ==================== 验证码行 ====================
-        var codeInputWidth = 260;
-        var sendBtnWidth = 120;
-        var codeGap = 20;
+        var codeInputWidth = Math.min(inputWidth * 0.65, 260);
+        var sendBtnWidth = Math.min(inputWidth * 0.30, 110);
 
         // 验证码输入框背景
         var codeBg = new cc.Node("CodeInput");
@@ -977,11 +974,11 @@ cc.Class({
         sendCodeBtnComp.transition = cc.Button.Transition.SCALE;
         sendCodeBtnComp.zoomScale = 0.95;
 
-        formY -= inputHeight + 50; // 主登录按钮在输入框下方40px
+        formY -= inputHeight + 40; // 主登录按钮间距
 
-        // ==================== 手机登录按钮（中国风橙金渐变，360x68）====================
-        var loginBtnWidth = 360;
-        var loginBtnHeight = 68;
+        // ==================== 手机登录按钮 ====================
+        var loginBtnWidth = Math.min(inputWidth, 320);
+        var loginBtnHeight = 55;
         
         var loginBtn = new cc.Node("BtnLogin");
         loginBtn.parent = panel;
