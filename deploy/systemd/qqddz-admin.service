@@ -1,0 +1,27 @@
+[Unit]
+Description=QQDDZ Admin Server (斗地主后台管理系统)
+After=network.target mysql.service redis.service
+Wants=mysql.service redis.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/qqddz/admin
+ExecStart=/opt/qqddz/admin/bin/admin
+Restart=always
+RestartSec=5
+
+# 日志
+StandardOutput=append:/opt/qqddz/logs/admin.log
+StandardError=append:/opt/qqddz/logs/admin-error.log
+
+# 资源限制
+LimitNOFILE=65535
+LimitNPROC=65535
+
+# 安全设置
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -399,6 +399,21 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
     }
 };
 
+// 移除原生 HTML 输入框元素（登录成功或关闭弹窗时调用）
+var _removeNativeInputElements = function() {
+    if (!cc.sys.isBrowser) return;
+    
+    try {
+        var container = document.getElementById('native-input-container');
+        if (container) {
+            container.remove();
+            console.log('原生输入框已移除');
+        }
+    } catch (e) {
+        console.error('移除原生输入框失败:', e);
+    }
+};
+
 // 修复 EditBox 的 HTML input 元素位置和尺寸
 var _fixEditBoxInputElements = function(panel, phoneInputNode, codeInputNode, inputWidth, inputHeight, codeInputW, phoneEditBox, codeEditBox) {
     if (!cc.sys.isBrowser) return;
@@ -1447,9 +1462,10 @@ cc.Class({
         };
 
         // ==================== 手机登录按钮 ====================
+        // btn_mobile_login.png 原始尺寸: 340 x 50，宽高比 6.8:1
         var loginBtnY = formY2 - 70 * scaleRatio;
-        var loginBtnWidth = 200 * scaleRatio;
-        var loginBtnHeight = btnHeight;  // 使用统一按钮高度
+        var loginBtnHeight = 50 * scaleRatio;  // 按钮高度
+        var loginBtnWidth = loginBtnHeight * 6.8;  // 按图片原始比例计算宽度 (340/50=6.8)
 
         var loginBtn = new cc.Node("BtnLogin");
         loginBtn.parent = panel;
@@ -1462,7 +1478,7 @@ cc.Class({
                 // 降级：使用纯色按钮
                 var loginGfx = loginBtn.addComponent(cc.Graphics);
                 loginGfx.fillColor = new cc.Color(255, 140, 0);
-                loginGfx.roundRect(-loginBtnWidth/2, -btnHeight/2, loginBtnWidth, btnHeight, 8 * scaleRatio);
+                loginGfx.roundRect(-loginBtnWidth/2, -loginBtnHeight/2, loginBtnWidth, loginBtnHeight, 8 * scaleRatio);
                 loginGfx.fill();
                 return;
             }
@@ -1477,8 +1493,9 @@ cc.Class({
         loginBtnComp.zoomScale = 0.95;
 
         // ==================== 微信登录按钮 ====================
+        // icon_wechat.png 原始尺寸: 48 x 48（正方形）
         var wxBtnY = loginBtnY - 155 * scaleRatio;  // 往下移动更多
-        var wxBtnSize = 50 * scaleRatio;
+        var wxBtnSize = 48 * scaleRatio;  // 使用图片原始尺寸 48
 
         var wxBtn = new cc.Node("BtnWechat");
         wxBtn.parent = panel;
@@ -1696,6 +1713,7 @@ cc.Class({
                 }
                 showMessage("登录成功", false);
                 self.scheduleOnce(function() {
+                    _removeNativeInputElements();
                     popup.destroy();
                     cc.director.loadScene("hallScene");
                 }, 0.5);
@@ -1732,6 +1750,7 @@ cc.Class({
                                 window.myglobal.onLoginSuccess(loginData);
                             }
                             self.scheduleOnce(function() {
+                                _removeNativeInputElements();
                                 popup.destroy();
                                 cc.director.loadScene("hallScene");
                             }, 0.5);
@@ -1770,6 +1789,7 @@ cc.Class({
                                         window.myglobal.onLoginSuccess(loginData);
                                     }
                                     self.scheduleOnce(function() {
+                                        _removeNativeInputElements();
                                         popup.destroy();
                                         cc.director.loadScene("hallScene");
                                     }, 0.5);
@@ -1810,6 +1830,7 @@ cc.Class({
                 }
                 showMessage("登录成功", false);
                 self.scheduleOnce(function() {
+                    _removeNativeInputElements();
                     popup.destroy();
                     cc.director.loadScene("hallScene");
                 }, 0.5);
@@ -1844,6 +1865,7 @@ cc.Class({
                                 console.log("【微信登录】用户数据已保存, nickName =", window.myglobal.playerData.nickName);
                             }
                             self.scheduleOnce(function() {
+                                _removeNativeInputElements();
                                 popup.destroy();
                                 cc.director.loadScene("hallScene");
                             }, 0.5);
@@ -1878,6 +1900,7 @@ cc.Class({
                                         console.log("【微信登录XHR】用户数据已保存, nickName =", window.myglobal.playerData.nickName);
                                     }
                                     self.scheduleOnce(function() {
+                                        _removeNativeInputElements();
                                         popup.destroy();
                                         cc.director.loadScene("hallScene");
                                     }, 0.5);

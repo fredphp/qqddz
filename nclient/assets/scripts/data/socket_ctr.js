@@ -43,8 +43,8 @@ window.socketCtr = function(){
     var _quickMatchCallback = null
     var _quickMatchTimeout = null
     
-    // 获取服务器地址
-    var _serverUrl = "ws://localhost:1780/ws"
+    // 获取服务器地址（生产环境）
+    var _serverUrl = "wss://apis.hongxiu88.com/ws"
     if (typeof window !== 'undefined' && window.defines && window.defines.serverUrl) {
         _serverUrl = window.defines.serverUrl
     }
