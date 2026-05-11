@@ -202,10 +202,6 @@ var _fixEditBoxInputElements = function(panel, phoneInputNode, codeInputNode, in
         var canvasRect = canvas.getBoundingClientRect();
         console.log('Canvas 尺寸:', canvasRect.width, 'x', canvasRect.height);
         
-        // 计算 panel 的世界坐标
-        var worldPos = phoneInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
-        console.log('手机输入框世界坐标:', worldPos.x, worldPos.y);
-        
         // 获取游戏设计的分辨率
         var winSize = cc.winSize;
         console.log('游戏分辨率:', winSize.width, 'x', winSize.height);
@@ -215,25 +211,39 @@ var _fixEditBoxInputElements = function(panel, phoneInputNode, codeInputNode, in
         var scaleY = canvasRect.height / winSize.height;
         console.log('缩放比例:', scaleX, scaleY);
         
-        // 计算 HTML input 元素的位置和尺寸
-        // 注意：Canvas 坐标系 Y 轴向上，HTML 坐标系 Y 轴向下
-        var phoneInputX = (worldPos.x + winSize.width / 2 - inputWidth / 2) * scaleX;
-        var phoneInputY = canvasRect.height - (worldPos.y + winSize.height / 2 + inputHeight / 2) * scaleY;
+        // 辅助函数：将 Cocos 世界坐标转换为 HTML 屏幕坐标
+        var worldToScreen = function(worldPos, nodeWidth, nodeHeight) {
+            // Cocos 坐标系：原点在左下角，Y轴向上
+            // HTML 坐标系：原点在左上角，Y轴向下
+            
+            // 世界坐标转换为相对于设计分辨率的位置（0 到 winSize）
+            // 然后缩放到 Canvas 尺寸
+            
+            var screenX = (worldPos.x - nodeWidth / 2) * scaleX;
+            var screenY = canvasRect.height - (worldPos.y + nodeHeight / 2) * scaleY;
+            
+            return { x: screenX, y: screenY };
+        };
         
-        console.log('手机输入框 HTML 位置:', phoneInputX, phoneInputY);
-        console.log('输入框尺寸:', inputWidth * scaleX, inputHeight * scaleY);
+        // 计算手机输入框的世界坐标
+        var phoneWorldPos = phoneInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
+        console.log('手机输入框世界坐标:', phoneWorldPos.x, phoneWorldPos.y);
         
-        // 创建或获取 HTML input 元素
+        var phoneScreenPos = worldToScreen(phoneWorldPos, inputWidth, inputHeight);
+        console.log('手机输入框屏幕位置:', phoneScreenPos.x, phoneScreenPos.y);
+        
+        // 查找 HTML input 元素
         var inputs = document.querySelectorAll('input');
         console.log('找到 ' + inputs.length + ' 个 input 元素');
         
-        if (inputs.length >= 1) {
+        // 如果只有一个 input，需要手动创建第二个
+        if (inputs.length === 1) {
             var phoneInput = inputs[0];
             
             // 设置样式
             phoneInput.style.position = 'absolute';
-            phoneInput.style.left = phoneInputX + 'px';
-            phoneInput.style.top = phoneInputY + 'px';
+            phoneInput.style.left = Math.max(0, phoneScreenPos.x) + 'px';
+            phoneInput.style.top = Math.max(0, phoneScreenPos.y) + 'px';
             phoneInput.style.width = (inputWidth * scaleX) + 'px';
             phoneInput.style.height = (inputHeight * scaleY) + 'px';
             phoneInput.style.zIndex = '9999';
@@ -242,27 +252,30 @@ var _fixEditBoxInputElements = function(panel, phoneInputNode, codeInputNode, in
             phoneInput.style.display = 'block';
             phoneInput.style.pointerEvents = 'auto';
             phoneInput.style.cursor = 'text';
-            phoneInput.style.background = 'transparent';
-            phoneInput.style.border = 'none';
+            phoneInput.style.background = 'rgba(255,255,255,0.5)';
+            phoneInput.style.border = '2px solid gold';
             phoneInput.style.outline = 'none';
-            phoneInput.style.fontSize = (18 * scaleX) + 'px';
+            phoneInput.style.fontSize = '16px';
             phoneInput.style.color = '#333333';
-            phoneInput.style.padding = '0 10px';
+            phoneInput.style.padding = '5px';
             phoneInput.style.boxSizing = 'border-box';
+            phoneInput.style.borderRadius = '5px';
             
-            console.log('手机输入框样式已修复');
+            console.log('手机输入框样式已修复，位置:', phoneInput.style.left, phoneInput.style.top);
         }
         
         // 验证码输入框
         var codeWorldPos = codeInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
-        var codeInputX = (codeWorldPos.x + winSize.width / 2 - codeInputW / 2) * scaleX;
-        var codeInputY = canvasRect.height - (codeWorldPos.y + winSize.height / 2 + inputHeight / 2) * scaleY;
+        console.log('验证码输入框世界坐标:', codeWorldPos.x, codeWorldPos.y);
+        
+        var codeScreenPos = worldToScreen(codeWorldPos, codeInputW, inputHeight);
+        console.log('验证码输入框屏幕位置:', codeScreenPos.x, codeScreenPos.y);
         
         if (inputs.length >= 2) {
             var codeInput = inputs[1];
             codeInput.style.position = 'absolute';
-            codeInput.style.left = codeInputX + 'px';
-            codeInput.style.top = codeInputY + 'px';
+            codeInput.style.left = Math.max(0, codeScreenPos.x) + 'px';
+            codeInput.style.top = Math.max(0, codeScreenPos.y) + 'px';
             codeInput.style.width = (codeInputW * scaleX) + 'px';
             codeInput.style.height = (inputHeight * scaleY) + 'px';
             codeInput.style.zIndex = '9999';
@@ -271,16 +284,24 @@ var _fixEditBoxInputElements = function(panel, phoneInputNode, codeInputNode, in
             codeInput.style.display = 'block';
             codeInput.style.pointerEvents = 'auto';
             codeInput.style.cursor = 'text';
-            codeInput.style.background = 'transparent';
-            codeInput.style.border = 'none';
+            codeInput.style.background = 'rgba(255,255,255,0.5)';
+            codeInput.style.border = '2px solid gold';
             codeInput.style.outline = 'none';
-            codeInput.style.fontSize = (18 * scaleX) + 'px';
+            codeInput.style.fontSize = '16px';
             codeInput.style.color = '#333333';
-            codeInput.style.padding = '0 10px';
+            codeInput.style.padding = '5px';
             codeInput.style.boxSizing = 'border-box';
+            codeInput.style.borderRadius = '5px';
             
             console.log('验证码输入框样式已修复');
         }
+        
+        // 调试：显示输入框的实际位置
+        console.log('=== 调试信息 ===');
+        console.log('Canvas 位置:', canvasRect.left, canvasRect.top);
+        console.log('设计分辨率:', winSize.width, 'x', winSize.height);
+        console.log('输入框节点尺寸:', inputWidth, 'x', inputHeight);
+        console.log('验证码输入框尺寸:', codeInputW, 'x', inputHeight);
         
     } catch (e) {
         console.error('修复 EditBox 样式失败:', e);
