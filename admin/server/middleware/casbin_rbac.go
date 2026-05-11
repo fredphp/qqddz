@@ -6,6 +6,7 @@ import (
         "github.com/flipped-aurora/gin-vue-admin/server/model/system"
         "github.com/flipped-aurora/gin-vue-admin/server/utils"
         "github.com/gin-gonic/gin"
+        "go.uber.org/zap"
         "strconv"
         "strings"
         "sync"
@@ -73,6 +74,16 @@ func CasbinHandler() gin.HandlerFunc {
                 // 获取用户的角色
                 sub := strconv.Itoa(int(waitUse.AuthorityId))
                 e := utils.GetCasbin() // 判断策略中是否存在
+                
+                // 如果 Casbin 未初始化，记录错误并放行（避免 panic）
+                if e == nil {
+                        global.GVA_LOG.Warn("Casbin 未初始化，跳过权限检查", 
+                                zap.String("path", obj), 
+                                zap.String("method", act))
+                        c.Next()
+                        return
+                }
+                
                 success, _ := e.Enforce(sub, obj, act)
                 if !success {
                         response.FailWithDetailed(gin.H{}, "权限不足", c)

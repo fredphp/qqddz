@@ -62,9 +62,19 @@ export default ({ mode }) => {
         // Admin 后端专用代理（直接查询数据库，不走游戏服务端）
         // 所有 /admin-api 开头的请求都会被代理到 Admin 后端 (127.0.0.1:8888)
         '/admin-api': {
-          target: 'http://127.0.0.1:8888/',
+          target: 'http://127.0.0.1:8888',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/admin-api/, '')
+          rewrite: (path) => path.replace(/^\/admin-api/, ''),
+          secure: false,
+          ws: true,
+          configure: (proxy, options) => {
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log('[Admin Proxy]', req.method, req.url, '->', options.target + proxyReq.path)
+            })
+            proxy.on('error', (err, req, res) => {
+              console.log('[Admin Proxy Error]', err.message)
+            })
+          }
         },
         '/plugin': {
           target: 'https://plugin.gin-vue-admin.com/api/',
