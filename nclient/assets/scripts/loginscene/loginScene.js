@@ -731,10 +731,14 @@ cc.Class({
 
     _createPhoneLoginPopup: function(prefab) {
         
-        // 动态创建弹窗
+        // 使用prefab实例化弹窗
         try {
-            var popup = this._createPhoneLoginDynamic();
+            var popup = cc.instantiate(prefab);
+            popup.parent = this.node;
+            popup.setPosition(0, 0);
+            popup.zIndex = 1000;
             this._phoneLoginPopup = popup;
+            console.log("【登录弹窗】使用prefab实例化成功");
         } catch (e) {
             console.error("创建手机登录弹窗失败:", e);
             this._showError("无法显示登录弹窗: " + e.message);
