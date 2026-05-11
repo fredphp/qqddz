@@ -22,14 +22,25 @@
             <div class="player-id">ID: {{ playerInfo.id }}</div>
             <div class="player-coin">
               <el-icon><Coin /></el-icon>
-              <span>竞技币: {{ formatNumber(playerInfo.arenaCoin) }}</span>
+              <span>竞技币: {{ formatNumber(registrationStatus.playerArenaCoin || playerInfo.arenaCoin) }}</span>
             </div>
           </div>
-          <div v-if="registrationStatus.isRegistered" class="registration-status">
-            <el-tag type="success" size="large">
+          <div class="registration-status">
+            <el-tag v-if="registrationStatus.isRegistered" type="success" size="large">
               已报名{{ registrationStatus.arenaLevelName }}
             </el-tag>
+            <el-tag v-else type="info" size="large">
+              未报名
+            </el-tag>
           </div>
+        </div>
+        <!-- 报名状态详情 -->
+        <div v-if="registrationStatus.isRegistered" class="registration-details">
+          <el-descriptions :column="3" border size="small">
+            <el-descriptions-item label="报名等级">{{ registrationStatus.arenaLevelName || `等级 ${registrationStatus.arenaLevel}` }}</el-descriptions-item>
+            <el-descriptions-item label="报名费用">{{ formatNumber(registrationStatus.arenaCoinCost) }} 竞技币</el-descriptions-item>
+            <el-descriptions-item label="报名时间">{{ registrationStatus.registeredAt || '-' }}</el-descriptions-item>
+          </el-descriptions>
         </div>
       </el-card>
     </div>
@@ -251,9 +262,9 @@ const loadPlayerStatus = async () => {
       return
     }
 
-    // 获取报名状态 - 使用 playerInfo.value.ID (大写，与后端JSON标签一致)
-    console.log('Calling getArenaStatus with ID:', playerInfo.value.ID)
-    const statusRes = await getArenaStatus(playerInfo.value.ID)
+    // 获取报名状态 - 使用 playerInfo.value.id (小写，与后端JSON标签一致)
+    console.log('Calling getArenaStatus with id:', playerInfo.value.id)
+    const statusRes = await getArenaStatus(playerInfo.value.id)
     if (statusRes.code === 0) {
       registrationStatus.value = statusRes.data
     }
@@ -274,7 +285,7 @@ const loadRecordList = async () => {
     const res = await getArenaRegistrationList({
       page: recordPage.value,
       pageSize: recordPageSize.value,
-      playerId: playerInfo.value.ID
+      playerId: playerInfo.value.id
     })
     if (res.code === 0) {
       recordList.value = res.data.list
@@ -301,7 +312,7 @@ const handleRegister = async (arena) => {
     operating.value = arena.roomType
 
     const res = await arenaRegister({
-      playerId: playerInfo.value.ID,
+      playerId: playerInfo.value.id,
       arenaLevel: arena.roomType - 1
     })
 
@@ -337,7 +348,7 @@ const handleCancel = async (arena) => {
     operating.value = arena.roomType
 
     const res = await arenaCancel({
-      playerId: playerInfo.value.ID
+      playerId: playerInfo.value.id
     })
 
     if (res.code === 0) {
@@ -396,6 +407,12 @@ const handleCancel = async (arena) => {
 
 .registration-status {
   margin-left: auto;
+}
+
+.registration-details {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #ebeef5;
 }
 
 .arena-list {
