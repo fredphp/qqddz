@@ -7,9 +7,9 @@ import router from '@/router/index'
 const DEFAULT_REQUEST_TIMEOUT = 1000 * 60 * 10
 
 // Admin 后端专用的 axios 实例，直接请求 Admin 后端（不走游戏服务端）
-// 直接使用虚拟域名 admin.qqddz.local
+// 使用环境变量配置API地址
 const adminService = axios.create({
-  baseURL: 'http://admin.qqddz.local'
+  baseURL: import.meta.env.VITE_ADMIN_API_URL || import.meta.env.VITE_BASE_API || 'http://api.qqddz.local'
 })
 
 let activeAxios = 0

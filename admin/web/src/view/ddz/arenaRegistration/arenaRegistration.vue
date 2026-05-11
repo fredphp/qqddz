@@ -165,13 +165,14 @@ const getAvatarUrl = (avatar) => {
   if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
     return avatar
   }
-  // 如果是相对路径，添加后端域名
+  // 如果是相对路径，添加后端域名（使用环境变量）
+  const baseUrl = import.meta.env.VITE_FILE_API || import.meta.env.VITE_BASE_API || 'http://api.qqddz.local'
   // 处理以 / 开头的路径
   if (avatar.startsWith('/')) {
-    return 'http://admin.qqddz.local' + avatar
+    return baseUrl + avatar
   }
   // 处理不以 / 开头的相对路径（如 uploads/file/...）
-  return 'http://admin.qqddz.local/' + avatar
+  return baseUrl + '/' + avatar
 }
 
 const searchInfo = reactive({
