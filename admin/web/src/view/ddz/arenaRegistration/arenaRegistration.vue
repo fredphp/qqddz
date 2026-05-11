@@ -241,14 +241,18 @@ const loadPlayerStatus = async () => {
   try {
     // 获取玩家信息
     const playerRes = await getPlayerInfo(searchInfo.playerId)
+    console.log('getPlayerInfo response:', playerRes)
+    
     if (playerRes.code === 0) {
       playerInfo.value = playerRes.data
+      console.log('playerInfo:', playerInfo.value)
     } else {
       ElMessage.error('玩家不存在')
       return
     }
 
-    // 获取报名状态
+    // 获取报名状态 - 使用 playerInfo.value.id (主键ID)
+    console.log('Calling getArenaStatus with id:', playerInfo.value.id)
     const statusRes = await getArenaStatus(playerInfo.value.id)
     if (statusRes.code === 0) {
       registrationStatus.value = statusRes.data
@@ -257,6 +261,7 @@ const loadPlayerStatus = async () => {
     // 加载报名记录
     loadRecordList()
   } catch (error) {
+    console.error('查询玩家失败:', error)
     ElMessage.error('查询玩家失败')
   }
 }
