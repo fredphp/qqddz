@@ -126,7 +126,7 @@ var _styleSingleInput = function(input, fontColor, bgColor) {
     input.style.setProperty('outline-offset', '0', 'important');
 };
 
-// 注入全局CSS样式 - 修复版
+// 注入全局CSS样式 - 修复版（排除原生输入框）
 var _injectGlobalStyles = function(fontColor, bgColor) {
     try {
         var styleId = 'cocos-editbox-fix-style';
@@ -134,7 +134,9 @@ var _injectGlobalStyles = function(fontColor, bgColor) {
 
         var css = `
             /* 输入框基础样式 - 透明背景 + 文字居中 */
-            input, textarea {
+            /* 注意：排除原生输入框 #native-phone-input, #native-code-input */
+            input:not(#native-phone-input):not(#native-code-input), 
+            textarea:not(#native-phone-input):not(#native-code-input) {
                 color: ${fontColor} !important;
                 background-color: transparent !important;
                 opacity: 1 !important;
@@ -154,17 +156,18 @@ var _injectGlobalStyles = function(fontColor, bgColor) {
             }
             
             /* 聚焦状态 */
-            input:focus, textarea:focus {
+            input:focus:not(#native-phone-input):not(#native-code-input), 
+            textarea:focus:not(#native-phone-input):not(#native-code-input) {
                 color: ${fontColor} !important;
                 outline: none !important;
                 background-color: transparent !important;
             }
             
-            /* 文本类型输入框 - Flexbox 垂直居中 */
-            input[type="text"], 
-            input[type="number"], 
-            input[type="tel"],
-            input[type="password"] {
+            /* 文本类型输入框 - Flexbox 垂直居中（排除原生输入框）*/
+            input[type="text"]:not(#native-phone-input):not(#native-code-input), 
+            input[type="number"]:not(#native-phone-input):not(#native-code-input), 
+            input[type="tel"]:not(#native-phone-input):not(#native-code-input),
+            input[type="password"]:not(#native-phone-input):not(#native-code-input) {
                 display: flex !important;
                 align-items: center !important;
                 justify-content: flex-start !important;
