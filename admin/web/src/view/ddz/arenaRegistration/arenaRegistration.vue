@@ -251,9 +251,9 @@ const loadPlayerStatus = async () => {
       return
     }
 
-    // 获取报名状态 - 使用 playerInfo.value.id (主键ID)
-    console.log('Calling getArenaStatus with id:', playerInfo.value.id)
-    const statusRes = await getArenaStatus(playerInfo.value.id)
+    // 获取报名状态 - 使用 playerInfo.value.ID (大写，与后端JSON标签一致)
+    console.log('Calling getArenaStatus with ID:', playerInfo.value.ID)
+    const statusRes = await getArenaStatus(playerInfo.value.ID)
     if (statusRes.code === 0) {
       registrationStatus.value = statusRes.data
     }
@@ -274,7 +274,7 @@ const loadRecordList = async () => {
     const res = await getArenaRegistrationList({
       page: recordPage.value,
       pageSize: recordPageSize.value,
-      playerId: playerInfo.value.id
+      playerId: playerInfo.value.ID
     })
     if (res.code === 0) {
       recordList.value = res.data.list
@@ -301,7 +301,7 @@ const handleRegister = async (arena) => {
     operating.value = arena.roomType
 
     const res = await arenaRegister({
-      playerId: playerInfo.value.id,
+      playerId: playerInfo.value.ID,
       arenaLevel: arena.roomType - 1
     })
 
@@ -337,7 +337,7 @@ const handleCancel = async (arena) => {
     operating.value = arena.roomType
 
     const res = await arenaCancel({
-      playerId: playerInfo.value.id
+      playerId: playerInfo.value.ID
     })
 
     if (res.code === 0) {
