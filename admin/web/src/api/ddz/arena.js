@@ -20,10 +20,10 @@ export const arenaCancel = (data) => {
 
 // 获取报名状态（Admin 后端直接查询数据库）
 export const getArenaStatus = (playerId) => {
+  console.log('getArenaStatus called with playerId:', playerId)
   return adminService({
-    url: '/ddz/arena/status',
-    method: 'get',
-    params: { playerId }
+    url: `/ddz/arena/status?playerId=${playerId}`,
+    method: 'get'
   })
 }
 
