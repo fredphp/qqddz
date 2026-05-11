@@ -62,12 +62,12 @@ export default ({ mode }) => {
         // Admin 后端专用代理（直接查询数据库，不走游戏服务端）
         // 所有 /admin-api 开头的请求都会被代理到 Admin 后端 (127.0.0.1:8888)
         '/admin-api': {
-          target: `${env.VITE_BASE_PATH}:${env.VITE_SERVER_PORT}/`,
+          target: 'http://127.0.0.1:8888/',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/admin-api/, '')
         },
         '/plugin': {
-          target: `https://plugin.gin-vue-admin.com/api/`,
+          target: 'https://plugin.gin-vue-admin.com/api/',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/plugin/, '')
         }
