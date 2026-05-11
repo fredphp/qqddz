@@ -37,13 +37,13 @@ func dropIndex(db *gorm.DB, tableName, indexName string) {
         `, tableName, indexName).Scan(&count).Error
 
         if err != nil {
-                global.GVA_LOG.Warn("check index failed", "table", tableName, "index", indexName, "error", err)
+                global.GVA_LOG.Warn("check index failed", zap.String("table", tableName), zap.String("index", indexName), zap.Error(err))
                 return
         }
 
         if count > 0 {
                 if err := db.Exec("ALTER TABLE `" + tableName + "` DROP INDEX `" + indexName + "`").Error; err != nil {
-                        global.GVA_LOG.Warn("drop index failed", "table", tableName, "index", indexName, "error", err)
+                        global.GVA_LOG.Warn("drop index failed", zap.String("table", tableName), zap.String("index", indexName), zap.Error(err))
                 }
         }
 }
