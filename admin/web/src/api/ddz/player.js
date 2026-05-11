@@ -1,8 +1,8 @@
-import service from '@/utils/request'
+import adminService from '@/utils/adminRequest'
 
 // 获取玩家列表
 export const getPlayerList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/player/list',
     method: 'post',
     data
@@ -11,7 +11,7 @@ export const getPlayerList = (data) => {
 
 // 获取玩家信息
 export const getPlayerInfo = (id) => {
-  return service({
+  return adminService({
     url: '/ddz/player/info',
     method: 'get',
     params: { id }
@@ -20,7 +20,7 @@ export const getPlayerInfo = (id) => {
 
 // 封禁玩家
 export const banPlayer = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/player/ban',
     method: 'post',
     data
@@ -29,7 +29,7 @@ export const banPlayer = (data) => {
 
 // 解封玩家
 export const unbanPlayer = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/player/unban',
     method: 'post',
     data
@@ -38,7 +38,7 @@ export const unbanPlayer = (data) => {
 
 // 冻结玩家
 export const freezePlayer = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/player/freeze',
     method: 'post',
     data
@@ -47,7 +47,7 @@ export const freezePlayer = (data) => {
 
 // 解冻玩家
 export const unfreezePlayer = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/player/unfreeze',
     method: 'post',
     data
@@ -56,7 +56,7 @@ export const unfreezePlayer = (data) => {
 
 // 获取玩家状态变更日志
 export const getPlayerStatusLogs = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/player/statusLogs',
     method: 'post',
     data
@@ -65,7 +65,7 @@ export const getPlayerStatusLogs = (data) => {
 
 // 更新玩家信息（基本信息）
 export const updatePlayer = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/player/update',
     method: 'put',
     data
@@ -74,7 +74,7 @@ export const updatePlayer = (data) => {
 
 // 更新玩家货币（统一接口 - 增减模式）
 export const updatePlayerCurrency = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/player/currency',
     method: 'post',
     data
@@ -83,7 +83,7 @@ export const updatePlayerCurrency = (data) => {
 
 // 更新玩家金币
 export const updatePlayerCoins = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/player/coins',
     method: 'post',
     data
@@ -92,7 +92,7 @@ export const updatePlayerCoins = (data) => {
 
 // 更新玩家竞技币
 export const updatePlayerArenaCoin = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/player/arenaCoin',
     method: 'post',
     data
@@ -101,7 +101,7 @@ export const updatePlayerArenaCoin = (data) => {
 
 // 获取货币流水日志
 export const getCoinLogList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/player/coinLogs',
     method: 'post',
     data
@@ -110,7 +110,7 @@ export const getCoinLogList = (data) => {
 
 // 批量生成机器人
 export const generateRobots = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/player/generateRobots',
     method: 'post',
     data

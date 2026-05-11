@@ -1,10 +1,10 @@
-import service from '@/utils/request'
+import adminService from '@/utils/adminRequest'
 
 // ==================== 游戏记录 ====================
 
 // 获取游戏记录列表
 export const getGameRecordList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/gameRecord/list',
     method: 'post',
     data
@@ -13,7 +13,7 @@ export const getGameRecordList = (data) => {
 
 // 获取游戏记录详情
 export const getGameRecordDetail = (id, month = '') => {
-  return service({
+  return adminService({
     url: '/ddz/gameRecord/detail',
     method: 'get',
     params: { id, month }
@@ -22,7 +22,7 @@ export const getGameRecordDetail = (id, month = '') => {
 
 // 删除游戏记录
 export const deleteGameRecord = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/gameRecord/delete',
     method: 'delete',
     data
@@ -33,7 +33,7 @@ export const deleteGameRecord = (data) => {
 
 // 获取叫地主日志列表
 export const getBidLogList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/log/bid/list',
     method: 'post',
     data
@@ -42,7 +42,7 @@ export const getBidLogList = (data) => {
 
 // 获取发牌日志列表
 export const getDealLogList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/log/deal/list',
     method: 'post',
     data
@@ -51,7 +51,7 @@ export const getDealLogList = (data) => {
 
 // 获取出牌日志列表
 export const getPlayLogList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/log/play/list',
     method: 'post',
     data
@@ -62,7 +62,7 @@ export const getPlayLogList = (data) => {
 
 // 获取玩家统计列表
 export const getPlayerStatList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/playerStat/list',
     method: 'post',
     data
@@ -73,7 +73,7 @@ export const getPlayerStatList = (data) => {
 
 // 获取房间配置列表
 export const getRoomConfigList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/roomConfig/list',
     method: 'post',
     data
@@ -82,7 +82,7 @@ export const getRoomConfigList = (data) => {
 
 // 创建房间配置
 export const createRoomConfig = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/roomConfig/create',
     method: 'post',
     data
@@ -91,7 +91,7 @@ export const createRoomConfig = (data) => {
 
 // 更新房间配置
 export const updateRoomConfig = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/roomConfig/update',
     method: 'put',
     data
@@ -100,7 +100,7 @@ export const updateRoomConfig = (data) => {
 
 // 删除房间配置
 export const deleteRoomConfig = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/roomConfig/delete',
     method: 'delete',
     data
@@ -109,7 +109,7 @@ export const deleteRoomConfig = (data) => {
 
 // 刷新房间配置缓存
 export const refreshRoomConfigCache = () => {
-  return service({
+  return adminService({
     url: '/ddz/roomConfig/refresh-cache',
     method: 'post'
   })
@@ -117,7 +117,7 @@ export const refreshRoomConfigCache = () => {
 
 // 获取背景图选项
 export const getBgImageOptions = () => {
-  return service({
+  return adminService({
     url: '/ddz/roomConfig/bg-image-options',
     method: 'get'
   })
@@ -127,7 +127,7 @@ export const getBgImageOptions = () => {
 
 // 获取房间列表
 export const getRoomList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/room/list',
     method: 'post',
     data
@@ -136,7 +136,7 @@ export const getRoomList = (data) => {
 
 // 获取房间详情
 export const getRoomDetail = (id) => {
-  return service({
+  return adminService({
     url: '/ddz/room/detail',
     method: 'get',
     params: { id }
@@ -145,7 +145,7 @@ export const getRoomDetail = (id) => {
 
 // 获取房间游戏活动日志（含详细日志）
 export const getRoomGameRecords = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/room/game-records',
     method: 'post',
     data
@@ -154,7 +154,7 @@ export const getRoomGameRecords = (data) => {
 
 // 删除房间
 export const deleteRoom = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/room/delete',
     method: 'delete',
     data
@@ -165,7 +165,7 @@ export const deleteRoom = (data) => {
 
 // 获取短信验证码列表
 export const getSmsCodeList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/smsCode/list',
     method: 'post',
     data
@@ -174,7 +174,7 @@ export const getSmsCodeList = (data) => {
 
 // 删除短信验证码
 export const deleteSmsCode = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/smsCode/delete',
     method: 'delete',
     data

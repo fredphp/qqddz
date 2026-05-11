@@ -1,7 +1,7 @@
-import service from '@/utils/request'
+import adminService from '@/utils/adminRequest'
 
 export const getArenaSignupLogList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/arenaSignupLog/list',
     method: 'post',
     data

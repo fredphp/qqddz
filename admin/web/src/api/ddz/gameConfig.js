@@ -1,7 +1,7 @@
-import service from '@/utils/request'
+import adminService from '@/utils/adminRequest'
 
 export const getGameConfigList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/gameConfig/list',
     method: 'post',
     data
@@ -9,7 +9,7 @@ export const getGameConfigList = (data) => {
 }
 
 export const createGameConfig = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/gameConfig/create',
     method: 'post',
     data
@@ -17,7 +17,7 @@ export const createGameConfig = (data) => {
 }
 
 export const updateGameConfig = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/gameConfig/update',
     method: 'put',
     data
@@ -25,7 +25,7 @@ export const updateGameConfig = (data) => {
 }
 
 export const deleteGameConfig = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/gameConfig/delete',
     method: 'delete',
     data

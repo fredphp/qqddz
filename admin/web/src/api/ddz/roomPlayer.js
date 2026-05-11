@@ -1,7 +1,7 @@
-import service from '@/utils/request'
+import adminService from '@/utils/adminRequest'
 
 export const getRoomPlayerList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/statsDetail/roomPlayerList',
     method: 'post',
     data

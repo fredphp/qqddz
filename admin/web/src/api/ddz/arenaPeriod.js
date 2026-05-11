@@ -1,8 +1,8 @@
-import service from '@/utils/request'
+import adminService from '@/utils/adminRequest'
 
 // 获取期号列表
 export const getArenaPeriodList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/arenaPeriod/list',
     method: 'post',
     data
@@ -11,7 +11,7 @@ export const getArenaPeriodList = (data) => {
 
 // 获取期号详情
 export const getArenaPeriodInfo = (id) => {
-  return service({
+  return adminService({
     url: '/ddz/arenaPeriod/info',
     method: 'get',
     params: { id }
@@ -20,7 +20,7 @@ export const getArenaPeriodInfo = (id) => {
 
 // 更新期号
 export const updateArenaPeriod = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/arenaPeriod/update',
     method: 'put',
     data
@@ -29,7 +29,7 @@ export const updateArenaPeriod = (data) => {
 
 // 删除期号
 export const deleteArenaPeriod = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/arenaPeriod/delete',
     method: 'delete',
     data
@@ -38,7 +38,7 @@ export const deleteArenaPeriod = (data) => {
 
 // 获取期号玩家列表
 export const getArenaPeriodPlayers = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/arenaPeriod/players',
     method: 'post',
     data
@@ -47,7 +47,7 @@ export const getArenaPeriodPlayers = (data) => {
 
 // 获取期号报名日志
 export const getArenaPeriodSignupLogs = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/arenaPeriod/signupLogs',
     method: 'post',
     data
@@ -56,7 +56,7 @@ export const getArenaPeriodSignupLogs = (data) => {
 
 // 获取期号统计
 export const getArenaPeriodStats = () => {
-  return service({
+  return adminService({
     url: '/ddz/arenaPeriod/stats',
     method: 'get'
   })
@@ -64,7 +64,7 @@ export const getArenaPeriodStats = () => {
 
 // 获取期数排行榜
 export const getArenaPeriodLeaderboard = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/arenaPeriod/leaderboard',
     method: 'post',
     data

@@ -1,7 +1,7 @@
-import service from '@/utils/request'
+import adminService from '@/utils/adminRequest'
 
 export const getWriteQueueErrorLogList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/system/writeQueueErrorLogList',
     method: 'post',
     data

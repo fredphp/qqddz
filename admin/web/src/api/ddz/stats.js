@@ -1,8 +1,8 @@
-import service from '@/utils/request'
+import adminService from '@/utils/adminRequest'
 
 // 获取概览统计
 export const getOverviewStats = () => {
-  return service({
+  return adminService({
     url: '/ddz/stats/overview',
     method: 'get'
   })
@@ -10,7 +10,7 @@ export const getOverviewStats = () => {
 
 // 获取每日统计
 export const getDailyStats = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/stats/daily',
     method: 'post',
     data
@@ -19,7 +19,7 @@ export const getDailyStats = (data) => {
 
 // 获取排行榜
 export const getLeaderboard = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/stats/leaderboard',
     method: 'post',
     data
@@ -28,7 +28,7 @@ export const getLeaderboard = (data) => {
 
 // 获取玩家统计
 export const getPlayerStats = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/stats/player',
     method: 'post',
     data
@@ -37,7 +37,7 @@ export const getPlayerStats = (data) => {
 
 // 获取每日活跃图表
 export const getDailyActiveChart = (startDate, endDate) => {
-  return service({
+  return adminService({
     url: '/ddz/stats/chart/active',
     method: 'get',
     params: { startDate, endDate }
@@ -46,7 +46,7 @@ export const getDailyActiveChart = (startDate, endDate) => {
 
 // 获取每日游戏场次图表
 export const getDailyGamesChart = (startDate, endDate) => {
-  return service({
+  return adminService({
     url: '/ddz/stats/chart/games',
     method: 'get',
     params: { startDate, endDate }

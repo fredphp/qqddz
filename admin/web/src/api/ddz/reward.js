@@ -1,10 +1,10 @@
-import service from '@/utils/request'
+import adminService from '@/utils/adminRequest'
 
 // ==================== 奖励商品管理 ====================
 
 // 获取奖励商品列表
 export const getRewardGoodsList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/rewardGoods/list',
     method: 'post',
     data
@@ -13,7 +13,7 @@ export const getRewardGoodsList = (data) => {
 
 // 创建奖励商品
 export const createRewardGoods = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/rewardGoods/create',
     method: 'post',
     data
@@ -22,7 +22,7 @@ export const createRewardGoods = (data) => {
 
 // 更新奖励商品
 export const updateRewardGoods = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/rewardGoods/update',
     method: 'put',
     data
@@ -31,7 +31,7 @@ export const updateRewardGoods = (data) => {
 
 // 删除奖励商品
 export const deleteRewardGoods = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/rewardGoods/delete',
     method: 'delete',
     data
@@ -40,7 +40,7 @@ export const deleteRewardGoods = (data) => {
 
 // 获取奖励商品详情
 export const getRewardGoodsDetail = (id) => {
-  return service({
+  return adminService({
     url: '/ddz/rewardGoods/detail',
     method: 'get',
     params: { id }
@@ -51,7 +51,7 @@ export const getRewardGoodsDetail = (id) => {
 
 // 获取订单列表
 export const getRewardOrdersList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/rewardOrders/list',
     method: 'post',
     data
@@ -60,7 +60,7 @@ export const getRewardOrdersList = (data) => {
 
 // 获取订单详情
 export const getOrderDetail = (id) => {
-  return service({
+  return adminService({
     url: '/ddz/rewardOrders/detail',
     method: 'get',
     params: { id }
@@ -69,7 +69,7 @@ export const getOrderDetail = (id) => {
 
 // 更新订单发货信息
 export const updateOrderShipInfo = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/rewardOrders/ship',
     method: 'put',
     data
@@ -78,7 +78,7 @@ export const updateOrderShipInfo = (data) => {
 
 // 获取房间列表（用于绑定商品到房间）
 export const getRoomOptions = () => {
-  return service({
+  return adminService({
     url: '/ddz/roomConfig/options',
     method: 'get'
   })

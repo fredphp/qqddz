@@ -1,7 +1,7 @@
-import service from '@/utils/request'
+import adminService from '@/utils/adminRequest'
 
 export const getTournamentEliminationList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/tournament/eliminationList',
     method: 'post',
     data

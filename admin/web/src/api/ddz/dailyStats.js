@@ -1,7 +1,7 @@
-import service from '@/utils/request'
+import adminService from '@/utils/adminRequest'
 
 export const getDailyStatsList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/statsDetail/dailyStatsList',
     method: 'post',
     data

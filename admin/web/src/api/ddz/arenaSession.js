@@ -1,8 +1,8 @@
-import service from '@/utils/request'
+import adminService from '@/utils/adminRequest'
 
 // 获取竞技场会话列表
 export const getArenaSessionList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/arenaSession/list',
     method: 'post',
     data

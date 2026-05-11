@@ -1,8 +1,8 @@
-import service from '@/utils/request'
+import adminService from '@/utils/adminRequest'
 
 // 获取机器人配置列表
 export function getRobotConfigList(data) {
-  return service({
+  return adminService({
     url: '/ddz/robotConfig/list',
     method: 'post',
     data
@@ -11,7 +11,7 @@ export function getRobotConfigList(data) {
 
 // 获取机器人配置详情
 export function getRobotConfigInfo(id) {
-  return service({
+  return adminService({
     url: '/ddz/robotConfig/info',
     method: 'get',
     params: { id }
@@ -20,7 +20,7 @@ export function getRobotConfigInfo(id) {
 
 // 获取默认配置
 export function getDefaultConfig() {
-  return service({
+  return adminService({
     url: '/ddz/robotConfig/default',
     method: 'get'
   })
@@ -28,7 +28,7 @@ export function getDefaultConfig() {
 
 // 获取所有启用的配置（用于下拉选择）
 export function getAllConfigs() {
-  return service({
+  return adminService({
     url: '/ddz/robotConfig/all',
     method: 'get'
   })
@@ -36,7 +36,7 @@ export function getAllConfigs() {
 
 // 创建机器人配置
 export function createRobotConfig(data) {
-  return service({
+  return adminService({
     url: '/ddz/robotConfig/create',
     method: 'post',
     data
@@ -45,7 +45,7 @@ export function createRobotConfig(data) {
 
 // 更新机器人配置
 export function updateRobotConfig(data) {
-  return service({
+  return adminService({
     url: '/ddz/robotConfig/update',
     method: 'put',
     data
@@ -54,7 +54,7 @@ export function updateRobotConfig(data) {
 
 // 删除机器人配置
 export function deleteRobotConfig(id) {
-  return service({
+  return adminService({
     url: '/ddz/robotConfig/delete',
     method: 'delete',
     data: { id }
@@ -63,7 +63,7 @@ export function deleteRobotConfig(id) {
 
 // 设置默认配置
 export function setDefaultConfig(id) {
-  return service({
+  return adminService({
     url: '/ddz/robotConfig/setDefault',
     method: 'post',
     data: { id }

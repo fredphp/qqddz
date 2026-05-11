@@ -1,8 +1,8 @@
-import service from '@/utils/request'
+import adminService from '@/utils/adminRequest'
 
 // 获取金币流水列表
 export const getGoldLogList = (data) => {
-  return service({
+  return adminService({
     url: '/ddz/goldLog/list',
     method: 'post',
     data
