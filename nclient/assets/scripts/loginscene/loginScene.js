@@ -214,38 +214,26 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         var scaleY = canvasRect.height / winSize.height;
         console.log('缩放比例:', scaleX.toFixed(3), scaleY.toFixed(3));
         
-        // ==================== 关键：基于背景图尺寸计算输入框位置 ====================
-        // 背景图尺寸：520 x 680
-        // 面板在屏幕中心 (0, 0)
+        // ==================== 关键：原生输入框位置参数 ====================
+        // 修改这些值可以调整原生 HTML 输入框的位置
+        // Y 坐标：正值向上，负值向下（相对于面板中心）
+        // X 坐标：正值向右，负值向左（相对于面板中心）
         
-        // 根据背景图 login_bg.png 的精确布局分析：
-        // 图片中心：(260, 340)
-        // 第一个输入框（手机号）：左上角 (170, 240)，宽 180px，高 50px
-        //   中心：(170+90, 240+25) = (260, 265)
-        //   相对于中心：Y = 340 - 265 = 75（上方）
-        // 第二个输入框（验证码）：左上角 (170, 310)，宽 180px，高 50px
-        //   中心：(170+90, 310+25) = (260, 335)
-        //   相对于中心：Y = 340 - 335 = 5（上方）
+        // ★★★ 修改这里调整输入框位置 ★★★
+        var phoneInputY = 75;    // 手机输入框 Y 坐标（正值向上）
+        var phoneInputX = 0;     // 手机输入框 X 坐标（0=居中）
+        var codeInputY = 5;      // 验证码输入框 Y 坐标（正值向上）
+        var codeInputX = 0;      // 验证码输入框 X 坐标（0=居中）
         
-        // 背景图原始尺寸
-        var bgWidth = 520;
-        var bgHeight = 680;
-        
-        // 输入框坐标（相对于面板中心，Y 轴向上为正）
-        var phoneInputY = 75;    // 手机输入框在中心上方 75px
-        var codeInputY = 5;      // 验证码输入框在中心上方 5px
-        
-        // 输入框 X 坐标：居中
-        var phoneInputX = 0;
-        var codeInputX = 0;
-        
-        // 输入框尺寸（与背景图中的输入框区域匹配）
-        // 背景图中输入框区域：宽 180px，高 50px
-        var actualInputWidth = 180;   // 输入框宽度
-        var actualInputHeight = 50;   // 输入框高度
-        
-        // 验证码输入框宽度（考虑"获取验证码"按钮，比手机号输入框窄）
+        // ★★★ 修改这里调整输入框尺寸 ★★★
+        var actualInputWidth = 180;      // 手机输入框宽度
+        var actualInputHeight = 50;      // 输入框高度
         var actualCodeInputWidth = 110;  // 验证码输入框宽度
+        
+        console.log('=== 原生输入框参数 ===');
+        console.log('phoneInputY:', phoneInputY, ', phoneInputX:', phoneInputX);
+        console.log('codeInputY:', codeInputY, ', codeInputX:', codeInputX);
+        console.log('actualInputWidth:', actualInputWidth, ', actualInputHeight:', actualInputHeight);
         
         // 获取面板位置
         var panelPos = panel.getPosition();
