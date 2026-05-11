@@ -322,7 +322,7 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
             'background: transparent',
             'border: none',
             'border-radius: 0',
-            'font-size: 14px',
+            'font-size: 12px',
             'color: #333',
             'padding: 0 8px',
             'box-sizing: border-box',
@@ -351,7 +351,7 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
             'background: transparent',
             'border: none',
             'border-radius: 0',
-            'font-size: 14px',
+            'font-size: 12px',
             'color: #333',
             'padding: 0 8px',
             'box-sizing: border-box',
@@ -1158,8 +1158,8 @@ cc.Class({
         var winW = cc.winSize.width;
         var winH = cc.winSize.height;
 
-        // 图片原始尺寸
-        var imgWidth = 520;
+        // 图片原始尺寸 - 调宽弹窗
+        var imgWidth = 580;  // 原来是520，增加到580
         var imgHeight = 680;
 
         // 如果屏幕太小，按比例缩小
@@ -1476,7 +1476,7 @@ cc.Class({
         loginBtnComp.zoomScale = 0.95;
 
         // ==================== 微信登录按钮 ====================
-        var wxBtnY = loginBtnY - 95 * scaleRatio;  // 往下移动更多，避免挡住文字
+        var wxBtnY = loginBtnY - 155 * scaleRatio;  // 往下移动更多
         var wxBtnSize = 50 * scaleRatio;
 
         var wxBtn = new cc.Node("BtnWechat");
@@ -1504,15 +1504,15 @@ cc.Class({
         wxBtnComp.transition = cc.Button.Transition.SCALE;
         wxBtnComp.zoomScale = 0.95;
 
-        // 微信登录文字
-        var wxLabel = new cc.Node("LabelWechat");
-        wxLabel.parent = panel;
-        wxLabel.setPosition(0, wxBtnY - 35 * scaleRatio);
-        var wxLabelComp = wxLabel.addComponent(cc.Label);
-        wxLabelComp.string = "微信登录";
-        wxLabelComp.fontSize = 12 * scaleRatio;
-        wxLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        wxLabel.color = new cc.Color(100, 80, 60);
+        // 微信登录文字 - 隐藏
+        // var wxLabel = new cc.Node("LabelWechat");
+        // wxLabel.parent = panel;
+        // wxLabel.setPosition(0, wxBtnY - 35 * scaleRatio);
+        // var wxLabelComp = wxLabel.addComponent(cc.Label);
+        // wxLabelComp.string = "微信登录";
+        // wxLabelComp.fontSize = 12 * scaleRatio;
+        // wxLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        // wxLabel.color = new cc.Color(100, 80, 60);
 
         console.log("按钮位置: loginBtnY=" + loginBtnY.toFixed(0) + ", wxBtnY=" + wxBtnY.toFixed(0));
 
