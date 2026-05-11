@@ -1,8 +1,8 @@
 {
   "__type__": "cc.SpriteFrame",
   "content": {
-    "name": "login_bg",
-    "texture": "1f816ad8-4a7d-4be4-a92f-9475f459bd82",
+    "name": "login_bg_01",
+    "texture": "e2ee8e6a-7a71-4734-a5b8-ff479b9beb4c",
     "atlas": "",
     "rect": [
       174,

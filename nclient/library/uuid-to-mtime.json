@@ -714,11 +714,6 @@
     "meta": 1778477903115,
     "relativePath": "resources\\sound\\m_cp_dani.mp3"
   },
-  "42e4870a-fb85-43c0-be83-f99bf2775261": {
-    "asset": 1778475568961,
-    "meta": 1778477901779,
-    "relativePath": "resources\\images\\login_bg.png"
-  },
   "b233f2fb-7e3a-48e8-a062-faf02fb6c85b": {
     "asset": 1778136570214,
     "meta": 1778477903120,
@@ -1879,11 +1874,6 @@
     "meta": 1778477905466,
     "relativePath": "resources\\UI\\login\\icon_shield.png"
   },
-  "1f816ad8-4a7d-4be4-a92f-9475f459bd82": {
-    "asset": 1778136569893,
-    "meta": 1778477905507,
-    "relativePath": "resources\\UI\\login\\login_bg.png"
-  },
   "d8d266dc-c1ec-42d8-80a9-6f26bd58ad01": {
     "asset": 1778480324739,
     "meta": 1778480326738,
@@ -1898,5 +1888,20 @@
     "asset": 1778481278368,
     "meta": 1778481281543,
     "relativePath": "scripts\\loginscene\\loginScene.js"
+  },
+  "1f816ad8-4a7d-4be4-a92f-9475f459bd82": {
+    "asset": 1778481558763,
+    "meta": 1778481816217,
+    "relativePath": "resources\\UI\\login\\login_bg.png"
+  },
+  "42e4870a-fb85-43c0-be83-f99bf2775261": {
+    "asset": 1778482179726,
+    "meta": 1778482947036,
+    "relativePath": "resources\\images\\login_bg.png"
+  },
+  "e2ee8e6a-7a71-4734-a5b8-ff479b9beb4c": {
+    "asset": 1778481558763,
+    "meta": 1778482947042,
+    "relativePath": "resources\\images\\login_bg_01.png"
   }
 }
