@@ -220,20 +220,20 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         
         // 根据背景图 login_bg.png 的精确布局分析：
         // 图片中心：(260, 340)
-        // 第一个输入框（手机号）：左上角 (170, 230)，宽 180px，高 50px
-        //   中心：(170+90, 230+25) = (260, 255)
-        //   相对于中心：Y = 340 - 255 = 85（上方）
-        // 第二个输入框（验证码）：左上角 (170, 350)，宽 180px，高 50px
-        //   中心：(170+90, 350+25) = (260, 375)
-        //   相对于中心：Y = 340 - 375 = -35（下方）
+        // 第一个输入框（手机号）：左上角 (170, 240)，宽 180px，高 50px
+        //   中心：(170+90, 240+25) = (260, 265)
+        //   相对于中心：Y = 340 - 265 = 75（上方）
+        // 第二个输入框（验证码）：左上角 (170, 310)，宽 180px，高 50px
+        //   中心：(170+90, 310+25) = (260, 335)
+        //   相对于中心：Y = 340 - 335 = 5（上方）
         
         // 背景图原始尺寸
         var bgWidth = 520;
         var bgHeight = 680;
         
         // 输入框坐标（相对于面板中心，Y 轴向上为正）
-        var phoneInputY = 85;    // 手机输入框在中心上方 85px
-        var codeInputY = -35;    // 验证码输入框在中心下方 35px
+        var phoneInputY = 75;    // 手机输入框在中心上方 75px
+        var codeInputY = 5;      // 验证码输入框在中心上方 5px
         
         // 输入框 X 坐标：居中
         var phoneInputX = 0;
@@ -244,8 +244,8 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         var actualInputWidth = 180;   // 输入框宽度
         var actualInputHeight = 50;   // 输入框高度
         
-        // 验证码输入框宽度（考虑"获取验证码"按钮）
-        var actualCodeInputWidth = 100;  // 验证码输入框宽度（比手机号输入框窄）
+        // 验证码输入框宽度（考虑"获取验证码"按钮，比手机号输入框窄）
+        var actualCodeInputWidth = 110;  // 验证码输入框宽度
         
         // 获取面板位置
         var panelPos = panel.getPosition();
@@ -327,18 +327,20 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
             'top: ' + phoneScreen.top + 'px',
             'width: ' + phoneScreen.width + 'px',
             'height: ' + phoneScreen.height + 'px',
-            'background: rgba(255, 255, 255, 0.9)',
+            'background: rgba(255, 255, 255, 0.95)',
             'border: 2px solid #DAA520',
-            'border-radius: 8px',
-            'font-size: 16px',
+            'border-radius: 6px',
+            'font-size: 20px',
             'color: #333',
-            'padding: 0 10px',
+            'padding: 0 8px',
             'box-sizing: border-box',
             'outline: none',
             'pointer-events: auto',
             'z-index: 100000',
             'cursor: text',
-            'font-family: Arial, sans-serif'
+            'font-family: Arial, "Microsoft YaHei", sans-serif',
+            'line-height: ' + phoneScreen.height + 'px',
+            'text-align: left'
         ].join('; ');
         container.appendChild(phoneInput);
         
@@ -354,18 +356,20 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
             'top: ' + codeScreen.top + 'px',
             'width: ' + codeScreen.width + 'px',
             'height: ' + codeScreen.height + 'px',
-            'background: rgba(255, 255, 255, 0.9)',
+            'background: rgba(255, 255, 255, 0.95)',
             'border: 2px solid #DAA520',
-            'border-radius: 8px',
-            'font-size: 16px',
+            'border-radius: 6px',
+            'font-size: 20px',
             'color: #333',
-            'padding: 0 10px',
+            'padding: 0 8px',
             'box-sizing: border-box',
             'outline: none',
             'pointer-events: auto',
             'z-index: 100000',
             'cursor: text',
-            'font-family: Arial, sans-serif'
+            'font-family: Arial, "Microsoft YaHei", sans-serif',
+            'line-height: ' + codeScreen.height + 'px',
+            'text-align: left'
         ].join('; ');
         container.appendChild(codeInput);
         
