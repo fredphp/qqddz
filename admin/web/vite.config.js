@@ -68,6 +68,13 @@ export default ({ mode }) => {
           rewrite: (path) =>
             path.replace(new RegExp('^' + env.VITE_BASE_API), '')
         },
+        // Admin 后端专用代理（直接查询数据库，不走游戏服务端）
+        [env.VITE_ADMIN_API || '/admin-api']: {
+          target: `${env.VITE_BASE_PATH}:${env.VITE_SERVER_PORT}/`,
+          changeOrigin: true,
+          rewrite: (path) =>
+            path.replace(new RegExp('^' + (env.VITE_ADMIN_API || '/admin-api')), '')
+        },
         '/plugin': {
           // 需要代理的路径   例如 '/api'
           target: `https://plugin.gin-vue-admin.com/api/`, // 代理到 目标路径

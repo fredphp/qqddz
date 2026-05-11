@@ -7,8 +7,9 @@ import router from '@/router/index'
 const DEFAULT_REQUEST_TIMEOUT = 1000 * 60 * 10
 
 // Admin 后端专用的 axios 实例，直接请求 Admin 后端（不走游戏服务端）
+// 使用 /admin-api 前缀，通过 Vite 代理转发到 Admin 后端 (127.0.0.1:8888)
 const adminService = axios.create({
-  baseURL: '/api' // 通过 Vite 代理转发到 Admin 后端 (127.0.0.1:8888)
+  baseURL: '/admin-api'
 })
 
 let activeAxios = 0
