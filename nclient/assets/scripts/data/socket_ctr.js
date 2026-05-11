@@ -734,13 +734,18 @@ window.socketCtr = function(){
             _socket = new WebSocket(wsUrl)
             
             _socket.onopen = function(){
-                var initMsg = {
-                    type: "ping",
-                    data: { timestamp: Date.now() }
-                }
-                _socket.send(JSON.stringify(initMsg))
                 _isConnected = true
                 _setConnectionState("connected")
+                // 使用 setTimeout 确保 WebSocket 完全准备好后再发送
+                setTimeout(function(){
+                    if (_socket && _socket.readyState === WebSocket.OPEN) {
+                        var initMsg = {
+                            type: "ping",
+                            data: { timestamp: Date.now() }
+                        }
+                        _socket.send(JSON.stringify(initMsg))
+                    }
+                }, 0)
             }
             
             _socket.onmessage = function(evt){
