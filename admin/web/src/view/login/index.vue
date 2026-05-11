@@ -79,15 +79,6 @@
                   >登 录</el-button
                 >
               </el-form-item>
-              <el-form-item v-if="isDev" class="mb-6">
-                <el-button
-                  class="shadow shadow-active h-11 w-full"
-                  type="primary"
-                  size="large"
-                  @click="checkInit"
-                  >前往初始化</el-button
-                >
-              </el-form-item>
             </el-form>
           </div>
         </div>
@@ -216,19 +207,4 @@
     })
   }
 
-  // 跳转初始化
-  const checkInit = async () => {
-    const res = await checkDB()
-    if (res.code === 0) {
-      if (res.data?.needInit) {
-        userStore.NeedInit()
-        await router.push({ name: 'Init' })
-      } else {
-        ElMessage({
-          type: 'info',
-          message: '已配置数据库信息，无法初始化'
-        })
-      }
-    }
-  }
 </script>
