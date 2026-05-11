@@ -142,7 +142,7 @@
             v-model:page-size="recordPageSize"
             :total="recordTotal"
             layout="total, prev, pager, next"
-            small
+            size="small"
             @current-change="loadRecordList"
           />
         </el-collapse-item>
