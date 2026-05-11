@@ -743,11 +743,22 @@ cc.Class({
     _initLoginButtons: function() {
         var self = this;
         
+        console.log("=== 初始化登录按钮 ===");
+        console.log("当前节点:", this.node ? this.node.name : "null");
+        
+        // 打印所有子节点名称
+        var children = this.node.children;
+        console.log("子节点数量:", children.length);
+        for (var i = 0; i < children.length; i++) {
+            console.log("  子节点[" + i + "]:", children[i].name);
+        }
 
         // loginScene 脚本挂载在 ROOT_UI 节点上，所以 this.node 就是 ROOT_UI
         var wxLoginNode = this.node.getChildByName("login_wx");
+        console.log("wxLoginNode:", wxLoginNode ? "找到" : "未找到");
         if (wxLoginNode) {
             var button = wxLoginNode.getComponent(cc.Button);
+            console.log("wxLoginNode Button:", button ? "存在" : "不存在");
             if (button) {
                 button.interactable = true;
                 button.clickEvents = [];
@@ -758,13 +769,17 @@ cc.Class({
                 handler.handler = "_onWxLoginClick";
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
+                console.log("微信登录按钮初始化完成");
             }
         } else {
+            console.error("未找到 login_wx 节点！");
         }
 
         var phoneLoginNode = this.node.getChildByName("login_phone");
+        console.log("phoneLoginNode:", phoneLoginNode ? "找到" : "未找到");
         if (phoneLoginNode) {
             var button = phoneLoginNode.getComponent(cc.Button);
+            console.log("phoneLoginNode Button:", button ? "存在" : "不存在");
             if (button) {
                 button.interactable = true;
                 button.clickEvents = [];
@@ -775,10 +790,13 @@ cc.Class({
                 handler.handler = "_onPhoneLoginClick";
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
+                console.log("手机登录按钮初始化完成");
             }
         } else {
+            console.error("未找到 login_phone 节点！");
         }
         
+        console.log("=== 登录按钮初始化结束 ===");
     },
 
     _initUserAgreementLink: function() {
@@ -805,10 +823,12 @@ cc.Class({
     },
 
     _onWxLoginClick: function() {
+        console.log("=== 微信登录按钮被点击 ===");
         this._doWxLogin();
     },
 
     _onPhoneLoginClick: function() {
+        console.log("=== 手机登录按钮被点击 ===");
         this._doPhoneLogin();
     },
 
