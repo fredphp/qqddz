@@ -188,6 +188,7 @@ var _injectGlobalStyles = function(fontColor, bgColor) {
 };
 
 // 创建原生 HTML input 元素（绕过 Cocos EditBox 的问题）
+// 改进版：使用更精确的位置计算，确保输入框可点击
 var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, inputWidth, inputHeight, codeInputW, panelWidth, panelHeight) {
     if (!cc.sys.isBrowser) return;
     
@@ -202,35 +203,42 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         var canvasRect = canvas.getBoundingClientRect();
         var winSize = cc.winSize;
         
-        console.log('=== 创建原生输入框 ===');
-        console.log('Canvas 位置和尺寸:', canvasRect.left, canvasRect.top, canvasRect.width, 'x', canvasRect.height);
+        console.log('=== 创建原生输入框（改进版）===');
+        console.log('Canvas 位置:', canvasRect.left, canvasRect.top);
+        console.log('Canvas 尺寸:', canvasRect.width, 'x', canvasRect.height);
         console.log('游戏分辨率:', winSize.width, 'x', winSize.height);
         
-        // 计算缩放比例
+        // 计算缩放比例（Canvas 实际尺寸 / 游戏设计分辨率）
         var scaleX = canvasRect.width / winSize.width;
         var scaleY = canvasRect.height / winSize.height;
+        console.log('缩放比例:', scaleX.toFixed(3), scaleY.toFixed(3));
         
-        // 使用世界坐标计算屏幕位置
+        // 辅助函数：将 Cocos 世界坐标转换为 HTML 屏幕坐标
         // Cocos 世界坐标系：原点在屏幕中心，Y轴向上
         // HTML 屏幕坐标系：原点在左上角，Y轴向下
-        
-        // 辅助函数：将世界坐标转换为屏幕坐标
-        var worldToScreen = function(worldPos, nodeWidth, nodeHeight) {
-            // 世界坐标 (worldX, worldY) 表示相对于屏幕中心的偏移
-            // 转换为屏幕坐标：
-            // screenX = canvas中心X + worldX * scaleX
-            // screenY = canvas中心Y - worldY * scaleY (Y轴反向)
+        var cocosWorldToScreen = function(worldPos, nodeWidth, nodeHeight) {
+            // 步骤1：将世界坐标转换为设计分辨率坐标
+            // 世界坐标的 Y 轴向上，设计分辨率的 Y 轴向下
+            var designX = worldPos.x + winSize.width / 2;
+            var designY = winSize.height / 2 - worldPos.y;
             
-            var canvasCenterX = canvasRect.width / 2;
-            var canvasCenterY = canvasRect.height / 2;
+            // 步骤2：将设计分辨率坐标缩放到 Canvas 实际尺寸
+            var screenX = designX * scaleX;
+            var screenY = designY * scaleY;
             
-            var screenCenterX = canvasCenterX + worldPos.x * scaleX;
-            var screenCenterY = canvasCenterY - worldPos.y * scaleY;
+            // 步骤3：加上 Canvas 在页面中的偏移
+            screenX += canvasRect.left;
+            screenY += canvasRect.top;
             
-            // 返回左上角坐标（用于 CSS left/top）
+            // 步骤4：计算左上角坐标（节点中心 -> 左上角）
+            var actualWidth = nodeWidth * scaleX;
+            var actualHeight = nodeHeight * scaleY;
+            
             return {
-                left: screenCenterX - (nodeWidth * scaleX) / 2,
-                top: screenCenterY - (nodeHeight * scaleY) / 2
+                left: screenX - actualWidth / 2,
+                top: screenY - actualHeight / 2,
+                width: actualWidth,
+                height: actualHeight
             };
         };
         
@@ -238,84 +246,118 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         var phoneWorldPos = phoneInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
         var codeWorldPos = codeInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
         
-        console.log('手机输入框世界坐标:', phoneWorldPos.x, phoneWorldPos.y);
-        console.log('验证码输入框世界坐标:', codeWorldPos.x, codeWorldPos.y);
+        console.log('手机输入框世界坐标:', phoneWorldPos.x.toFixed(1), phoneWorldPos.y.toFixed(1));
+        console.log('验证码输入框世界坐标:', codeWorldPos.x.toFixed(1), codeWorldPos.y.toFixed(1));
         
         // 计算屏幕位置
-        var phoneScreen = worldToScreen(phoneWorldPos, inputWidth, inputHeight);
-        var codeScreen = worldToScreen(codeWorldPos, codeInputW, inputHeight);
+        var phoneScreen = cocosWorldToScreen(phoneWorldPos, inputWidth, inputHeight);
+        var codeScreen = cocosWorldToScreen(codeWorldPos, codeInputW, inputHeight);
         
-        console.log('手机输入框屏幕位置: left=' + phoneScreen.left + ', top=' + phoneScreen.top);
-        console.log('验证码输入框屏幕位置: left=' + codeScreen.left + ', top=' + codeScreen.top);
+        console.log('手机输入框屏幕位置:', phoneScreen);
+        console.log('验证码输入框屏幕位置:', codeScreen);
         
-        // 创建容器（相对于 Canvas 定位）
-        var container = document.getElementById('native-input-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'native-input-container';
-            container.style.position = 'absolute';
-            container.style.left = canvasRect.left + 'px';
-            container.style.top = canvasRect.top + 'px';
-            container.style.width = canvasRect.width + 'px';
-            container.style.height = canvasRect.height + 'px';
-            container.style.pointerEvents = 'none';  // 容器不拦截事件
-            container.style.zIndex = '9999';
-            document.body.appendChild(container);
+        // 移除旧的容器和输入框
+        var oldContainer = document.getElementById('native-input-container');
+        if (oldContainer) {
+            oldContainer.remove();
         }
+        
+        // 创建新的容器（直接放在 body 下，确保不被遮挡）
+        var container = document.createElement('div');
+        container.id = 'native-input-container';
+        container.style.cssText = [
+            'position: fixed',
+            'top: 0',
+            'left: 0',
+            'width: 100%',
+            'height: 100%',
+            'pointer-events: none',
+            'z-index: 99999'
+        ].join('; ');
+        document.body.appendChild(container);
         
         // 创建手机号输入框
-        var phoneInput = document.getElementById('native-phone-input');
-        if (!phoneInput) {
-            phoneInput = document.createElement('input');
-            phoneInput.id = 'native-phone-input';
-            phoneInput.type = 'tel';
-            phoneInput.placeholder = '请输入手机号';
-            phoneInput.maxLength = 11;
-            container.appendChild(phoneInput);
-        }
-        
-        phoneInput.style.position = 'absolute';
-        phoneInput.style.left = phoneScreen.left + 'px';
-        phoneInput.style.top = phoneScreen.top + 'px';
-        phoneInput.style.width = (inputWidth * scaleX) + 'px';
-        phoneInput.style.height = (inputHeight * scaleY) + 'px';
-        phoneInput.style.background = 'rgba(255,255,255,0.8)';
-        phoneInput.style.border = '2px solid #DAA520';
-        phoneInput.style.borderRadius = '8px';
-        phoneInput.style.fontSize = '16px';
-        phoneInput.style.color = '#333';
-        phoneInput.style.padding = '0 10px';
-        phoneInput.style.boxSizing = 'border-box';
-        phoneInput.style.outline = 'none';
-        phoneInput.style.pointerEvents = 'auto';
+        var phoneInput = document.createElement('input');
+        phoneInput.id = 'native-phone-input';
+        phoneInput.type = 'tel';
+        phoneInput.placeholder = '请输入手机号';
+        phoneInput.maxLength = 11;
+        phoneInput.style.cssText = [
+            'position: absolute',
+            'left: ' + phoneScreen.left + 'px',
+            'top: ' + phoneScreen.top + 'px',
+            'width: ' + phoneScreen.width + 'px',
+            'height: ' + phoneScreen.height + 'px',
+            'background: rgba(255, 255, 255, 0.9)',
+            'border: 2px solid #DAA520',
+            'border-radius: 8px',
+            'font-size: 16px',
+            'color: #333',
+            'padding: 0 10px',
+            'box-sizing: border-box',
+            'outline: none',
+            'pointer-events: auto',
+            'z-index: 100000',
+            'cursor: text',
+            'font-family: Arial, sans-serif'
+        ].join('; ');
+        container.appendChild(phoneInput);
         
         // 创建验证码输入框
-        var codeInput = document.getElementById('native-code-input');
-        if (!codeInput) {
-            codeInput = document.createElement('input');
-            codeInput.id = 'native-code-input';
-            codeInput.type = 'text';
-            codeInput.placeholder = '验证码';
-            codeInput.maxLength = 6;
-            container.appendChild(codeInput);
-        }
+        var codeInput = document.createElement('input');
+        codeInput.id = 'native-code-input';
+        codeInput.type = 'text';
+        codeInput.placeholder = '验证码';
+        codeInput.maxLength = 6;
+        codeInput.style.cssText = [
+            'position: absolute',
+            'left: ' + codeScreen.left + 'px',
+            'top: ' + codeScreen.top + 'px',
+            'width: ' + codeScreen.width + 'px',
+            'height: ' + codeScreen.height + 'px',
+            'background: rgba(255, 255, 255, 0.9)',
+            'border: 2px solid #DAA520',
+            'border-radius: 8px',
+            'font-size: 16px',
+            'color: #333',
+            'padding: 0 10px',
+            'box-sizing: border-box',
+            'outline: none',
+            'pointer-events: auto',
+            'z-index: 100000',
+            'cursor: text',
+            'font-family: Arial, sans-serif'
+        ].join('; ');
+        container.appendChild(codeInput);
         
-        codeInput.style.position = 'absolute';
-        codeInput.style.left = codeScreen.left + 'px';
-        codeInput.style.top = codeScreen.top + 'px';
-        codeInput.style.width = (codeInputW * scaleX) + 'px';
-        codeInput.style.height = (inputHeight * scaleY) + 'px';
-        codeInput.style.background = 'rgba(255,255,255,0.8)';
-        codeInput.style.border = '2px solid #DAA520';
-        codeInput.style.borderRadius = '8px';
-        codeInput.style.fontSize = '16px';
-        codeInput.style.color = '#333';
-        codeInput.style.padding = '0 10px';
-        codeInput.style.boxSizing = 'border-box';
-        codeInput.style.outline = 'none';
-        codeInput.style.pointerEvents = 'auto';
+        // 添加焦点事件调试
+        phoneInput.addEventListener('focus', function() {
+            console.log('手机输入框获得焦点');
+        });
+        phoneInput.addEventListener('click', function() {
+            console.log('手机输入框被点击');
+        });
+        codeInput.addEventListener('focus', function() {
+            console.log('验证码输入框获得焦点');
+        });
+        codeInput.addEventListener('click', function() {
+            console.log('验证码输入框被点击');
+        });
         
         console.log('原生输入框创建完成');
+        
+        // 延迟检查输入框是否正确创建
+        setTimeout(function() {
+            var phoneCheck = document.getElementById('native-phone-input');
+            var codeCheck = document.getElementById('native-code-input');
+            console.log('输入框检查:');
+            console.log('  手机输入框:', phoneCheck ? '存在' : '不存在');
+            console.log('  验证码输入框:', codeCheck ? '存在' : '不存在');
+            if (phoneCheck) {
+                var rect = phoneCheck.getBoundingClientRect();
+                console.log('  手机输入框位置:', rect.left, rect.top, rect.width, 'x', rect.height);
+            }
+        }, 100);
         
     } catch (e) {
         console.error('创建原生输入框失败:', e);
