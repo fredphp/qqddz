@@ -141,55 +141,57 @@ cc.Class({
         bgGraphics.fill()
         bgNode.parent = this.node
 
-        // 主弹窗容器
+        // 主弹窗容器 - 增大尺寸以容纳所有元素
         var dialogNode = new cc.Node("DialogContainer")
-        dialogNode.setContentSize(900, 600)
+        dialogNode.setContentSize(1000, 650)
         dialogNode.setPosition(0, 0)
         
         // 弹窗背景
         var dialogBg = new cc.Node("DialogBg")
         var dialogBgGraphics = dialogBg.addComponent(cc.Graphics)
-        dialogBgGraphics.fillColor = new cc.Color(25, 35, 60, 245)
-        dialogBgGraphics.roundRect(-450, -300, 900, 600, 20)
+        dialogBgGraphics.fillColor = new cc.Color(25, 35, 60, 250)
+        dialogBgGraphics.roundRect(-500, -325, 1000, 650, 25)
         dialogBgGraphics.fill()
         dialogBgGraphics.strokeColor = new cc.Color(180, 140, 60)
-        dialogBgGraphics.lineWidth = 3
-        dialogBgGraphics.roundRect(-450, -300, 900, 600, 20)
+        dialogBgGraphics.lineWidth = 4
+        dialogBgGraphics.roundRect(-500, -325, 1000, 650, 25)
         dialogBgGraphics.stroke()
         dialogBg.parent = dialogNode
         dialogNode.parent = this.node
 
         // ========== 标题区域 ==========
         var titleNode = new cc.Node("TitleNode")
-        titleNode.setPosition(0, 250)
+        titleNode.setPosition(0, 280)  // 上移
         
         var titleLabel = titleNode.addComponent(cc.Label)
         titleLabel.string = "🏆 比赛结束 🏆"
-        titleLabel.fontSize = 36
-        titleLabel.lineHeight = 40
+        titleLabel.fontSize = 40
+        titleLabel.lineHeight = 48
         titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         titleNode.color = new cc.Color(255, 215, 0)
         
         var titleOutline = titleNode.addComponent(cc.LabelOutline)
         titleOutline.color = new cc.Color(100, 60, 0)
-        titleOutline.width = 2
+        titleOutline.width = 3
         titleNode.parent = dialogNode
 
         // ========== 期号和参赛人数 ==========
         this._periodNoNode = new cc.Node("PeriodNoNode")
-        this._periodNoNode.setPosition(0, 200)
+        this._periodNoNode.setPosition(0, 230)  // 上移
         var periodLabel = this._periodNoNode.addComponent(cc.Label)
         periodLabel.string = "第---期赛事结束"
-        periodLabel.fontSize = 24
+        periodLabel.fontSize = 26
+        periodLabel.lineHeight = 32
         this._periodNoNode.color = new cc.Color(200, 200, 220)
         this._periodNoNode.parent = dialogNode
         this.periodNoLabel = periodLabel
 
         this._totalPlayersNode = new cc.Node("TotalPlayersNode")
-        this._totalPlayersNode.setPosition(0, 170)
+        this._totalPlayersNode.setPosition(0, 195)  // 上移
         var totalLabel = this._totalPlayersNode.addComponent(cc.Label)
         totalLabel.string = "共0人参赛"
-        totalLabel.fontSize = 20
+        totalLabel.fontSize = 22
+        totalLabel.lineHeight = 28
         this._totalPlayersNode.color = new cc.Color(180, 180, 200)
         this._totalPlayersNode.parent = dialogNode
         this.totalPlayersLabel = totalLabel
@@ -209,22 +211,26 @@ cc.Class({
     },
 
     /**
-     * 🔧【新增】创建前三名领奖台
+     * 🔧【修复】创建前三名领奖台
+     * 布局优化：确保冠军居中高亮，亚季军对称分布
      */
     _createTop3Podium: function(parentNode) {
-        // 领奖台Y坐标基准 - 整体下移
-        var podiumY = 20
+        // 领奖台Y坐标基准 - 整体上移，留出更多空间
+        var podiumY = 50
         
-        // 冠军（中间，最大）
-        this.championNode = this._createPodiumItem(1, 0, podiumY + 20, 1.1)
+        // 水平间距 - 增大间距避免重叠
+        var spacingX = 280
+        
+        // 冠军（中间，最大，位置最高）
+        this.championNode = this._createPodiumItem(1, 0, podiumY + 40, 1.15)
         this.championNode.parent = parentNode
 
-        // 亚军（左侧）
-        this.runnerUpNode = this._createPodiumItem(2, -220, podiumY, 1.0)
+        // 亚军（左侧，位置略低）
+        this.runnerUpNode = this._createPodiumItem(2, -spacingX, podiumY, 1.0)
         this.runnerUpNode.parent = parentNode
 
-        // 季军（右侧）
-        this.thirdPlaceNode = this._createPodiumItem(3, 220, podiumY, 1.0)
+        // 季军（右侧，位置略低）
+        this.thirdPlaceNode = this._createPodiumItem(3, spacingX, podiumY, 1.0)
         this.thirdPlaceNode.parent = parentNode
 
         // 创建领奖台底部
@@ -233,23 +239,24 @@ cc.Class({
     },
 
     /**
-     * 🔧【新增】创建单个领奖台项目
+     * 🔧【修复】创建单个领奖台项目
      * 布局顺序（从上到下）：名次 → 头像 → 昵称 → 金币
-     * 每个元素之间有明确的间距
+     * 修复：增大元素间距，确保不挤在一起
      */
     _createPodiumItem: function(rank, x, y, scale) {
         var node = new cc.Node("PodiumItem_" + rank)
         node.setPosition(x, y)
         node.scale = scale || 1
 
-        // ========== 布局计算 ==========
+        // ========== 布局计算（修复间距）==========
         // 以头像中心为基准(Y=0)，其他元素相对定位
         // 从上到下依次排列：名次 → 头像 → 昵称 → 金币
+        // 🔧【修复】增大各元素之间的间距
         var layoutConfig = {
-            rankY: 55,       // 名次Y坐标（头像上方55px）
+            rankY: 65,       // 名次Y坐标（头像上方65px，增大间距）
             avatarY: 0,      // 头像Y坐标（基准位置）
-            nameY: -50,      // 昵称Y坐标（头像下方50px）
-            coinY: -75       // 金币Y坐标（昵称下方25px）
+            nameY: -60,      // 昵称Y坐标（头像下方60px，增大间距）
+            coinY: -90       // 金币Y坐标（昵称下方30px，增大间距）
         };
 
         // ========== 名次标签（最上面）==========
@@ -266,19 +273,23 @@ cc.Class({
         rankLabelNode.parent = node
 
         // ========== 头像区域（名次下方）==========
+        // 🔧【修复】根据排名调整头像大小
+        var avatarSize = rank === 1 ? 70 : 60  // 冠军头像更大
+        var avatarRadius = avatarSize / 2 + 2
+        
         var avatarContainer = new cc.Node("AvatarContainer")
         avatarContainer.setPosition(0, layoutConfig.avatarY)
-        avatarContainer.setContentSize(60, 60)  // 稍微缩小头像
+        avatarContainer.setContentSize(avatarSize, avatarSize)
         
         // 头像背景（圆形）
         var avatarBg = new cc.Node("AvatarBg")
         var avatarBgGraphics = avatarBg.addComponent(cc.Graphics)
         avatarBgGraphics.fillColor = new cc.Color(60, 70, 100)
-        avatarBgGraphics.circle(0, 0, 32)  // 半径32
+        avatarBgGraphics.circle(0, 0, avatarRadius)
         avatarBgGraphics.fill()
         avatarBgGraphics.strokeColor = rank === 1 ? new cc.Color(255, 215, 0) : new cc.Color(150, 150, 180)
-        avatarBgGraphics.lineWidth = 2
-        avatarBgGraphics.circle(0, 0, 32)
+        avatarBgGraphics.lineWidth = rank === 1 ? 3 : 2
+        avatarBgGraphics.circle(0, 0, avatarRadius)
         avatarBgGraphics.stroke()
         avatarBg.parent = avatarContainer
 
@@ -286,18 +297,22 @@ cc.Class({
         var avatarSpriteNode = new cc.Node("AvatarSprite")
         var avatarSprite = avatarSpriteNode.addComponent(cc.Sprite)
         avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
-        avatarSpriteNode.setContentSize(56, 56)
+        avatarSpriteNode.setContentSize(avatarSize - 4, avatarSize - 4)
         avatarSpriteNode.parent = avatarContainer
 
         avatarContainer.parent = node
 
         // ========== 昵称标签（头像下方）==========
+        // 🔧【修复】增大字体，限制宽度防止溢出
         var nameLabelNode = new cc.Node("NameLabel")
         nameLabelNode.setPosition(0, layoutConfig.nameY)
+        nameLabelNode.setContentSize(120, 30)  // 限制宽度
         var nameLabel = nameLabelNode.addComponent(cc.Label)
         nameLabel.string = "玩家昵称"
-        nameLabel.fontSize = 18
+        nameLabel.fontSize = rank === 1 ? 20 : 18  // 冠军字体稍大
+        nameLabel.lineHeight = 24
         nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        nameLabel.overflow = cc.Label.Overflow.CLAMP  // 防止溢出
         nameLabelNode.color = new cc.Color(255, 255, 255)
         var nameOutline = nameLabelNode.addComponent(cc.LabelOutline)
         nameOutline.color = new cc.Color(30, 30, 50)
@@ -305,13 +320,15 @@ cc.Class({
         nameLabelNode.parent = node
 
         // ========== 金币标签（昵称下方）==========
+        // 🔧【修复】增大字体和间距，更醒目
         var coinLabelNode = new cc.Node("CoinLabel")
         coinLabelNode.setPosition(0, layoutConfig.coinY)
         var coinLabel = coinLabelNode.addComponent(cc.Label)
         coinLabel.string = "0金币"
-        coinLabel.fontSize = 16
+        coinLabel.fontSize = rank === 1 ? 18 : 16  // 冠军字体稍大
+        coinLabel.lineHeight = 20
         coinLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-        coinLabelNode.color = new cc.Color(255, 200, 100)
+        coinLabelNode.color = rank === 1 ? new cc.Color(255, 215, 0) : new cc.Color(255, 200, 100)  // 冠军金色
         var coinOutline = coinLabelNode.addComponent(cc.LabelOutline)
         coinOutline.color = new cc.Color(80, 50, 0)
         coinOutline.width = 1
@@ -321,65 +338,81 @@ cc.Class({
     },
 
     /**
-     * 🔧【新增】创建领奖台底部
+     * 🔧【修复】创建领奖台底部
+     * 修复：调整位置与领奖台项目对齐
      */
     _createPodiumBase: function(parentNode, y) {
-        // 冠军台（最高）
+        var spacingX = 280  // 与领奖台项目间距一致
+        
+        // 冠军台（最高，最宽）
         var championBase = new cc.Node("ChampionBase")
-        championBase.setPosition(0, y)
+        championBase.setPosition(0, y - 20)  // 对齐冠军位置
         var cg1 = championBase.addComponent(cc.Graphics)
         cg1.fillColor = new cc.Color(180, 140, 60, 200)
-        cg1.roundRect(-70, -25, 140, 50, 8)
+        cg1.roundRect(-80, -30, 160, 60, 10)
         cg1.fill()
+        cg1.strokeColor = new cc.Color(220, 180, 80)
+        cg1.lineWidth = 2
+        cg1.roundRect(-80, -30, 160, 60, 10)
+        cg1.stroke()
         championBase.parent = parentNode
 
         // 亚军台（中等）
         var runnerUpBase = new cc.Node("RunnerUpBase")
-        runnerUpBase.setPosition(-220, y - 15)
+        runnerUpBase.setPosition(-spacingX, y - 30)  // 对齐亚军位置
         var cg2 = runnerUpBase.addComponent(cc.Graphics)
-        cg2.fillColor = new cc.Color(120, 120, 140, 200)
-        cg2.roundRect(-60, -20, 120, 40, 6)
+        cg2.fillColor = new cc.Color(120, 130, 150, 200)
+        cg2.roundRect(-65, -25, 130, 50, 8)
         cg2.fill()
+        cg2.strokeColor = new cc.Color(160, 170, 190)
+        cg2.lineWidth = 2
+        cg2.roundRect(-65, -25, 130, 50, 8)
+        cg2.stroke()
         runnerUpBase.parent = parentNode
 
         // 季军台（最低）
         var thirdBase = new cc.Node("ThirdBase")
-        thirdBase.setPosition(220, y - 15)
+        thirdBase.setPosition(spacingX, y - 30)  // 对齐季军位置
         var cg3 = thirdBase.addComponent(cc.Graphics)
-        cg3.fillColor = new cc.Color(140, 100, 80, 200)
-        cg3.roundRect(-60, -20, 120, 40, 6)
+        cg3.fillColor = new cc.Color(150, 110, 90, 200)
+        cg3.roundRect(-65, -25, 130, 50, 8)
         cg3.fill()
+        cg3.strokeColor = new cc.Color(180, 140, 110)
+        cg3.lineWidth = 2
+        cg3.roundRect(-65, -25, 130, 50, 8)
+        cg3.stroke()
         thirdBase.parent = parentNode
     },
 
     /**
-     * 🔧【新增】创建我的排名区域
-     * 修复：文字相对于显示框上下居中显示
+     * 🔧【修复】创建我的排名区域
+     * 修复：调整位置、居中对齐、增大容器尺寸
      */
     _createMyRankArea: function(parentNode) {
         var container = new cc.Node("MyRankContainer")
-        container.setPosition(0, -180)
-        container.setContentSize(500, 50)  // 🔧【修复】调整容器尺寸
+        container.setPosition(0, -200)  // 下移避免与领奖台重叠
+        container.setContentSize(600, 60)  // 增大容器尺寸
 
-        // 背景框 - 确保足够容纳文字
+        // 背景框 - 更宽更清晰
         var bgNode = new cc.Node("Bg")
         var bgGraphics = bgNode.addComponent(cc.Graphics)
-        bgGraphics.fillColor = new cc.Color(40, 50, 80, 200)
-        bgGraphics.roundRect(-250, -25, 500, 50, 10)  // 🔧【修复】调整背景大小匹配容器
+        bgGraphics.fillColor = new cc.Color(40, 50, 80, 230)
+        bgGraphics.roundRect(-300, -30, 600, 60, 12)
         bgGraphics.fill()
         bgGraphics.strokeColor = new cc.Color(100, 120, 160)
         bgGraphics.lineWidth = 2
-        bgGraphics.roundRect(-250, -25, 500, 50, 10)
+        bgGraphics.roundRect(-300, -30, 600, 60, 12)
         bgGraphics.stroke()
         bgNode.parent = container
 
-        // 🔧【修复】我的排名标签 - 确保文字垂直居中
+        // 我的排名标签 - 居中对齐
         var myRankNode = new cc.Node("MyRankLabel")
-        myRankNode.setPosition(-120, 0)  // Y设为0确保垂直居中
+        myRankNode.setPosition(-140, 0)  // 左侧位置
+        myRankNode.setContentSize(200, 40)
         var myRankLabel = myRankNode.addComponent(cc.Label)
         myRankLabel.string = "我的排名：第--名"
-        myRankLabel.fontSize = 20
-        myRankLabel.lineHeight = 24  // 🔧【修复】设置行高确保垂直居中
+        myRankLabel.fontSize = 22
+        myRankLabel.lineHeight = 28
         myRankLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         myRankLabel.verticalAlign = cc.Label.VerticalAlign.CENTER
         myRankNode.color = new cc.Color(100, 200, 255)
@@ -391,18 +424,19 @@ cc.Class({
         separatorNode.setPosition(0, 0)
         var sepLabel = separatorNode.addComponent(cc.Label)
         sepLabel.string = "|"
-        sepLabel.fontSize = 20
-        sepLabel.lineHeight = 24
+        sepLabel.fontSize = 24
+        sepLabel.lineHeight = 28
         separatorNode.color = new cc.Color(150, 150, 180)
         separatorNode.parent = container
 
         // 金币标签
         var myCoinNode = new cc.Node("MyCoinLabel")
-        myCoinNode.setPosition(130, 0)  // Y设为0确保垂直居中
+        myCoinNode.setPosition(150, 0)  // 右侧位置
+        myCoinNode.setContentSize(200, 40)
         var myCoinLabel = myCoinNode.addComponent(cc.Label)
         myCoinLabel.string = "比赛金币：0"
-        myCoinLabel.fontSize = 20
-        myCoinLabel.lineHeight = 24  // 🔧【修复】设置行高确保垂直居中
+        myCoinLabel.fontSize = 22
+        myCoinLabel.lineHeight = 28
         myCoinLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         myCoinLabel.verticalAlign = cc.Label.VerticalAlign.CENTER
         myCoinNode.color = new cc.Color(255, 200, 100)
@@ -413,29 +447,35 @@ cc.Class({
     },
 
     /**
-     * 🔧【新增】创建确认按钮
+     * 🔧【修复】创建确认按钮
+     * 修复：调整位置，确保不与状态栏重叠，增加按钮样式
      */
     _createConfirmButton: function(parentNode) {
         var btnNode = new cc.Node("ConfirmBtn")
-        btnNode.setPosition(0, -260)
-        btnNode.setContentSize(180, 50)
+        btnNode.setPosition(0, -270)  // 下移确保与状态栏有足够间距
+        btnNode.setContentSize(200, 55)
 
-        // 按钮背景
+        // 按钮背景 - 更醒目的样式
         var btnBg = btnNode.addComponent(cc.Graphics)
-        btnBg.fillColor = new cc.Color(200, 80, 80)
-        btnBg.roundRect(-90, -25, 180, 50, 10)
+        btnBg.fillColor = new cc.Color(80, 160, 80)  // 绿色按钮
+        btnBg.roundRect(-100, -27.5, 200, 55, 12)
         btnBg.fill()
-        btnBg.strokeColor = new cc.Color(255, 120, 120)
-        btnBg.lineWidth = 2
-        btnBg.roundRect(-90, -25, 180, 50, 10)
+        btnBg.strokeColor = new cc.Color(120, 200, 120)
+        btnBg.lineWidth = 3
+        btnBg.roundRect(-100, -27.5, 200, 55, 12)
         btnBg.stroke()
 
         // 按钮文字
         var btnLabelNode = new cc.Node("Label")
         var btnLabel = btnLabelNode.addComponent(cc.Label)
         btnLabel.string = "确 定"
-        btnLabel.fontSize = 24
+        btnLabel.fontSize = 26
+        btnLabel.lineHeight = 32
+        btnLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         btnLabelNode.color = new cc.Color(255, 255, 255)
+        var btnOutline = btnLabelNode.addComponent(cc.LabelOutline)
+        btnOutline.color = new cc.Color(30, 80, 30)
+        btnOutline.width = 2
         btnLabelNode.parent = btnNode
 
         // 添加按钮组件
