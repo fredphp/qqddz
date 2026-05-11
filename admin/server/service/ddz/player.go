@@ -194,6 +194,14 @@ func (s *DDZPlayerService) GetPlayerByID(id uint) (ddzRes.DDZPlayerResponse, err
         if err != nil {
                 return ddzRes.DDZPlayerResponse{}, err
         }
+
+        // 查询用户账户信息（可能包含微信头像）
+        var account ddz.DDZUserAccount
+        accountErr := db.Table("ddz_user_accounts").Where("player_id = ?", id).First(&account).Error
+
+        if accountErr == nil {
+                return s.toPlayerResponseWithAccount(player, account), nil
+        }
         return s.toPlayerResponse(player), nil
 }
 
@@ -875,6 +883,11 @@ func (s *DDZPlayerService) toPlayerResponseWithAccount(p ddz.DDZPlayer, account 
         response.LoginTypeText = s.getLoginTypeText(account.LoginType)
         response.DeviceType = account.DeviceType
         response.LoginCount = account.LoginCount
+
+        // 如果玩家没有头像但有微信头像，使用微信头像
+        if response.Avatar == "" && account.WxAvatar != "" {
+                response.Avatar = account.WxAvatar
+        }
 
         return response
 }
