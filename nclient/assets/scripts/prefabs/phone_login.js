@@ -1,6 +1,6 @@
 // 手机号登录弹窗控制器
 // 用于处理手机号验证码登录功能
-// 设计风格：中国风商业棋牌（固定300x420，scale缩放适配）
+// 设计风格：中国风商业棋牌（响应式适配：宽度60%，高度自适应）
 
 cc.Class({
     name: 'phone_login',
@@ -50,9 +50,9 @@ cc.Class({
         // 倒计时时间
         countdown_time: 60,
 
-        // 固定设计尺寸（禁止修改）
-        DESIGN_WIDTH: 300,
-        DESIGN_HEIGHT: 420
+        // 基准设计尺寸（用于计算scale）
+        BASE_WIDTH: 400,
+        BASE_HEIGHT: 520
     },
 
     onLoad: function() {
@@ -60,7 +60,7 @@ cc.Class({
         this._phone = "";
         this._code = "";
 
-        // 立即执行弹窗缩放适配
+        // 立即执行弹窗尺寸适配
         this.adaptDialog();
 
         // 监听屏幕尺寸变化
@@ -93,8 +93,7 @@ cc.Class({
     },
 
     // =============================================
-    // 固定尺寸 + 等比缩放适配（唯一允许的适配方案）
-    // 禁止：动态修改Panel宽高、Widget stretch
+    // 响应式适配：宽度=屏幕60%，最小300，高度按比例
     // =============================================
     adaptDialog: function() {
         var panel = this.node.getChildByName('content_panel');
@@ -103,24 +102,29 @@ cc.Class({
         var winW = cc.winSize.width;
         var winH = cc.winSize.height;
 
-        // 固定设计尺寸（与prefab保持一致，禁止修改）
-        var designW = this.DESIGN_WIDTH;  // 300
-        var designH = this.DESIGN_HEIGHT; // 420
+        // 目标宽度 = 屏幕宽度 * 60%
+        var targetWidth = winW * 0.6;
+        
+        // 最小宽度300，最大宽度不超过屏幕80%
+        targetWidth = Math.max(300, Math.min(targetWidth, winW * 0.8));
+        
+        // 计算缩放比例
+        var scale = targetWidth / this.BASE_WIDTH;
+        
+        // 确保高度不超出屏幕（留出10%边距）
+        var maxScaleY = (winH * 0.8) / this.BASE_HEIGHT;
+        scale = Math.min(scale, maxScaleY);
+        
+        // 限制缩放范围 [0.7, 1.3]
+        scale = Math.max(0.7, Math.min(scale, 1.3));
 
-        // 计算缩放比例：留出边距（宽+60，高+100）确保顶部底部各留8%
-        var scaleX = winW / (designW + 60);
-        var scaleY = winH / (designH + 100);
-
-        // 取较小值，保持宽高比例
-        var scale = Math.min(scaleX, scaleY);
-
-        // 限制缩放范围 [0.75, 1.25]
-        scale = Math.max(0.75, Math.min(scale, 1.25));
-
-        // 只修改scale，绝不修改width/height
+        // 应用缩放
         panel.scale = scale;
 
-        console.log('【登录弹窗】屏幕:', winW, 'x', winH, '设计:', designW, 'x', designH, '缩放:', scale.toFixed(2));
+        console.log('【登录弹窗】屏幕:', winW, 'x', winH, 
+                    '目标宽度:', Math.round(targetWidth), 
+                    '缩放:', scale.toFixed(2),
+                    '实际尺寸:', Math.round(this.BASE_WIDTH * scale), 'x', Math.round(this.BASE_HEIGHT * scale));
     },
 
     // 初始化弹窗进入动画
@@ -145,7 +149,7 @@ cc.Class({
         var contentPanel = this.node.getChildByName('content_panel');
         if (!contentPanel) return;
 
-        // 绘制手机号输入框边框 (240x45)
+        // 绘制手机号输入框边框 (320x50)
         var phoneBg = contentPanel.getChildByName('phone_bg');
         if (phoneBg) {
             var graphics = phoneBg.getComponent(cc.Graphics);
@@ -153,12 +157,12 @@ cc.Class({
                 graphics.clear();
                 graphics.strokeColor = new cc.Color(218, 165, 32, 255);
                 graphics.lineWidth = 2;
-                this._drawRoundRect(graphics, -120, -22.5, 240, 45, 12);
+                this._drawRoundRect(graphics, -160, -25, 320, 50, 14);
                 graphics.stroke();
             }
         }
 
-        // 绘制验证码输入框边框 (140x45)
+        // 绘制验证码输入框边框 (190x50)
         var codeRow = contentPanel.getChildByName('code_row');
         if (codeRow) {
             var codeBg = codeRow.getChildByName('code_bg');
@@ -168,7 +172,7 @@ cc.Class({
                     graphics.clear();
                     graphics.strokeColor = new cc.Color(218, 165, 32, 255);
                     graphics.lineWidth = 2;
-                    this._drawRoundRect(graphics, -70, -22.5, 140, 45, 12);
+                    this._drawRoundRect(graphics, -95, -25, 190, 50, 14);
                     graphics.stroke();
                 }
             }
@@ -182,8 +186,8 @@ cc.Class({
                 graphics.clear();
                 graphics.strokeColor = new cc.Color(200, 180, 140, 180);
                 graphics.lineWidth = 1;
-                graphics.moveTo(-130, 0);
-                graphics.lineTo(130, 0);
+                graphics.moveTo(-170, 0);
+                graphics.lineTo(170, 0);
                 graphics.stroke();
             }
         }
