@@ -15,6 +15,22 @@ ad:
     bd-rewarded-video-ad-id: ""
     supported-sdks: []
     primary-sdk: ""
+site:
+    name: "棋牌游戏后台管理系统"
+    logo: ""
+    favicon: ""
+    description: "专业的棋牌游戏运营管理平台，提供玩家管理、游戏数据统计、竞技场管理等功能"
+    keywords: "棋牌游戏,斗地主,后台管理,游戏运营"
+    copyright: "Copyright © 2024 棋牌游戏 All Rights Reserved"
+    icp: ""
+    police-icp: ""
+    phone: ""
+    email: ""
+    address: ""
+    qq: ""
+    wechat: ""
+    cdn-domain: ""
+    api-domain: ""
 aliyun-oss:
     endpoint: yourEndpoint
     access-key-id: yourAccessKeyId

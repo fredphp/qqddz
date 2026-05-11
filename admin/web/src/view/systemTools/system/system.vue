@@ -1088,6 +1088,107 @@
             />
           </el-form-item>
         </el-tab-pane>
+        <el-tab-pane label="网站配置" name="15" class="mt-3.5">
+          <el-divider content-position="left">基础信息</el-divider>
+          <el-form-item label="网站名称">
+            <el-input
+              v-model.trim="config.site.name"
+              placeholder="请输入网站名称"
+            />
+          </el-form-item>
+          <el-form-item label="网站Logo">
+            <el-input
+              v-model.trim="config.site.logo"
+              placeholder="请输入Logo图片URL"
+            />
+          </el-form-item>
+          <el-form-item label="网站Favicon">
+            <el-input
+              v-model.trim="config.site.favicon"
+              placeholder="请输入Favicon图标URL"
+            />
+          </el-form-item>
+          <el-form-item label="网站描述">
+            <el-input
+              v-model.trim="config.site.description"
+              type="textarea"
+              :rows="3"
+              placeholder="请输入网站描述，用于SEO优化"
+            />
+          </el-form-item>
+          <el-form-item label="网站关键词">
+            <el-input
+              v-model.trim="config.site.keywords"
+              placeholder="请输入网站关键词，多个用英文逗号分隔"
+            />
+          </el-form-item>
+
+          <el-divider content-position="left">版权信息</el-divider>
+          <el-form-item label="版权信息">
+            <el-input
+              v-model.trim="config.site.copyright"
+              placeholder="请输入版权信息"
+            />
+          </el-form-item>
+          <el-form-item label="ICP备案号">
+            <el-input
+              v-model.trim="config.site.icp"
+              placeholder="请输入ICP备案号"
+            />
+          </el-form-item>
+          <el-form-item label="公安备案号">
+            <el-input
+              v-model.trim="config.site['police-icp']"
+              placeholder="请输入公安备案号"
+            />
+          </el-form-item>
+
+          <el-divider content-position="left">联系方式</el-divider>
+          <el-form-item label="联系电话">
+            <el-input
+              v-model.trim="config.site.phone"
+              placeholder="请输入联系电话"
+            />
+          </el-form-item>
+          <el-form-item label="联系邮箱">
+            <el-input
+              v-model.trim="config.site.email"
+              placeholder="请输入联系邮箱"
+            />
+          </el-form-item>
+          <el-form-item label="联系地址">
+            <el-input
+              v-model.trim="config.site.address"
+              placeholder="请输入联系地址"
+            />
+          </el-form-item>
+          <el-form-item label="QQ客服">
+            <el-input
+              v-model.trim="config.site.qq"
+              placeholder="请输入QQ客服号"
+            />
+          </el-form-item>
+          <el-form-item label="微信号">
+            <el-input
+              v-model.trim="config.site.wechat"
+              placeholder="请输入微信号"
+            />
+          </el-form-item>
+
+          <el-divider content-position="left">域名配置</el-divider>
+          <el-form-item label="CDN域名">
+            <el-input
+              v-model.trim="config.site['cdn-domain']"
+              placeholder="请输入CDN域名，如 https://cdn.example.com"
+            />
+          </el-form-item>
+          <el-form-item label="API域名">
+            <el-input
+              v-model.trim="config.site['api-domain']"
+              placeholder="请输入API域名，如 https://api.example.com"
+            />
+          </el-form-item>
+        </el-tab-pane>
       </el-tabs>
     </el-form>
     <div class="mt-4">
@@ -1164,6 +1265,23 @@
       'cooldown-seconds': 30,
       'supported-sdks': [],
       'primary-sdk': ''
+    },
+    site: {
+      name: '',
+      logo: '',
+      favicon: '',
+      description: '',
+      keywords: '',
+      copyright: '',
+      icp: '',
+      'police-icp': '',
+      phone: '',
+      email: '',
+      address: '',
+      qq: '',
+      wechat: '',
+      'cdn-domain': '',
+      'api-domain': ''
     }
   })
 

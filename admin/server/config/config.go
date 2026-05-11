@@ -40,4 +40,7 @@ type Server struct {
 
         // 广告配置
         Ad Ad `mapstructure:"ad" json:"ad" yaml:"ad"`
+
+        // 网站配置
+        Site Site `mapstructure:"site" json:"site" yaml:"site"`
 }
