@@ -1476,7 +1476,7 @@ cc.Class({
         loginBtnComp.zoomScale = 0.95;
 
         // ==================== 微信登录按钮 ====================
-        var wxBtnY = loginBtnY - 65 * scaleRatio;
+        var wxBtnY = loginBtnY - 95 * scaleRatio;  // 往下移动更多，避免挡住文字
         var wxBtnSize = 50 * scaleRatio;
 
         var wxBtn = new cc.Node("BtnWechat");
