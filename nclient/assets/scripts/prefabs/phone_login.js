@@ -1,6 +1,6 @@
 // 手机号登录弹窗控制器
 // 用于处理手机号验证码登录功能
-// 设计风格：大尺寸弹窗 (680x580)
+// 设计风格：中国风商业棋牌（500x560弹窗）
 
 cc.Class({
     name: 'phone_login',
@@ -31,6 +31,12 @@ cc.Class({
             default: null
         },
 
+        // 微信登录按钮
+        wx_login_btn: {
+            type: cc.Sprite,
+            default: null
+        },
+
         // 标签
         send_code_label: {
             type: cc.Label,
@@ -46,12 +52,22 @@ cc.Class({
     },
 
     onLoad: function() {
-
         this._countdown = 0;
         this._phone = "";
         this._code = "";
 
+        // 初始化弹窗动画
+        this._initPanelAnimation();
+        
+        // 绘制圆角输入框边框
+        this._drawInputBorders();
+        
+        // 初始化按钮事件
         this._initButtons();
+        
+        // 初始化微信登录按钮
+        this._initWechatButton();
+        
         this._hideMessage();
 
         // 获取输入框初始值
@@ -61,6 +77,129 @@ cc.Class({
         if (this.code_input) {
             this._code = this.code_input.string || "";
         }
+    },
+
+    // 初始化弹窗进入动画
+    _initPanelAnimation: function() {
+        var contentPanel = this.node.getChildByName('content_panel');
+        if (contentPanel) {
+            contentPanel.scale = 0.7;
+            contentPanel.opacity = 0;
+            
+            cc.tween(contentPanel)
+                .to(0.25, { scale: 1, opacity: 255 }, { easing: 'backOut' })
+                .start();
+        }
+    },
+
+    // 绘制输入框圆角边框
+    _drawInputBorders: function() {
+        var contentPanel = this.node.getChildByName('content_panel');
+        if (!contentPanel) return;
+
+        // 绘制手机号输入框边框
+        var phoneBg = contentPanel.getChildByName('phone_bg');
+        if (phoneBg) {
+            var graphics = phoneBg.getComponent(cc.Graphics);
+            if (graphics) {
+                graphics.clear();
+                graphics.strokeColor = new cc.Color(218, 165, 32, 255);
+                graphics.lineWidth = 2;
+                this._drawRoundRect(graphics, -200, -28, 400, 56, 18);
+                graphics.stroke();
+            }
+        }
+
+        // 绘制验证码输入框边框
+        var codeRow = contentPanel.getChildByName('code_row');
+        if (codeRow) {
+            var codeBg = codeRow.getChildByName('code_bg');
+            if (codeBg) {
+                var graphics = codeBg.getComponent(cc.Graphics);
+                if (graphics) {
+                    graphics.clear();
+                    graphics.strokeColor = new cc.Color(218, 165, 32, 255);
+                    graphics.lineWidth = 2;
+                    this._drawRoundRect(graphics, -120, -28, 240, 56, 18);
+                    graphics.stroke();
+                }
+            }
+        }
+
+        // 绘制分割线
+        var divider = contentPanel.getChildByName('divider');
+        if (divider) {
+            var graphics = divider.getComponent(cc.Graphics);
+            if (graphics) {
+                graphics.clear();
+                graphics.strokeColor = new cc.Color(200, 180, 140, 180);
+                graphics.lineWidth = 1;
+                graphics.moveTo(-190, 0);
+                graphics.lineTo(190, 0);
+                graphics.stroke();
+            }
+        }
+    },
+
+    // 绘制圆角矩形
+    _drawRoundRect: function(graphics, x, y, w, h, r) {
+        graphics.moveTo(x + r, y);
+        graphics.lineTo(x + w - r, y);
+        graphics.arcTo(x + w, y, x + w, y + r, r);
+        graphics.lineTo(x + w, y + h - r);
+        graphics.arcTo(x + w, y + h, x + w - r, y + h, r);
+        graphics.lineTo(x + r, y + h);
+        graphics.arcTo(x, y + h, x, y + h - r, r);
+        graphics.lineTo(x, y + r);
+        graphics.arcTo(x, y, x + r, y, r);
+    },
+
+    // 初始化微信登录按钮
+    _initWechatButton: function() {
+        var contentPanel = this.node.getChildByName('content_panel');
+        if (!contentPanel) return;
+
+        var wxContainer = contentPanel.getChildByName('wx_login_container');
+        if (wxContainer) {
+            var wxBtn = wxContainer.getChildByName('wx_login_btn');
+            if (wxBtn) {
+                // 添加按钮点击效果
+                wxBtn.on(cc.Node.EventType.TOUCH_START, function() {
+                    wxBtn.scale = 0.95;
+                }, this);
+                
+                wxBtn.on(cc.Node.EventType.TOUCH_END, function() {
+                    wxBtn.scale = 1;
+                    this._onWechatLoginClick();
+                }, this);
+                
+                wxBtn.on(cc.Node.EventType.TOUCH_CANCEL, function() {
+                    wxBtn.scale = 1;
+                }, this);
+
+                // 添加"微信登录"文字标签
+                this._createWechatLabel(wxContainer);
+            }
+        }
+    },
+
+    // 创建微信登录文字标签
+    _createWechatLabel: function(container) {
+        // 检查是否已存在标签
+        var existLabel = container.getChildByName('wx_login_label');
+        if (existLabel) return;
+
+        var labelNode = new cc.Node('wx_login_label');
+        labelNode.parent = container;
+        labelNode.y = -35;
+
+        var label = labelNode.addComponent(cc.Label);
+        label.string = '微信登录';
+        label.fontSize = 18;
+        label.lineHeight = 22;
+        label.fontFamily = 'Arial';
+        label.fontColor = new cc.Color(120, 100, 80, 255);
+        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
     },
 
     _initButtons: function() {
@@ -88,6 +227,19 @@ cc.Class({
             this.login_btn.node.on(cc.Node.EventType.TOUCH_END, function() {
                 self._onLoginClick();
             }, this);
+        }
+    },
+
+    // 微信登录点击
+    _onWechatLoginClick: function() {
+        console.log('【微信登录】点击微信登录按钮');
+        
+        // 检查是否有全局的微信登录方法
+        if (window.myglobal && window.myglobal.wechatLogin) {
+            window.myglobal.wechatLogin();
+        } else {
+            // 降级：提示用户
+            this._showMessage('微信登录功能暂未开放', true);
         }
     },
 
@@ -271,6 +423,7 @@ cc.Class({
                 this.message_label.node.color = new cc.Color(100, 200, 100);
             }
         } else {
+            console.log(isError ? '[错误]' : '[信息]', message);
         }
     },
 
