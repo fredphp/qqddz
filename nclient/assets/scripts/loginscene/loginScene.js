@@ -1309,11 +1309,12 @@ cc.Class({
 
         // 输入框尺寸
         var inputWidth = 220 * scaleRatio;   // 输入框宽度
-        var inputHeight = 60 * scaleRatio;   // 输入框高度
+        var inputHeight = 45 * scaleRatio;   // 输入框高度（减小）
         var iconSize = 25 * scaleRatio;      // 图标大小
         var formY1 = 130 * scaleRatio;        // 第一个输入框Y坐标（向下移动）
         var formY2 = 50 * scaleRatio;       // 第二个输入框Y坐标
         var getCodeBtnWidth = 90 * scaleRatio;  // 获取验证码按钮宽度
+        var btnHeight = 45 * scaleRatio;     // 统一按钮高度
 
         console.log("布局参数: scaleRatio=" + scaleRatio.toFixed(2));
 
@@ -1380,7 +1381,7 @@ cc.Class({
         // 获取验证码按钮
         var getCodeBtn = new cc.Node("BtnGetCode");
         getCodeBtn.parent = panel;
-        getCodeBtn.setContentSize(cc.size(getCodeBtnWidth, inputHeight));
+        getCodeBtn.setContentSize(cc.size(getCodeBtnWidth, btnHeight));
         getCodeBtn.setPosition(codeRowWidth/2 - getCodeBtnWidth/2, formY2);
 
         var getCodeBtnComp = getCodeBtn.addComponent(cc.Button);
@@ -1408,7 +1409,7 @@ cc.Class({
             var btnSprite = getCodeBtn.addComponent(cc.Sprite);
             btnSprite.spriteFrame = spriteFrame;
             btnSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            getCodeBtn.setContentSize(cc.size(getCodeBtnWidth, inputHeight - 5));
+            getCodeBtn.setContentSize(cc.size(getCodeBtnWidth, btnHeight));
         });
 
         // 倒计时状态
@@ -1448,7 +1449,7 @@ cc.Class({
         // ==================== 手机登录按钮 ====================
         var loginBtnY = formY2 - 70 * scaleRatio;
         var loginBtnWidth = 200 * scaleRatio;
-        var loginBtnHeight = 50 * scaleRatio;
+        var loginBtnHeight = btnHeight;  // 使用统一按钮高度
 
         var loginBtn = new cc.Node("BtnLogin");
         loginBtn.parent = panel;
