@@ -520,8 +520,8 @@
     "relativePath": "resources\\font"
   },
   "7d14a937-a2ba-4bfa-bae3-226e85993847": {
-    "asset": 1778476640590,
-    "meta": 1778477901217,
+    "asset": 1778482947005,
+    "meta": 1778485358052,
     "relativePath": "resources\\images"
   },
   "33244764-193c-419a-aa43-a687a90a069d": {
@@ -535,8 +535,8 @@
     "relativePath": "resources\\main_scene.plist"
   },
   "106454fe-7c53-4304-9a62-3f44cb220c84": {
-    "asset": 1778477860840,
-    "meta": 1778477901251,
+    "asset": 1778480324720,
+    "meta": 1778485358059,
     "relativePath": "resources\\prefabs"
   },
   "51ce1f91-376b-4a92-942b-4291568c3f61": {
@@ -620,8 +620,8 @@
     "relativePath": "resources\\creatroom_bg.png"
   },
   "c1b2c3d4-e5f6-7890-abcd-ef1234567910": {
-    "asset": 1778477160775,
-    "meta": 1778477901300,
+    "asset": 1778485127986,
+    "meta": 1778485358065,
     "relativePath": "scripts\\loginscene"
   },
   "347f62d6-8f34-42dc-981d-a0459890e888": {
@@ -635,8 +635,8 @@
     "relativePath": "scripts\\mygolbal.js"
   },
   "f3b4c5d6-e7f8-9012-abcd-ef1234567942": {
-    "asset": 1778477860853,
-    "meta": 1778477901306,
+    "asset": 1778480324735,
+    "meta": 1778485358066,
     "relativePath": "scripts\\prefabs"
   },
   "f1b2c3d4-e5f6-7890-abcd-ef1234567940": {
@@ -1455,8 +1455,8 @@
     "relativePath": "resources\\UI\\join_4.png"
   },
   "582ae2ab-22f0-4f3a-a7a2-0ba4fc8cfcb0": {
-    "asset": 1778136569897,
-    "meta": 1778477903889,
+    "asset": 1778485357886,
+    "meta": 1778485358067,
     "relativePath": "resources\\UI\\login"
   },
   "fdf6537d-f955-49d5-a2cf-796bd3096185": {
@@ -1884,14 +1884,9 @@
     "meta": 1778480326742,
     "relativePath": "resources\\prefabs\\phone_login.prefab"
   },
-  "b05a6f20-48ea-415a-bf1d-76f4f4dc9a63": {
-    "asset": 1778481278368,
-    "meta": 1778481281543,
-    "relativePath": "scripts\\loginscene\\loginScene.js"
-  },
   "1f816ad8-4a7d-4be4-a92f-9475f459bd82": {
-    "asset": 1778481558763,
-    "meta": 1778481816217,
+    "asset": 1778482179726,
+    "meta": 1778485358093,
     "relativePath": "resources\\UI\\login\\login_bg.png"
   },
   "42e4870a-fb85-43c0-be83-f99bf2775261": {
@@ -1903,5 +1898,15 @@
     "asset": 1778481558763,
     "meta": 1778482947042,
     "relativePath": "resources\\images\\login_bg_01.png"
+  },
+  "be9ab6a5-6f81-446c-b9dc-8f6c3971d444": {
+    "asset": 1778482179738,
+    "meta": 1778485358124,
+    "relativePath": "resources\\UI\\login\\login_bg_original.png"
+  },
+  "b05a6f20-48ea-415a-bf1d-76f4f4dc9a63": {
+    "asset": 1778487714675,
+    "meta": 1778487720559,
+    "relativePath": "scripts\\loginscene\\loginScene.js"
   }
 }

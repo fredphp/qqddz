@@ -58,6 +58,16 @@ var _styleSingleInput = function(input, fontColor, bgColor) {
     input.style.setProperty('background-color', bgColor, 'important');
     input.style.backgroundColor = bgColor;
 
+     // ✅ 添加以下样式让文字垂直居中
+    input.style.setProperty('line-height', 'normal', 'important');
+    input.style.lineHeight = 'normal';
+    input.style.setProperty('padding', '0 10px', 'important');
+    input.style.padding = '0 10px';
+    input.style.setProperty('box-sizing', 'border-box', 'important');
+    input.style.boxSizing = 'border-box';
+    input.style.setProperty('vertical-align', 'middle', 'important');
+    input.style.verticalAlign = 'middle';
+
     // 确保可见性
     input.style.setProperty('opacity', '1', 'important');
     input.style.opacity = '1';
@@ -65,8 +75,8 @@ var _styleSingleInput = function(input, fontColor, bgColor) {
     input.style.visibility = 'visible';
 
     // 设置字体大小
-    input.style.setProperty('font-size', '16px', 'important');
-    input.style.fontSize = '16px';
+    input.style.setProperty('font-size', '18px', 'important');
+    input.style.fontSize = '18px';
 
     // 设置字体
     input.style.setProperty('font-family', 'Arial, sans-serif', 'important');
@@ -82,6 +92,21 @@ var _styleSingleInput = function(input, fontColor, bgColor) {
     // 确保没有caret-color问题
     input.style.setProperty('caret-color', fontColor, 'important');
     input.style.caretColor = fontColor;
+
+
+    // ✅ 强制重置高度相关样式
+    input.style.setProperty('height', 'auto', 'important');
+    input.style.height = 'auto';
+    input.style.setProperty('min-height', '30px', 'important');
+    input.style.minHeight = '30px';
+    input.style.setProperty('line-height', '30px', 'important');
+    input.style.lineHeight = '30px';
+    input.style.setProperty('padding', '0 8px', 'important');
+    input.style.padding = '0 8px';
+    
+    // ✅ 关键：移除可能导致问题的属性
+    input.style.removeProperty('top');
+    input.style.removeProperty('margin-top');
 
 };
 
@@ -108,6 +133,16 @@ var _injectGlobalStyles = function(fontColor, bgColor) {
             input:focus, textarea:focus {
                 color: ${fontColor} !important;
                 outline: none !important;
+            }
+            
+            /* ✅ 新增：强制垂直居中 */
+            input[type="text"], input[type="number"], input[type="tel"] {
+                line-height: normal !important;
+                height: auto !important;
+                padding: 0 8px !important;
+                box-sizing: border-box !important;
+                display: inline-block !important;
+                vertical-align: middle !important;
             }
         `;
 
@@ -892,23 +927,23 @@ cc.Class({
 
         // 输入框尺寸
         var inputWidth = 220 * scaleRatio;   // 输入框宽度
-        var inputHeight = 45 * scaleRatio;   // 输入框高度
+        var inputHeight = 60 * scaleRatio;   // 输入框高度
         var iconSize = 25 * scaleRatio;      // 图标大小
-        var formY1 = 70 * scaleRatio;        // 第一个输入框Y坐标
-        var formY2 = -30 * scaleRatio;       // 第二个输入框Y坐标
+        var formY1 = 150 * scaleRatio;        // 第一个输入框Y坐标
+        var formY2 = 60 * scaleRatio;       // 第二个输入框Y坐标
         var getCodeBtnWidth = 90 * scaleRatio;  // 获取验证码按钮宽度
 
         console.log("布局参数: scaleRatio=" + scaleRatio.toFixed(2));
 
         // ==================== 手机号输入行 ====================
         // 布局：[图标] [输入框] 整体居中
-        var phoneRowWidth = iconSize + 5 + inputWidth;  // 总宽度
+        var phoneRowWidth = iconSize + 15 + inputWidth;  // 总宽度
         var phoneRowX = 0;  // 整体居中
 
         // 手机图标 - 放在输入框左边
         var phoneIconNode = new cc.Node("PhoneIcon");
         phoneIconNode.parent = panel;
-        phoneIconNode.setPosition(-phoneRowWidth/2 + iconSize/2, formY1);
+        phoneIconNode.setPosition(-phoneRowWidth/2 + iconSize/2 + 10, formY1);
         phoneIconNode.setContentSize(cc.size(iconSize, iconSize));
 
         cc.resources.load("UI/login/icon_phone", cc.SpriteFrame, function(err, spriteFrame) {
@@ -923,7 +958,7 @@ cc.Class({
         var phoneInputNode = new cc.Node("PhoneInput");
         phoneInputNode.parent = panel;
         phoneInputNode.setContentSize(cc.size(inputWidth, inputHeight));
-        phoneInputNode.setPosition(-phoneRowWidth/2 + iconSize + 5 + inputWidth/2, formY1);
+        phoneInputNode.setPosition(-phoneRowWidth/2 + iconSize + 15 + inputWidth/2, formY1);
 
         var phoneEditBox = phoneInputNode.addComponent(cc.EditBox);
         phoneEditBox.placeholder = "请输入手机号";
@@ -944,7 +979,7 @@ cc.Class({
         // 验证码图标
         var codeIconNode = new cc.Node("CodeIcon");
         codeIconNode.parent = panel;
-        codeIconNode.setPosition(-codeRowWidth/2 + iconSize/2, formY2);
+        codeIconNode.setPosition(-codeRowWidth/2 + iconSize/2 + 10, formY2);
         codeIconNode.setContentSize(cc.size(iconSize, iconSize));
 
         cc.resources.load("UI/login/icon_shield", cc.SpriteFrame, function(err, spriteFrame) {
