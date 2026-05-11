@@ -59,20 +59,21 @@ export default ({ mode }) => {
       open: true,
       port: Number(env.VITE_CLI_PORT),
       proxy: {
-        // Admin 后端专用代理（直接查询数据库，不走游戏服务端）
-        // 所有 /admin-api 开头的请求都会被代理到 Admin 后端 (127.0.0.1:8888)
-        '/admin-api': {
+        // Admin 后端代理配置
+        // 所有 /api 开头的请求都会被代理到 Admin 后端 (127.0.0.1:8888)
+        // 注意：rewrite 会去掉 /api 前缀，因为后端 router-prefix 为空
+        '/api': {
           target: 'http://127.0.0.1:8888',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/admin-api/, ''),
+          rewrite: (path) => path.replace(/^\/api/, ''),
           secure: false,
           ws: true,
           configure: (proxy, options) => {
             proxy.on('proxyReq', (proxyReq, req, res) => {
-              console.log('[Admin Proxy]', req.method, req.url, '->', options.target + proxyReq.path)
+              console.log('[API Proxy]', req.method, req.url, '->', options.target + proxyReq.path)
             })
             proxy.on('error', (err, req, res) => {
-              console.log('[Admin Proxy Error]', err.message)
+              console.log('[API Proxy Error]', err.message)
             })
           }
         },
