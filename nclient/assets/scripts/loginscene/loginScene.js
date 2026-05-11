@@ -210,43 +210,43 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         var scaleX = canvasRect.width / winSize.width;
         var scaleY = canvasRect.height / winSize.height;
         
-        // 计算 panel 在屏幕上的位置
-        // panel 的 position 是 (0, 0)，锚点默认是 (0.5, 0.5)
-        // 所以 panel 的中心在屏幕中心
+        // 使用世界坐标计算屏幕位置
+        // Cocos 世界坐标系：原点在屏幕中心，Y轴向上
+        // HTML 屏幕坐标系：原点在左上角，Y轴向下
         
-        // 输入框相对于 panel 的位置
-        var phonePos = phoneInputNode.getPosition();
-        var codePos = codeInputNode.getPosition();
+        // 辅助函数：将世界坐标转换为屏幕坐标
+        var worldToScreen = function(worldPos, nodeWidth, nodeHeight) {
+            // 世界坐标 (worldX, worldY) 表示相对于屏幕中心的偏移
+            // 转换为屏幕坐标：
+            // screenX = canvas中心X + worldX * scaleX
+            // screenY = canvas中心Y - worldY * scaleY (Y轴反向)
+            
+            var canvasCenterX = canvasRect.width / 2;
+            var canvasCenterY = canvasRect.height / 2;
+            
+            var screenCenterX = canvasCenterX + worldPos.x * scaleX;
+            var screenCenterY = canvasCenterY - worldPos.y * scaleY;
+            
+            // 返回左上角坐标（用于 CSS left/top）
+            return {
+                left: screenCenterX - (nodeWidth * scaleX) / 2,
+                top: screenCenterY - (nodeHeight * scaleY) / 2
+            };
+        };
         
-        console.log('手机输入框本地位置:', phonePos.x, phonePos.y);
-        console.log('验证码输入框本地位置:', codePos.x, codePos.y);
+        // 获取输入框的世界坐标
+        var phoneWorldPos = phoneInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
+        var codeWorldPos = codeInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
         
-        // 计算输入框在屏幕上的位置
-        // panel 中心对应屏幕中心，输入框位置相对于 panel 中心
-        // 屏幕中心 = canvasRect.width/2, canvasRect.height/2
-        // 输入框位置 = 屏幕中心 + (本地位置 * 缩放)
-        // 注意 Y 轴方向：Cocos Y 向上，HTML Y 向下
+        console.log('手机输入框世界坐标:', phoneWorldPos.x, phoneWorldPos.y);
+        console.log('验证码输入框世界坐标:', codeWorldPos.x, codeWorldPos.y);
         
-        var screenCenterX = canvasRect.width / 2;
-        var screenCenterY = canvasRect.height / 2;
+        // 计算屏幕位置
+        var phoneScreen = worldToScreen(phoneWorldPos, inputWidth, inputHeight);
+        var codeScreen = worldToScreen(codeWorldPos, codeInputW, inputHeight);
         
-        // 手机输入框屏幕位置
-        var phoneScreenX = screenCenterX + phonePos.x * scaleX;
-        var phoneScreenY = screenCenterY - phonePos.y * scaleY;  // Y 轴反向
-        
-        // 验证码输入框屏幕位置
-        var codeScreenX = screenCenterX + codePos.x * scaleX;
-        var codeScreenY = screenCenterY - codePos.y * scaleY;
-        
-        // 计算输入框左上角位置（因为要设置 left 和 top）
-        var phoneLeft = phoneScreenX - (inputWidth * scaleX) / 2;
-        var phoneTop = phoneScreenY - (inputHeight * scaleY) / 2;
-        
-        var codeLeft = codeScreenX - (codeInputW * scaleX) / 2;
-        var codeTop = codeScreenY - (inputHeight * scaleY) / 2;
-        
-        console.log('手机输入框屏幕位置: left=' + phoneLeft + ', top=' + phoneTop);
-        console.log('验证码输入框屏幕位置: left=' + codeLeft + ', top=' + codeTop);
+        console.log('手机输入框屏幕位置: left=' + phoneScreen.left + ', top=' + phoneScreen.top);
+        console.log('验证码输入框屏幕位置: left=' + codeScreen.left + ', top=' + codeScreen.top);
         
         // 创建容器（相对于 Canvas 定位）
         var container = document.getElementById('native-input-container');
@@ -275,8 +275,8 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         }
         
         phoneInput.style.position = 'absolute';
-        phoneInput.style.left = phoneLeft + 'px';
-        phoneInput.style.top = phoneTop + 'px';
+        phoneInput.style.left = phoneScreen.left + 'px';
+        phoneInput.style.top = phoneScreen.top + 'px';
         phoneInput.style.width = (inputWidth * scaleX) + 'px';
         phoneInput.style.height = (inputHeight * scaleY) + 'px';
         phoneInput.style.background = 'rgba(255,255,255,0.8)';
@@ -301,8 +301,8 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         }
         
         codeInput.style.position = 'absolute';
-        codeInput.style.left = codeLeft + 'px';
-        codeInput.style.top = codeTop + 'px';
+        codeInput.style.left = codeScreen.left + 'px';
+        codeInput.style.top = codeScreen.top + 'px';
         codeInput.style.width = (codeInputW * scaleX) + 'px';
         codeInput.style.height = (inputHeight * scaleY) + 'px';
         codeInput.style.background = 'rgba(255,255,255,0.8)';
