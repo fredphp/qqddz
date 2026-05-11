@@ -5,7 +5,7 @@
   "buildPath": "build",
   "debugBuild": false,
   "inlineSpriteFrames": true,
-  "md5Cache": false,
+  "md5Cache": true,
   "useBuiltinServer": true,
   "webOrientation": "auto",
   "useCustomDefaultFont": false,
@@ -50,7 +50,8 @@
     "apiLevel": "android-28",
     "appBundle": false,
     "googlePlayInstant": false,
-    "skipPrebuildCrashReport": true
+    "skipPrebuildCrashReport": true,
+    "REMOTE_SERVER_ROOT": ""
   },
   "ios": {
     "packageName": "com.game.nclient",
@@ -72,12 +73,17 @@
       1,
       2
     ],
-    "skipPrebuildCrashReport": true
+    "skipPrebuildCrashReport": true,
+    "REMOTE_SERVER_ROOT": "",
+    "ios_enable_jit": true
   },
   "mac": {
     "packageName": "com.game.nclient",
     "buildVersion": "1.0.0",
-    "skipPrebuildCrashReport": true
+    "skipPrebuildCrashReport": true,
+    "REMOTE_SERVER_ROOT": "",
+    "width": 1280,
+    "height": 720
   },
   "windows": {
     "packageName": "com.game.nclient",
@@ -85,7 +91,10 @@
     "skipPrebuildCrashReport": true
   },
   "win32": {
-    "skipPrebuildCrashReport": true
+    "skipPrebuildCrashReport": true,
+    "REMOTE_SERVER_ROOT": "",
+    "width": 1280,
+    "height": 720
   },
   "webMobile": {
     "embedWebDebugger": false
@@ -96,5 +105,40 @@
   },
   "anySDK": {},
   "subpackages": [],
-  "customCompilerOptions": {}
+  "customCompilerOptions": {},
+  "title": "nclient",
+  "packageName": "org.cocos2d.demo",
+  "startScene": "347f62d6-8f34-42dc-981d-a0459890e888",
+  "excludeScenes": [],
+  "orientation": {
+    "landscapeRight": true,
+    "landscapeLeft": true,
+    "portrait": false,
+    "upsideDown": false
+  },
+  "inlineSpriteFrames_native": true,
+  "mainCompressionType": "default",
+  "mainIsRemote": false,
+  "optimizeHotUpdate": false,
+  "nativeMd5Cache": true,
+  "encryptJs": true,
+  "xxteaKey": "4421aa99-d657-48",
+  "zipCompressJs": true,
+  "fb-instant-games": {},
+  "android-instant": {
+    "packageName": "org.cocos2d.demo",
+    "REMOTE_SERVER_ROOT": "",
+    "pathPattern": "",
+    "scheme": "https",
+    "host": "",
+    "skipRecord": false,
+    "recordPath": ""
+  },
+  "harmonyos-next": {
+    "packageName": "org.cocos2d.demo",
+    "REMOTE_SERVER_ROOT": "",
+    "jsEngine": "JSVM"
+  },
+  "appBundle": false,
+  "agreements": {}
 }
