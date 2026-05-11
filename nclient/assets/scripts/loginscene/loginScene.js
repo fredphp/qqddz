@@ -882,31 +882,50 @@ cc.Class({
 
         // ==================== 表单布局参数 ====================
         // 根据背景图login_bg.png(520x680)的精确预留位置设置元素
-        // 背景图预留输入框位置（像素，左上角原点）：
-        //   第一个输入框：(145,240)-(375,320)，中心(260,280)，宽230高80
-        //   第二个输入框：(145,360)-(375,440)，中心(260,400)，宽230高80
-        // 转换为Cocos Creator坐标系（中心为原点，Y向上为正）：
-        //   第一个输入框Y = 340-280 = 60
-        //   第二个输入框Y = 340-400 = -60
-        // 注意：背景图上已经有预留的输入框边框，我们只需要放置透明的EditBox
+        // 使用项目现有的UI资源：
+        //   icon_phone.png - 手机图标
+        //   icon_shield.png - 验证码图标
+        //   get_mobile_code.png - 获取验证码按钮
 
         // 计算缩放比例（小屏幕适配）
         var scaleRatio = panelWidth / 520;
 
-        // 输入框尺寸（与背景图预留框对齐）
-        var inputWidth = 200 * scaleRatio;   // 输入框宽度
-        var inputHeight = 40 * scaleRatio;   // 输入框高度
-        var formY1 = 60 * scaleRatio;        // 第一个输入框Y坐标
-        var formY2 = -60 * scaleRatio;       // 第二个输入框Y坐标
+        // 输入框尺寸
+        var inputWidth = 220 * scaleRatio;   // 输入框宽度
+        var inputHeight = 45 * scaleRatio;   // 输入框高度
+        var iconSize = 25 * scaleRatio;      // 图标大小
+        var formY1 = 70 * scaleRatio;        // 第一个输入框Y坐标
+        var formY2 = -30 * scaleRatio;       // 第二个输入框Y坐标
+        var getCodeBtnWidth = 90 * scaleRatio;  // 获取验证码按钮宽度
 
-        console.log("布局参数: scaleRatio=" + scaleRatio.toFixed(2) + ", inputWidth=" + inputWidth.toFixed(0));
+        console.log("布局参数: scaleRatio=" + scaleRatio.toFixed(2));
 
-        // ==================== 手机号输入框 ====================
-        // 背景图已有预留框，只放置透明的EditBox
+        // ==================== 手机号输入框（带图标）====================
+        var phoneRow = new cc.Node("PhoneRow");
+        phoneRow.parent = panel;
+        phoneRow.setContentSize(cc.size(inputWidth + iconSize + 10, inputHeight));
+        phoneRow.setPosition(0, formY1);
+
+        // 手机图标
+        var phoneIconNode = new cc.Node("PhoneIcon");
+        phoneIconNode.parent = phoneRow;
+        phoneIconNode.setPosition(-(inputWidth + iconSize) / 2 + iconSize / 2, 0);
+        phoneIconNode.setContentSize(cc.size(iconSize, iconSize));
+
+        cc.resources.load("UI/login/icon_phone", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err) {
+                var iconSprite = phoneIconNode.addComponent(cc.Sprite);
+                iconSprite.spriteFrame = spriteFrame;
+                iconSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+                phoneIconNode.setContentSize(cc.size(iconSize, iconSize));
+            }
+        });
+
+        // 手机号输入框
         var phoneInputNode = new cc.Node("PhoneInput");
-        phoneInputNode.parent = panel;
+        phoneInputNode.parent = phoneRow;
         phoneInputNode.setContentSize(cc.size(inputWidth, inputHeight));
-        phoneInputNode.setPosition(0, formY1);
+        phoneInputNode.setPosition(iconSize / 2 + 5, 0);
 
         var phoneEditBox = phoneInputNode.addComponent(cc.EditBox);
         phoneEditBox.placeholder = "请输入手机号";
@@ -917,17 +936,37 @@ cc.Class({
         phoneEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         phoneEditBox.maxLength = 11;
-        phoneEditBox.backgroundColor = new cc.Color(255, 255, 255, 0);  // 透明背景
+        phoneEditBox.backgroundColor = new cc.Color(255, 255, 255, 200);
 
-        // ==================== 验证码输入框 ====================
-        // 背景图已有预留框，只放置透明的EditBox
+        // ==================== 验证码输入框（带图标和按钮）====================
+        var codeRow = new cc.Node("CodeRow");
+        codeRow.parent = panel;
+        codeRow.setContentSize(cc.size(inputWidth + iconSize + 10 + getCodeBtnWidth + 10, inputHeight));
+        codeRow.setPosition(0, formY2);
+
+        // 验证码图标
+        var codeIconNode = new cc.Node("CodeIcon");
+        codeIconNode.parent = codeRow;
+        codeIconNode.setPosition(-(inputWidth + iconSize + getCodeBtnWidth) / 2 + iconSize / 2, 0);
+        codeIconNode.setContentSize(cc.size(iconSize, iconSize));
+
+        cc.resources.load("UI/login/icon_shield", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err) {
+                var iconSprite = codeIconNode.addComponent(cc.Sprite);
+                iconSprite.spriteFrame = spriteFrame;
+                iconSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+                codeIconNode.setContentSize(cc.size(iconSize, iconSize));
+            }
+        });
+
+        // 验证码输入框
         var codeInputNode = new cc.Node("CodeInput");
-        codeInputNode.parent = panel;
-        codeInputNode.setContentSize(cc.size(inputWidth, inputHeight));
-        codeInputNode.setPosition(0, formY2);
+        codeInputNode.parent = codeRow;
+        codeInputNode.setContentSize(cc.size(inputWidth - getCodeBtnWidth - 10, inputHeight));
+        codeInputNode.setPosition(iconSize / 2 + 5 - getCodeBtnWidth / 2 - 5, 0);
 
         var codeEditBox = codeInputNode.addComponent(cc.EditBox);
-        codeEditBox.placeholder = "请输入验证码";
+        codeEditBox.placeholder = "验证码";
         codeEditBox.fontSize = 16 * scaleRatio;
         codeEditBox.placeholderFontSize = 14 * scaleRatio;
         codeEditBox.fontColor = new cc.Color(50, 50, 50, 255);
@@ -935,63 +974,130 @@ cc.Class({
         codeEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         codeEditBox.maxLength = 6;
-        codeEditBox.backgroundColor = new cc.Color(255, 255, 255, 0);  // 透明背景
+        codeEditBox.backgroundColor = new cc.Color(255, 255, 255, 200);
+
+        // 获取验证码按钮（使用图片）
+        var getCodeBtn = new cc.Node("BtnGetCode");
+        getCodeBtn.parent = codeRow;
+        getCodeBtn.setContentSize(cc.size(getCodeBtnWidth, inputHeight));
+        getCodeBtn.setPosition((inputWidth + iconSize) / 2 - getCodeBtnWidth / 2, 0);
+
+        var getCodeBtnComp = getCodeBtn.addComponent(cc.Button);
+        getCodeBtnComp.transition = cc.Button.Transition.SCALE;
+        getCodeBtnComp.zoomScale = 0.95;
+
+        cc.resources.load("UI/login/get_mobile_code", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.warn("加载获取验证码按钮图片失败:", err);
+                // 降级：使用纯色按钮
+                var btnGfx = getCodeBtn.addComponent(cc.Graphics);
+                btnGfx.fillColor = new cc.Color(255, 165, 0);
+                btnGfx.roundRect(-getCodeBtnWidth/2, -inputHeight/2, getCodeBtnWidth, inputHeight, 5 * scaleRatio);
+                btnGfx.fill();
+
+                var btnLabel = new cc.Node("Label");
+                btnLabel.parent = getCodeBtn;
+                var labelComp = btnLabel.addComponent(cc.Label);
+                labelComp.string = "获取验证码";
+                labelComp.fontSize = 12 * scaleRatio;
+                labelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+                btnLabel.color = new cc.Color(255, 255, 255);
+                return;
+            }
+            var btnSprite = getCodeBtn.addComponent(cc.Sprite);
+            btnSprite.spriteFrame = spriteFrame;
+            btnSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+            getCodeBtn.setContentSize(cc.size(getCodeBtnWidth, inputHeight - 5));
+        });
+
+        // 倒计时状态
+        var countdown = 0;
+        var countdownLabel = null;
+
+        // 开始倒计时
+        var startCountdown = function() {
+            countdown = 60;
+            getCodeBtnComp.interactable = false;
+            getCodeBtn.opacity = 150;
+
+            var tick = function() {
+                countdown--;
+                if (countdown <= 0) {
+                    getCodeBtnComp.interactable = true;
+                    getCodeBtn.opacity = 255;
+                    if (countdownLabel) {
+                        countdownLabel.string = "";
+                    }
+                } else {
+                    if (!countdownLabel) {
+                        countdownLabel = new cc.Node("Countdown");
+                        countdownLabel.parent = getCodeBtn;
+                        countdownLabel.color = new cc.Color(255, 255, 255);
+                        var labelComp = countdownLabel.addComponent(cc.Label);
+                        labelComp.fontSize = 14 * scaleRatio;
+                        labelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+                    }
+                    countdownLabel.getComponent(cc.Label).string = countdown + "s";
+                    self.scheduleOnce(tick, 1);
+                }
+            };
+            self.scheduleOnce(tick, 1);
+        };
 
         // ==================== 手机登录按钮 ====================
-        // 放在验证码输入框下方，与背景图风格协调
-        var loginBtnY = formY2 - 80 * scaleRatio;
-        var loginBtnWidth = 180 * scaleRatio;
-        var loginBtnHeight = 45 * scaleRatio;
+        var loginBtnY = formY2 - 70 * scaleRatio;
+        var loginBtnWidth = 200 * scaleRatio;
+        var loginBtnHeight = 50 * scaleRatio;
 
         var loginBtn = new cc.Node("BtnLogin");
         loginBtn.parent = panel;
         loginBtn.setContentSize(cc.size(loginBtnWidth, loginBtnHeight));
         loginBtn.setPosition(0, loginBtnY);
 
-        // 橙金色按钮
-        var loginGfx = loginBtn.addComponent(cc.Graphics);
-        loginGfx.fillColor = new cc.Color(255, 140, 0);
-        loginGfx.roundRect(-loginBtnWidth/2, -loginBtnHeight/2, loginBtnWidth, loginBtnHeight, 8 * scaleRatio);
-        loginGfx.fill();
-        loginGfx.strokeColor = new cc.Color(200, 100, 0);
-        loginGfx.lineWidth = 2;
-        loginGfx.roundRect(-loginBtnWidth/2, -loginBtnHeight/2, loginBtnWidth, loginBtnHeight, 8 * scaleRatio);
-        loginGfx.stroke();
-
-        var loginLabel = new cc.Node("Label");
-        loginLabel.parent = loginBtn;
-        var loginLabelComp = loginLabel.addComponent(cc.Label);
-        loginLabelComp.string = "手机登录";
-        loginLabelComp.fontSize = 18 * scaleRatio;
-        loginLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        loginLabel.color = new cc.Color(255, 255, 255);
+        // 尝试加载按钮图片
+        cc.resources.load("UI/login/btn_mobile_login", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                // 降级：使用纯色按钮
+                var loginGfx = loginBtn.addComponent(cc.Graphics);
+                loginGfx.fillColor = new cc.Color(255, 140, 0);
+                loginGfx.roundRect(-loginBtnWidth/2, -loginBtnHeight/2, loginBtnWidth, loginBtnHeight, 8 * scaleRatio);
+                loginGfx.fill();
+                return;
+            }
+            var loginSprite = loginBtn.addComponent(cc.Sprite);
+            loginSprite.spriteFrame = spriteFrame;
+            loginSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+            loginBtn.setContentSize(cc.size(loginBtnWidth, loginBtnHeight));
+        });
 
         var loginBtnComp = loginBtn.addComponent(cc.Button);
         loginBtnComp.transition = cc.Button.Transition.SCALE;
         loginBtnComp.zoomScale = 0.95;
 
         // ==================== 微信登录按钮 ====================
-        // 放在登录按钮下方
-        var wxBtnY = loginBtnY - 70 * scaleRatio;
-        var wxBtnSize = 55 * scaleRatio;
+        var wxBtnY = loginBtnY - 65 * scaleRatio;
+        var wxBtnSize = 50 * scaleRatio;
 
         var wxBtn = new cc.Node("BtnWechat");
         wxBtn.parent = panel;
         wxBtn.setContentSize(cc.size(wxBtnSize, wxBtnSize));
         wxBtn.setPosition(0, wxBtnY);
 
-        // 绿色圆形背景
-        var wxBgGfx = wxBtn.addComponent(cc.Graphics);
-        wxBgGfx.fillColor = new cc.Color(7, 193, 96);
-        wxBgGfx.circle(0, 0, wxBtnSize/2);
-        wxBgGfx.fill();
-
-        // 微信图标
-        var wxIcon = new cc.Node("Icon");
-        wxIcon.parent = wxBtn;
-        var wxIconLabel = wxIcon.addComponent(cc.Label);
-        wxIconLabel.string = "💚";
-        wxIconLabel.fontSize = 24 * scaleRatio;
+        // 尝试加载微信图标
+        cc.resources.load("UI/login/icon_wechat", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                // 降级：使用绿色圆形背景
+                var wxBgGfx = wxBtn.addComponent(cc.Graphics);
+                wxBgGfx.fillColor = new cc.Color(7, 193, 96);
+                wxBgGfx.circle(0, 0, wxBtnSize/2);
+                wxBgGfx.fill();
+                return;
+            }
+            var wxSprite = wxBtn.addComponent(cc.Sprite);
+            wxSprite.spriteFrame = spriteFrame;
+            wxSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+            wxBtn.setContentSize(cc.size(wxBtnSize, wxBtnSize));
+        });
 
         var wxBtnComp = wxBtn.addComponent(cc.Button);
         wxBtnComp.transition = cc.Button.Transition.SCALE;
@@ -1000,12 +1106,12 @@ cc.Class({
         // 微信登录文字
         var wxLabel = new cc.Node("LabelWechat");
         wxLabel.parent = panel;
-        wxLabel.setPosition(0, wxBtnY - 40 * scaleRatio);
+        wxLabel.setPosition(0, wxBtnY - 35 * scaleRatio);
         var wxLabelComp = wxLabel.addComponent(cc.Label);
         wxLabelComp.string = "微信登录";
         wxLabelComp.fontSize = 12 * scaleRatio;
         wxLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        wxLabel.color = new cc.Color(120, 100, 80);
+        wxLabel.color = new cc.Color(100, 80, 60);
 
         console.log("按钮位置: loginBtnY=" + loginBtnY.toFixed(0) + ", wxBtnY=" + wxBtnY.toFixed(0));
 
@@ -1040,6 +1146,71 @@ cc.Class({
             messageLabelComp.string = msg;
             messageLabel.color = isError ? new cc.Color(255, 80, 80) : new cc.Color(100, 200, 100);
         };
+
+        // 获取验证码 - onGetCode()
+        getCodeBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            phone = phoneEditBox.string || "";
+            if (!validatePhone(phone)) {
+                showMessage("请输入正确的手机号", true);
+                return;
+            }
+
+            var defines = window.defines;
+            if (!defines || !defines.apiUrl) {
+                showMessage("验证码已发送(测试)", false);
+                startCountdown();
+                return;
+            }
+
+            // 使用加密请求发送验证码
+            var HttpAPI = window.HttpAPI;
+            if (HttpAPI && defines.cryptoKey) {
+                HttpAPI.postEncrypted(
+                    defines.apiUrl + '/api/v1/auth/send-code',
+                    'send_code',
+                    { phone: phone },
+                    defines.cryptoKey,
+                    function(err, resp) {
+                        if (err) {
+                            showMessage(err || "发送失败", true);
+                            return;
+                        }
+                        if (resp && resp.code === 0) {
+                            showMessage("验证码已发送", false);
+                            startCountdown();
+                        } else {
+                            showMessage(resp.message || "发送失败", true);
+                        }
+                    }
+                );
+            } else {
+                // 降级：使用明文请求
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', defines.apiUrl + '/api/v1/auth/send-code', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.timeout = 10000;
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            try {
+                                var resp = JSON.parse(xhr.responseText);
+                                if (resp.code === 0) {
+                                    showMessage("验证码已发送", false);
+                                    startCountdown();
+                                } else {
+                                    showMessage(resp.message || "发送失败", true);
+                                }
+                            } catch(e) {
+                                showMessage("解析响应失败", true);
+                            }
+                        } else {
+                            showMessage("网络请求失败", true);
+                        }
+                    }
+                };
+                xhr.send(JSON.stringify({ phone: phone }));
+            }
+        });
 
         // 手机登录 - onPhoneLogin()
         loginBtn.on(cc.Node.EventType.TOUCH_END, function() {
