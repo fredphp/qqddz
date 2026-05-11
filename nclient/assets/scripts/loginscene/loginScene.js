@@ -217,28 +217,35 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         // ==================== 关键：基于背景图尺寸计算输入框位置 ====================
         // 背景图尺寸：520 x 680
         // 面板在屏幕中心 (0, 0)
-        // 输入框在背景图中的相对位置（基于 login_bg.png 的布局）
+        
+        // 根据背景图 login_bg.png 的精确布局分析：
+        // 图片中心：(260, 340)
+        // 第一个输入框（手机号）：左上角 (170, 230)，宽 180px，高 50px
+        //   中心：(170+90, 230+25) = (260, 255)
+        //   相对于中心：Y = 340 - 255 = 85（上方）
+        // 第二个输入框（验证码）：左上角 (170, 350)，宽 180px，高 50px
+        //   中心：(170+90, 350+25) = (260, 375)
+        //   相对于中心：Y = 340 - 375 = -35（下方）
         
         // 背景图原始尺寸
         var bgWidth = 520;
         var bgHeight = 680;
         
-        // 根据背景图 login_bg.png 的实际布局：
-        // 手机号输入框中心：距图片中心上方约 85px（Y = 85）
-        // 验证码输入框中心：距图片中心上方约 25px（Y = 25）
-        // 输入框宽度约 280px，需要减去左边的图标和右边的"获取验证码"按钮
+        // 输入框坐标（相对于面板中心，Y 轴向上为正）
+        var phoneInputY = 85;    // 手机输入框在中心上方 85px
+        var codeInputY = -35;    // 验证码输入框在中心下方 35px
         
-        // 实际布局：输入框区域是背景图中的白色矩形区域
-        // 需要根据图标和按钮位置计算原生输入框的实际位置
+        // 输入框 X 坐标：居中
+        var phoneInputX = 0;
+        var codeInputX = 0;
         
-        var phoneInputY = 85;   // 手机输入框相对于面板中心的 Y 坐标（背景图中心上方）
-        var codeInputY = 25;    // 验证码输入框相对于面板中心的 Y 坐标
+        // 输入框尺寸（与背景图中的输入框区域匹配）
+        // 背景图中输入框区域：宽 180px，高 50px
+        var actualInputWidth = 180;   // 输入框宽度
+        var actualInputHeight = 50;   // 输入框高度
         
-        // 输入框 X 坐标：需要根据布局调整
-        // 背景图中的输入框区域宽约 280px，但我们创建的输入框节点宽度较小
-        // 输入框应该居中放置在背景图的输入框区域内
-        var phoneInputX = 0;    // 手机输入框居中
-        var codeInputX = -65;   // 验证码输入框偏左（给右边的"获取验证码"按钮留空间）
+        // 验证码输入框宽度（考虑"获取验证码"按钮）
+        var actualCodeInputWidth = 100;  // 验证码输入框宽度（比手机号输入框窄）
         
         // 获取面板位置
         var panelPos = panel.getPosition();
@@ -272,8 +279,8 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
             };
         };
         
-        var phoneScreen = calcScreenPos(phoneFinalX, phoneFinalY, inputWidth, inputHeight);
-        var codeScreen = calcScreenPos(codeFinalX, codeFinalY, codeInputW, inputHeight);
+        var phoneScreen = calcScreenPos(phoneFinalX, phoneFinalY, actualInputWidth, actualInputHeight);
+        var codeScreen = calcScreenPos(codeFinalX, codeFinalY, actualCodeInputWidth, actualInputHeight);
         
         console.log('手机输入框屏幕位置:', phoneScreen);
         console.log('验证码输入框屏幕位置:', codeScreen);
