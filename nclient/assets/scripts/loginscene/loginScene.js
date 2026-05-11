@@ -188,7 +188,7 @@ var _injectGlobalStyles = function(fontColor, bgColor) {
 };
 
 // 创建原生 HTML input 元素（绕过 Cocos EditBox 的问题）
-// 改进版 v2：直接使用面板位置计算，避免 convertToWorldSpaceAR 的坐标问题
+// 改进版 v3：基于背景图尺寸直接计算输入框位置
 var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, inputWidth, inputHeight, codeInputW, panelWidth, panelHeight) {
     if (!cc.sys.isBrowser) return;
     
@@ -203,7 +203,7 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         var canvasRect = canvas.getBoundingClientRect();
         var winSize = cc.winSize;
         
-        console.log('=== 创建原生输入框（v2 - 基于面板位置）===');
+        console.log('=== 创建原生输入框（v3 - 基于背景图尺寸）===');
         console.log('Canvas 位置:', canvasRect.left, canvasRect.top);
         console.log('Canvas 尺寸:', canvasRect.width, 'x', canvasRect.height);
         console.log('游戏分辨率:', winSize.width, 'x', winSize.height);
@@ -214,39 +214,45 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         var scaleY = canvasRect.height / winSize.height;
         console.log('缩放比例:', scaleX.toFixed(3), scaleY.toFixed(3));
         
-        // 获取面板的本地位置（面板在屏幕中心，位置应该是 0,0）
+        // ==================== 关键：基于背景图尺寸计算输入框位置 ====================
+        // 背景图尺寸：520 x 680
+        // 面板在屏幕中心 (0, 0)
+        // 输入框在背景图中的相对位置（基于 login_bg.png 的布局）
+        
+        // 背景图原始尺寸
+        var bgWidth = 520;
+        var bgHeight = 680;
+        
+        // 输入框在背景图中的中心位置（相对于背景图中心）
+        // 这些值需要根据实际的 login_bg.png 图片来调整
+        // 假设输入框在背景图上半部分，大约在顶部下方 180px 和 270px 的位置
+        // 背景图中心 Y = 340，所以输入框相对于中心的 Y 偏移 = 340 - 180 = 160 和 340 - 270 = 70
+        
+        // 根据实际的 login_bg.png 图片布局调整这些值
+        // 输入框通常在弹窗的上半部分
+        var phoneInputY = 150;   // 手机输入框相对于面板中心的 Y 坐标
+        var codeInputY = 60;     // 验证码输入框相对于面板中心的 Y 坐标
+        
+        // 输入框 X 坐标：假设居中
+        var phoneInputX = 0;
+        var codeInputX = -50;  // 验证码输入框稍微偏左，给右边的"获取验证码"按钮留空间
+        
+        // 获取面板位置
         var panelPos = panel.getPosition();
-        console.log('面板本地位置:', panelPos.x.toFixed(1), panelPos.y.toFixed(1));
+        console.log('面板位置:', panelPos.x.toFixed(1), panelPos.y.toFixed(1));
         
-        // 获取输入框相对于面板的本地位置
-        var phoneLocalPos = phoneInputNode.getPosition();
-        var codeLocalPos = codeInputNode.getPosition();
-        console.log('手机输入框本地位置:', phoneLocalPos.x.toFixed(1), phoneLocalPos.y.toFixed(1));
-        console.log('验证码输入框本地位置:', codeLocalPos.x.toFixed(1), codeLocalPos.y.toFixed(1));
+        // 计算输入框相对于屏幕中心的最终位置
+        var phoneFinalX = panelPos.x + phoneInputX;
+        var phoneFinalY = panelPos.y + phoneInputY;
+        var codeFinalX = panelPos.x + codeInputX;
+        var codeFinalY = panelPos.y + codeInputY;
         
-        // 计算输入框相对于屏幕中心的位置
-        // 面板在屏幕中心 (0, 0)，输入框是面板的子节点
-        // 输入框的最终位置 = 面板位置 + 输入框相对于面板的位置
-        var phoneFinalX = panelPos.x + phoneLocalPos.x;
-        var phoneFinalY = panelPos.y + phoneLocalPos.y;
-        var codeFinalX = panelPos.x + codeLocalPos.x;
-        var codeFinalY = panelPos.y + codeLocalPos.y;
-        
-        console.log('手机输入框相对于屏幕中心:', phoneFinalX.toFixed(1), phoneFinalY.toFixed(1));
-        console.log('验证码输入框相对于屏幕中心:', codeFinalX.toFixed(1), codeFinalY.toFixed(1));
-        
-        // 计算输入框在 Canvas 上的屏幕位置
-        // Cocos 坐标：原点在中心，Y 轴向上
-        // Canvas 坐标：原点在左上角，Y 轴向下
-        // Canvas 中心 = (canvasRect.width / 2, canvasRect.height / 2)
-        var canvasCenterX = canvasRect.width / 2 + canvasRect.left;
-        var canvasCenterY = canvasRect.height / 2 + canvasRect.top;
-        
-        console.log('Canvas 中心:', canvasCenterX.toFixed(1), canvasCenterY.toFixed(1));
+        console.log('手机输入框最终坐标:', phoneFinalX.toFixed(1), phoneFinalY.toFixed(1));
+        console.log('验证码输入框最终坐标:', codeFinalX.toFixed(1), codeFinalY.toFixed(1));
         
         // 计算屏幕位置
-        // screenX = canvasCenterX + (finalX * scaleX)
-        // screenY = canvasCenterY - (finalY * scaleY)  // Y 轴反向
+        var canvasCenterX = canvasRect.width / 2 + canvasRect.left;
+        var canvasCenterY = canvasRect.height / 2 + canvasRect.top;
         
         var calcScreenPos = function(finalX, finalY, nodeWidth, nodeHeight) {
             var screenCenterX = canvasCenterX + finalX * scaleX;
@@ -268,6 +274,16 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         
         console.log('手机输入框屏幕位置:', phoneScreen);
         console.log('验证码输入框屏幕位置:', codeScreen);
+        
+        // 边界检查：确保输入框在屏幕可见区域内
+        phoneScreen.left = Math.max(0, Math.min(canvasRect.width - phoneScreen.width, phoneScreen.left));
+        phoneScreen.top = Math.max(0, Math.min(canvasRect.height - phoneScreen.height, phoneScreen.top));
+        codeScreen.left = Math.max(0, Math.min(canvasRect.width - codeScreen.width, codeScreen.left));
+        codeScreen.top = Math.max(0, Math.min(canvasRect.height - codeScreen.height, codeScreen.top));
+        
+        console.log('边界检查后位置:');
+        console.log('  手机输入框:', phoneScreen.left.toFixed(1), phoneScreen.top.toFixed(1));
+        console.log('  验证码输入框:', codeScreen.left.toFixed(1), codeScreen.top.toFixed(1));
         
         // 移除旧的容器和输入框
         var oldContainer = document.getElementById('native-input-container');
