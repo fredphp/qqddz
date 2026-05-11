@@ -1311,8 +1311,8 @@ cc.Class({
         var inputWidth = 220 * scaleRatio;   // 输入框宽度
         var inputHeight = 60 * scaleRatio;   // 输入框高度
         var iconSize = 25 * scaleRatio;      // 图标大小
-        var formY1 = 150 * scaleRatio;        // 第一个输入框Y坐标
-        var formY2 = 60 * scaleRatio;       // 第二个输入框Y坐标
+        var formY1 = 130 * scaleRatio;        // 第一个输入框Y坐标（向下移动）
+        var formY2 = 50 * scaleRatio;       // 第二个输入框Y坐标
         var getCodeBtnWidth = 90 * scaleRatio;  // 获取验证码按钮宽度
 
         console.log("布局参数: scaleRatio=" + scaleRatio.toFixed(2));
