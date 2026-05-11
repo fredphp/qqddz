@@ -993,43 +993,26 @@ cc.Class({
             }
         });
 
-        // ==================== 手机号输入框背景节点 ====================
-        var phoneBgNode = new cc.Node("PhoneInputBg");
-        phoneBgNode.parent = panel;
-        phoneBgNode.setContentSize(cc.size(inputWidth, inputHeight));
-        phoneBgNode.setPosition(-phoneRowWidth/2 + iconSize + 15 + inputWidth/2, formY1);
-        phoneBgNode.zIndex = 5;
-        
-        // 绘制输入框背景和边框
-        var phoneBgGfx = phoneBgNode.addComponent(cc.Graphics);
-        phoneBgGfx.fillColor = new cc.Color(255, 252, 240, 230);
-        phoneBgGfx.strokeColor = new cc.Color(218, 165, 32, 255);
-        phoneBgGfx.lineWidth = 2;
-        self._drawInputBg(phoneBgGfx, inputWidth, inputHeight, 14);
-        phoneBgGfx.fill();
-        phoneBgGfx.stroke();
-
-        // 手机号输入框 - 放在图标右边
+        // ==================== 手机号输入框 ====================
+        // login_bg.png 中已包含输入框背景，只需放置透明的 EditBox
         var phoneInputNode = new cc.Node("PhoneInput");
         phoneInputNode.parent = panel;
         phoneInputNode.setContentSize(cc.size(inputWidth, inputHeight));
         phoneInputNode.setPosition(-phoneRowWidth/2 + iconSize + 15 + inputWidth/2, formY1);
-        phoneInputNode.zIndex = 10;
+        phoneInputNode.zIndex = 100;
 
         var phoneEditBox = phoneInputNode.addComponent(cc.EditBox);
         phoneEditBox.placeholder = "请输入手机号";
-        phoneEditBox.fontSize = 20;
-        phoneEditBox.placeholderFontSize = 16;
+        phoneEditBox.fontSize = 18;
+        phoneEditBox.placeholderFontSize = 14;
         phoneEditBox.fontColor = new cc.Color(50, 50, 50, 255);
         phoneEditBox.placeholderFontColor = new cc.Color(150, 150, 150, 255);
         phoneEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         phoneEditBox.maxLength = 11;
-        // 关键：设置透明背景，让 Cocos 绘制的边框可见
-        phoneEditBox.backgroundColor = new cc.Color(255, 252, 240, 0);
-        // 关键：设置 stayOnTop 确保文字始终可见
+        phoneEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);  // 完全透明，使用背景图中的输入框
         phoneEditBox.stayOnTop = true;
-        phoneEditBox.lineHeight = 40;
+        phoneEditBox.lineHeight = inputHeight;
 
         // ==================== 验证码输入行 ====================
         // 布局：[图标] [输入框] [获取验证码按钮] 整体居中
@@ -1050,43 +1033,26 @@ cc.Class({
             }
         });
 
-        // ==================== 验证码输入框背景节点 ====================
-        var codeBgNode = new cc.Node("CodeInputBg");
-        codeBgNode.parent = panel;
-        codeBgNode.setContentSize(cc.size(codeInputW, inputHeight));
-        codeBgNode.setPosition(-codeRowWidth/2 + iconSize + 5 + codeInputW/2, formY2);
-        codeBgNode.zIndex = 5;
-        
-        // 绘制输入框背景和边框
-        var codeBgGfx = codeBgNode.addComponent(cc.Graphics);
-        codeBgGfx.fillColor = new cc.Color(255, 252, 240, 230);
-        codeBgGfx.strokeColor = new cc.Color(218, 165, 32, 255);
-        codeBgGfx.lineWidth = 2;
-        self._drawInputBg(codeBgGfx, codeInputW, inputHeight, 14);
-        codeBgGfx.fill();
-        codeBgGfx.stroke();
-
-        // 验证码输入框
+        // ==================== 验证码输入框 ====================
+        // login_bg.png 中已包含输入框背景，只需放置透明的 EditBox
         var codeInputNode = new cc.Node("CodeInput");
         codeInputNode.parent = panel;
         codeInputNode.setContentSize(cc.size(codeInputW, inputHeight));
         codeInputNode.setPosition(-codeRowWidth/2 + iconSize + 5 + codeInputW/2, formY2);
-        codeInputNode.zIndex = 10;
+        codeInputNode.zIndex = 100;
 
         var codeEditBox = codeInputNode.addComponent(cc.EditBox);
         codeEditBox.placeholder = "验证码";
-        codeEditBox.fontSize = 20;
-        codeEditBox.placeholderFontSize = 16;
+        codeEditBox.fontSize = 18;
+        codeEditBox.placeholderFontSize = 14;
         codeEditBox.fontColor = new cc.Color(50, 50, 50, 255);
         codeEditBox.placeholderFontColor = new cc.Color(150, 150, 150, 255);
         codeEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         codeEditBox.maxLength = 6;
-        // 关键：设置透明背景，让 Cocos 绘制的边框可见
-        codeEditBox.backgroundColor = new cc.Color(255, 252, 240, 0);
-        // 关键：设置 stayOnTop 确保文字始终可见
+        codeEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);  // 完全透明，使用背景图中的输入框
         codeEditBox.stayOnTop = true;
-        codeEditBox.lineHeight = 40;
+        codeEditBox.lineHeight = inputHeight;
 
         // 获取验证码按钮
         var getCodeBtn = new cc.Node("BtnGetCode");
