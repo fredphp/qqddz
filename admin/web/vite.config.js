@@ -59,28 +59,17 @@ export default ({ mode }) => {
       open: true,
       port: Number(env.VITE_CLI_PORT),
       proxy: {
-        // 把key的路径代理到target位置
-        // detail: https://cli.vuejs.org/config/#devserver-proxy
-        [env.VITE_BASE_API]: {
-          // 需要代理的路径   例如 '/api'
-          target: `${env.VITE_BASE_PATH}:${env.VITE_SERVER_PORT}/`, // 代理到 目标路径
-          changeOrigin: true,
-          rewrite: (path) =>
-            path.replace(new RegExp('^' + env.VITE_BASE_API), '')
-        },
         // Admin 后端专用代理（直接查询数据库，不走游戏服务端）
-        [env.VITE_ADMIN_API || '/admin-api']: {
+        // 所有 /admin-api 开头的请求都会被代理到 Admin 后端 (127.0.0.1:8888)
+        '/admin-api': {
           target: `${env.VITE_BASE_PATH}:${env.VITE_SERVER_PORT}/`,
           changeOrigin: true,
-          rewrite: (path) =>
-            path.replace(new RegExp('^' + (env.VITE_ADMIN_API || '/admin-api')), '')
+          rewrite: (path) => path.replace(/^\/admin-api/, '')
         },
         '/plugin': {
-          // 需要代理的路径   例如 '/api'
-          target: `https://plugin.gin-vue-admin.com/api/`, // 代理到 目标路径
+          target: `https://plugin.gin-vue-admin.com/api/`,
           changeOrigin: true,
-          rewrite: (path) =>
-            path.replace(new RegExp('^/plugin'), '')
+          rewrite: (path) => path.replace(/^\/plugin/, '')
         }
       }
     },
