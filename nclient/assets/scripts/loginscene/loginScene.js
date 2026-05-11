@@ -881,10 +881,16 @@ cc.Class({
         }, this);
 
         // ==================== 表单布局参数 ====================
-        // 输入框宽度根据面板宽度动态计算
-        var inputWidth = Math.min(panelWidth - 40, 400);
-        var inputHeight = 50;
-        var formY = panelHeight/2 - 100; // 表单起始Y坐标
+        // 根据背景图预留位置设置元素位置
+        // 背景图尺寸：520x680，预留输入框位置约为图片高度的35%-55%
+        // 转换为Cocos Creator坐标系（中心为原点，Y向上为正）：
+        // 第一个输入框中心Y ≈ 80（向上80像素）
+        // 第二个输入框中心Y ≈ -10（向下10像素）
+        var inputWidth = Math.min(panelWidth - 80, 440);  // 预留宽度约260，留边距
+        var inputHeight = 45;
+        var formY = 80;  // 第一个输入框位置（向上80像素，与背景图预留位置对齐）
+
+        console.log("输入框位置: Y=" + formY + ", 宽度=" + inputWidth);
 
         // ==================== 手机号输入框 ====================
         var phoneBg = new cc.Node("PhoneInput");
@@ -926,11 +932,11 @@ cc.Class({
         phoneEditBox.maxLength = 11;
         phoneEditBox.backgroundColor = new cc.Color(255, 255, 255, 0);
 
-        formY -= inputHeight + 25; // 间距
+        formY -= inputHeight + 15;  // 间距，第二个输入框在Y≈20
 
         // ==================== 验证码行 ====================
-        var codeInputWidth = Math.min(inputWidth * 0.65, 260);
-        var sendBtnWidth = Math.min(inputWidth * 0.30, 110);
+        var codeInputWidth = Math.min(inputWidth * 0.65, 280);
+        var sendBtnWidth = Math.min(inputWidth * 0.30, 120);
 
         // 验证码输入框背景
         var codeBg = new cc.Node("CodeInput");
@@ -999,11 +1005,12 @@ cc.Class({
         sendCodeBtnComp.transition = cc.Button.Transition.SCALE;
         sendCodeBtnComp.zoomScale = 0.95;
 
-        formY -= inputHeight + 40; // 主登录按钮间距
+        formY -= inputHeight + 30;  // 登录按钮间距
 
         // ==================== 手机登录按钮 ====================
-        var loginBtnWidth = Math.min(inputWidth, 320);
-        var loginBtnHeight = 55;
+        // 根据背景图布局，登录按钮应该在 Y ≈ -80 左右
+        var loginBtnWidth = Math.min(inputWidth - 20, 400);
+        var loginBtnHeight = 50;
         
         var loginBtn = new cc.Node("BtnLogin");
         loginBtn.parent = panel;
@@ -1044,7 +1051,7 @@ cc.Class({
         loginBtnComp.transition = cc.Button.Transition.SCALE;
         loginBtnComp.zoomScale = 0.95;
 
-        formY -= loginBtnHeight + 40;
+        formY -= loginBtnHeight + 35;  // 分割线间距
 
         // ==================== 分割线（其他登录方式，浅金色）====================
         var dividerNode = new cc.Node("Divider");
@@ -1071,9 +1078,10 @@ cc.Class({
         orLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         orLabel.color = new cc.Color(218, 165, 32);
 
-        formY -= 45;
+        formY -= 50;  // 微信按钮间距
 
         // ==================== 微信登录区（圆形绿色按钮，74x74）====================
+        // 根据背景图布局，微信登录按钮应该在 Y ≈ -190 左右（底部区域）
         var wxBtn = new cc.Node("BtnWechat");
         wxBtn.parent = panel;
         wxBtn.setContentSize(cc.size(74, 74));
@@ -1103,12 +1111,14 @@ cc.Class({
         // 微信登录文字
         var wxLabel = new cc.Node("LabelWechat");
         wxLabel.parent = panel;
-        wxLabel.setPosition(0, formY - 55);
+        wxLabel.setPosition(0, formY - 50);  // 微信按钮下方50像素
         var wxLabelComp = wxLabel.addComponent(cc.Label);
         wxLabelComp.string = "微信登录";
         wxLabelComp.fontSize = 14;
         wxLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         wxLabel.color = new cc.Color(180, 160, 120); // 灰金色
+
+        console.log("微信登录按钮位置: Y=" + formY);
 
         // ==================== 消息提示（隐藏）====================
         var messageLabel = new cc.Node("MessageLabel");
