@@ -7,9 +7,9 @@ import router from '@/router/index'
 const DEFAULT_REQUEST_TIMEOUT = 1000 * 60 * 10
 
 // Admin 后端专用的 axios 实例，直接请求 Admin 后端（不走游戏服务端）
-// 使用 /api 前缀，通过 Vite 代理转发到 Admin 后端 (127.0.0.1:8888)
+// 直接使用虚拟域名 admin.qqddz.local
 const adminService = axios.create({
-  baseURL: '/api'
+  baseURL: 'http://admin.qqddz.local'
 })
 
 let activeAxios = 0
