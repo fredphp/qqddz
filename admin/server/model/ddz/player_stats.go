@@ -33,7 +33,7 @@ func (DDZPlayerStats) TableName() string {
 // DDZDailyStats 每日统计汇总
 type DDZDailyStats struct {
         global.GVA_MODEL
-        Date            string  `json:"date" gorm:"column:stat_date;uniqueIndex;comment:统计日期 YYYY-MM-DD"`
+        Date            string  `json:"date" gorm:"column:stat_date;uniqueIndex:idx_ddz_daily_stats_stat_date;comment:统计日期 YYYY-MM-DD"`
         TotalPlayers    int64   `json:"totalPlayers" gorm:"column:total_players;default:0;comment:总玩家数"`
         NewPlayers      int64   `json:"newPlayers" gorm:"column:new_players;default:0;comment:新增玩家数"`
         ActivePlayers   int64   `json:"activePlayers" gorm:"column:active_players;default:0;comment:活跃玩家数"`

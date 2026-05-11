@@ -1,8 +1,11 @@
 package initialize
 
 import (
+        "strings"
+
         "github.com/flipped-aurora/gin-vue-admin/server/global"
         "github.com/flipped-aurora/gin-vue-admin/server/model/ddz"
+        "go.uber.org/zap"
         "gorm.io/gorm"
 )
 
@@ -25,16 +28,23 @@ func dropForeignKeys(db *gorm.DB, tableName string) {
 // dropIndex 删除指定索引（如果存在）
 func dropIndex(db *gorm.DB, tableName, indexName string) {
         var count int
-        db.Raw(`
+        err := db.Raw(`
                 SELECT COUNT(*)
                 FROM information_schema.STATISTICS
                 WHERE TABLE_SCHEMA = DATABASE()
                 AND TABLE_NAME = ?
                 AND INDEX_NAME = ?
-        `, tableName, indexName).Scan(&count)
+        `, tableName, indexName).Scan(&count).Error
+
+        if err != nil {
+                global.GVA_LOG.Warn("check index failed", "table", tableName, "index", indexName, "error", err)
+                return
+        }
 
         if count > 0 {
-                db.Exec("ALTER TABLE `" + tableName + "` DROP INDEX `" + indexName + "`")
+                if err := db.Exec("ALTER TABLE `" + tableName + "` DROP INDEX `" + indexName + "`").Error; err != nil {
+                        global.GVA_LOG.Warn("drop index failed", "table", tableName, "index", indexName, "error", err)
+                }
         }
 }
 
@@ -71,9 +81,11 @@ func bizModel() error {
         dropIndex(db, "ddz_user_accounts", "idx_ddz_user_accounts_wx_open_id")
         dropIndex(db, "ddz_user_accounts", "idx_ddz_user_accounts_phone")
         dropIndex(db, "ddz_user_accounts", "idx_ddz_user_accounts_player_id")
-        // 删除 ddz_daily_stats 表的冲突索引（之前可能手动创建过）
+        // 删除 ddz_daily_stats 表的冲突索引（之前可能手动创建过，或 GORM 自动生成）
         dropIndex(db, "ddz_daily_stats", "idx_ddz_daily_stats_date")
         dropIndex(db, "ddz_daily_stats", "idx_ddz_daily_stats_stat_date")
+        dropIndex(db, "ddz_daily_stats", "stat_date") // 可能的唯一约束名
+        dropIndex(db, "ddz_daily_stats", "uni_ddz_daily_stats_stat_date") // 可能的唯一索引名
 
         // 清理空字符串，改为 NULL
         cleanEmptyUniqueFields(db)
@@ -114,6 +126,11 @@ func bizModel() error {
         db.Exec("SET FOREIGN_KEY_CHECKS = 1;")
 
         if err != nil {
+                // 如果只是索引重复错误，只记录警告但不返回错误
+                if strings.Contains(err.Error(), "Duplicate key name") {
+                        global.GVA_LOG.Warn("index already exists, skipping", zap.Error(err))
+                        return nil
+                }
                 return err
         }
         return nil
