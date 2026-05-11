@@ -103,8 +103,23 @@
         "inspector",
         "cocos-services"
       ]
+    },
+    "window-1778510462351": {},
+    " build-worker-worker": {}
+  },
+  "panels": {
+    "project-settings": {
+      "x": 480,
+      "y": 132,
+      "width": 600,
+      "height": 564
+    },
+    "builder": {
+      "x": 508,
+      "y": 32,
+      "width": 516,
+      "height": 739
     }
   },
-  "panels": {},
   "panelLabelWidth": {}
 }
