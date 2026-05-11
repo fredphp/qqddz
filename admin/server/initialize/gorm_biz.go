@@ -120,6 +120,20 @@ func bizModel() error {
                 ddz.DDZArenaCoinLog{},
                 // 广告奖励
                 ddz.DDZAdReward{},
+                // 竞技场相关模型
+                ddz.DDZArenaSession{},
+                ddz.DDZArenaRoundRecord{},
+                ddz.DDZArenaSignupLog{},
+                ddz.DDZArenaTable{},
+                ddz.DDZArenaRegistration{},
+                ddz.DDZArenaPeriod{},
+                ddz.DDZArenaGoldLog{},
+                ddz.DDZTournamentRound{},
+                ddz.DDZTournamentElimination{},
+                ddz.DDZRobot{},
+                ddz.DDZRobotFillLog{},
+                ddz.DDZPendingGameData{},
+                ddz.DDZWriteQueueErrorLog{},
         )
 
         // 重新启用外键约束检查
