@@ -745,11 +745,25 @@ cc.Class({
     _createPhoneLoginDynamic: function() {
         var self = this;
 
-        // ==================== 弹窗尺寸（屏幕60%宽度，最小300）====================
+        // ==================== 弹窗尺寸（固定尺寸，与图片匹配）====================
+        // 使用固定尺寸：宽度520px，高度680px（与login_bg.png图片尺寸一致）
+        // 在小屏幕上自动缩放
         var winW = cc.winSize.width;
         var winH = cc.winSize.height;
-        var panelWidth = Math.max(300, Math.min(winW * 0.6, winW * 0.8));
-        var panelHeight = panelWidth * 1.3; // 高度按比例
+
+        // 图片原始尺寸
+        var imgWidth = 520;
+        var imgHeight = 680;
+
+        // 如果屏幕太小，按比例缩小
+        var scale = 1.0;
+        if (winW < imgWidth + 40) {
+            scale = (winW - 40) / imgWidth;
+        }
+        var panelWidth = imgWidth * scale;
+        var panelHeight = imgHeight * scale;
+
+        console.log("登录弹窗尺寸: " + panelWidth + " x " + panelHeight + ", 缩放比例: " + scale);
 
         // ==================== 弹窗根节点 ====================
         var popup = new cc.Node("LoginDialog");
@@ -782,23 +796,34 @@ cc.Class({
         // ==================== 弹窗背景（使用正确的 login_bg 图片）====================
         var bg = new cc.Node("Bg");
         bg.parent = panel;
+        // 先设置一个临时尺寸
         bg.setContentSize(cc.size(panelWidth, panelHeight));
         bg.setPosition(0, 0);
-        
+
+        // 先添加Sprite组件并设置sizeMode
+        var bgSprite = bg.addComponent(cc.Sprite);
+        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;  // 使用自定义尺寸，不跟随图片
+
         // 加载背景图（使用 UI/login/login_bg.png）
         cc.resources.load("UI/login/login_bg", cc.SpriteFrame, function(err, spriteFrame) {
             if (err) {
                 console.warn("加载 login_bg 失败，使用默认背景:", err);
                 // 降级：使用渐变背景
+                bg.removeComponent(cc.Sprite);
                 var bgGfx = bg.addComponent(cc.Graphics);
                 bgGfx.fillColor = new cc.Color(45, 35, 25);
                 bgGfx.roundRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 20);
                 bgGfx.fill();
                 return;
             }
-            var bgSprite = bg.addComponent(cc.Sprite);
+
+            // 设置spriteFrame
             bgSprite.spriteFrame = spriteFrame;
-            bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+
+            // 关键：再次确保尺寸正确（防止被图片尺寸覆盖）
+            bg.setContentSize(cc.size(panelWidth, panelHeight));
+
+            console.log("背景图加载成功，显示尺寸: " + bg.width + " x " + bg.height);
         });
 
         // ==================== 标题文字（欢乐登录）====================
