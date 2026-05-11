@@ -223,19 +223,22 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         var bgWidth = 520;
         var bgHeight = 680;
         
-        // 输入框在背景图中的中心位置（相对于背景图中心）
-        // 这些值需要根据实际的 login_bg.png 图片来调整
-        // 假设输入框在背景图上半部分，大约在顶部下方 180px 和 270px 的位置
-        // 背景图中心 Y = 340，所以输入框相对于中心的 Y 偏移 = 340 - 180 = 160 和 340 - 270 = 70
+        // 根据背景图 login_bg.png 的实际布局：
+        // 手机号输入框中心：距图片中心上方约 85px（Y = 85）
+        // 验证码输入框中心：距图片中心上方约 25px（Y = 25）
+        // 输入框宽度约 280px，需要减去左边的图标和右边的"获取验证码"按钮
         
-        // 根据实际的 login_bg.png 图片布局调整这些值
-        // 输入框通常在弹窗的上半部分
-        var phoneInputY = 150;   // 手机输入框相对于面板中心的 Y 坐标
-        var codeInputY = 60;     // 验证码输入框相对于面板中心的 Y 坐标
+        // 实际布局：输入框区域是背景图中的白色矩形区域
+        // 需要根据图标和按钮位置计算原生输入框的实际位置
         
-        // 输入框 X 坐标：假设居中
-        var phoneInputX = 0;
-        var codeInputX = -50;  // 验证码输入框稍微偏左，给右边的"获取验证码"按钮留空间
+        var phoneInputY = 85;   // 手机输入框相对于面板中心的 Y 坐标（背景图中心上方）
+        var codeInputY = 25;    // 验证码输入框相对于面板中心的 Y 坐标
+        
+        // 输入框 X 坐标：需要根据布局调整
+        // 背景图中的输入框区域宽约 280px，但我们创建的输入框节点宽度较小
+        // 输入框应该居中放置在背景图的输入框区域内
+        var phoneInputX = 0;    // 手机输入框居中
+        var codeInputX = -65;   // 验证码输入框偏左（给右边的"获取验证码"按钮留空间）
         
         // 获取面板位置
         var panelPos = panel.getPosition();
