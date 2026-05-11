@@ -1894,19 +1894,19 @@
     "meta": 1778500665256,
     "relativePath": "resources\\UI\\login\\login_bg_original.png"
   },
-  "9ce034ef-b049-49b1-a2f3-2c396c7827df": {
-    "asset": 1778507924800,
-    "meta": 1778510436648,
-    "relativePath": "scripts\\data\\socket_ctr.js"
-  },
   "a3b4c5d6-e7f8-9012-abcd-ef1234567892": {
     "asset": 1778508044721,
     "meta": 1778510436649,
     "relativePath": "scripts\\defines.js"
   },
+  "9ce034ef-b049-49b1-a2f3-2c396c7827df": {
+    "asset": 1778510883275,
+    "meta": 1778542541761,
+    "relativePath": "scripts\\data\\socket_ctr.js"
+  },
   "b05a6f20-48ea-415a-bf1d-76f4f4dc9a63": {
-    "asset": 1778507924820,
-    "meta": 1778510436649,
+    "asset": 1778543304988,
+    "meta": 1778543315129,
     "relativePath": "scripts\\loginscene\\loginScene.js"
   }
 }
