@@ -726,19 +726,12 @@ cc.Class({
     },
 
     // 绘制圆角矩形输入框背景（辅助方法）
+    // 注意：Cocos Creator Graphics 组件没有 arcTo 方法，使用 roundRect 代替
     _drawInputBg: function(graphics, width, height, radius) {
         var x = -width / 2;
         var y = -height / 2;
-        graphics.moveTo(x + radius, y);
-        graphics.lineTo(x + width - radius, y);
-        graphics.arcTo(x + width, y, x + width, y + radius, radius);
-        graphics.lineTo(x + width, y + height - radius);
-        graphics.arcTo(x + width, y + height, x + width - radius, y + height, radius);
-        graphics.lineTo(x + radius, y + height);
-        graphics.arcTo(x, y + height, x, y + height - radius, radius);
-        graphics.lineTo(x, y + radius);
-        graphics.arcTo(x, y, x + radius, y, radius);
-        graphics.fill();
+        // 使用 Cocos Creator Graphics 的 roundRect 方法
+        graphics.roundRect(x, y, width, height, radius);
     },
 
     update: function(dt) {
@@ -1010,10 +1003,11 @@ cc.Class({
         // 绘制输入框背景和边框
         var phoneBgGfx = phoneBgNode.addComponent(cc.Graphics);
         phoneBgGfx.fillColor = new cc.Color(255, 252, 240, 230);
-        self._drawInputBg(phoneBgGfx, inputWidth, inputHeight, 14);
         phoneBgGfx.strokeColor = new cc.Color(218, 165, 32, 255);
         phoneBgGfx.lineWidth = 2;
         self._drawInputBg(phoneBgGfx, inputWidth, inputHeight, 14);
+        phoneBgGfx.fill();
+        phoneBgGfx.stroke();
 
         // 手机号输入框 - 放在图标右边
         var phoneInputNode = new cc.Node("PhoneInput");
@@ -1066,10 +1060,11 @@ cc.Class({
         // 绘制输入框背景和边框
         var codeBgGfx = codeBgNode.addComponent(cc.Graphics);
         codeBgGfx.fillColor = new cc.Color(255, 252, 240, 230);
-        self._drawInputBg(codeBgGfx, codeInputW, inputHeight, 14);
         codeBgGfx.strokeColor = new cc.Color(218, 165, 32, 255);
         codeBgGfx.lineWidth = 2;
         self._drawInputBg(codeBgGfx, codeInputW, inputHeight, 14);
+        codeBgGfx.fill();
+        codeBgGfx.stroke();
 
         // 验证码输入框
         var codeInputNode = new cc.Node("CodeInput");
