@@ -187,6 +187,106 @@ var _injectGlobalStyles = function(fontColor, bgColor) {
     }
 };
 
+// 修复 EditBox 的 HTML input 元素位置和尺寸
+var _fixEditBoxInputElements = function(panel, phoneInputNode, codeInputNode, inputWidth, inputHeight, codeInputW, phoneEditBox, codeEditBox) {
+    if (!cc.sys.isBrowser) return;
+    
+    try {
+        // 获取 Canvas 元素
+        var canvas = document.getElementById('GameCanvas') || document.querySelector('canvas');
+        if (!canvas) {
+            console.error('找不到 Canvas 元素');
+            return;
+        }
+        
+        var canvasRect = canvas.getBoundingClientRect();
+        console.log('Canvas 尺寸:', canvasRect.width, 'x', canvasRect.height);
+        
+        // 计算 panel 的世界坐标
+        var worldPos = phoneInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
+        console.log('手机输入框世界坐标:', worldPos.x, worldPos.y);
+        
+        // 获取游戏设计的分辨率
+        var winSize = cc.winSize;
+        console.log('游戏分辨率:', winSize.width, 'x', winSize.height);
+        
+        // 计算缩放比例
+        var scaleX = canvasRect.width / winSize.width;
+        var scaleY = canvasRect.height / winSize.height;
+        console.log('缩放比例:', scaleX, scaleY);
+        
+        // 计算 HTML input 元素的位置和尺寸
+        // 注意：Canvas 坐标系 Y 轴向上，HTML 坐标系 Y 轴向下
+        var phoneInputX = (worldPos.x + winSize.width / 2 - inputWidth / 2) * scaleX;
+        var phoneInputY = canvasRect.height - (worldPos.y + winSize.height / 2 + inputHeight / 2) * scaleY;
+        
+        console.log('手机输入框 HTML 位置:', phoneInputX, phoneInputY);
+        console.log('输入框尺寸:', inputWidth * scaleX, inputHeight * scaleY);
+        
+        // 创建或获取 HTML input 元素
+        var inputs = document.querySelectorAll('input');
+        console.log('找到 ' + inputs.length + ' 个 input 元素');
+        
+        if (inputs.length >= 1) {
+            var phoneInput = inputs[0];
+            
+            // 设置样式
+            phoneInput.style.position = 'absolute';
+            phoneInput.style.left = phoneInputX + 'px';
+            phoneInput.style.top = phoneInputY + 'px';
+            phoneInput.style.width = (inputWidth * scaleX) + 'px';
+            phoneInput.style.height = (inputHeight * scaleY) + 'px';
+            phoneInput.style.zIndex = '9999';
+            phoneInput.style.opacity = '1';
+            phoneInput.style.visibility = 'visible';
+            phoneInput.style.display = 'block';
+            phoneInput.style.pointerEvents = 'auto';
+            phoneInput.style.cursor = 'text';
+            phoneInput.style.background = 'transparent';
+            phoneInput.style.border = 'none';
+            phoneInput.style.outline = 'none';
+            phoneInput.style.fontSize = (18 * scaleX) + 'px';
+            phoneInput.style.color = '#333333';
+            phoneInput.style.padding = '0 10px';
+            phoneInput.style.boxSizing = 'border-box';
+            
+            console.log('手机输入框样式已修复');
+        }
+        
+        // 验证码输入框
+        var codeWorldPos = codeInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
+        var codeInputX = (codeWorldPos.x + winSize.width / 2 - codeInputW / 2) * scaleX;
+        var codeInputY = canvasRect.height - (codeWorldPos.y + winSize.height / 2 + inputHeight / 2) * scaleY;
+        
+        if (inputs.length >= 2) {
+            var codeInput = inputs[1];
+            codeInput.style.position = 'absolute';
+            codeInput.style.left = codeInputX + 'px';
+            codeInput.style.top = codeInputY + 'px';
+            codeInput.style.width = (codeInputW * scaleX) + 'px';
+            codeInput.style.height = (inputHeight * scaleY) + 'px';
+            codeInput.style.zIndex = '9999';
+            codeInput.style.opacity = '1';
+            codeInput.style.visibility = 'visible';
+            codeInput.style.display = 'block';
+            codeInput.style.pointerEvents = 'auto';
+            codeInput.style.cursor = 'text';
+            codeInput.style.background = 'transparent';
+            codeInput.style.border = 'none';
+            codeInput.style.outline = 'none';
+            codeInput.style.fontSize = (18 * scaleX) + 'px';
+            codeInput.style.color = '#333333';
+            codeInput.style.padding = '0 10px';
+            codeInput.style.boxSizing = 'border-box';
+            
+            console.log('验证码输入框样式已修复');
+        }
+        
+    } catch (e) {
+        console.error('修复 EditBox 样式失败:', e);
+    }
+};
+
 // MutationObserver 监听新创建的input元素
 var _startInputObserver = function() {
     if (!cc.sys.isBrowser) return;
@@ -1218,16 +1318,7 @@ cc.Class({
                 // 强制刷新 Web 平台的 HTML input 元素样式
                 if (cc.sys.isBrowser) {
                     setTimeout(function() {
-                        var inputs = document.querySelectorAll('input');
-                        inputs.forEach(function(input) {
-                            input.style.setProperty('pointer-events', 'auto', 'important');
-                            input.style.setProperty('z-index', '9999', 'important');
-                            input.style.setProperty('opacity', '1', 'important');
-                            input.style.setProperty('visibility', 'visible', 'important');
-                            input.style.setProperty('display', 'block', 'important');
-                            input.style.setProperty('cursor', 'text', 'important');
-                            console.log('修复 input 样式:', input.style.cssText);
-                        });
+                        _fixEditBoxInputElements(panel, phoneInputNode, codeInputNode, inputWidth, inputHeight, codeInputW, phoneEditBox, codeEditBox);
                     }, 100);
                 }
                 
