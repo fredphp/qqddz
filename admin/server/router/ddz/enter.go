@@ -16,7 +16,6 @@ type RouterGroup struct {
         DDZArenaGoldLogRouter  // 竞技场金币流水路由
         DDZGoldLogRouter       // 金币流水路由
         // 新增路由
-        DDZArenaMatchConfigRouter  // 比赛配置路由
         DDZArenaSessionRouter      // 会话路由
         DDZArenaRoundRecordRouter  // 轮次记录路由
         DDZArenaSignupLogRouter    // 报名日志路由

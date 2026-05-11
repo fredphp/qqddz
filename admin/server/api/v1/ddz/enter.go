@@ -17,7 +17,6 @@ type ApiGroup struct {
         DDZArenaGoldLogApi   // 竞技场金币流水API
         DDZGoldLogApi        // 金币流水API
         // 新增API
-        DDZArenaMatchConfigApi  // 比赛配置API
         DDZArenaSessionApi      // 会话API
         DDZArenaRoundRecordApi  // 轮次记录API
         DDZArenaSignupLogApi    // 报名日志API

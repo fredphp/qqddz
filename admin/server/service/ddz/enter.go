@@ -17,7 +17,6 @@ type ServiceGroup struct {
         DDZArenaGoldLogService  // 竞技场金币流水服务
         DDZGoldLogService       // 金币流水服务
         // 新增服务
-        DDZArenaMatchConfigService  // 比赛配置服务
         DDZArenaSessionService      // 会话服务
         DDZArenaRoundRecordService  // 轮次记录服务
         DDZArenaSignupLogService    // 报名日志服务

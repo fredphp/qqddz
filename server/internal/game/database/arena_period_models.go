@@ -648,20 +648,6 @@ func FirstOrCreateArenaPeriodPlayerWithTime(periodID, playerID uint64, player *A
 }
 
 // =============================================
-// 竞技场比赛配置操作
-// =============================================
-
-// GetArenaMatchConfigByRoomConfigID 根据房间配置ID获取竞技场比赛配置
-func GetArenaMatchConfigByRoomConfigID(roomConfigID uint64) (*ArenaMatchConfig, error) {
-        var config ArenaMatchConfig
-        err := DB().Where("room_config_id = ? AND status = 1", roomConfigID).First(&config).Error
-        if err != nil {
-                return nil, err
-        }
-        return &config, nil
-}
-
-// =============================================
 // 🔧【新增】竞技场赛事金币操作函数
 // =============================================
 

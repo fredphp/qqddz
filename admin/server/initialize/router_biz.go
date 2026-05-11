@@ -35,7 +35,6 @@ func initBizRouter(routers ...*gin.RouterGroup) {
                 ddzRouter.InitDDZArenaGoldLogRouter(privateGroup) // 斗地主竞技场金币流水路由
                 ddzRouter.InitDDZGoldLogRouter(privateGroup)     // 斗地主金币流水路由
                 // 新增路由
-                ddzRouter.InitDDZArenaMatchConfigRouter(privateGroup)  // 斗地主比赛配置路由
                 ddzRouter.InitDDZArenaSessionRouter(privateGroup)      // 斗地主竞技场会话路由
                 ddzRouter.InitDDZArenaRoundRecordRouter(privateGroup)  // 斗地主轮次记录路由
                 ddzRouter.InitDDZArenaSignupLogRouter(privateGroup)    // 斗地主报名日志路由

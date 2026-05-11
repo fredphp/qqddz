@@ -973,51 +973,6 @@ func (am *ArenaManager) IsPlayerInSession(playerID, sessionID uint64) (bool, err
         return count > 0, nil
 }
 
-// CreateSession 创建新的比赛会话
-func (am *ArenaManager) CreateSession(roomConfigID uint64, scheduledStartTime time.Time) (*database.ArenaSession, error) {
-        am.mu.Lock()
-        defer am.mu.Unlock()
-
-        // 获取比赛配置
-        var matchConfig database.ArenaMatchConfig
-        err := am.db.Where("room_config_id = ? AND status = 1", roomConfigID).
-                First(&matchConfig).Error
-        if err != nil {
-                return nil, fmt.Errorf("未找到比赛配置: %w", err)
-        }
-
-        // 生成会话编码
-        sessionCode := am.generateSessionCode()
-
-        // 创建会话
-        session := &database.ArenaSession{
-                SessionCode:        sessionCode,
-                RoomConfigID:       roomConfigID,
-                MatchConfigID:      matchConfig.ID,
-                ScheduledStartTime: scheduledStartTime,
-                Status:             database.ArenaSessionStatusWaitingSignup,
-                CurrentRound:       0,
-                TotalRounds:        matchConfig.MatchRoundCount,
-                TotalPlayers:       0,
-                ActivePlayers:      0,
-                SignupFee:          matchConfig.SignupFee,
-        }
-
-        if err := am.db.Create(session).Error; err != nil {
-                return nil, err
-        }
-
-        // 加载关联数据
-        am.db.Preload("MatchConfig").First(session, session.ID)
-
-        // 缓存会话
-        am.sessions[session.ID] = session
-
-        log.Printf("[Arena] 创建新比赛会话: ID=%d, Code=%s, 配置=%d", session.ID, sessionCode, matchConfig.ID)
-
-        return session, nil
-}
-
 // =============================================
 // 内部辅助方法
 // =============================================
@@ -1418,22 +1373,22 @@ func (am *ArenaManager) finalizeSessionLocked(session *database.ArenaSession, ac
 
 // generateRewardOrders 生成奖励订单
 func (am *ArenaManager) generateRewardOrders(session *database.ArenaSession, rankings []*database.ArenaParticipation) {
-        // 获取比赛配置
-        var matchConfig database.ArenaMatchConfig
-        if err := am.db.First(&matchConfig, session.MatchConfigID).Error; err != nil {
-                log.Printf("[Arena] 获取比赛配置失败: %v", err)
+        // 获取房间配置
+        var roomConfig database.RoomConfig
+        if err := am.db.First(&roomConfig, session.RoomConfigID).Error; err != nil {
+                log.Printf("[Arena] 获取房间配置失败: %v", err)
                 return
         }
 
-        // 为前三名生成奖励订单
-        rewardMap := map[int]*uint64{
-                1: matchConfig.ChampionRewardID,
-                2: matchConfig.RunnerUpRewardID,
-                3: matchConfig.ThirdRewardID,
+        // 为前三名生成奖励订单（奖励ID从 RoomConfig 获取）
+        // 注意：目前 RoomConfig 只有 ChampionRewardID，亚季军奖励暂不处理
+        rewardMap := map[int]uint64{}
+        if roomConfig.ChampionRewardID > 0 {
+                rewardMap[1] = roomConfig.ChampionRewardID
         }
 
-        for rank, rewardIDPtr := range rewardMap {
-                if rewardIDPtr == nil || rank > len(rankings) {
+        for rank, rewardID := range rewardMap {
+                if rank > len(rankings) {
                         continue
                 }
 
@@ -1443,7 +1398,7 @@ func (am *ArenaManager) generateRewardOrders(session *database.ArenaSession, ran
                 order := &database.RewardOrder{
                         OrderNo:      am.generateOrderNo(),
                         PlayerID:     player.PlayerID,
-                        RewardID:     *rewardIDPtr,
+                        RewardID:     rewardID,
                         RoomConfigID: &session.RoomConfigID,
                         SessionID:    &session.ID,
                         Rank:         &rank,
@@ -1457,11 +1412,11 @@ func (am *ArenaManager) generateRewardOrders(session *database.ArenaSession, ran
 
                 // 获取奖励商品信息
                 var reward database.RewardGoods
-                if err := am.db.First(&reward, *rewardIDPtr).Error; err == nil {
+                if err := am.db.First(&reward, rewardID).Error; err == nil {
                         am.notifyChampion(player.PlayerID, &reward)
                 }
 
-                log.Printf("[Arena] 为玩家 %d 生成奖励订单: 排名=%d, 奖励ID=%d", player.PlayerID, rank, *rewardIDPtr)
+                log.Printf("[Arena] 为玩家 %d 生成奖励订单: 排名=%d, 奖励ID=%d", player.PlayerID, rank, rewardID)
         }
 }
 

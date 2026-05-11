@@ -2,95 +2,10 @@
 package database
 
 import (
-        "database/sql/driver"
-        "encoding/json"
-        "errors"
         "time"
 
         "gorm.io/gorm"
 )
-
-// =============================================
-// 竞技场比赛配置表
-// =============================================
-
-// ArenaMatchConfig 竞技场比赛配置表模型
-type ArenaMatchConfig struct {
-        ID                uint64         `gorm:"primaryKey;autoIncrement;comment:配置ID" json:"id"`
-        RoomConfigID      uint64         `gorm:"type:bigint unsigned;not null;index;comment:关联房间配置ID" json:"room_config_id"`
-        MatchTimeRanges   MatchTimeRanges `gorm:"type:json;comment:开赛时间段" json:"match_time_ranges"`
-        MatchRoundDuration int           `gorm:"type:int;not null;default:5;comment:每场时长(分钟)" json:"match_round_duration"`
-        MatchRoundCount   int           `gorm:"type:int;not null;default:3;comment:比赛轮次" json:"match_round_count"`
-        SignupFee         int64         `gorm:"type:bigint;not null;default:0;comment:报名费(竞技币)" json:"signup_fee"`
-        MaxPlayers        int           `gorm:"type:int;not null;default:9;comment:最大参赛人数" json:"max_players"`
-        MinPlayers        int           `gorm:"type:int;not null;default:3;comment:最小开赛人数" json:"min_players"`
-        ChampionRewardID  *uint64       `gorm:"type:bigint unsigned;comment:冠军奖励ID" json:"champion_reward_id"`
-        RunnerUpRewardID  *uint64       `gorm:"type:bigint unsigned;comment:亚军奖励ID" json:"runner_up_reward_id"`
-        ThirdRewardID     *uint64       `gorm:"type:bigint unsigned;comment:季军奖励ID" json:"third_reward_id"`
-        SignupStartTime   string        `gorm:"type:varchar(8);default:'00:00';comment:报名开始时间" json:"signup_start_time"`
-        SignupEndTime     string        `gorm:"type:varchar(8);default:'23:59';comment:报名结束时间" json:"signup_end_time"`
-        AutoStart         uint8         `gorm:"type:tinyint unsigned;not null;default:1;comment:是否自动开赛:0-否,1-是" json:"auto_start"`
-        Status            uint8         `gorm:"type:tinyint unsigned;not null;default:1;index;comment:状态:0-关闭,1-开启" json:"status"`
-        Description       string        `gorm:"type:varchar(512);default:'';comment:比赛描述" json:"description"`
-        CreatedAt         time.Time     `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
-        UpdatedAt         time.Time     `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`
-        DeletedAt         gorm.DeletedAt `gorm:"type:datetime;index;comment:删除时间" json:"deleted_at"`
-
-        // 关联关系
-        RoomConfig      RoomConfig   `gorm:"foreignKey:RoomConfigID" json:"room_config"`
-        ChampionReward  *RewardGoods `gorm:"foreignKey:ChampionRewardID" json:"champion_reward"`
-        RunnerUpReward  *RewardGoods `gorm:"foreignKey:RunnerUpRewardID" json:"runner_up_reward"`
-        ThirdReward     *RewardGoods `gorm:"foreignKey:ThirdRewardID" json:"third_reward"`
-}
-
-// TableName 指定竞技场比赛配置表名
-func (ArenaMatchConfig) TableName() string {
-        return "ddz_arena_match_config"
-}
-
-// MatchTimeRange 开赛时间段
-type MatchTimeRange struct {
-        Start string `json:"start"` // 开始时间，格式：HH:MM
-        End   string `json:"end"`   // 结束时间，格式：HH:MM
-}
-
-// MatchTimeRanges 开赛时间段列表
-type MatchTimeRanges []MatchTimeRange
-
-// Value 实现driver.Valuer接口
-func (m MatchTimeRanges) Value() (driver.Value, error) {
-        if m == nil {
-                return nil, nil
-        }
-        return json.Marshal(m)
-}
-
-// Scan 实现sql.Scanner接口
-func (m *MatchTimeRanges) Scan(value interface{}) error {
-        if value == nil {
-                *m = nil
-                return nil
-        }
-        bytes, ok := value.([]byte)
-        if !ok {
-                return errors.New("type assertion to []byte failed")
-        }
-        return json.Unmarshal(bytes, m)
-}
-
-// IsTimeInRange 检查指定时间是否在开赛时间范围内
-func (m MatchTimeRanges) IsTimeInRange(t time.Time) bool {
-        if len(m) == 0 {
-                return true // 没有配置时间段，默认全天可开赛
-        }
-        currentTime := t.Format("15:04")
-        for _, tr := range m {
-                if currentTime >= tr.Start && currentTime <= tr.End {
-                        return true
-                }
-        }
-        return false
-}
 
 // =============================================
 // 比赛会话表
@@ -127,7 +42,6 @@ type ArenaSession struct {
 
         // 关联关系
         RoomConfig  RoomConfig `gorm:"foreignKey:RoomConfigID" json:"room_config"`
-        MatchConfig ArenaMatchConfig `gorm:"foreignKey:MatchConfigID" json:"match_config"`
         Champion    *Player    `gorm:"foreignKey:ChampionID" json:"champion"`
         RunnerUp    *Player    `gorm:"foreignKey:RunnerUpID" json:"runner_up"`
         Third       *Player    `gorm:"foreignKey:ThirdID" json:"third"`
