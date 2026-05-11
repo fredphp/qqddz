@@ -13,6 +13,7 @@ import (
 type DDZGameLogApi struct{}
 
 var ddzGameLogService = service.ServiceGroupApp.DDZServiceGroup.DDZGameLogService
+var ddzConfigService = service.ServiceGroupApp.DDZServiceGroup.DDZConfigService
 
 // GetGameRecordList 获取游戏记录列表
 // @Tags     DDZ游戏记录
