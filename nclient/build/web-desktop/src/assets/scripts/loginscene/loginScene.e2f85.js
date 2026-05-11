@@ -48,66 +48,131 @@ var _applyInputStyles = function(fontColor, bgColor) {
     }
 };
 
-// 样式化单个input元素
+// 样式化单个input元素 - 修复版：文字垂直居中 + 透明背景不遮挡边框
 var _styleSingleInput = function(input, fontColor, bgColor) {
-    // 设置文字颜色
+    // ==================== 核心样式设置 ====================
+    
+    // 1. 文字颜色
     input.style.setProperty('color', fontColor, 'important');
     input.style.color = fontColor;
-
-    // 设置背景色
-    input.style.setProperty('background-color', bgColor, 'important');
-    input.style.backgroundColor = bgColor;
-
-    // 确保可见性
+    
+    // 2. 关键：设置透明背景，让 Cocos 绘制的边框可见
+    input.style.setProperty('background-color', 'transparent', 'important');
+    input.style.backgroundColor = 'transparent';
+    
+    // 3. 文字垂直居中 - 使用 Flexbox 方案（最可靠）
+    input.style.setProperty('display', 'flex', 'important');
+    input.style.display = 'flex';
+    input.style.setProperty('align-items', 'center', 'important');
+    input.style.alignItems = 'center';
+    input.style.setProperty('justify-content', 'flex-start', 'important');
+    input.style.justifyContent = 'flex-start';
+    
+    // 4. 盒模型设置
+    input.style.setProperty('box-sizing', 'border-box', 'important');
+    input.style.boxSizing = 'border-box';
+    
+    // 5. 内边距 - 给文字留出空间，避免贴边
+    input.style.setProperty('padding', '0 12px', 'important');
+    input.style.padding = '0 12px';
+    
+    // 6. 行高设置 - 与字体大小匹配，确保垂直居中
+    input.style.setProperty('line-height', '1', 'important');
+    input.style.lineHeight = '1';
+    
+    // 7. 高度自适应内容
+    input.style.setProperty('height', '100%', 'important');
+    input.style.height = '100%';
+    
+    // ==================== 字体设置 ====================
+    input.style.setProperty('font-size', '20px', 'important');
+    input.style.fontSize = '20px';
+    input.style.setProperty('font-family', 'Arial, "Microsoft YaHei", sans-serif', 'important');
+    
+    // ==================== WebKit 特殊修复 ====================
+    input.style.setProperty('-webkit-text-fill-color', fontColor, 'important');
+    input.style.webkitTextFillColor = fontColor;
+    
+    // ==================== 可见性确保 ====================
     input.style.setProperty('opacity', '1', 'important');
     input.style.opacity = '1';
     input.style.setProperty('visibility', 'visible', 'important');
     input.style.visibility = 'visible';
-
-    // 设置字体大小
-    input.style.setProperty('font-size', '16px', 'important');
-    input.style.fontSize = '16px';
-
-    // 设置字体
-    input.style.setProperty('font-family', 'Arial, sans-serif', 'important');
-
-    // 修复 WebKit 特殊样式
-    input.style.setProperty('-webkit-text-fill-color', fontColor, 'important');
-    input.style.webkitTextFillColor = fontColor;
-
-    // 移除可能影响显示的样式
-    input.style.textShadow = 'none';
-    input.style.setProperty('text-shadow', 'none', 'important');
-
-    // 确保没有caret-color问题
+    
+    // ==================== 光标颜色 ====================
     input.style.setProperty('caret-color', fontColor, 'important');
     input.style.caretColor = fontColor;
-
+    
+    // ==================== 移除干扰样式 ====================
+    input.style.textShadow = 'none';
+    input.style.setProperty('text-shadow', 'none', 'important');
+    input.style.outline = 'none';
+    input.style.setProperty('outline', 'none', 'important');
+    input.style.border = 'none';
+    input.style.setProperty('border', 'none', 'important');
+    
+    // ==================== 移除定位干扰 ====================
+    input.style.removeProperty('top');
+    input.style.removeProperty('margin-top');
+    input.style.removeProperty('margin');
+    
+    // ==================== 聚焦时保持样式 ====================
+    input.style.setProperty('outline-offset', '0', 'important');
 };
 
-// 注入全局CSS样式
+// 注入全局CSS样式 - 修复版
 var _injectGlobalStyles = function(fontColor, bgColor) {
     try {
         var styleId = 'cocos-editbox-fix-style';
         if (document.getElementById(styleId)) return;
 
         var css = `
+            /* 输入框基础样式 - 透明背景 + 文字居中 */
             input, textarea {
                 color: ${fontColor} !important;
-                background-color: ${bgColor} !important;
+                background-color: transparent !important;
                 opacity: 1 !important;
                 visibility: visible !important;
-                font-size: 16px !important;
+                font-size: 20px !important;
                 -webkit-text-fill-color: ${fontColor} !important;
                 caret-color: ${fontColor} !important;
+                line-height: 1 !important;
+                border: none !important;
+                outline: none !important;
             }
+            
+            /* Placeholder 样式 */
             input::placeholder, textarea::placeholder {
-                color: #999999 !important;
+                color: #888888 !important;
                 opacity: 1 !important;
             }
+            
+            /* 聚焦状态 */
             input:focus, textarea:focus {
                 color: ${fontColor} !important;
                 outline: none !important;
+                background-color: transparent !important;
+            }
+            
+            /* 文本类型输入框 - Flexbox 垂直居中 */
+            input[type="text"], 
+            input[type="number"], 
+            input[type="tel"],
+            input[type="password"] {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: flex-start !important;
+                box-sizing: border-box !important;
+                padding: 0 12px !important;
+                height: 100% !important;
+                line-height: 1 !important;
+                border: none !important;
+            }
+            
+            /* 移除浏览器默认样式 */
+            input:focus,
+            textarea:focus {
+                box-shadow: none !important;
             }
         `;
 
@@ -119,6 +184,330 @@ var _injectGlobalStyles = function(fontColor, bgColor) {
 
     } catch (e) {
         console.error('注入全局样式失败:', e);
+    }
+};
+
+// 创建原生 HTML input 元素（绕过 Cocos EditBox 的问题）
+// 改进版 v4：使用节点世界坐标精确定位
+var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, inputWidth, inputHeight, codeInputW, panelWidth, panelHeight) {
+    if (!cc.sys.isBrowser) return;
+    
+    try {
+        // 获取 Canvas 元素
+        var canvas = document.getElementById('GameCanvas') || document.querySelector('canvas');
+        if (!canvas) {
+            console.error('找不到 Canvas 元素');
+            return;
+        }
+        
+        var canvasRect = canvas.getBoundingClientRect();
+        var winSize = cc.winSize;
+        
+        console.log('=== 创建原生输入框（v4 - 使用节点世界坐标）===');
+        console.log('Canvas 位置:', canvasRect.left, canvasRect.top);
+        console.log('Canvas 尺寸:', canvasRect.width, 'x', canvasRect.height);
+        console.log('游戏分辨率:', winSize.width, 'x', winSize.height);
+        
+        // 计算缩放比例（Canvas 实际尺寸 / 游戏设计分辨率）
+        var scaleX = canvasRect.width / winSize.width;
+        var scaleY = canvasRect.height / winSize.height;
+        console.log('缩放比例:', scaleX.toFixed(3), scaleY.toFixed(3));
+        
+        // ==================== 关键改进：使用节点世界坐标 ====================
+        // 直接使用 Cocos 节点的世界坐标，而不是手动计算偏移
+        
+        // 获取输入框节点的世界坐标
+        var phoneWorldPos = phoneInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
+        var codeWorldPos = codeInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
+        
+        console.log('手机输入框世界坐标:', phoneWorldPos.x.toFixed(1), phoneWorldPos.y.toFixed(1));
+        console.log('验证码输入框世界坐标:', codeWorldPos.x.toFixed(1), codeWorldPos.y.toFixed(1));
+        
+        // ★★★ 位置微调参数（如果需要微调，修改这里）★★★
+        var phoneOffsetX = 0;    // 手机输入框 X 偏移
+        var phoneOffsetY = 0;    // 手机输入框 Y 偏移
+        var codeOffsetX = 0;     // 验证码输入框 X 偏移
+        var codeOffsetY = 0;     // 验证码输入框 Y 偏移
+        
+        // ★★★ 尺寸参数 ★★★
+        var actualInputWidth = inputWidth;      // 使用传入的输入框宽度
+        var actualInputHeight = inputHeight;    // 使用传入的输入框高度
+        var actualCodeInputWidth = codeInputW;  // 使用传入的验证码输入框宽度
+        
+        console.log('=== 输入框尺寸 ===');
+        console.log('手机输入框:', actualInputWidth, 'x', actualInputHeight);
+        console.log('验证码输入框:', actualCodeInputWidth, 'x', actualInputHeight);
+        
+        // 计算屏幕位置（世界坐标 -> 屏幕坐标）
+        // Cocos 坐标系：原点左下角，Y 向上
+        // HTML 坐标系：原点左上角，Y 向下
+        var calcScreenPosFromWorld = function(worldPos, nodeWidth, nodeHeight, offsetX, offsetY) {
+            // 世界坐标转换为屏幕坐标
+            var screenX = worldPos.x + offsetX;
+            var screenY = worldPos.y + offsetY;
+            
+            // 转换为 Canvas 坐标
+            var canvasX = screenX * scaleX;
+            var canvasY = canvasRect.height - screenY * scaleY;  // Y 轴翻转
+            
+            // 计算实际尺寸
+            var actualWidth = nodeWidth * scaleX;
+            var actualHeight = nodeHeight * scaleY;
+            
+            return {
+                left: canvasRect.left + canvasX - actualWidth / 2,
+                top: canvasRect.top + canvasY - actualHeight / 2,
+                width: actualWidth,
+                height: actualHeight
+            };
+        };
+        
+        var phoneScreen = calcScreenPosFromWorld(phoneWorldPos, actualInputWidth, actualInputHeight, phoneOffsetX, phoneOffsetY);
+        var codeScreen = calcScreenPosFromWorld(codeWorldPos, actualCodeInputWidth, actualInputHeight, codeOffsetX, codeOffsetY);
+        
+        console.log('手机输入框屏幕位置:', phoneScreen);
+        console.log('验证码输入框屏幕位置:', codeScreen);
+        
+        // 边界检查：确保输入框在屏幕可见区域内
+        phoneScreen.left = Math.max(0, Math.min(canvasRect.width - phoneScreen.width, phoneScreen.left));
+        phoneScreen.top = Math.max(0, Math.min(canvasRect.height - phoneScreen.height, phoneScreen.top));
+        codeScreen.left = Math.max(0, Math.min(canvasRect.width - codeScreen.width, codeScreen.left));
+        codeScreen.top = Math.max(0, Math.min(canvasRect.height - codeScreen.height, codeScreen.top));
+        
+        console.log('边界检查后位置:');
+        console.log('  手机输入框:', phoneScreen.left.toFixed(1), phoneScreen.top.toFixed(1));
+        console.log('  验证码输入框:', codeScreen.left.toFixed(1), codeScreen.top.toFixed(1));
+        
+        // 移除旧的容器和输入框
+        var oldContainer = document.getElementById('native-input-container');
+        if (oldContainer) {
+            oldContainer.remove();
+        }
+        
+        // 创建新的容器（直接放在 body 下，确保不被遮挡）
+        var container = document.createElement('div');
+        container.id = 'native-input-container';
+        container.style.cssText = [
+            'position: fixed',
+            'top: 0',
+            'left: 0',
+            'width: 100%',
+            'height: 100%',
+            'pointer-events: none',
+            'z-index: 99999'
+        ].join('; ');
+        document.body.appendChild(container);
+        
+        // 创建手机号输入框
+        var phoneInput = document.createElement('input');
+        phoneInput.id = 'native-phone-input';
+        phoneInput.type = 'tel';
+        phoneInput.placeholder = '请输入手机号';
+        phoneInput.maxLength = 11;
+        phoneInput.style.cssText = [
+            'position: absolute',
+            'left: ' + phoneScreen.left + 'px',
+            'top: ' + phoneScreen.top + 'px',
+            'width: ' + phoneScreen.width + 'px',
+            'height: ' + phoneScreen.height + 'px',
+            'background: rgba(255, 255, 255, 0.95)',
+            'border: 2px solid #DAA520',
+            'border-radius: 6px',
+            'font-size: 20px',
+            'color: #333',
+            'padding: 0 8px',
+            'box-sizing: border-box',
+            'outline: none',
+            'pointer-events: auto',
+            'z-index: 100000',
+            'cursor: text',
+            'font-family: Arial, "Microsoft YaHei", sans-serif',
+            'line-height: ' + phoneScreen.height + 'px',
+            'text-align: left'
+        ].join('; ');
+        container.appendChild(phoneInput);
+        
+        // 创建验证码输入框
+        var codeInput = document.createElement('input');
+        codeInput.id = 'native-code-input';
+        codeInput.type = 'text';
+        codeInput.placeholder = '验证码';
+        codeInput.maxLength = 6;
+        codeInput.style.cssText = [
+            'position: absolute',
+            'left: ' + codeScreen.left + 'px',
+            'top: ' + codeScreen.top + 'px',
+            'width: ' + codeScreen.width + 'px',
+            'height: ' + codeScreen.height + 'px',
+            'background: rgba(255, 255, 255, 0.95)',
+            'border: 2px solid #DAA520',
+            'border-radius: 6px',
+            'font-size: 20px',
+            'color: #333',
+            'padding: 0 8px',
+            'box-sizing: border-box',
+            'outline: none',
+            'pointer-events: auto',
+            'z-index: 100000',
+            'cursor: text',
+            'font-family: Arial, "Microsoft YaHei", sans-serif',
+            'line-height: ' + codeScreen.height + 'px',
+            'text-align: left'
+        ].join('; ');
+        container.appendChild(codeInput);
+        
+        // 添加焦点事件调试
+        phoneInput.addEventListener('focus', function() {
+            console.log('手机输入框获得焦点');
+        });
+        phoneInput.addEventListener('click', function() {
+            console.log('手机输入框被点击');
+        });
+        codeInput.addEventListener('focus', function() {
+            console.log('验证码输入框获得焦点');
+        });
+        codeInput.addEventListener('click', function() {
+            console.log('验证码输入框被点击');
+        });
+        
+        console.log('原生输入框创建完成');
+        
+        // 延迟检查输入框是否正确创建
+        setTimeout(function() {
+            var phoneCheck = document.getElementById('native-phone-input');
+            var codeCheck = document.getElementById('native-code-input');
+            console.log('输入框检查:');
+            console.log('  手机输入框:', phoneCheck ? '存在' : '不存在');
+            console.log('  验证码输入框:', codeCheck ? '存在' : '不存在');
+            if (phoneCheck) {
+                var rect = phoneCheck.getBoundingClientRect();
+                console.log('  手机输入框位置:', rect.left, rect.top, rect.width, 'x', rect.height);
+            }
+        }, 100);
+        
+    } catch (e) {
+        console.error('创建原生输入框失败:', e);
+    }
+};
+
+// 修复 EditBox 的 HTML input 元素位置和尺寸
+var _fixEditBoxInputElements = function(panel, phoneInputNode, codeInputNode, inputWidth, inputHeight, codeInputW, phoneEditBox, codeEditBox) {
+    if (!cc.sys.isBrowser) return;
+    
+    try {
+        // 获取 Canvas 元素
+        var canvas = document.getElementById('GameCanvas') || document.querySelector('canvas');
+        if (!canvas) {
+            console.error('找不到 Canvas 元素');
+            return;
+        }
+        
+        var canvasRect = canvas.getBoundingClientRect();
+        console.log('Canvas 尺寸:', canvasRect.width, 'x', canvasRect.height);
+        
+        // 获取游戏设计的分辨率
+        var winSize = cc.winSize;
+        console.log('游戏分辨率:', winSize.width, 'x', winSize.height);
+        
+        // 计算缩放比例
+        var scaleX = canvasRect.width / winSize.width;
+        var scaleY = canvasRect.height / winSize.height;
+        console.log('缩放比例:', scaleX, scaleY);
+        
+        // 辅助函数：将 Cocos 世界坐标转换为 HTML 屏幕坐标
+        var worldToScreen = function(worldPos, nodeWidth, nodeHeight) {
+            // Cocos 坐标系：原点在左下角，Y轴向上
+            // HTML 坐标系：原点在左上角，Y轴向下
+            
+            // 世界坐标转换为相对于设计分辨率的位置（0 到 winSize）
+            // 然后缩放到 Canvas 尺寸
+            
+            var screenX = (worldPos.x - nodeWidth / 2) * scaleX;
+            var screenY = canvasRect.height - (worldPos.y + nodeHeight / 2) * scaleY;
+            
+            return { x: screenX, y: screenY };
+        };
+        
+        // 计算手机输入框的世界坐标
+        var phoneWorldPos = phoneInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
+        console.log('手机输入框世界坐标:', phoneWorldPos.x, phoneWorldPos.y);
+        
+        var phoneScreenPos = worldToScreen(phoneWorldPos, inputWidth, inputHeight);
+        console.log('手机输入框屏幕位置:', phoneScreenPos.x, phoneScreenPos.y);
+        
+        // 查找 HTML input 元素
+        var inputs = document.querySelectorAll('input');
+        console.log('找到 ' + inputs.length + ' 个 input 元素');
+        
+        // 如果只有一个 input，需要手动创建第二个
+        if (inputs.length === 1) {
+            var phoneInput = inputs[0];
+            
+            // 设置样式
+            phoneInput.style.position = 'absolute';
+            phoneInput.style.left = Math.max(0, phoneScreenPos.x) + 'px';
+            phoneInput.style.top = Math.max(0, phoneScreenPos.y) + 'px';
+            phoneInput.style.width = (inputWidth * scaleX) + 'px';
+            phoneInput.style.height = (inputHeight * scaleY) + 'px';
+            phoneInput.style.zIndex = '9999';
+            phoneInput.style.opacity = '1';
+            phoneInput.style.visibility = 'visible';
+            phoneInput.style.display = 'block';
+            phoneInput.style.pointerEvents = 'auto';
+            phoneInput.style.cursor = 'text';
+            phoneInput.style.background = 'rgba(255,255,255,0.5)';
+            phoneInput.style.border = '2px solid gold';
+            phoneInput.style.outline = 'none';
+            phoneInput.style.fontSize = '16px';
+            phoneInput.style.color = '#333333';
+            phoneInput.style.padding = '5px';
+            phoneInput.style.boxSizing = 'border-box';
+            phoneInput.style.borderRadius = '5px';
+            
+            console.log('手机输入框样式已修复，位置:', phoneInput.style.left, phoneInput.style.top);
+        }
+        
+        // 验证码输入框
+        var codeWorldPos = codeInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
+        console.log('验证码输入框世界坐标:', codeWorldPos.x, codeWorldPos.y);
+        
+        var codeScreenPos = worldToScreen(codeWorldPos, codeInputW, inputHeight);
+        console.log('验证码输入框屏幕位置:', codeScreenPos.x, codeScreenPos.y);
+        
+        if (inputs.length >= 2) {
+            var codeInput = inputs[1];
+            codeInput.style.position = 'absolute';
+            codeInput.style.left = Math.max(0, codeScreenPos.x) + 'px';
+            codeInput.style.top = Math.max(0, codeScreenPos.y) + 'px';
+            codeInput.style.width = (codeInputW * scaleX) + 'px';
+            codeInput.style.height = (inputHeight * scaleY) + 'px';
+            codeInput.style.zIndex = '9999';
+            codeInput.style.opacity = '1';
+            codeInput.style.visibility = 'visible';
+            codeInput.style.display = 'block';
+            codeInput.style.pointerEvents = 'auto';
+            codeInput.style.cursor = 'text';
+            codeInput.style.background = 'rgba(255,255,255,0.5)';
+            codeInput.style.border = '2px solid gold';
+            codeInput.style.outline = 'none';
+            codeInput.style.fontSize = '16px';
+            codeInput.style.color = '#333333';
+            codeInput.style.padding = '5px';
+            codeInput.style.boxSizing = 'border-box';
+            codeInput.style.borderRadius = '5px';
+            
+            console.log('验证码输入框样式已修复');
+        }
+        
+        // 调试：显示输入框的实际位置
+        console.log('=== 调试信息 ===');
+        console.log('Canvas 位置:', canvasRect.left, canvasRect.top);
+        console.log('设计分辨率:', winSize.width, 'x', winSize.height);
+        console.log('输入框节点尺寸:', inputWidth, 'x', inputHeight);
+        console.log('验证码输入框尺寸:', codeInputW, 'x', inputHeight);
+        
+    } catch (e) {
+        console.error('修复 EditBox 样式失败:', e);
     }
 };
 
@@ -660,6 +1049,15 @@ cc.Class({
         }
     },
 
+    // 绘制圆角矩形输入框背景（辅助方法）
+    // 注意：Cocos Creator Graphics 组件没有 arcTo 方法，使用 roundRect 代替
+    _drawInputBg: function(graphics, width, height, radius) {
+        var x = -width / 2;
+        var y = -height / 2;
+        // 使用 Cocos Creator Graphics 的 roundRect 方法
+        graphics.roundRect(x, y, width, height, radius);
+    },
+
     update: function(dt) {
         if (this._isAnimating && this._loadingImage) {
             // 使用 angle 替代已废弃的 rotation 属性
@@ -731,7 +1129,7 @@ cc.Class({
 
     _createPhoneLoginPopup: function(prefab) {
         
-        // 动态创建弹窗
+        // 动态创建弹窗（使用正确的背景图和尺寸）
         try {
             var popup = this._createPhoneLoginDynamic();
             this._phoneLoginPopup = popup;
@@ -741,14 +1139,34 @@ cc.Class({
         }
     },
 
-    // 动态创建手机登录弹窗 - 按照设计图样式
+    // 动态创建手机登录弹窗 - 使用正确的背景图和尺寸
     _createPhoneLoginDynamic: function() {
         var self = this;
 
+        // ==================== 弹窗尺寸（固定尺寸，与图片匹配）====================
+        // 使用固定尺寸：宽度520px，高度680px（与login_bg.png图片尺寸一致）
+        // 在小屏幕上自动缩放
+        var winW = cc.winSize.width;
+        var winH = cc.winSize.height;
+
+        // 图片原始尺寸
+        var imgWidth = 520;
+        var imgHeight = 680;
+
+        // 如果屏幕太小，按比例缩小
+        var scale = 1.0;
+        if (winW < imgWidth + 40) {
+            scale = (winW - 40) / imgWidth;
+        }
+        var panelWidth = imgWidth * scale;
+        var panelHeight = imgHeight * scale;
+
+        console.log("登录弹窗尺寸: " + panelWidth + " x " + panelHeight + ", 缩放比例: " + scale);
+
         // ==================== 弹窗根节点 ====================
-        var popup = new cc.Node("phone_login_popup");
+        var popup = new cc.Node("LoginDialog");
         popup.parent = this.node;
-        popup.setContentSize(cc.size(1280, 720));
+        popup.setContentSize(cc.size(winW, winH));
         popup.setPosition(0, 0);
         popup.zIndex = 1000;
 
@@ -756,426 +1174,432 @@ cc.Class({
         popup.addComponent(cc.BlockInputEvents);
 
         // ==================== 半透明背景遮罩 ====================
-        var bgMask = new cc.Node("bg_mask");
-        bgMask.parent = popup;
-        bgMask.setContentSize(cc.size(1280, 720));
-        bgMask.setPosition(0, 0);
-        var bgSprite = bgMask.addComponent(cc.Sprite);
-        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        bgMask.color = new cc.Color(0, 0, 0);
-        bgMask.opacity = 150;
+        var mask = new cc.Node("Mask");
+        mask.parent = popup;
+        mask.setContentSize(cc.size(winW, winH));
+        mask.setPosition(0, 0);
+        var maskSprite = mask.addComponent(cc.Sprite);
+        maskSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        mask.color = new cc.Color(0, 0, 0);
+        mask.opacity = 150;
 
-        // ==================== 弹窗面板参数 ====================
-        var panelWidth = 420;
-        var panelHeight = 380;
-        var panel = new cc.Node("panel");
+        // ==================== 弹窗面板 ====================
+        var panel = new cc.Node("Panel");
         panel.parent = popup;
         panel.setContentSize(cc.size(panelWidth, panelHeight));
         panel.setPosition(0, 0);
+        panel.scale = 0.7;
+        panel.opacity = 0;
 
-        // ==================== 绿色边框 ====================
-        var border = new cc.Node("border");
-        border.parent = panel;
-        border.setContentSize(cc.size(panelWidth, panelHeight));
-        border.setPosition(0, 0);
-        var borderGfx = border.addComponent(cc.Graphics);
-        // 绿色边框 #8BC34A
-        borderGfx.fillColor = new cc.Color(139, 195, 74);
-        borderGfx.roundRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 12);
-        borderGfx.fill();
+        // ==================== 弹窗背景（使用正确的 login_bg 图片）====================
+        var bg = new cc.Node("Bg");
+        bg.parent = panel;
+        // 先设置一个临时尺寸
+        bg.setContentSize(cc.size(panelWidth, panelHeight));
+        bg.setPosition(0, 0);
+        bg.zIndex = 0;  // 背景在最底层
 
-        // ==================== 米黄色内容背景 ====================
-        var content = new cc.Node("content");
-        content.parent = panel;
-        content.setContentSize(cc.size(panelWidth - 8, panelHeight - 8));
-        content.setPosition(0, 0);
-        var contentGfx = content.addComponent(cc.Graphics);
-        // 米黄色背景 #FFF8E8
-        contentGfx.fillColor = new cc.Color(255, 248, 232);
-        contentGfx.roundRect(-(panelWidth - 8)/2, -(panelHeight - 8)/2, panelWidth - 8, panelHeight - 8, 10);
-        contentGfx.fill();
+        // 先添加Sprite组件并设置sizeMode
+        var bgSprite = bg.addComponent(cc.Sprite);
+        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;  // 使用自定义尺寸，不跟随图片
+        bgSprite.srcBlendFactor = cc.macro.BlendFactor.SRC_ALPHA;
+        bgSprite.dstBlendFactor = cc.macro.BlendFactor.ONE_MINUS_SRC_ALPHA;
 
-        // ==================== 黄色标题栏 ====================
-        var titleBarHeight = 50;
-        var titleBar = new cc.Node("title_bar");
-        titleBar.parent = panel;
-        titleBar.setContentSize(cc.size(panelWidth - 8, titleBarHeight));
-        titleBar.setPosition(0, panelHeight/2 - titleBarHeight/2 - 4);
-        var titleBarGfx = titleBar.addComponent(cc.Graphics);
-        // 黄色 #FFC107
-        titleBarGfx.fillColor = new cc.Color(255, 193, 7);
-        titleBarGfx.roundRect(-(panelWidth - 8)/2, -titleBarHeight/2, panelWidth - 8, titleBarHeight, [10, 10, 0, 0]);
-        titleBarGfx.fill();
+        // 加载背景图（使用 UI/login/login_bg.png）
+        cc.resources.load("UI/login/login_bg", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.warn("加载 login_bg 失败，使用默认背景:", err);
+                // 降级：使用渐变背景
+                bg.removeComponent(cc.Sprite);
+                var bgGfx = bg.addComponent(cc.Graphics);
+                bgGfx.fillColor = new cc.Color(45, 35, 25);
+                bgGfx.roundRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 20);
+                bgGfx.fill();
+                return;
+            }
 
-        // ==================== 标题文字 ====================
-        var titleNode = new cc.Node("title_label");
-        titleNode.parent = titleBar;
-        titleNode.setPosition(0, 0);
+            // 设置spriteFrame
+            bgSprite.spriteFrame = spriteFrame;
+
+            // 关键：再次确保尺寸正确（防止被图片尺寸覆盖）
+            bg.setContentSize(cc.size(panelWidth, panelHeight));
+
+            console.log("背景图加载成功，显示尺寸: " + bg.width + " x " + bg.height);
+        });
+
+        // ==================== 标题文字（欢乐登录）====================
+        // 金色描边，白色主体，居中，顶部距边40px
+        var titleNode = new cc.Node("Title");
+        titleNode.parent = panel;
+        titleNode.setPosition(0, panelHeight/2 - 60);
+        
         var titleLabel = titleNode.addComponent(cc.Label);
         titleLabel.string = "欢乐登录";
-        titleLabel.fontSize = 24;
-        titleLabel.lineHeight = 36;
+        titleLabel.fontSize = 36;
+        titleLabel.lineHeight = 44;
         titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         titleNode.color = new cc.Color(255, 255, 255);
-
-        // ==================== 关闭按钮（右上角圆形黄色）====================
-        var closeBtn = new cc.Node("close_btn");
-        closeBtn.parent = panel;
-        closeBtn.setContentSize(cc.size(36, 36));
-        closeBtn.setPosition(panelWidth/2 - 26, panelHeight/2 - 26);
         
-        // 黄色圆形背景
-        var closeBgGfx = closeBtn.addComponent(cc.Graphics);
-        closeBgGfx.fillColor = new cc.Color(255, 193, 7);
-        closeBgGfx.circle(0, 0, 18);
-        closeBgGfx.fill();
+        // 金色描边
+        var titleOutline = titleNode.addComponent(cc.LabelOutline);
+        titleOutline.color = new cc.Color(218, 165, 32); // 金色
+        titleOutline.width = 3;
+
+        // ==================== 关闭按钮（右上角圆形，红金色，46x46）====================
+        var closeBtn = new cc.Node("BtnClose");
+        closeBtn.parent = panel;
+        closeBtn.setContentSize(cc.size(46, 46));
+        closeBtn.setPosition(panelWidth/2 - 35, panelHeight/2 - 35);
+        
+        // 红金色圆形背景
+        var closeGfx = closeBtn.addComponent(cc.Graphics);
+        closeGfx.fillColor = new cc.Color(200, 60, 60); // 红色
+        closeGfx.circle(0, 0, 23);
+        closeGfx.fill();
+        closeGfx.strokeColor = new cc.Color(218, 165, 32); // 金色边框
+        closeGfx.lineWidth = 2;
+        closeGfx.circle(0, 0, 22);
+        closeGfx.stroke();
         
         // X 符号
-        var closeX = new cc.Node("x");
+        var closeX = new cc.Node("X");
         closeX.parent = closeBtn;
         var closeXLabel = closeX.addComponent(cc.Label);
         closeXLabel.string = "×";
         closeXLabel.fontSize = 28;
-        closeXLabel.lineHeight = 36;
+        closeXLabel.lineHeight = 32;
         closeXLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        closeX.color = new cc.Color(141, 110, 99); // 棕色
+        closeX.color = new cc.Color(255, 255, 255);
 
         closeBtn.on(cc.Node.EventType.TOUCH_END, function() {
-            popup.destroy();
+            // 清理原生 HTML input 元素
+            if (cc.sys.isBrowser) {
+                var container = document.getElementById('native-input-container');
+                if (container) {
+                    container.remove();
+                }
+            }
+            // 关闭动画
+            cc.tween(panel)
+                .to(0.15, { scale: 0.8, opacity: 0 }, { easing: 'backIn' })
+                .call(function() {
+                    popup.destroy();
+                })
+                .start();
         }, this);
 
         // ==================== 表单布局参数 ====================
-        var formY = panelHeight/2 - titleBarHeight - 30;
-        var inputWidth = 320;
-        var inputHeight = 42;
-        var rowGap = 20;
+        // 根据背景图login_bg.png(520x680)的精确预留位置设置元素
+        // 使用项目现有的UI资源：
+        //   icon_phone.png - 手机图标
+        //   icon_shield.png - 验证码图标
+        //   get_mobile_code.png - 获取验证码按钮
+
+        // 计算缩放比例（小屏幕适配）
+        var scaleRatio = panelWidth / 520;
+
+        // 输入框尺寸
+        var inputWidth = 220 * scaleRatio;   // 输入框宽度
+        var inputHeight = 60 * scaleRatio;   // 输入框高度
+        var iconSize = 25 * scaleRatio;      // 图标大小
+        var formY1 = 150 * scaleRatio;        // 第一个输入框Y坐标
+        var formY2 = 60 * scaleRatio;       // 第二个输入框Y坐标
+        var getCodeBtnWidth = 90 * scaleRatio;  // 获取验证码按钮宽度
+
+        console.log("布局参数: scaleRatio=" + scaleRatio.toFixed(2));
+
+        // ==================== 手机号输入行 ====================
+        // 布局：[图标] [输入框] 整体居中
+        var phoneRowWidth = iconSize + 15 + inputWidth;  // 总宽度
+        var phoneRowX = 0;  // 整体居中
+
+        // 手机图标 - 放在输入框左边
+        var phoneIconNode = new cc.Node("PhoneIcon");
+        phoneIconNode.parent = panel;
+        phoneIconNode.setPosition(-phoneRowWidth/2 + iconSize/2 + 10, formY1);
+        phoneIconNode.setContentSize(cc.size(iconSize, iconSize));
+
+        cc.resources.load("UI/login/icon_phone", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err) {
+                var iconSprite = phoneIconNode.addComponent(cc.Sprite);
+                iconSprite.spriteFrame = spriteFrame;
+                iconSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+            }
+        });
 
         // ==================== 手机号输入框 ====================
-        var phoneBg = new cc.Node("phone_input_bg");
-        phoneBg.parent = panel;
-        phoneBg.setContentSize(cc.size(inputWidth, inputHeight));
-        phoneBg.setPosition(0, formY);
-        var phoneBgGfx = phoneBg.addComponent(cc.Graphics);
-        phoneBgGfx.fillColor = new cc.Color(255, 255, 255);
-        phoneBgGfx.roundRect(-inputWidth/2, -inputHeight/2, inputWidth, inputHeight, 6);
-        phoneBgGfx.fill();
-        phoneBgGfx.strokeColor = new cc.Color(230, 230, 230);
-        phoneBgGfx.lineWidth = 1;
-        phoneBgGfx.roundRect(-inputWidth/2, -inputHeight/2, inputWidth, inputHeight, 6);
-        phoneBgGfx.stroke();
+        // login_bg.png 中已包含输入框背景，只需放置透明的 EditBox
+        // 注意：由于 panel 有缩放动画，EditBox 需要在动画完成后创建，否则点击区域位置不对
+        var phoneInputNode = new cc.Node("PhoneInput");
+        phoneInputNode.parent = panel;
+        phoneInputNode.setContentSize(cc.size(inputWidth, inputHeight));
+        phoneInputNode.setPosition(-phoneRowWidth/2 + iconSize + 15 + inputWidth/2, formY1);
+        phoneInputNode.zIndex = 100;
 
-        // 手机图标
-        var phoneIcon = new cc.Node("phone_icon");
-        phoneIcon.parent = phoneBg;
-        phoneIcon.setPosition(-inputWidth/2 + 25, 0);
-        var phoneIconLabel = phoneIcon.addComponent(cc.Label);
-        phoneIconLabel.string = "📱";
-        phoneIconLabel.fontSize = 18;
+        var phoneEditBox = null;  // 延迟创建
 
-        // 手机号输入框
-        var phoneInputNode = new cc.Node("phone_input");
-        phoneInputNode.parent = phoneBg;
-        phoneInputNode.setContentSize(cc.size(inputWidth - 60, inputHeight - 4));
-        phoneInputNode.setPosition(15, 0);
-        var phoneEditBox = phoneInputNode.addComponent(cc.EditBox);
-        phoneEditBox.placeholder = "请输入手机号";
-        phoneEditBox.fontSize = 16;
-        phoneEditBox.placeholderFontSize = 14;
-        phoneEditBox.fontColor = new cc.Color(0, 0, 0, 255); // 纯黑色字体，带完全不透明度
-        phoneEditBox.placeholderFontColor = new cc.Color(180, 180, 180);
-        phoneEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
-        phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
-        phoneEditBox.maxLength = 11;
-        phoneEditBox.backgroundColor = new cc.Color(255, 255, 255, 255); // 完全不透明的白色背景
+        // ==================== 验证码输入行 ====================
+        // 布局：[图标] [输入框] [获取验证码按钮] 整体居中
+        var codeInputW = inputWidth - getCodeBtnWidth - 10;  // 验证码输入框宽度
+        var codeRowWidth = iconSize + 5 + codeInputW + 5 + getCodeBtnWidth;  // 总宽度
 
-        // 创建显示Label - 用于在非编辑状态下显示文字
-        var phoneDisplayLabel = new cc.Node("display_label");
-        phoneDisplayLabel.parent = phoneInputNode;
-        phoneDisplayLabel.setPosition(0, 0);
-        var phoneDisplayLabelComp = phoneDisplayLabel.addComponent(cc.Label);
-        phoneDisplayLabelComp.string = "";
-        phoneDisplayLabelComp.fontSize = 16;
-        phoneDisplayLabelComp.lineHeight = inputHeight - 4;
-        phoneDisplayLabelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
-        phoneDisplayLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
-        phoneDisplayLabel.color = new cc.Color(0, 0, 0, 255);
-        phoneDisplayLabel.active = false; // 默认隐藏，编辑时由EditBox显示
+        // 验证码图标
+        var codeIconNode = new cc.Node("CodeIcon");
+        codeIconNode.parent = panel;
+        codeIconNode.setPosition(-codeRowWidth/2 + iconSize/2 + 10, formY2);
+        codeIconNode.setContentSize(cc.size(iconSize, iconSize));
 
-        // 添加编辑事件监听
-        phoneInputNode.on('editing-did-begin', function() {
-            phoneDisplayLabel.active = false; // 编辑时隐藏显示Label
-            _applyInputStyles('#000000', '#ffffff');
-        });
-        phoneInputNode.on('editing-did-changed', function() {
-            _applyInputStyles('#000000', '#ffffff');
-        });
-        phoneInputNode.on('editing-did-ended', function() {
-            // 更新显示Label并显示
-            phoneDisplayLabelComp.string = phoneEditBox.string;
-            if (phoneEditBox.string && phoneEditBox.string.length > 0) {
-                phoneDisplayLabel.active = true;
+        cc.resources.load("UI/login/icon_shield", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err) {
+                var iconSprite = codeIconNode.addComponent(cc.Sprite);
+                iconSprite.spriteFrame = spriteFrame;
+                iconSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
             }
-            _applyInputStyles('#000000', '#ffffff');
         });
 
-        // 修复Web平台样式
-        _fixEditBoxStyle(phoneEditBox, '#000000', '#ffffff');
+        // ==================== 验证码输入框 ====================
+        // login_bg.png 中已包含输入框背景，只需放置透明的 EditBox
+        // 注意：由于 panel 有缩放动画，EditBox 需要在动画完成后创建，否则点击区域位置不对
+        var codeInputNode = new cc.Node("CodeInput");
+        codeInputNode.parent = panel;
+        codeInputNode.setContentSize(cc.size(codeInputW, inputHeight));
+        codeInputNode.setPosition(-codeRowWidth/2 + iconSize + 5 + codeInputW/2, formY2);
+        codeInputNode.zIndex = 100;
 
-        formY -= inputHeight + rowGap;
+        var codeEditBox = null;  // 延迟创建
 
-        // ==================== 验证码行 ====================
-        var codeRowWidth = inputWidth;
-        var codeInputWidth = 195;
-        var sendBtnWidth = 115;
-        var codeGap = 10;
+        // 获取验证码按钮
+        var getCodeBtn = new cc.Node("BtnGetCode");
+        getCodeBtn.parent = panel;
+        getCodeBtn.setContentSize(cc.size(getCodeBtnWidth, inputHeight));
+        getCodeBtn.setPosition(codeRowWidth/2 - getCodeBtnWidth/2, formY2);
 
-        // 验证码输入框背景
-        var codeBg = new cc.Node("code_input_bg");
-        codeBg.parent = panel;
-        codeBg.setContentSize(cc.size(codeInputWidth, inputHeight));
-        codeBg.setPosition(-codeRowWidth/2 + codeInputWidth/2, formY);
-        var codeBgGfx = codeBg.addComponent(cc.Graphics);
-        codeBgGfx.fillColor = new cc.Color(255, 255, 255);
-        codeBgGfx.roundRect(-codeInputWidth/2, -inputHeight/2, codeInputWidth, inputHeight, 6);
-        codeBgGfx.fill();
-        codeBgGfx.strokeColor = new cc.Color(230, 230, 230);
-        codeBgGfx.lineWidth = 1;
-        codeBgGfx.roundRect(-codeInputWidth/2, -inputHeight/2, codeInputWidth, inputHeight, 6);
-        codeBgGfx.stroke();
+        var getCodeBtnComp = getCodeBtn.addComponent(cc.Button);
+        getCodeBtnComp.transition = cc.Button.Transition.SCALE;
+        getCodeBtnComp.zoomScale = 0.95;
 
-        // 盾牌图标
-        var shieldIcon = new cc.Node("shield_icon");
-        shieldIcon.parent = codeBg;
-        shieldIcon.setPosition(-codeInputWidth/2 + 22, 0);
-        var shieldIconLabel = shieldIcon.addComponent(cc.Label);
-        shieldIconLabel.string = "🛡️";
-        shieldIconLabel.fontSize = 16;
+        cc.resources.load("UI/login/get_mobile_code", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.warn("加载获取验证码按钮图片失败:", err);
+                // 降级：使用纯色按钮
+                var btnGfx = getCodeBtn.addComponent(cc.Graphics);
+                btnGfx.fillColor = new cc.Color(255, 165, 0);
+                btnGfx.roundRect(-getCodeBtnWidth/2, -inputHeight/2, getCodeBtnWidth, inputHeight, 5);
+                btnGfx.fill();
 
-        // 验证码输入框
-        var codeInputNode = new cc.Node("code_input");
-        codeInputNode.parent = codeBg;
-        codeInputNode.setContentSize(cc.size(codeInputWidth - 50, inputHeight - 4));
-        codeInputNode.setPosition(12, 0);
-        var codeEditBox = codeInputNode.addComponent(cc.EditBox);
-        codeEditBox.placeholder = "验证码";
-        codeEditBox.fontSize = 16;
-        codeEditBox.placeholderFontSize = 14;
-        codeEditBox.fontColor = new cc.Color(0, 0, 0, 255); // 纯黑色字体，带完全不透明度
-        codeEditBox.placeholderFontColor = new cc.Color(180, 180, 180);
-        codeEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
-        codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
-        codeEditBox.maxLength = 6;
-        codeEditBox.backgroundColor = new cc.Color(255, 255, 255, 255); // 完全不透明的白色背景
-
-        // 创建显示Label - 用于在非编辑状态下显示文字
-        var codeDisplayLabel = new cc.Node("display_label");
-        codeDisplayLabel.parent = codeInputNode;
-        codeDisplayLabel.setPosition(0, 0);
-        var codeDisplayLabelComp = codeDisplayLabel.addComponent(cc.Label);
-        codeDisplayLabelComp.string = "";
-        codeDisplayLabelComp.fontSize = 16;
-        codeDisplayLabelComp.lineHeight = inputHeight - 4;
-        codeDisplayLabelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
-        codeDisplayLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
-        codeDisplayLabel.color = new cc.Color(0, 0, 0, 255);
-        codeDisplayLabel.active = false; // 默认隐藏，编辑时由EditBox显示
-
-        // 添加编辑事件监听
-        codeInputNode.on('editing-did-begin', function() {
-            codeDisplayLabel.active = false; // 编辑时隐藏显示Label
-            _applyInputStyles('#000000', '#ffffff');
-        });
-        codeInputNode.on('editing-did-changed', function() {
-            _applyInputStyles('#000000', '#ffffff');
-        });
-        codeInputNode.on('editing-did-ended', function() {
-            // 更新显示Label并显示
-            codeDisplayLabelComp.string = codeEditBox.string;
-            if (codeEditBox.string && codeEditBox.string.length > 0) {
-                codeDisplayLabel.active = true;
+                var btnLabel = new cc.Node("Label");
+                btnLabel.parent = getCodeBtn;
+                var labelComp = btnLabel.addComponent(cc.Label);
+                labelComp.string = "获取验证码";
+                labelComp.fontSize = 12 * scaleRatio;
+                labelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+                btnLabel.color = new cc.Color(255, 255, 255);
+                return;
             }
-            _applyInputStyles('#000000', '#ffffff');
+            var btnSprite = getCodeBtn.addComponent(cc.Sprite);
+            btnSprite.spriteFrame = spriteFrame;
+            btnSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+            getCodeBtn.setContentSize(cc.size(getCodeBtnWidth, inputHeight - 5));
         });
 
-        // 修复Web平台样式
-        _fixEditBoxStyle(codeEditBox, '#000000', '#ffffff');
+        // 倒计时状态
+        var countdown = 0;
+        var countdownLabel = null;
 
-        // 获取验证码按钮（黄色）
-        var sendCodeBtn = new cc.Node("send_code_btn");
-        sendCodeBtn.parent = panel;
-        sendCodeBtn.setContentSize(cc.size(sendBtnWidth, inputHeight));
-        sendCodeBtn.setPosition(codeRowWidth/2 - sendBtnWidth/2, formY);
-        
-        var sendCodeGfx = sendCodeBtn.addComponent(cc.Graphics);
-        sendCodeGfx.fillColor = new cc.Color(255, 193, 7); // 黄色
-        sendCodeGfx.roundRect(-sendBtnWidth/2, -inputHeight/2, sendBtnWidth, inputHeight, 6);
-        sendCodeGfx.fill();
+        // 开始倒计时
+        var startCountdown = function() {
+            countdown = 60;
+            getCodeBtnComp.interactable = false;
+            getCodeBtn.opacity = 150;
 
-        var sendCodeLabel = new cc.Node("label");
-        sendCodeLabel.parent = sendCodeBtn;
-        var sendCodeLabelComp = sendCodeLabel.addComponent(cc.Label);
-        sendCodeLabelComp.string = "获取验证码";
-        sendCodeLabelComp.fontSize = 14;
-        sendCodeLabelComp.lineHeight = 20;
-        sendCodeLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        sendCodeLabel.color = new cc.Color(255, 87, 34); // 红色文字
+            var tick = function() {
+                countdown--;
+                if (countdown <= 0) {
+                    getCodeBtnComp.interactable = true;
+                    getCodeBtn.opacity = 255;
+                    if (countdownLabel) {
+                        countdownLabel.string = "";
+                    }
+                } else {
+                    if (!countdownLabel) {
+                        countdownLabel = new cc.Node("Countdown");
+                        countdownLabel.parent = getCodeBtn;
+                        countdownLabel.color = new cc.Color(255, 255, 255);
+                        var labelComp = countdownLabel.addComponent(cc.Label);
+                        labelComp.fontSize = 14 * scaleRatio;
+                        labelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+                    }
+                    countdownLabel.getComponent(cc.Label).string = countdown + "s";
+                    self.scheduleOnce(tick, 1);
+                }
+            };
+            self.scheduleOnce(tick, 1);
+        };
 
-        var sendCodeBtnComp = sendCodeBtn.addComponent(cc.Button);
-        sendCodeBtnComp.transition = cc.Button.Transition.SCALE;
-        sendCodeBtnComp.zoomScale = 0.95;
+        // ==================== 手机登录按钮 ====================
+        var loginBtnY = formY2 - 70 * scaleRatio;
+        var loginBtnWidth = 200 * scaleRatio;
+        var loginBtnHeight = 50 * scaleRatio;
 
-        formY -= inputHeight + rowGap + 5;
-
-        // ==================== 消息提示 ====================
-        var messageLabel = new cc.Node("message_label");
-        messageLabel.parent = panel;
-        messageLabel.setPosition(0, formY);
-        var messageLabelComp = messageLabel.addComponent(cc.Label);
-        messageLabelComp.string = "";
-        messageLabelComp.fontSize = 12;
-        messageLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        messageLabel.active = false;
-
-        formY -= 20;
-
-        // ==================== 手机登录按钮（橙色）====================
-        var loginBtnWidth = inputWidth;
-        var loginBtnHeight = 48;
-        
-        var loginBtn = new cc.Node("login_btn");
+        var loginBtn = new cc.Node("BtnLogin");
         loginBtn.parent = panel;
         loginBtn.setContentSize(cc.size(loginBtnWidth, loginBtnHeight));
-        loginBtn.setPosition(0, formY);
-        
-        var loginGfx = loginBtn.addComponent(cc.Graphics);
-        loginGfx.fillColor = new cc.Color(255, 152, 0); // 橙色
-        loginGfx.roundRect(-loginBtnWidth/2, -loginBtnHeight/2, loginBtnWidth, loginBtnHeight, 8);
-        loginGfx.fill();
+        loginBtn.setPosition(0, loginBtnY);
 
-        var loginLabel = new cc.Node("label");
-        loginLabel.parent = loginBtn;
-        var loginLabelComp = loginLabel.addComponent(cc.Label);
-        loginLabelComp.string = "手机登录";
-        loginLabelComp.fontSize = 18;
-        loginLabelComp.lineHeight = 28;
-        loginLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        loginLabel.color = new cc.Color(255, 255, 255);
+        // 尝试加载按钮图片
+        cc.resources.load("UI/login/btn_mobile_login", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                // 降级：使用纯色按钮
+                var loginGfx = loginBtn.addComponent(cc.Graphics);
+                loginGfx.fillColor = new cc.Color(255, 140, 0);
+                loginGfx.roundRect(-loginBtnWidth/2, -loginBtnHeight/2, loginBtnWidth, loginBtnHeight, 8 * scaleRatio);
+                loginGfx.fill();
+                return;
+            }
+            var loginSprite = loginBtn.addComponent(cc.Sprite);
+            loginSprite.spriteFrame = spriteFrame;
+            loginSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+            loginBtn.setContentSize(cc.size(loginBtnWidth, loginBtnHeight));
+        });
 
         var loginBtnComp = loginBtn.addComponent(cc.Button);
         loginBtnComp.transition = cc.Button.Transition.SCALE;
         loginBtnComp.zoomScale = 0.95;
 
-        formY -= loginBtnHeight + 20;
+        // ==================== 微信登录按钮 ====================
+        var wxBtnY = loginBtnY - 65 * scaleRatio;
+        var wxBtnSize = 50 * scaleRatio;
 
-        // ==================== 分隔线 ====================
-        var dividerNode = new cc.Node("divider");
-        dividerNode.parent = panel;
-        dividerNode.setPosition(0, formY);
-        var dividerGfx = dividerNode.addComponent(cc.Graphics);
-        dividerGfx.strokeColor = new cc.Color(200, 200, 200);
-        dividerGfx.lineWidth = 1;
-        dividerGfx.moveTo(-inputWidth/2, 0);
-        dividerGfx.lineTo(-35, 0);
-        dividerGfx.stroke();
-        dividerGfx.moveTo(35, 0);
-        dividerGfx.lineTo(inputWidth/2, 0);
-        dividerGfx.stroke();
-
-        var orLabel = new cc.Node("or_label");
-        orLabel.parent = dividerNode;
-        var orLabelComp = orLabel.addComponent(cc.Label);
-        orLabelComp.string = "其他方式";
-        orLabelComp.fontSize = 12;
-        orLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        orLabel.color = new cc.Color(180, 180, 180);
-
-        formY -= 25;
-
-        // ==================== 微信登录图标 ====================
-        var wxBtn = new cc.Node("wx_login_btn");
+        var wxBtn = new cc.Node("BtnWechat");
         wxBtn.parent = panel;
-        wxBtn.setContentSize(cc.size(48, 48));
-        wxBtn.setPosition(0, formY);
-        
-        // 绿色圆形背景
-        var wxBgGfx = wxBtn.addComponent(cc.Graphics);
-        wxBgGfx.fillColor = new cc.Color(7, 193, 96);
-        wxBgGfx.circle(0, 0, 24);
-        wxBgGfx.fill();
+        wxBtn.setContentSize(cc.size(wxBtnSize, wxBtnSize));
+        wxBtn.setPosition(0, wxBtnY);
 
-        // 微信图标
-        var wxIcon = new cc.Node("wx_icon");
-        wxIcon.parent = wxBtn;
-        var wxIconLabel = wxIcon.addComponent(cc.Label);
-        wxIconLabel.string = "💬";
-        wxIconLabel.fontSize = 24;
+        // 尝试加载微信图标
+        cc.resources.load("UI/login/icon_wechat", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                // 降级：使用绿色圆形背景
+                var wxBgGfx = wxBtn.addComponent(cc.Graphics);
+                wxBgGfx.fillColor = new cc.Color(7, 193, 96);
+                wxBgGfx.circle(0, 0, wxBtnSize/2);
+                wxBgGfx.fill();
+                return;
+            }
+            var wxSprite = wxBtn.addComponent(cc.Sprite);
+            wxSprite.spriteFrame = spriteFrame;
+            wxSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+            wxBtn.setContentSize(cc.size(wxBtnSize, wxBtnSize));
+        });
 
         var wxBtnComp = wxBtn.addComponent(cc.Button);
         wxBtnComp.transition = cc.Button.Transition.SCALE;
-        wxBtnComp.zoomScale = 0.9;
+        wxBtnComp.zoomScale = 0.95;
+
+        // 微信登录文字
+        var wxLabel = new cc.Node("LabelWechat");
+        wxLabel.parent = panel;
+        wxLabel.setPosition(0, wxBtnY - 35 * scaleRatio);
+        var wxLabelComp = wxLabel.addComponent(cc.Label);
+        wxLabelComp.string = "微信登录";
+        wxLabelComp.fontSize = 12 * scaleRatio;
+        wxLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        wxLabel.color = new cc.Color(100, 80, 60);
+
+        console.log("按钮位置: loginBtnY=" + loginBtnY.toFixed(0) + ", wxBtnY=" + wxBtnY.toFixed(0));
+
+        // ==================== 消息提示（隐藏）====================
+        var messageLabel = new cc.Node("MessageLabel");
+        messageLabel.parent = panel;
+        messageLabel.setPosition(0, -panelHeight/2 + 50);
+        var messageLabelComp = messageLabel.addComponent(cc.Label);
+        messageLabelComp.string = "";
+        messageLabelComp.fontSize = 14;
+        messageLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        messageLabel.active = false;
+
+        // ==================== 弹窗进入动画 ====================
+        cc.tween(panel)
+            .to(0.25, { scale: 1, opacity: 255 }, { easing: 'backOut' })
+            .call(function() {
+                // Web 平台：直接创建原生 HTML input 元素
+                if (cc.sys.isBrowser) {
+                    _createNativeInputElements(panel, phoneInputNode, codeInputNode, inputWidth, inputHeight, codeInputW, panelWidth, panelHeight);
+                } else {
+                    // 非 Web 平台：使用 Cocos EditBox
+                    phoneEditBox = phoneInputNode.addComponent(cc.EditBox);
+                    phoneEditBox.placeholder = "请输入手机号";
+                    phoneEditBox.fontSize = 18;
+                    phoneEditBox.placeholderFontSize = 14;
+                    phoneEditBox.fontColor = new cc.Color(50, 50, 50, 255);
+                    phoneEditBox.placeholderFontColor = new cc.Color(150, 150, 150, 255);
+                    phoneEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
+                    phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
+                    phoneEditBox.maxLength = 11;
+                    phoneEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);
+                    
+                    codeEditBox = codeInputNode.addComponent(cc.EditBox);
+                    codeEditBox.placeholder = "验证码";
+                    codeEditBox.fontSize = 18;
+                    codeEditBox.placeholderFontSize = 14;
+                    codeEditBox.fontColor = new cc.Color(50, 50, 50, 255);
+                    codeEditBox.placeholderFontColor = new cc.Color(150, 150, 150, 255);
+                    codeEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
+                    codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
+                    codeEditBox.maxLength = 6;
+                    codeEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);
+                }
+                
+                console.log("输入框创建完成");
+            })
+            .start();
 
         // ==================== 功能逻辑 ====================
-        var countdown = 0;
         var phone = "";
         var code = "";
-        
+
+        // 获取输入值的辅助函数（支持原生 HTML input）
+        var getInputValue = function(inputId) {
+            if (cc.sys.isBrowser) {
+                var input = document.getElementById(inputId);
+                return input ? input.value : "";
+            }
+            return "";
+        };
+
         // 验证手机号
         var validatePhone = function(phone) {
             if (!phone || phone.length !== 11) return false;
             return /^1[3-9]\d{9}$/.test(phone);
         };
-        
+
         // 显示消息
         var showMessage = function(msg, isError) {
             messageLabel.active = true;
             messageLabelComp.string = msg;
-            messageLabel.color = isError ? new cc.Color(255, 80, 80) : new cc.Color(80, 180, 80);
-        };
-        
-        // 更新按钮颜色
-        var updateBtnColor = function(gfx, color, width, height, radius) {
-            gfx.clear();
-            gfx.fillColor = color;
-            gfx.roundRect(-width/2, -height/2, width, height, radius);
-            gfx.fill();
+            messageLabel.color = isError ? new cc.Color(255, 80, 80) : new cc.Color(100, 200, 100);
         };
 
-        // 开始倒计时
-        var startCountdown = function() {
-            countdown = 60;
-            sendCodeBtnComp.interactable = false;
-            updateBtnColor(sendCodeGfx, new cc.Color(180, 180, 180), sendBtnWidth, inputHeight, 6);
-
-            var tick = function() {
-                countdown--;
-                if (countdown <= 0) {
-                    sendCodeLabelComp.string = "获取验证码";
-                    sendCodeBtnComp.interactable = true;
-                    updateBtnColor(sendCodeGfx, new cc.Color(255, 193, 7), sendBtnWidth, inputHeight, 6);
-                } else {
-                    sendCodeLabelComp.string = countdown + "s";
-                    self.scheduleOnce(tick, 1);
-                }
-            };
-            self.scheduleOnce(tick, 1);
-            sendCodeLabelComp.string = countdown + "s";
-        };
-        
-        // 发送验证码
-        sendCodeBtn.on(cc.Node.EventType.TOUCH_END, function() {
-            phone = phoneEditBox.string || "";
+        // 获取验证码 - onGetCode()
+        getCodeBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            // 支持原生 HTML input 或 Cocos EditBox
+            if (cc.sys.isBrowser) {
+                phone = getInputValue('native-phone-input');
+            } else if (phoneEditBox) {
+                phone = phoneEditBox.string || "";
+            }
+            
             if (!validatePhone(phone)) {
                 showMessage("请输入正确的手机号", true);
                 return;
             }
-            
+
             var defines = window.defines;
             if (!defines || !defines.apiUrl) {
                 showMessage("验证码已发送(测试)", false);
                 startCountdown();
                 return;
             }
-            
+
             // 使用加密请求发送验证码
             var HttpAPI = window.HttpAPI;
             if (HttpAPI && defines.cryptoKey) {
@@ -1226,10 +1650,16 @@ cc.Class({
             }
         });
 
-        // 手机登录
+        // 手机登录 - onPhoneLogin()
         loginBtn.on(cc.Node.EventType.TOUCH_END, function() {
-            phone = phoneEditBox.string || "";
-            code = codeEditBox.string || "";
+            // 支持原生 HTML input 或 Cocos EditBox
+            if (cc.sys.isBrowser) {
+                phone = getInputValue('native-phone-input');
+                code = getInputValue('native-code-input');
+            } else {
+                if (phoneEditBox) phone = phoneEditBox.string || "";
+                if (codeEditBox) code = codeEditBox.string || "";
+            }
 
             if (!validatePhone(phone)) {
                 showMessage("请输入正确的手机号", true);
@@ -1348,7 +1778,7 @@ cc.Class({
             }
         });
 
-        // 微信登录
+        // 微信登录 - onWechatLogin()
         wxBtn.on(cc.Node.EventType.TOUCH_END, function() {
             showMessage("正在登录...", false);
 

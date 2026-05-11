@@ -188,7 +188,7 @@ var _injectGlobalStyles = function(fontColor, bgColor) {
 };
 
 // 创建原生 HTML input 元素（绕过 Cocos EditBox 的问题）
-// 改进版 v3：基于背景图尺寸直接计算输入框位置
+// 改进版 v4：使用节点世界坐标精确定位
 var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, inputWidth, inputHeight, codeInputW, panelWidth, panelHeight) {
     if (!cc.sys.isBrowser) return;
     
@@ -203,72 +203,67 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         var canvasRect = canvas.getBoundingClientRect();
         var winSize = cc.winSize;
         
-        console.log('=== 创建原生输入框（v3 - 基于背景图尺寸）===');
+        console.log('=== 创建原生输入框（v4 - 使用节点世界坐标）===');
         console.log('Canvas 位置:', canvasRect.left, canvasRect.top);
         console.log('Canvas 尺寸:', canvasRect.width, 'x', canvasRect.height);
         console.log('游戏分辨率:', winSize.width, 'x', winSize.height);
-        console.log('面板尺寸:', panelWidth, 'x', panelHeight);
         
         // 计算缩放比例（Canvas 实际尺寸 / 游戏设计分辨率）
         var scaleX = canvasRect.width / winSize.width;
         var scaleY = canvasRect.height / winSize.height;
         console.log('缩放比例:', scaleX.toFixed(3), scaleY.toFixed(3));
         
-        // ==================== 关键：原生输入框位置参数 ====================
-        // 修改这些值可以调整原生 HTML 输入框的位置
-        // Y 坐标：正值向上，负值向下（相对于面板中心）
-        // X 坐标：正值向右，负值向左（相对于面板中心）
+        // ==================== 关键改进：使用节点世界坐标 ====================
+        // 直接使用 Cocos 节点的世界坐标，而不是手动计算偏移
         
-        // ★★★ 修改这里调整输入框位置 ★★★
-        var phoneInputY = 75;    // 手机输入框 Y 坐标（正值向上）
-        var phoneInputX = 0;     // 手机输入框 X 坐标（0=居中）
-        var codeInputY = 5;      // 验证码输入框 Y 坐标（正值向上）
-        var codeInputX = 0;      // 验证码输入框 X 坐标（0=居中）
+        // 获取输入框节点的世界坐标
+        var phoneWorldPos = phoneInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
+        var codeWorldPos = codeInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
         
-        // ★★★ 修改这里调整输入框尺寸 ★★★
-        var actualInputWidth = 180;      // 手机输入框宽度
-        var actualInputHeight = 50;      // 输入框高度
-        var actualCodeInputWidth = 110;  // 验证码输入框宽度
+        console.log('手机输入框世界坐标:', phoneWorldPos.x.toFixed(1), phoneWorldPos.y.toFixed(1));
+        console.log('验证码输入框世界坐标:', codeWorldPos.x.toFixed(1), codeWorldPos.y.toFixed(1));
         
-        console.log('=== 原生输入框参数 ===');
-        console.log('phoneInputY:', phoneInputY, ', phoneInputX:', phoneInputX);
-        console.log('codeInputY:', codeInputY, ', codeInputX:', codeInputX);
-        console.log('actualInputWidth:', actualInputWidth, ', actualInputHeight:', actualInputHeight);
+        // ★★★ 位置微调参数（如果需要微调，修改这里）★★★
+        var phoneOffsetX = 0;    // 手机输入框 X 偏移
+        var phoneOffsetY = 0;    // 手机输入框 Y 偏移
+        var codeOffsetX = 0;     // 验证码输入框 X 偏移
+        var codeOffsetY = 0;     // 验证码输入框 Y 偏移
         
-        // 获取面板位置
-        var panelPos = panel.getPosition();
-        console.log('面板位置:', panelPos.x.toFixed(1), panelPos.y.toFixed(1));
+        // ★★★ 尺寸参数 ★★★
+        var actualInputWidth = inputWidth;      // 使用传入的输入框宽度
+        var actualInputHeight = inputHeight;    // 使用传入的输入框高度
+        var actualCodeInputWidth = codeInputW;  // 使用传入的验证码输入框宽度
         
-        // 计算输入框相对于屏幕中心的最终位置
-        var phoneFinalX = panelPos.x + phoneInputX;
-        var phoneFinalY = panelPos.y + phoneInputY;
-        var codeFinalX = panelPos.x + codeInputX;
-        var codeFinalY = panelPos.y + codeInputY;
+        console.log('=== 输入框尺寸 ===');
+        console.log('手机输入框:', actualInputWidth, 'x', actualInputHeight);
+        console.log('验证码输入框:', actualCodeInputWidth, 'x', actualInputHeight);
         
-        console.log('手机输入框最终坐标:', phoneFinalX.toFixed(1), phoneFinalY.toFixed(1));
-        console.log('验证码输入框最终坐标:', codeFinalX.toFixed(1), codeFinalY.toFixed(1));
-        
-        // 计算屏幕位置
-        var canvasCenterX = canvasRect.width / 2 + canvasRect.left;
-        var canvasCenterY = canvasRect.height / 2 + canvasRect.top;
-        
-        var calcScreenPos = function(finalX, finalY, nodeWidth, nodeHeight) {
-            var screenCenterX = canvasCenterX + finalX * scaleX;
-            var screenCenterY = canvasCenterY - finalY * scaleY;
+        // 计算屏幕位置（世界坐标 -> 屏幕坐标）
+        // Cocos 坐标系：原点左下角，Y 向上
+        // HTML 坐标系：原点左上角，Y 向下
+        var calcScreenPosFromWorld = function(worldPos, nodeWidth, nodeHeight, offsetX, offsetY) {
+            // 世界坐标转换为屏幕坐标
+            var screenX = worldPos.x + offsetX;
+            var screenY = worldPos.y + offsetY;
             
+            // 转换为 Canvas 坐标
+            var canvasX = screenX * scaleX;
+            var canvasY = canvasRect.height - screenY * scaleY;  // Y 轴翻转
+            
+            // 计算实际尺寸
             var actualWidth = nodeWidth * scaleX;
             var actualHeight = nodeHeight * scaleY;
             
             return {
-                left: screenCenterX - actualWidth / 2,
-                top: screenCenterY - actualHeight / 2,
+                left: canvasRect.left + canvasX - actualWidth / 2,
+                top: canvasRect.top + canvasY - actualHeight / 2,
                 width: actualWidth,
                 height: actualHeight
             };
         };
         
-        var phoneScreen = calcScreenPos(phoneFinalX, phoneFinalY, actualInputWidth, actualInputHeight);
-        var codeScreen = calcScreenPos(codeFinalX, codeFinalY, actualCodeInputWidth, actualInputHeight);
+        var phoneScreen = calcScreenPosFromWorld(phoneWorldPos, actualInputWidth, actualInputHeight, phoneOffsetX, phoneOffsetY);
+        var codeScreen = calcScreenPosFromWorld(codeWorldPos, actualCodeInputWidth, actualInputHeight, codeOffsetX, codeOffsetY);
         
         console.log('手机输入框屏幕位置:', phoneScreen);
         console.log('验证码输入框屏幕位置:', codeScreen);
