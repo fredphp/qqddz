@@ -49,7 +49,13 @@ var _applyInputStyles = function(fontColor, bgColor) {
 };
 
 // 样式化单个input元素 - 修复版：文字垂直居中 + 透明背景不遮挡边框
+// 注意：跳过原生输入框（native-phone-input, native-code-input），因为它们有精确的位置设置
 var _styleSingleInput = function(input, fontColor, bgColor) {
+    // ★ 跳过原生输入框，它们已经有正确的样式
+    if (input.id === 'native-phone-input' || input.id === 'native-code-input') {
+        return;
+    }
+    
     // ==================== 核心样式设置 ====================
     
     // 1. 文字颜色
