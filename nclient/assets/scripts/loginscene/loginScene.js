@@ -187,6 +187,141 @@ var _injectGlobalStyles = function(fontColor, bgColor) {
     }
 };
 
+// 创建原生 HTML input 元素（绕过 Cocos EditBox 的问题）
+var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, inputWidth, inputHeight, codeInputW, panelWidth, panelHeight) {
+    if (!cc.sys.isBrowser) return;
+    
+    try {
+        // 获取 Canvas 元素
+        var canvas = document.getElementById('GameCanvas') || document.querySelector('canvas');
+        if (!canvas) {
+            console.error('找不到 Canvas 元素');
+            return;
+        }
+        
+        var canvasRect = canvas.getBoundingClientRect();
+        var winSize = cc.winSize;
+        
+        console.log('=== 创建原生输入框 ===');
+        console.log('Canvas 位置和尺寸:', canvasRect.left, canvasRect.top, canvasRect.width, 'x', canvasRect.height);
+        console.log('游戏分辨率:', winSize.width, 'x', winSize.height);
+        
+        // 计算缩放比例
+        var scaleX = canvasRect.width / winSize.width;
+        var scaleY = canvasRect.height / winSize.height;
+        
+        // 计算 panel 在屏幕上的位置
+        // panel 的 position 是 (0, 0)，锚点默认是 (0.5, 0.5)
+        // 所以 panel 的中心在屏幕中心
+        
+        // 输入框相对于 panel 的位置
+        var phonePos = phoneInputNode.getPosition();
+        var codePos = codeInputNode.getPosition();
+        
+        console.log('手机输入框本地位置:', phonePos.x, phonePos.y);
+        console.log('验证码输入框本地位置:', codePos.x, codePos.y);
+        
+        // 计算输入框在屏幕上的位置
+        // panel 中心对应屏幕中心，输入框位置相对于 panel 中心
+        // 屏幕中心 = canvasRect.width/2, canvasRect.height/2
+        // 输入框位置 = 屏幕中心 + (本地位置 * 缩放)
+        // 注意 Y 轴方向：Cocos Y 向上，HTML Y 向下
+        
+        var screenCenterX = canvasRect.width / 2;
+        var screenCenterY = canvasRect.height / 2;
+        
+        // 手机输入框屏幕位置
+        var phoneScreenX = screenCenterX + phonePos.x * scaleX;
+        var phoneScreenY = screenCenterY - phonePos.y * scaleY;  // Y 轴反向
+        
+        // 验证码输入框屏幕位置
+        var codeScreenX = screenCenterX + codePos.x * scaleX;
+        var codeScreenY = screenCenterY - codePos.y * scaleY;
+        
+        // 计算输入框左上角位置（因为要设置 left 和 top）
+        var phoneLeft = phoneScreenX - (inputWidth * scaleX) / 2;
+        var phoneTop = phoneScreenY - (inputHeight * scaleY) / 2;
+        
+        var codeLeft = codeScreenX - (codeInputW * scaleX) / 2;
+        var codeTop = codeScreenY - (inputHeight * scaleY) / 2;
+        
+        console.log('手机输入框屏幕位置: left=' + phoneLeft + ', top=' + phoneTop);
+        console.log('验证码输入框屏幕位置: left=' + codeLeft + ', top=' + codeTop);
+        
+        // 创建容器（相对于 Canvas 定位）
+        var container = document.getElementById('native-input-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'native-input-container';
+            container.style.position = 'absolute';
+            container.style.left = canvasRect.left + 'px';
+            container.style.top = canvasRect.top + 'px';
+            container.style.width = canvasRect.width + 'px';
+            container.style.height = canvasRect.height + 'px';
+            container.style.pointerEvents = 'none';  // 容器不拦截事件
+            container.style.zIndex = '9999';
+            document.body.appendChild(container);
+        }
+        
+        // 创建手机号输入框
+        var phoneInput = document.getElementById('native-phone-input');
+        if (!phoneInput) {
+            phoneInput = document.createElement('input');
+            phoneInput.id = 'native-phone-input';
+            phoneInput.type = 'tel';
+            phoneInput.placeholder = '请输入手机号';
+            phoneInput.maxLength = 11;
+            container.appendChild(phoneInput);
+        }
+        
+        phoneInput.style.position = 'absolute';
+        phoneInput.style.left = phoneLeft + 'px';
+        phoneInput.style.top = phoneTop + 'px';
+        phoneInput.style.width = (inputWidth * scaleX) + 'px';
+        phoneInput.style.height = (inputHeight * scaleY) + 'px';
+        phoneInput.style.background = 'rgba(255,255,255,0.8)';
+        phoneInput.style.border = '2px solid #DAA520';
+        phoneInput.style.borderRadius = '8px';
+        phoneInput.style.fontSize = '16px';
+        phoneInput.style.color = '#333';
+        phoneInput.style.padding = '0 10px';
+        phoneInput.style.boxSizing = 'border-box';
+        phoneInput.style.outline = 'none';
+        phoneInput.style.pointerEvents = 'auto';
+        
+        // 创建验证码输入框
+        var codeInput = document.getElementById('native-code-input');
+        if (!codeInput) {
+            codeInput = document.createElement('input');
+            codeInput.id = 'native-code-input';
+            codeInput.type = 'text';
+            codeInput.placeholder = '验证码';
+            codeInput.maxLength = 6;
+            container.appendChild(codeInput);
+        }
+        
+        codeInput.style.position = 'absolute';
+        codeInput.style.left = codeLeft + 'px';
+        codeInput.style.top = codeTop + 'px';
+        codeInput.style.width = (codeInputW * scaleX) + 'px';
+        codeInput.style.height = (inputHeight * scaleY) + 'px';
+        codeInput.style.background = 'rgba(255,255,255,0.8)';
+        codeInput.style.border = '2px solid #DAA520';
+        codeInput.style.borderRadius = '8px';
+        codeInput.style.fontSize = '16px';
+        codeInput.style.color = '#333';
+        codeInput.style.padding = '0 10px';
+        codeInput.style.boxSizing = 'border-box';
+        codeInput.style.outline = 'none';
+        codeInput.style.pointerEvents = 'auto';
+        
+        console.log('原生输入框创建完成');
+        
+    } catch (e) {
+        console.error('创建原生输入框失败:', e);
+    }
+};
+
 // 修复 EditBox 的 HTML input 元素位置和尺寸
 var _fixEditBoxInputElements = function(panel, phoneInputNode, codeInputNode, inputWidth, inputHeight, codeInputW, phoneEditBox, codeEditBox) {
     if (!cc.sys.isBrowser) return;
@@ -1069,6 +1204,13 @@ cc.Class({
         closeX.color = new cc.Color(255, 255, 255);
 
         closeBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            // 清理原生 HTML input 元素
+            if (cc.sys.isBrowser) {
+                var container = document.getElementById('native-input-container');
+                if (container) {
+                    container.remove();
+                }
+            }
             // 关闭动画
             cc.tween(panel)
                 .to(0.15, { scale: 0.8, opacity: 0 }, { easing: 'backIn' })
@@ -1311,45 +1453,50 @@ cc.Class({
         cc.tween(panel)
             .to(0.25, { scale: 1, opacity: 255 }, { easing: 'backOut' })
             .call(function() {
-                // 动画完成后创建 EditBox，确保点击区域位置正确
-                // 手机号输入框
-                phoneEditBox = phoneInputNode.addComponent(cc.EditBox);
-                phoneEditBox.placeholder = "请输入手机号";
-                phoneEditBox.fontSize = 18;
-                phoneEditBox.placeholderFontSize = 14;
-                phoneEditBox.fontColor = new cc.Color(50, 50, 50, 255);
-                phoneEditBox.placeholderFontColor = new cc.Color(150, 150, 150, 255);
-                phoneEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
-                phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
-                phoneEditBox.maxLength = 11;
-                phoneEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);
-                
-                // 验证码输入框
-                codeEditBox = codeInputNode.addComponent(cc.EditBox);
-                codeEditBox.placeholder = "验证码";
-                codeEditBox.fontSize = 18;
-                codeEditBox.placeholderFontSize = 14;
-                codeEditBox.fontColor = new cc.Color(50, 50, 50, 255);
-                codeEditBox.placeholderFontColor = new cc.Color(150, 150, 150, 255);
-                codeEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
-                codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
-                codeEditBox.maxLength = 6;
-                codeEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);
-                
-                // 强制刷新 Web 平台的 HTML input 元素样式
+                // Web 平台：直接创建原生 HTML input 元素
                 if (cc.sys.isBrowser) {
-                    setTimeout(function() {
-                        _fixEditBoxInputElements(panel, phoneInputNode, codeInputNode, inputWidth, inputHeight, codeInputW, phoneEditBox, codeEditBox);
-                    }, 100);
+                    _createNativeInputElements(panel, phoneInputNode, codeInputNode, inputWidth, inputHeight, codeInputW, panelWidth, panelHeight);
+                } else {
+                    // 非 Web 平台：使用 Cocos EditBox
+                    phoneEditBox = phoneInputNode.addComponent(cc.EditBox);
+                    phoneEditBox.placeholder = "请输入手机号";
+                    phoneEditBox.fontSize = 18;
+                    phoneEditBox.placeholderFontSize = 14;
+                    phoneEditBox.fontColor = new cc.Color(50, 50, 50, 255);
+                    phoneEditBox.placeholderFontColor = new cc.Color(150, 150, 150, 255);
+                    phoneEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
+                    phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
+                    phoneEditBox.maxLength = 11;
+                    phoneEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);
+                    
+                    codeEditBox = codeInputNode.addComponent(cc.EditBox);
+                    codeEditBox.placeholder = "验证码";
+                    codeEditBox.fontSize = 18;
+                    codeEditBox.placeholderFontSize = 14;
+                    codeEditBox.fontColor = new cc.Color(50, 50, 50, 255);
+                    codeEditBox.placeholderFontColor = new cc.Color(150, 150, 150, 255);
+                    codeEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
+                    codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
+                    codeEditBox.maxLength = 6;
+                    codeEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);
                 }
                 
-                console.log("EditBox 创建完成，点击区域已正确对齐");
+                console.log("输入框创建完成");
             })
             .start();
 
         // ==================== 功能逻辑 ====================
         var phone = "";
         var code = "";
+
+        // 获取输入值的辅助函数（支持原生 HTML input）
+        var getInputValue = function(inputId) {
+            if (cc.sys.isBrowser) {
+                var input = document.getElementById(inputId);
+                return input ? input.value : "";
+            }
+            return "";
+        };
 
         // 验证手机号
         var validatePhone = function(phone) {
@@ -1366,7 +1513,13 @@ cc.Class({
 
         // 获取验证码 - onGetCode()
         getCodeBtn.on(cc.Node.EventType.TOUCH_END, function() {
-            phone = phoneEditBox.string || "";
+            // 支持原生 HTML input 或 Cocos EditBox
+            if (cc.sys.isBrowser) {
+                phone = getInputValue('native-phone-input');
+            } else if (phoneEditBox) {
+                phone = phoneEditBox.string || "";
+            }
+            
             if (!validatePhone(phone)) {
                 showMessage("请输入正确的手机号", true);
                 return;
@@ -1431,8 +1584,14 @@ cc.Class({
 
         // 手机登录 - onPhoneLogin()
         loginBtn.on(cc.Node.EventType.TOUCH_END, function() {
-            phone = phoneEditBox.string || "";
-            code = codeEditBox.string || "";
+            // 支持原生 HTML input 或 Cocos EditBox
+            if (cc.sys.isBrowser) {
+                phone = getInputValue('native-phone-input');
+                code = getInputValue('native-code-input');
+            } else {
+                if (phoneEditBox) phone = phoneEditBox.string || "";
+                if (codeEditBox) code = codeEditBox.string || "";
+            }
 
             if (!validatePhone(phone)) {
                 showMessage("请输入正确的手机号", true);
