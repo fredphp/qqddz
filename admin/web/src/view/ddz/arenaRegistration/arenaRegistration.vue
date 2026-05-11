@@ -16,7 +16,7 @@
     <div v-if="playerInfo" class="player-info-card">
       <el-card>
         <div class="player-info">
-          <el-avatar :size="64" :src="playerInfo.avatar || defaultAvatar" />
+          <el-avatar :size="64" :src="getAvatarUrl(playerInfo.avatar)" />
           <div class="player-details">
             <div class="player-name">{{ playerInfo.nickname }}</div>
             <div class="player-id">ID: {{ playerInfo.ID }}</div>
@@ -157,6 +157,21 @@ defineOptions({
 })
 
 const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+
+// 获取完整的头像URL
+const getAvatarUrl = (avatar) => {
+  if (!avatar) return defaultAvatar
+  // 如果已经是完整URL，直接返回
+  if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+    return avatar
+  }
+  // 如果是相对路径，添加后端域名
+  if (avatar.startsWith('/')) {
+    return 'http://admin.qqddz.local' + avatar
+  }
+  // 其他情况返回默认头像
+  return defaultAvatar
+}
 
 const searchInfo = reactive({
   playerId: ''
