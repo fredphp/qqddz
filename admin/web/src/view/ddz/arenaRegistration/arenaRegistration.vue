@@ -166,11 +166,12 @@ const getAvatarUrl = (avatar) => {
     return avatar
   }
   // 如果是相对路径，添加后端域名
+  // 处理以 / 开头的路径
   if (avatar.startsWith('/')) {
     return 'http://admin.qqddz.local' + avatar
   }
-  // 其他情况返回默认头像
-  return defaultAvatar
+  // 处理不以 / 开头的相对路径（如 uploads/file/...）
+  return 'http://admin.qqddz.local/' + avatar
 }
 
 const searchInfo = reactive({
