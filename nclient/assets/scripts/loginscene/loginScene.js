@@ -900,16 +900,15 @@ cc.Class({
 
         console.log("布局参数: scaleRatio=" + scaleRatio.toFixed(2));
 
-        // ==================== 手机号输入框（带图标）====================
-        var phoneRow = new cc.Node("PhoneRow");
-        phoneRow.parent = panel;
-        phoneRow.setContentSize(cc.size(inputWidth + iconSize + 10, inputHeight));
-        phoneRow.setPosition(0, formY1);
+        // ==================== 手机号输入行 ====================
+        // 布局：[图标] [输入框] 整体居中
+        var phoneRowWidth = iconSize + 5 + inputWidth;  // 总宽度
+        var phoneRowX = 0;  // 整体居中
 
-        // 手机图标
+        // 手机图标 - 放在输入框左边
         var phoneIconNode = new cc.Node("PhoneIcon");
-        phoneIconNode.parent = phoneRow;
-        phoneIconNode.setPosition(-(inputWidth + iconSize) / 2 + iconSize / 2, 0);
+        phoneIconNode.parent = panel;
+        phoneIconNode.setPosition(-phoneRowWidth/2 + iconSize/2, formY1);
         phoneIconNode.setContentSize(cc.size(iconSize, iconSize));
 
         cc.resources.load("UI/login/icon_phone", cc.SpriteFrame, function(err, spriteFrame) {
@@ -917,15 +916,14 @@ cc.Class({
                 var iconSprite = phoneIconNode.addComponent(cc.Sprite);
                 iconSprite.spriteFrame = spriteFrame;
                 iconSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-                phoneIconNode.setContentSize(cc.size(iconSize, iconSize));
             }
         });
 
-        // 手机号输入框
+        // 手机号输入框 - 放在图标右边
         var phoneInputNode = new cc.Node("PhoneInput");
-        phoneInputNode.parent = phoneRow;
+        phoneInputNode.parent = panel;
         phoneInputNode.setContentSize(cc.size(inputWidth, inputHeight));
-        phoneInputNode.setPosition(iconSize / 2 + 5, 0);
+        phoneInputNode.setPosition(-phoneRowWidth/2 + iconSize + 5 + inputWidth/2, formY1);
 
         var phoneEditBox = phoneInputNode.addComponent(cc.EditBox);
         phoneEditBox.placeholder = "请输入手机号";
@@ -936,18 +934,17 @@ cc.Class({
         phoneEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         phoneEditBox.maxLength = 11;
-        phoneEditBox.backgroundColor = new cc.Color(255, 255, 255, 200);
+        phoneEditBox.backgroundColor = new cc.Color(255, 255, 255, 220);
 
-        // ==================== 验证码输入框（带图标和按钮）====================
-        var codeRow = new cc.Node("CodeRow");
-        codeRow.parent = panel;
-        codeRow.setContentSize(cc.size(inputWidth + iconSize + 10 + getCodeBtnWidth + 10, inputHeight));
-        codeRow.setPosition(0, formY2);
+        // ==================== 验证码输入行 ====================
+        // 布局：[图标] [输入框] [获取验证码按钮] 整体居中
+        var codeInputW = inputWidth - getCodeBtnWidth - 10;  // 验证码输入框宽度
+        var codeRowWidth = iconSize + 5 + codeInputW + 5 + getCodeBtnWidth;  // 总宽度
 
         // 验证码图标
         var codeIconNode = new cc.Node("CodeIcon");
-        codeIconNode.parent = codeRow;
-        codeIconNode.setPosition(-(inputWidth + iconSize + getCodeBtnWidth) / 2 + iconSize / 2, 0);
+        codeIconNode.parent = panel;
+        codeIconNode.setPosition(-codeRowWidth/2 + iconSize/2, formY2);
         codeIconNode.setContentSize(cc.size(iconSize, iconSize));
 
         cc.resources.load("UI/login/icon_shield", cc.SpriteFrame, function(err, spriteFrame) {
@@ -955,15 +952,14 @@ cc.Class({
                 var iconSprite = codeIconNode.addComponent(cc.Sprite);
                 iconSprite.spriteFrame = spriteFrame;
                 iconSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-                codeIconNode.setContentSize(cc.size(iconSize, iconSize));
             }
         });
 
         // 验证码输入框
         var codeInputNode = new cc.Node("CodeInput");
-        codeInputNode.parent = codeRow;
-        codeInputNode.setContentSize(cc.size(inputWidth - getCodeBtnWidth - 10, inputHeight));
-        codeInputNode.setPosition(iconSize / 2 + 5 - getCodeBtnWidth / 2 - 5, 0);
+        codeInputNode.parent = panel;
+        codeInputNode.setContentSize(cc.size(codeInputW, inputHeight));
+        codeInputNode.setPosition(-codeRowWidth/2 + iconSize + 5 + codeInputW/2, formY2);
 
         var codeEditBox = codeInputNode.addComponent(cc.EditBox);
         codeEditBox.placeholder = "验证码";
@@ -974,13 +970,13 @@ cc.Class({
         codeEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         codeEditBox.maxLength = 6;
-        codeEditBox.backgroundColor = new cc.Color(255, 255, 255, 200);
+        codeEditBox.backgroundColor = new cc.Color(255, 255, 255, 220);
 
-        // 获取验证码按钮（使用图片）
+        // 获取验证码按钮
         var getCodeBtn = new cc.Node("BtnGetCode");
-        getCodeBtn.parent = codeRow;
+        getCodeBtn.parent = panel;
         getCodeBtn.setContentSize(cc.size(getCodeBtnWidth, inputHeight));
-        getCodeBtn.setPosition((inputWidth + iconSize) / 2 - getCodeBtnWidth / 2, 0);
+        getCodeBtn.setPosition(codeRowWidth/2 - getCodeBtnWidth/2, formY2);
 
         var getCodeBtnComp = getCodeBtn.addComponent(cc.Button);
         getCodeBtnComp.transition = cc.Button.Transition.SCALE;
@@ -992,7 +988,7 @@ cc.Class({
                 // 降级：使用纯色按钮
                 var btnGfx = getCodeBtn.addComponent(cc.Graphics);
                 btnGfx.fillColor = new cc.Color(255, 165, 0);
-                btnGfx.roundRect(-getCodeBtnWidth/2, -inputHeight/2, getCodeBtnWidth, inputHeight, 5 * scaleRatio);
+                btnGfx.roundRect(-getCodeBtnWidth/2, -inputHeight/2, getCodeBtnWidth, inputHeight, 5);
                 btnGfx.fill();
 
                 var btnLabel = new cc.Node("Label");
