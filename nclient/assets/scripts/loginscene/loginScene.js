@@ -873,10 +873,13 @@ cc.Class({
         // 先设置一个临时尺寸
         bg.setContentSize(cc.size(panelWidth, panelHeight));
         bg.setPosition(0, 0);
+        bg.zIndex = 0;  // 背景在最底层
 
         // 先添加Sprite组件并设置sizeMode
         var bgSprite = bg.addComponent(cc.Sprite);
         bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;  // 使用自定义尺寸，不跟随图片
+        bgSprite.srcBlendFactor = cc.macro.BlendFactor.SRC_ALPHA;
+        bgSprite.dstBlendFactor = cc.macro.BlendFactor.ONE_MINUS_SRC_ALPHA;
 
         // 加载背景图（使用 UI/login/login_bg.png）
         cc.resources.load("UI/login/login_bg", cc.SpriteFrame, function(err, spriteFrame) {
@@ -1199,8 +1202,6 @@ cc.Class({
                 phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
                 phoneEditBox.maxLength = 11;
                 phoneEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);
-                phoneEditBox.stayOnTop = true;
-                phoneEditBox.lineHeight = inputHeight;
                 
                 // 验证码输入框
                 codeEditBox = codeInputNode.addComponent(cc.EditBox);
@@ -1213,8 +1214,22 @@ cc.Class({
                 codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
                 codeEditBox.maxLength = 6;
                 codeEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);
-                codeEditBox.stayOnTop = true;
-                codeEditBox.lineHeight = inputHeight;
+                
+                // 强制刷新 Web 平台的 HTML input 元素样式
+                if (cc.sys.isBrowser) {
+                    setTimeout(function() {
+                        var inputs = document.querySelectorAll('input');
+                        inputs.forEach(function(input) {
+                            input.style.setProperty('pointer-events', 'auto', 'important');
+                            input.style.setProperty('z-index', '9999', 'important');
+                            input.style.setProperty('opacity', '1', 'important');
+                            input.style.setProperty('visibility', 'visible', 'important');
+                            input.style.setProperty('display', 'block', 'important');
+                            input.style.setProperty('cursor', 'text', 'important');
+                            console.log('修复 input 样式:', input.style.cssText);
+                        });
+                    }, 100);
+                }
                 
                 console.log("EditBox 创建完成，点击区域已正确对齐");
             })
