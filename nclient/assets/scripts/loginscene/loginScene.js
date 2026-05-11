@@ -995,24 +995,14 @@ cc.Class({
 
         // ==================== 手机号输入框 ====================
         // login_bg.png 中已包含输入框背景，只需放置透明的 EditBox
+        // 注意：由于 panel 有缩放动画，EditBox 需要在动画完成后创建，否则点击区域位置不对
         var phoneInputNode = new cc.Node("PhoneInput");
         phoneInputNode.parent = panel;
         phoneInputNode.setContentSize(cc.size(inputWidth, inputHeight));
         phoneInputNode.setPosition(-phoneRowWidth/2 + iconSize + 15 + inputWidth/2, formY1);
         phoneInputNode.zIndex = 100;
 
-        var phoneEditBox = phoneInputNode.addComponent(cc.EditBox);
-        phoneEditBox.placeholder = "请输入手机号";
-        phoneEditBox.fontSize = 18;
-        phoneEditBox.placeholderFontSize = 14;
-        phoneEditBox.fontColor = new cc.Color(50, 50, 50, 255);
-        phoneEditBox.placeholderFontColor = new cc.Color(150, 150, 150, 255);
-        phoneEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
-        phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
-        phoneEditBox.maxLength = 11;
-        phoneEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);  // 完全透明，使用背景图中的输入框
-        phoneEditBox.stayOnTop = true;
-        phoneEditBox.lineHeight = inputHeight;
+        var phoneEditBox = null;  // 延迟创建
 
         // ==================== 验证码输入行 ====================
         // 布局：[图标] [输入框] [获取验证码按钮] 整体居中
@@ -1035,24 +1025,14 @@ cc.Class({
 
         // ==================== 验证码输入框 ====================
         // login_bg.png 中已包含输入框背景，只需放置透明的 EditBox
+        // 注意：由于 panel 有缩放动画，EditBox 需要在动画完成后创建，否则点击区域位置不对
         var codeInputNode = new cc.Node("CodeInput");
         codeInputNode.parent = panel;
         codeInputNode.setContentSize(cc.size(codeInputW, inputHeight));
         codeInputNode.setPosition(-codeRowWidth/2 + iconSize + 5 + codeInputW/2, formY2);
         codeInputNode.zIndex = 100;
 
-        var codeEditBox = codeInputNode.addComponent(cc.EditBox);
-        codeEditBox.placeholder = "验证码";
-        codeEditBox.fontSize = 18;
-        codeEditBox.placeholderFontSize = 14;
-        codeEditBox.fontColor = new cc.Color(50, 50, 50, 255);
-        codeEditBox.placeholderFontColor = new cc.Color(150, 150, 150, 255);
-        codeEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
-        codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
-        codeEditBox.maxLength = 6;
-        codeEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);  // 完全透明，使用背景图中的输入框
-        codeEditBox.stayOnTop = true;
-        codeEditBox.lineHeight = inputHeight;
+        var codeEditBox = null;  // 延迟创建
 
         // 获取验证码按钮
         var getCodeBtn = new cc.Node("BtnGetCode");
@@ -1206,6 +1186,38 @@ cc.Class({
         // ==================== 弹窗进入动画 ====================
         cc.tween(panel)
             .to(0.25, { scale: 1, opacity: 255 }, { easing: 'backOut' })
+            .call(function() {
+                // 动画完成后创建 EditBox，确保点击区域位置正确
+                // 手机号输入框
+                phoneEditBox = phoneInputNode.addComponent(cc.EditBox);
+                phoneEditBox.placeholder = "请输入手机号";
+                phoneEditBox.fontSize = 18;
+                phoneEditBox.placeholderFontSize = 14;
+                phoneEditBox.fontColor = new cc.Color(50, 50, 50, 255);
+                phoneEditBox.placeholderFontColor = new cc.Color(150, 150, 150, 255);
+                phoneEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
+                phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
+                phoneEditBox.maxLength = 11;
+                phoneEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);
+                phoneEditBox.stayOnTop = true;
+                phoneEditBox.lineHeight = inputHeight;
+                
+                // 验证码输入框
+                codeEditBox = codeInputNode.addComponent(cc.EditBox);
+                codeEditBox.placeholder = "验证码";
+                codeEditBox.fontSize = 18;
+                codeEditBox.placeholderFontSize = 14;
+                codeEditBox.fontColor = new cc.Color(50, 50, 50, 255);
+                codeEditBox.placeholderFontColor = new cc.Color(150, 150, 150, 255);
+                codeEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
+                codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
+                codeEditBox.maxLength = 6;
+                codeEditBox.backgroundColor = new cc.Color(0, 0, 0, 0);
+                codeEditBox.stayOnTop = true;
+                codeEditBox.lineHeight = inputHeight;
+                
+                console.log("EditBox 创建完成，点击区域已正确对齐");
+            })
             .start();
 
         // ==================== 功能逻辑 ====================
