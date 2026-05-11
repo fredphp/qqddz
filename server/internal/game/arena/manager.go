@@ -172,7 +172,7 @@ func (am *ArenaManager) Signup(sessionID, playerID uint64) (*SignupResult, error
                 return nil, err
         }
 
-        if len(participations) >= session.MatchConfig.MaxPlayers {
+        if len(participations) >= session.RoomConfig.MaxPlayers {
                 return &SignupResult{
                         Success: false,
                         Message: "比赛人数已满",
@@ -198,17 +198,17 @@ func (am *ArenaManager) Signup(sessionID, playerID uint64) (*SignupResult, error
                 }, err
         }
 
-        if player.ArenaCoin < session.MatchConfig.SignupFee {
+        if player.ArenaCoin < session.SignupFee {
                 return &SignupResult{
                         Success: false,
-                        Message: fmt.Sprintf("竞技币不足，需要 %d，当前 %d", session.MatchConfig.SignupFee, player.ArenaCoin),
+                        Message: fmt.Sprintf("竞技币不足，需要 %d，当前 %d", session.SignupFee, player.ArenaCoin),
                 }, ErrInsufficientArenaCoin
         }
 
         // 7. 使用事务完成报名
         err = database.Transaction(func(tx *gorm.DB) error {
                 // 扣除报名费
-                if err := am.deductArenaCoinTx(tx, playerID, session.MatchConfig.SignupFee, "报名费", sessionID); err != nil {
+                if err := am.deductArenaCoinTx(tx, playerID, session.SignupFee, "报名费", sessionID); err != nil {
                         return err
                 }
 
@@ -254,13 +254,13 @@ func (am *ArenaManager) Signup(sessionID, playerID uint64) (*SignupResult, error
         session.TotalPlayers++
         session.ActivePlayers++
 
-        log.Printf("[Arena] 玩家 %d 报名成功，当前报名人数: %d/%d", playerID, session.TotalPlayers, session.MatchConfig.MaxPlayers)
+        log.Printf("[Arena] 玩家 %d 报名成功，当前报名人数: %d/%d", playerID, session.TotalPlayers, session.RoomConfig.MaxPlayers)
 
         // 9. 广播报名成功
         am.broadcastSignupSuccess(sessionID, playerID, player.Nickname)
 
         // 10. 如果达到最小人数，检查是否可以开赛
-        if session.TotalPlayers >= session.MatchConfig.MinPlayers && session.Status == database.ArenaSessionStatusWaitingSignup {
+        if session.TotalPlayers >= session.RoomConfig.MinPlayers && session.Status == database.ArenaSessionStatusWaitingSignup {
                 am.updateSessionStatusLocked(sessionID, database.ArenaSessionStatusSigningUp)
         }
 
@@ -268,9 +268,9 @@ func (am *ArenaManager) Signup(sessionID, playerID uint64) (*SignupResult, error
                 Success:     true,
                 Message:     "报名成功",
                 SessionID:   sessionID,
-                SignupFee:   session.MatchConfig.SignupFee,
+                SignupFee:   session.SignupFee,
                 TotalSigned: session.TotalPlayers,
-                MaxPlayers:  session.MatchConfig.MaxPlayers,
+                MaxPlayers:  session.RoomConfig.MaxPlayers,
         }, nil
 }
 
@@ -420,13 +420,13 @@ func (am *ArenaManager) StartSession(sessionID uint64) error {
                 return err
         }
 
-        if len(participations) < session.MatchConfig.MinPlayers {
+        if len(participations) < session.RoomConfig.MinPlayers {
                 return ErrMinPlayersNotReached
         }
 
         // 4. 机器人自动补位（确保人数是3的倍数）
         if am.patcher != nil {
-                filledRobots, err := am.patcher.CheckAndFillArena(sessionID, len(participations), session.MatchConfig.MinPlayers)
+                filledRobots, err := am.patcher.CheckAndFillArena(sessionID, len(participations), session.RoomConfig.MinPlayers)
                 if err != nil {
                         log.Printf("[Arena] 机器人补位失败: %v", err)
                         // 补位失败不阻止比赛开始，但需要记录日志
@@ -910,7 +910,7 @@ func (am *ArenaManager) GetActiveSession(roomConfigID uint64) (*database.ArenaSe
         var session database.ArenaSession
         err := am.db.Where("room_config_id = ? AND status = ?",
                 roomConfigID, database.ArenaSessionStatusInProgress).
-                Preload("MatchConfig").
+                Preload("RoomConfig").
                 First(&session).Error
         if err != nil {
                 if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -936,7 +936,7 @@ func (am *ArenaManager) GetPlayerSession(playerID uint64) (*database.ArenaPartic
         var participation database.ArenaParticipation
         err := am.db.Where("player_id = ? AND is_eliminated = 0", playerID).
                 Preload("Session").
-                Preload("Session.MatchConfig").
+                Preload("Session.RoomConfig").
                 First(&participation).Error
         if err != nil {
                 if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -986,7 +986,7 @@ func (am *ArenaManager) getSessionLocked(sessionID uint64) (*database.ArenaSessi
 
         // 从数据库获取
         var session database.ArenaSession
-        err := am.db.Preload("MatchConfig").First(&session, sessionID).Error
+        err := am.db.Preload("RoomConfig").First(&session, sessionID).Error
         if err != nil {
                 if errors.Is(err, gorm.ErrRecordNotFound) {
                         return nil, ErrSessionNotFound
@@ -1608,7 +1608,7 @@ func (am *ArenaManager) recoverSessions() {
         // 查找进行中的会话
         var sessions []database.ArenaSession
         err := am.db.Where("status = ?", database.ArenaSessionStatusInProgress).
-                Preload("MatchConfig").
+                Preload("RoomConfig").
                 Find(&sessions).Error
         if err != nil {
                 log.Printf("[Arena] 恢复会话失败: %v", err)
@@ -1647,7 +1647,7 @@ func (am *ArenaManager) checkSessionTimeout() {
 
                 // 检查是否超时（假设每轮最大时长为配置的轮次时长）
                 if session.ActualStartTime != nil {
-                        maxDuration := time.Duration(session.MatchConfig.MatchRoundDuration*session.TotalRounds) * time.Minute
+                        maxDuration := time.Duration(session.RoomConfig.MatchRoundDuration*session.TotalRounds) * time.Minute
                         if now.Sub(*session.ActualStartTime) > maxDuration {
                                 log.Printf("[Arena] 会话 %d 超时，强制结束", session.ID)
                                 // 强制结束会话

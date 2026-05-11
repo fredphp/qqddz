@@ -374,7 +374,7 @@ func (ap *ArenaPatcher) RemoveFilledRobots(sessionID uint64) error {
 func (ap *ArenaPatcher) CheckPlayerCount(sessionID uint64) (int, error) {
         // 获取会话信息
         var session database.ArenaSession
-        if err := ap.db.Preload("MatchConfig").First(&session, sessionID).Error; err != nil {
+        if err := ap.db.Preload("RoomConfig").First(&session, sessionID).Error; err != nil {
                 return 0, err
         }
 
@@ -385,7 +385,12 @@ func (ap *ArenaPatcher) CheckPlayerCount(sessionID uint64) (int, error) {
                 Count(&count)
 
         // 计算是否需要补位
-        fillCount := ap.calculateFillCount(int(count), session.MatchConfig.MinPlayers)
+        // MinPlayers 配置在 RoomConfig 中
+        minPlayers := session.RoomConfig.MinPlayers
+        if minPlayers <= 0 {
+                minPlayers = 3 // 默认最小人数
+        }
+        fillCount := ap.calculateFillCount(int(count), minPlayers)
         return fillCount, nil
 }
 
