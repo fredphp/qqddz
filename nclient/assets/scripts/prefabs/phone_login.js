@@ -75,6 +75,9 @@ cc.Class({
         // 绘制圆角输入框边框
         this._drawInputBorders();
         
+        // ==================== 初始化 EditBox 样式和事件 ====================
+        this._initEditBoxes();
+        
         // 初始化按钮事件
         this._initButtons();
         
@@ -89,6 +92,87 @@ cc.Class({
         }
         if (this.code_input) {
             this._code = this.code_input.string || "";
+        }
+    },
+
+    // ==================== 初始化 EditBox ====================
+    _initEditBoxes: function() {
+        var self = this;
+        
+        // 手机号输入框初始化
+        if (this.phone_input) {
+            // 设置 stayOnTop 为 true，确保文字始终可见
+            this.phone_input.stayOnTop = true;
+            
+            // 设置字体样式
+            this.phone_input.fontSize = 20;
+            this.phone_input.lineHeight = 40;
+            this.phone_input.fontColor = new cc.Color(50, 50, 50, 255);
+            this.phone_input.placeholderFontColor = new cc.Color(150, 150, 150, 255);
+            
+            // 监听输入事件
+            this.phone_input.node.on('editing-did-began', function() {
+                self._onPhoneInputFocus();
+            }, this);
+            
+            this.phone_input.node.on('editing-did-ended', function() {
+                self._onPhoneInputBlur();
+            }, this);
+            
+            this.phone_input.node.on('text-changed', function(editbox) {
+                self._phone = editbox.string;
+            }, this);
+        }
+        
+        // 验证码输入框初始化
+        if (this.code_input) {
+            // 设置 stayOnTop 为 true，确保文字始终可见
+            this.code_input.stayOnTop = true;
+            
+            // 设置字体样式
+            this.code_input.fontSize = 20;
+            this.code_input.lineHeight = 40;
+            this.code_input.fontColor = new cc.Color(50, 50, 50, 255);
+            this.code_input.placeholderFontColor = new cc.Color(150, 150, 150, 255);
+            
+            // 监听输入事件
+            this.code_input.node.on('editing-did-began', function() {
+                self._onCodeInputFocus();
+            }, this);
+            
+            this.code_input.node.on('editing-did-ended', function() {
+                self._onCodeInputBlur();
+            }, this);
+            
+            this.code_input.node.on('text-changed', function(editbox) {
+                self._code = editbox.string;
+            }, this);
+        }
+    },
+    
+    // 手机号输入框获得焦点
+    _onPhoneInputFocus: function() {
+        // 可以添加焦点效果
+    },
+    
+    // 手机号输入框失去焦点
+    _onPhoneInputBlur: function() {
+        // 确保文字显示
+        if (this.phone_input && this.phone_input.string) {
+            this._phone = this.phone_input.string;
+        }
+    },
+    
+    // 验证码输入框获得焦点
+    _onCodeInputFocus: function() {
+        // 可以添加焦点效果
+    },
+    
+    // 验证码输入框失去焦点
+    _onCodeInputBlur: function() {
+        // 确保文字显示
+        if (this.code_input && this.code_input.string) {
+            this._code = this.code_input.string;
         }
     },
 
@@ -144,25 +228,37 @@ cc.Class({
         }
     },
 
-    // 绘制输入框圆角边框
+    // 绘制输入框圆角边框 - 修复版：绘制背景 + 边框
     _drawInputBorders: function() {
         var contentPanel = this.node.getChildByName('content_panel');
         if (!contentPanel) return;
 
-        // 绘制手机号输入框边框 (320x50)
+        // 绘制手机号输入框背景和边框 (320x50)
         var phoneBg = contentPanel.getChildByName('phone_bg');
         if (phoneBg) {
             var graphics = phoneBg.getComponent(cc.Graphics);
             if (graphics) {
                 graphics.clear();
+                // 先绘制填充背景（半透明白色）
+                graphics.fillColor = new cc.Color(255, 252, 240, 230);
+                this._drawRoundRect(graphics, -160, -25, 320, 50, 14);
+                graphics.fill();
+                // 再绘制边框（金色）
                 graphics.strokeColor = new cc.Color(218, 165, 32, 255);
                 graphics.lineWidth = 2;
                 this._drawRoundRect(graphics, -160, -25, 320, 50, 14);
                 graphics.stroke();
             }
+            
+            // 确保 phone_bg 节点在 input 节点下方
+            var phoneInput = phoneBg.getChildByName('phone_input');
+            if (phoneInput) {
+                phoneInput.zIndex = 10;
+                phoneBg.zIndex = 5;
+            }
         }
 
-        // 绘制验证码输入框边框 (190x50)
+        // 绘制验证码输入框背景和边框 (190x50)
         var codeRow = contentPanel.getChildByName('code_row');
         if (codeRow) {
             var codeBg = codeRow.getChildByName('code_bg');
@@ -170,10 +266,22 @@ cc.Class({
                 var graphics = codeBg.getComponent(cc.Graphics);
                 if (graphics) {
                     graphics.clear();
+                    // 先绘制填充背景（半透明白色）
+                    graphics.fillColor = new cc.Color(255, 252, 240, 230);
+                    this._drawRoundRect(graphics, -95, -25, 190, 50, 14);
+                    graphics.fill();
+                    // 再绘制边框（金色）
                     graphics.strokeColor = new cc.Color(218, 165, 32, 255);
                     graphics.lineWidth = 2;
                     this._drawRoundRect(graphics, -95, -25, 190, 50, 14);
                     graphics.stroke();
+                }
+                
+                // 确保 code_bg 节点在 input 节点下方
+                var codeInput = codeBg.getChildByName('code_input');
+                if (codeInput) {
+                    codeInput.zIndex = 10;
+                    codeBg.zIndex = 5;
                 }
             }
         }

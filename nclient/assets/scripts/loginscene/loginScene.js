@@ -48,101 +48,131 @@ var _applyInputStyles = function(fontColor, bgColor) {
     }
 };
 
-// 样式化单个input元素
+// 样式化单个input元素 - 修复版：文字垂直居中 + 透明背景不遮挡边框
 var _styleSingleInput = function(input, fontColor, bgColor) {
-    // 设置文字颜色
+    // ==================== 核心样式设置 ====================
+    
+    // 1. 文字颜色
     input.style.setProperty('color', fontColor, 'important');
     input.style.color = fontColor;
-
-    // 设置背景色
-    input.style.setProperty('background-color', bgColor, 'important');
-    input.style.backgroundColor = bgColor;
-
-     // ✅ 添加以下样式让文字垂直居中
-    input.style.setProperty('line-height', 'normal', 'important');
-    input.style.lineHeight = 'normal';
-    input.style.setProperty('padding', '0 10px', 'important');
-    input.style.padding = '0 10px';
+    
+    // 2. 关键：设置透明背景，让 Cocos 绘制的边框可见
+    input.style.setProperty('background-color', 'transparent', 'important');
+    input.style.backgroundColor = 'transparent';
+    
+    // 3. 文字垂直居中 - 使用 Flexbox 方案（最可靠）
+    input.style.setProperty('display', 'flex', 'important');
+    input.style.display = 'flex';
+    input.style.setProperty('align-items', 'center', 'important');
+    input.style.alignItems = 'center';
+    input.style.setProperty('justify-content', 'flex-start', 'important');
+    input.style.justifyContent = 'flex-start';
+    
+    // 4. 盒模型设置
     input.style.setProperty('box-sizing', 'border-box', 'important');
     input.style.boxSizing = 'border-box';
-    input.style.setProperty('vertical-align', 'middle', 'important');
-    input.style.verticalAlign = 'middle';
-
-    // 确保可见性
+    
+    // 5. 内边距 - 给文字留出空间，避免贴边
+    input.style.setProperty('padding', '0 12px', 'important');
+    input.style.padding = '0 12px';
+    
+    // 6. 行高设置 - 与字体大小匹配，确保垂直居中
+    input.style.setProperty('line-height', '1', 'important');
+    input.style.lineHeight = '1';
+    
+    // 7. 高度自适应内容
+    input.style.setProperty('height', '100%', 'important');
+    input.style.height = '100%';
+    
+    // ==================== 字体设置 ====================
+    input.style.setProperty('font-size', '20px', 'important');
+    input.style.fontSize = '20px';
+    input.style.setProperty('font-family', 'Arial, "Microsoft YaHei", sans-serif', 'important');
+    
+    // ==================== WebKit 特殊修复 ====================
+    input.style.setProperty('-webkit-text-fill-color', fontColor, 'important');
+    input.style.webkitTextFillColor = fontColor;
+    
+    // ==================== 可见性确保 ====================
     input.style.setProperty('opacity', '1', 'important');
     input.style.opacity = '1';
     input.style.setProperty('visibility', 'visible', 'important');
     input.style.visibility = 'visible';
-
-    // 设置字体大小
-    input.style.setProperty('font-size', '18px', 'important');
-    input.style.fontSize = '18px';
-
-    // 设置字体
-    input.style.setProperty('font-family', 'Arial, sans-serif', 'important');
-
-    // 修复 WebKit 特殊样式
-    input.style.setProperty('-webkit-text-fill-color', fontColor, 'important');
-    input.style.webkitTextFillColor = fontColor;
-
-    // 移除可能影响显示的样式
-    input.style.textShadow = 'none';
-    input.style.setProperty('text-shadow', 'none', 'important');
-
-    // 确保没有caret-color问题
+    
+    // ==================== 光标颜色 ====================
     input.style.setProperty('caret-color', fontColor, 'important');
     input.style.caretColor = fontColor;
-
-
-    // ✅ 强制重置高度相关样式
-    input.style.setProperty('height', 'auto', 'important');
-    input.style.height = 'auto';
-    input.style.setProperty('min-height', '30px', 'important');
-    input.style.minHeight = '30px';
-    input.style.setProperty('line-height', '30px', 'important');
-    input.style.lineHeight = '30px';
-    input.style.setProperty('padding', '0 8px', 'important');
-    input.style.padding = '0 8px';
     
-    // ✅ 关键：移除可能导致问题的属性
+    // ==================== 移除干扰样式 ====================
+    input.style.textShadow = 'none';
+    input.style.setProperty('text-shadow', 'none', 'important');
+    input.style.outline = 'none';
+    input.style.setProperty('outline', 'none', 'important');
+    input.style.border = 'none';
+    input.style.setProperty('border', 'none', 'important');
+    
+    // ==================== 移除定位干扰 ====================
     input.style.removeProperty('top');
     input.style.removeProperty('margin-top');
-
+    input.style.removeProperty('margin');
+    
+    // ==================== 聚焦时保持样式 ====================
+    input.style.setProperty('outline-offset', '0', 'important');
 };
 
-// 注入全局CSS样式
+// 注入全局CSS样式 - 修复版
 var _injectGlobalStyles = function(fontColor, bgColor) {
     try {
         var styleId = 'cocos-editbox-fix-style';
         if (document.getElementById(styleId)) return;
 
         var css = `
+            /* 输入框基础样式 - 透明背景 + 文字居中 */
             input, textarea {
                 color: ${fontColor} !important;
-                background-color: ${bgColor} !important;
+                background-color: transparent !important;
                 opacity: 1 !important;
                 visibility: visible !important;
-                font-size: 16px !important;
+                font-size: 20px !important;
                 -webkit-text-fill-color: ${fontColor} !important;
                 caret-color: ${fontColor} !important;
-            }
-            input::placeholder, textarea::placeholder {
-                color: #999999 !important;
-                opacity: 1 !important;
-            }
-            input:focus, textarea:focus {
-                color: ${fontColor} !important;
+                line-height: 1 !important;
+                border: none !important;
                 outline: none !important;
             }
             
-            /* ✅ 新增：强制垂直居中 */
-            input[type="text"], input[type="number"], input[type="tel"] {
-                line-height: normal !important;
-                height: auto !important;
-                padding: 0 8px !important;
+            /* Placeholder 样式 */
+            input::placeholder, textarea::placeholder {
+                color: #888888 !important;
+                opacity: 1 !important;
+            }
+            
+            /* 聚焦状态 */
+            input:focus, textarea:focus {
+                color: ${fontColor} !important;
+                outline: none !important;
+                background-color: transparent !important;
+            }
+            
+            /* 文本类型输入框 - Flexbox 垂直居中 */
+            input[type="text"], 
+            input[type="number"], 
+            input[type="tel"],
+            input[type="password"] {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: flex-start !important;
                 box-sizing: border-box !important;
-                display: inline-block !important;
-                vertical-align: middle !important;
+                padding: 0 12px !important;
+                height: 100% !important;
+                line-height: 1 !important;
+                border: none !important;
+            }
+            
+            /* 移除浏览器默认样式 */
+            input:focus,
+            textarea:focus {
+                box-shadow: none !important;
             }
         `;
 
@@ -695,6 +725,22 @@ cc.Class({
         }
     },
 
+    // 绘制圆角矩形输入框背景（辅助方法）
+    _drawInputBg: function(graphics, width, height, radius) {
+        var x = -width / 2;
+        var y = -height / 2;
+        graphics.moveTo(x + radius, y);
+        graphics.lineTo(x + width - radius, y);
+        graphics.arcTo(x + width, y, x + width, y + radius, radius);
+        graphics.lineTo(x + width, y + height - radius);
+        graphics.arcTo(x + width, y + height, x + width - radius, y + height, radius);
+        graphics.lineTo(x + radius, y + height);
+        graphics.arcTo(x, y + height, x, y + height - radius, radius);
+        graphics.lineTo(x, y + radius);
+        graphics.arcTo(x, y, x + radius, y, radius);
+        graphics.fill();
+    },
+
     update: function(dt) {
         if (this._isAnimating && this._loadingImage) {
             // 使用 angle 替代已废弃的 rotation 属性
@@ -954,22 +1000,42 @@ cc.Class({
             }
         });
 
+        // ==================== 手机号输入框背景节点 ====================
+        var phoneBgNode = new cc.Node("PhoneInputBg");
+        phoneBgNode.parent = panel;
+        phoneBgNode.setContentSize(cc.size(inputWidth, inputHeight));
+        phoneBgNode.setPosition(-phoneRowWidth/2 + iconSize + 15 + inputWidth/2, formY1);
+        phoneBgNode.zIndex = 5;
+        
+        // 绘制输入框背景和边框
+        var phoneBgGfx = phoneBgNode.addComponent(cc.Graphics);
+        phoneBgGfx.fillColor = new cc.Color(255, 252, 240, 230);
+        self._drawInputBg(phoneBgGfx, inputWidth, inputHeight, 14);
+        phoneBgGfx.strokeColor = new cc.Color(218, 165, 32, 255);
+        phoneBgGfx.lineWidth = 2;
+        self._drawInputBg(phoneBgGfx, inputWidth, inputHeight, 14);
+
         // 手机号输入框 - 放在图标右边
         var phoneInputNode = new cc.Node("PhoneInput");
         phoneInputNode.parent = panel;
         phoneInputNode.setContentSize(cc.size(inputWidth, inputHeight));
         phoneInputNode.setPosition(-phoneRowWidth/2 + iconSize + 15 + inputWidth/2, formY1);
+        phoneInputNode.zIndex = 10;
 
         var phoneEditBox = phoneInputNode.addComponent(cc.EditBox);
         phoneEditBox.placeholder = "请输入手机号";
-        phoneEditBox.fontSize = 16 * scaleRatio;
-        phoneEditBox.placeholderFontSize = 14 * scaleRatio;
+        phoneEditBox.fontSize = 20;
+        phoneEditBox.placeholderFontSize = 16;
         phoneEditBox.fontColor = new cc.Color(50, 50, 50, 255);
-        phoneEditBox.placeholderFontColor = new cc.Color(160, 160, 160);
+        phoneEditBox.placeholderFontColor = new cc.Color(150, 150, 150, 255);
         phoneEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         phoneEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         phoneEditBox.maxLength = 11;
-        phoneEditBox.backgroundColor = new cc.Color(255, 255, 255, 220);
+        // 关键：设置透明背景，让 Cocos 绘制的边框可见
+        phoneEditBox.backgroundColor = new cc.Color(255, 252, 240, 0);
+        // 关键：设置 stayOnTop 确保文字始终可见
+        phoneEditBox.stayOnTop = true;
+        phoneEditBox.lineHeight = 40;
 
         // ==================== 验证码输入行 ====================
         // 布局：[图标] [输入框] [获取验证码按钮] 整体居中
@@ -990,22 +1056,42 @@ cc.Class({
             }
         });
 
+        // ==================== 验证码输入框背景节点 ====================
+        var codeBgNode = new cc.Node("CodeInputBg");
+        codeBgNode.parent = panel;
+        codeBgNode.setContentSize(cc.size(codeInputW, inputHeight));
+        codeBgNode.setPosition(-codeRowWidth/2 + iconSize + 5 + codeInputW/2, formY2);
+        codeBgNode.zIndex = 5;
+        
+        // 绘制输入框背景和边框
+        var codeBgGfx = codeBgNode.addComponent(cc.Graphics);
+        codeBgGfx.fillColor = new cc.Color(255, 252, 240, 230);
+        self._drawInputBg(codeBgGfx, codeInputW, inputHeight, 14);
+        codeBgGfx.strokeColor = new cc.Color(218, 165, 32, 255);
+        codeBgGfx.lineWidth = 2;
+        self._drawInputBg(codeBgGfx, codeInputW, inputHeight, 14);
+
         // 验证码输入框
         var codeInputNode = new cc.Node("CodeInput");
         codeInputNode.parent = panel;
         codeInputNode.setContentSize(cc.size(codeInputW, inputHeight));
         codeInputNode.setPosition(-codeRowWidth/2 + iconSize + 5 + codeInputW/2, formY2);
+        codeInputNode.zIndex = 10;
 
         var codeEditBox = codeInputNode.addComponent(cc.EditBox);
         codeEditBox.placeholder = "验证码";
-        codeEditBox.fontSize = 16 * scaleRatio;
-        codeEditBox.placeholderFontSize = 14 * scaleRatio;
+        codeEditBox.fontSize = 20;
+        codeEditBox.placeholderFontSize = 16;
         codeEditBox.fontColor = new cc.Color(50, 50, 50, 255);
-        codeEditBox.placeholderFontColor = new cc.Color(160, 160, 160);
+        codeEditBox.placeholderFontColor = new cc.Color(150, 150, 150, 255);
         codeEditBox.inputFlag = cc.EditBox.InputFlag.SENSITIVE;
         codeEditBox.inputMode = cc.EditBox.InputMode.NUMERIC;
         codeEditBox.maxLength = 6;
-        codeEditBox.backgroundColor = new cc.Color(255, 255, 255, 220);
+        // 关键：设置透明背景，让 Cocos 绘制的边框可见
+        codeEditBox.backgroundColor = new cc.Color(255, 252, 240, 0);
+        // 关键：设置 stayOnTop 确保文字始终可见
+        codeEditBox.stayOnTop = true;
+        codeEditBox.lineHeight = 40;
 
         // 获取验证码按钮
         var getCodeBtn = new cc.Node("BtnGetCode");
