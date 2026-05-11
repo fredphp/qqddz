@@ -56,6 +56,9 @@ cc.Class({
         this._phone = "";
         this._code = "";
 
+        // 初始化弹窗尺寸适配（手机端缩放，不改宽高）
+        this._initPanelScale();
+
         // 初始化弹窗动画
         this._initPanelAnimation();
         
@@ -79,15 +82,52 @@ cc.Class({
         }
     },
 
+    // 初始化弹窗尺寸适配（缩放适配，不改宽高）
+    _initPanelScale: function() {
+        var contentPanel = this.node.getChildByName('content_panel');
+        if (!contentPanel) return;
+
+        var winSize = cc.winSize;
+        var screenHeight = winSize.height;
+        var screenWidth = winSize.width;
+
+        // 根据屏幕高度计算缩放比例
+        // 目标：弹窗在屏幕上看起来居中，不撑满
+        var baseHeight = 720; // 设计基准高度
+        var targetScale = 1;
+
+        // 小屏幕手机（高度小于700）缩放到0.88
+        if (screenHeight < 700) {
+            targetScale = 0.88;
+        } else if (screenHeight < 800) {
+            // 中等屏幕适度缩放
+            targetScale = 0.92;
+        }
+
+        // 宽度适配：如果屏幕宽度太小，也需要缩放
+        var minRequiredWidth = 420; // 弹窗最小需要宽度
+        if (screenWidth < minRequiredWidth * 1.1) {
+            var widthScale = screenWidth / (minRequiredWidth * 1.2);
+            targetScale = Math.min(targetScale, widthScale);
+        }
+
+        contentPanel.scale = targetScale;
+        console.log('【登录弹窗】屏幕尺寸:', screenWidth, 'x', screenHeight, '缩放比例:', targetScale);
+    },
+
     // 初始化弹窗进入动画
     _initPanelAnimation: function() {
         var contentPanel = this.node.getChildByName('content_panel');
         if (contentPanel) {
-            contentPanel.scale = 0.7;
+            // 保存目标缩放值（已由_initPanelScale设置）
+            var targetScale = contentPanel.scale;
+            
+            // 从小尺寸开始动画
+            contentPanel.scale = targetScale * 0.7;
             contentPanel.opacity = 0;
             
             cc.tween(contentPanel)
-                .to(0.25, { scale: 1, opacity: 255 }, { easing: 'backOut' })
+                .to(0.25, { scale: targetScale, opacity: 255 }, { easing: 'backOut' })
                 .start();
         }
     },
