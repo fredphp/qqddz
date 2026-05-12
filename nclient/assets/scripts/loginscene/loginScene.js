@@ -587,41 +587,80 @@ cc.Class({
     },
 
     onLoad () {
+        var self = this;
+        
+        console.log("========================================");
+        console.log("loginScene onLoad 开始执行");
+        console.log("========================================");
 
-        // 🔧 修复：禁用自动全屏功能（双重保险，移除 isMobile 检查）
-        // 即使 main.js 中的设置没有生效，这里也会再次禁用
-        if (cc.view && cc.view.enableAutoFullScreen) {
-            cc.view.enableAutoFullScreen(false);
-            console.log("loginScene: 已禁用自动全屏功能");
+        try {
+            // 🔧 修复：禁用自动全屏功能（双重保险，移除 isMobile 检查）
+            // 即使 main.js 中的设置没有生效，这里也会再次禁用
+            if (cc.view && cc.view.enableAutoFullScreen) {
+                cc.view.enableAutoFullScreen(false);
+                console.log("loginScene: 已禁用自动全屏功能");
+            }
+
+            // 🔧 额外保险：禁用 screen 的自动全屏触摸监听器
+            if (cc.screen && cc.screen.disableAutoFullScreen) {
+                cc.screen.disableAutoFullScreen();
+                console.log("loginScene: 已禁用 screen 自动全屏触摸监听器");
+            }
+        } catch (e) {
+            console.error("禁用自动全屏时出错:", e);
         }
 
-        // 🔧 额外保险：禁用 screen 的自动全屏触摸监听器
-        if (cc.screen && cc.screen.disableAutoFullScreen) {
-            cc.screen.disableAutoFullScreen();
-            console.log("loginScene: 已禁用 screen 自动全屏触摸监听器");
+        try {
+            // 启动Web平台Input样式监听器
+            _startInputObserver();
+            _injectGlobalStyles('#000000', '#ffffff');
+        } catch (e) {
+            console.error("初始化样式监听器时出错:", e);
         }
-
-        // 启动Web平台Input样式监听器
-        _startInputObserver();
-        _injectGlobalStyles('#000000', '#ffffff');
 
         this._isAgreementChecked = false;
-        this._initWaitNode();
+        this._phoneLoginPopupShowing = false;  // 初始化弹窗标志位
         
-        // 初始化复选框（使用点击事件）
-        this._initCheckbox();
+        try {
+            this._initWaitNode();
+        } catch (e) {
+            console.error("初始化等待节点时出错:", e);
+        }
         
-        // 初始化登录按钮
-        this._initLoginButtons();
+        try {
+            // 初始化复选框（使用点击事件）
+            this._initCheckbox();
+        } catch (e) {
+            console.error("初始化复选框时出错:", e);
+        }
         
-        // 初始化用户协议链接点击事件
-        this._initUserAgreementLink();
+        try {
+            // 初始化登录按钮
+            this._initLoginButtons();
+        } catch (e) {
+            console.error("初始化登录按钮时出错:", e);
+        }
+        
+        try {
+            // 初始化用户协议链接点击事件
+            this._initUserAgreementLink();
+        } catch (e) {
+            console.error("初始化用户协议链接时出错:", e);
+        }
 
-        // 🚀【性能优化】预加载大厅场景和游戏场景
-        this._preloadScenes();
+        try {
+            // 🚀【性能优化】预加载大厅场景和游戏场景
+            this._preloadScenes();
+        } catch (e) {
+            console.error("预加载场景时出错:", e);
+        }
 
-        // 检查是否有本地登录会话，尝试自动登录
-        this._checkAutoLogin();
+        try {
+            // 检查是否有本地登录会话，尝试自动登录
+            this._checkAutoLogin();
+        } catch (e) {
+            console.error("检查自动登录时出错:", e);
+        }
 
         if (typeof window.myglobal === 'undefined') {
             console.error("myglobal 未定义，尝试等待...");
@@ -630,6 +669,10 @@ cc.Class({
         }
 
         this._initAndStart();
+        
+        console.log("========================================");
+        console.log("loginScene onLoad 执行完成");
+        console.log("========================================");
     },
 
     // 检查自动登录
@@ -751,6 +794,43 @@ cc.Class({
     },
 
     start () {
+        console.log("========================================");
+        console.log("loginScene start 方法执行");
+        console.log("========================================");
+        
+        // 备用方案：在 start 中再次检查按钮是否正确初始化
+        var self = this;
+        this.scheduleOnce(function() {
+            console.log(">>> 延迟检查按钮状态...");
+            var phoneLoginNode = self.node.getChildByName("login_phone");
+            if (phoneLoginNode) {
+                console.log(">>> login_phone 节点存在");
+                var hasTouchListeners = phoneLoginNode.getComponent(cc.Button) !== null;
+                console.log(">>> 是否有 Button 组件:", hasTouchListeners);
+                
+                // 再次确保事件绑定
+                phoneLoginNode.off(cc.Node.EventType.TOUCH_END);
+                phoneLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                    console.log(">>> [start备用] 手机登录按钮 TOUCH_END 事件触发");
+                    event.stopPropagation();
+                    self._doPhoneLogin();
+                }, self);
+                console.log(">>> 已重新绑定手机登录按钮事件");
+            } else {
+                console.error(">>> login_phone 节点不存在！");
+            }
+            
+            var wxLoginNode = self.node.getChildByName("login_wx");
+            if (wxLoginNode) {
+                console.log(">>> login_wx 节点存在");
+                wxLoginNode.off(cc.Node.EventType.TOUCH_END);
+                wxLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                    console.log(">>> [start备用] 微信登录按钮 TOUCH_END 事件触发");
+                    self._doWxLogin();
+                }, self);
+                console.log(">>> 已重新绑定微信登录按钮事件");
+            }
+        }, 0.5);
     },
 
     _initLoginButtons: function() {
