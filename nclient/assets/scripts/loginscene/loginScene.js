@@ -1227,6 +1227,8 @@ cc.Class({
         } catch (e) {
             console.error("创建手机登录弹窗失败:", e);
             this._showError("无法显示登录弹窗: " + e.message);
+            // 🔧 修复：创建失败时重置标志位，允许下次点击重试
+            this._phoneLoginPopupShowing = false;
         }
     },
 
