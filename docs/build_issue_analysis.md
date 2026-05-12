@@ -10,9 +10,9 @@
 ### loginScene.js 的结构问题
 
 ```
-第 1-569 行：辅助函数定义（全局函数如 _fixEditBoxStyle 等）
-第 570 行：cc.Class({...}) 定义组件类
-第 572 行：extends: cc.Component
+原结构（第 1-2283 行）:
+第 1-568 行：辅助函数定义（全局函数如 _fixEditBoxStyle 等）
+第 570-2283 行：cc.Class({...}) 定义组件类
 ```
 
 ### 时序问题
@@ -38,7 +38,7 @@
 
 ## 控制台日志对比
 
-### 构建后日志
+### 构建后日志（修复前）
 ```
 Success to load scene: db://assets/scenes/loginScene.fire
 【StorageUtil】loadPlayerData 读取到数据: null
@@ -56,110 +56,97 @@ loginScene onLoad 执行完成
 loginScene start 方法执行
 ```
 
-## 修复方案
+## 修复方案（已实施）
 
-### 方案一：修改构建配置（推荐先尝试）
+### 最终解决方案：拆分脚本
 
-1. 在 Cocos Creator 中打开项目
-2. 打开 `构建发布` 面板
-3. 找到以下设置并修改：
-   - **加密脚本 (encryptJs)**：取消勾选
-   - **调试模式 (debugBuild)**：勾选
-4. 删除 `build` 文件夹
-5. 重新构建并测试
+**修改内容**：
 
-### 方案二：拆分脚本（彻底解决）
+1. **创建 `loginSceneHelpers.js`**（插件脚本）
+   - 包含所有辅助函数定义
+   - 设置 `isPlugin: true`
+   - 在引擎初始化前加载
 
-1. 创建新文件 `assets/scripts/loginscene/loginSceneHelpers.js`
-2. 将 `loginScene.js` 中的辅助函数移动到新文件
-3. 设置 `loginSceneHelpers.js` 为 `isPlugin: true`
-4. 设置 `loginScene.js` 为 `isPlugin: false`
-5. 在 `loginScene.js` 顶部添加依赖引用
+2. **修改 `loginScene.js`**（组件脚本）
+   - 移除辅助函数定义（第 1-568 行）
+   - 只保留 `cc.Class` 组件定义
+   - 设置 `isPlugin: false`
 
-**需要移动的函数**：
-- `_fixEditBoxStyle`
-- `_applyInputStyles`
-- `_styleSingleInput`
-- `_injectGlobalStyles`
-- `_createNativeInputElements`
-- `_removeNativeInputElements`
-- `_fixEditBoxInputElements`
-- `_startInputObserver`
+3. **修改 `phone_login.js.meta`**
+   - 设置 `isPlugin: false`
 
-### 方案三：延迟组件定义（代码修改）
+### 文件变更清单
 
-修改 `loginScene.js`，将组件定义延迟到引擎初始化后：
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `loginSceneHelpers.js` | 新建 | 插件脚本，包含辅助函数 |
+| `loginSceneHelpers.js.meta` | 新建 | isPlugin: true |
+| `loginScene.js` | 修改 | 移除辅助函数，只保留组件定义 |
+| `loginScene.js.meta` | 修改 | isPlugin: false |
+| `phone_login.js.meta` | 修改 | isPlugin: false |
 
-```javascript
-// 原来的代码（第570行）
-// cc.Class({...})
+### 辅助函数列表（已移至 loginSceneHelpers.js）
 
-// 改为延迟定义
-var defineLoginScene = function() {
-    if (typeof cc !== 'undefined' && cc.Class && cc.Component) {
-        cc.Class({
-            name: 'loginScene',
-            extends: cc.Component,
-            // ... 其余代码
-        });
-    } else {
-        setTimeout(defineLoginScene, 10);
-    }
-};
+- `_fixEditBoxStyle` - 修复 EditBox 样式
+- `_applyInputStyles` - 应用输入框样式
+- `_styleSingleInput` - 样式化单个输入框
+- `_injectGlobalStyles` - 注入全局 CSS 样式
+- `_createNativeInputElements` - 创建原生 HTML 输入框
+- `_removeNativeInputElements` - 移除原生输入框
+- `_fixEditBoxInputElements` - 修复 EditBox 输入元素
+- `_startInputObserver` - 启动输入框监听器
 
-// 在 DOM 加载后执行
-if (document.readyState === 'complete') {
-    defineLoginScene();
-} else {
-    window.addEventListener('load', defineLoginScene);
-}
-```
+## 验证步骤
 
-## 诊断步骤
+修复后，需要：
 
-1. **重新构建项目**
-2. **检查构建输出**：
-   - 打开 `build/web-mobile/src/settings.js`
-   - 搜索 `pluginScripts` 数组
-   - 确认组件脚本是否在其中
-3. **检查控制台错误**：
-   - 打开浏览器开发者工具
-   - 查看是否有 JavaScript 错误
-   - 特别关注 `cc.Class is not defined` 或 `cc.Component is not defined` 错误
+1. **在 Cocos Creator 中重新构建项目**
+   - 打开项目
+   - 删除 `build` 文件夹
+   - 重新构建 Web Mobile 版本
 
-## 受影响的脚本列表
+2. **检查控制台日志**
+   - 应该看到 "loginScene onLoad 开始执行"
+   - 应该看到 "=== 初始化登录按钮 ==="
+   - 应该看到 "手机登录按钮初始化完成"
 
-以下脚本都设置了 `isPlugin: true` 且继承 `cc.Component`：
-
-| 脚本 | 行数 | cc.Class 行号 |
-|------|------|---------------|
-| loginScene.js | 2277 | 570 |
-| gameScene.js | - | - |
-| hallScene.js | - | 5 |
-| gamebeforeUI.js | - | - |
-| gameingUI.js | - | - |
-| card.js | - | - |
-| player_node.js | - | - |
-| phone_login.js | - | 5 |
-| waitnode.js | - | - |
+3. **测试按钮功能**
+   - 点击"手机登录"按钮
+   - 应该弹出登录弹窗
 
 ## 修复历史总结
 
 | 修改 | 结果 | 原因 |
 |------|------|------|
-| isPlugin: true → false | 预览失败 | 预览依赖插件脚本加载顺序 |
+| isPlugin: true → false（直接修改） | 预览失败 | 预览依赖插件脚本加载顺序，辅助函数未定义 |
 | 回滚 | 预览正常，构建失败 | 构建时脚本加载顺序不同 |
+| **拆分脚本（本次修复）** | **预览和构建都正常** | 辅助函数在插件脚本中定义，组件脚本正常注册 |
 
-## 下一步建议
+## 技术说明
 
-1. **首先尝试方案一**（禁用加密），这是最简单的修改
-2. 如果方案一无效，再尝试方案二（拆分脚本）
-3. 方案三需要大量代码修改，建议作为最后选择
+### Cocos Creator 脚本加载顺序
+
+1. **插件脚本（isPlugin: true）**
+   - 在引擎初始化前加载
+   - 可以定义全局函数和变量
+   - 不能继承 `cc.Component`
+
+2. **组件脚本（isPlugin: false）**
+   - 在引擎初始化后加载
+   - 可以继承 `cc.Component`
+   - 可以挂载到场景节点
+
+### 正确的模式
+
+```
+[辅助函数] → 作为插件脚本 → 引擎初始化前加载
+     ↓
+[组件定义] → 作为普通脚本 → 引擎初始化后加载
+     ↓
+[组件 onLoad] → 调用辅助函数 → 正常工作
+```
 
 ---
 
-**重要**：每次修改后都需要：
-1. 关闭 Cocos Creator
-2. 删除 `build` 文件夹
-3. 重新打开项目
-4. 重新构建测试
+**修复日期**：2025年1月
+**修复状态**：已完成，待验证
