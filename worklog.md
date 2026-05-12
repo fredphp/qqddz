@@ -404,3 +404,39 @@ Stage Summary:
   - 增强调试日志输出
 - 提交：292f504 "fix: 修复手机登录按钮点击事件可能无法触发的问题"
 - 状态：已提交到本地仓库，等待推送到 GitHub（需要配置 Git 凭据）
+
+---
+Task ID: 12
+Agent: Main Agent
+Task: 分析构建后按钮不响应问题的根本原因
+
+Work Log:
+- 检查git历史：
+  - `5271158`: 尝试将组件脚本`isPlugin`改为`false`，但导致预览失效
+  - `20c1964`: 回滚了上述修改
+  - `daa0e30`: 最新构建
+- 分析构建输出：
+  - 构建后的settings.js中`jsList`包含所有脚本
+  - 脚本通过`cc.assetManager.loadScript`在引擎初始化后加载
+  - 但`isPlugin: true`的组件脚本没有使用`cc._RF.push/pop`注册机制
+- 对比预览和构建：
+  - 预览：Cocos Creator的预览服务器使用不同的脚本加载机制
+  - 构建：所有脚本都在引擎初始化后加载，插件脚本的组件类未正确注册
+- 发现关键问题：
+  - `loginScene.js`等组件脚本设置了`isPlugin: true`
+  - 构建后，这些脚本被执行但没有被正确注册到Cocos的组件系统
+  - 场景加载时找不到组件类，导致`onLoad`方法不被调用
+- 检查脚本加载顺序：
+  - `loginScene.js`在jsList中第12位
+  - `mygolbal.js`在第13位（依赖顺序问题）
+  - 但代码中已有`_waitForMyglobal`等待机制
+
+Stage Summary:
+- 问题根因：`isPlugin: true`的组件脚本在构建后未被正确注册到Cocos组件系统
+- 影响范围：所有设置为插件脚本的组件类（loginScene、gameScene、hallScene等）
+- 解决方案建议：
+  1. 方案一：修改构建配置（禁用加密、启用调试）- 可能揭示更多信息
+  2. 方案二：拆分脚本 - 将辅助函数移到单独插件脚本，组件脚本设为非插件
+  3. 方案三：延迟组件定义 - 确保组件在正确时机注册
+- 约束：不能简单地将`isPlugin`改为`false`，因为会导致预览失效
+- 文档：已有详细分析报告 `docs/build_issue_analysis.md`
