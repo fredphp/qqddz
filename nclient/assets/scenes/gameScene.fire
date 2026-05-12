@@ -1278,9 +1278,7 @@
     "_id": "8dszjhe9lPCqt0WfJNLgoT"
   },
   {
-    "__type__": {
-      "__uuid__": "77743483-c5fc-49db-aada-70e9a15bdb6d"
-    },
+    "__type__": "gameingUI",
     "_name": "",
     "_objFlags": 0,
     "node": {
@@ -3216,9 +3214,7 @@
     "customEventData": "btn_start"
   },
   {
-    "__type__": {
-      "__uuid__": "dda573e2-4091-42b2-972b-ad10f291758f"
-    },
+    "__type__": "gamebeforeUI",
     "_name": "",
     "_objFlags": 0,
     "node": {
@@ -3251,9 +3247,7 @@
     "_id": "67Fm5ThL5InICqA0g/s+dr"
   },
   {
-    "__type__": {
-      "__uuid__": "e2b3c4d5-e6f7-8901-abcd-ef1234567931"
-    },
+    "__type__": "gameScene",
     "_name": "",
     "_objFlags": 0,
     "node": {

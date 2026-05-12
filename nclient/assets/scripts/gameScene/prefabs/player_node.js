@@ -11,7 +11,7 @@ var isopen_sound = window.isopen_sound || 1
 // ⚠️【已删除】playRobSound 函数 - 音效播放统一由 gameingUI._playRobSound 处理
 
 cc.Class({
-    
+    name: 'player_node',
     extends: cc.Component,
 
     properties: {

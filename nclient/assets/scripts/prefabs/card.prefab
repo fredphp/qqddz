@@ -76,9 +76,7 @@
     }
   },
   {
-    "__type__": {
-      "__uuid__": "2afe8af3-f760-4e97-b09b-41f2920a82e1"
-    },
+    "__type__": "card",
     "_name": "",
     "_objFlags": 0,
     "node": {

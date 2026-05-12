@@ -394,9 +394,7 @@
     "sync": false
   },
   {
-    "__type__": {
-      "__uuid__": "173183ef-d4cc-442d-be9d-fa8fd21e8d2c"
-    },
+    "__type__": "173183ef-d4cc-442d-be9d-fa8fd21e8d2c",
     "_name": "",
     "_objFlags": 0,
     "node": {
