@@ -2,7 +2,6 @@
 
 cc.Class({
     extends: cc.Component,
-    name: 'gamebeforeUI',
 
     properties: {
         btn_ready:cc.Node,

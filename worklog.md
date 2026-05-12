@@ -497,3 +497,52 @@ Stage Summary:
   - 预览模式：`isPlugin: true` + `name: 'xxx'` 可以正常工作
   - 构建模式：组件在构建后丢失，需要进一步调查
 - **下一步**: 构建后按钮问题的根本原因需要从Cocos Creator编辑器层面解决
+
+---
+Task ID: 15
+Agent: Main Agent
+Task: 彻底修复构建后按钮不响应问题
+
+Work Log:
+- **深度排查**：
+  1. 检查场景文件结构：ROOT_UI节点有loginScene组件引用
+  2. 检查构建输出：场景JSON中loginScene组件类型丢失
+  3. 分析原因：所有组件脚本设置了 `isPlugin: true`
+- **关键发现**：
+  - `isPlugin: true` 的组件脚本在构建时会被序列化为普通脚本
+  - 构建后的场景JSON不包含自定义组件类型定义
+  - 这导致场景加载时找不到组件类，onLoad不会被调用
+- **正确修复方案**：
+  1. 组件脚本：`isPlugin: false` + 移除 `name` 属性
+  2. 工具脚本：保持 `isPlugin: true`（如 mygolbal.js, defines.js）
+- **修改的文件**（组件脚本）：
+  - loginScene.js + .meta
+  - phone_login.js + .meta
+  - hallScene.js + .meta
+  - gameScene.js + .meta
+  - gameingUI.js + .meta
+  - gamebeforeUI.js + .meta
+  - player_node.js + .meta
+  - card.js + .meta
+  - waitnode.js + .meta
+  - userAgreement.js + .meta
+- **保持不变的文件**（工具脚本，isPlugin: true）：
+  - mygolbal.js
+  - defines.js
+  - event_lister.js
+  - http_api.js
+  - storage_util.js
+  - player.js
+  - socket_ctr.js
+  - socket-io.js
+
+Stage Summary:
+- **问题根因**: 组件脚本设置 `isPlugin: true` 导致构建后组件类型丢失
+- **修复原则**: 
+  - 组件脚本（继承cc.Component）：`isPlugin: false`，不指定name
+  - 工具脚本（被其他脚本依赖）：`isPlugin: true`
+- **修改数量**: 10个组件脚本 + 10个meta文件
+- **预期效果**: 
+  - 预览模式：正常工作
+  - 构建模式：组件正确注册，按钮事件正常触发
+- **注意**: 需要在Cocos Creator中重新构建项目测试效果

@@ -7,7 +7,6 @@
 
 cc.Class({
     extends: cc.Component,
-    name: 'gameScene',
 
     properties: {
         di_label: cc.Label,

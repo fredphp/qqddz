@@ -12,7 +12,6 @@ var isopen_sound = window.isopen_sound || 1
 
 cc.Class({
     extends: cc.Component,
-    name: 'player_node',
 
     properties: {
         account_label: cc.Label,

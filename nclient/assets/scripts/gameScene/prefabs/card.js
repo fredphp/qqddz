@@ -18,7 +18,6 @@ var RoomState = window.RoomState || {}
 
 cc.Class({
     extends: cc.Component,
-    name: 'card',
 
     properties: {
         cards_sprite_atlas: cc.SpriteAtlas,

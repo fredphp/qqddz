@@ -4,7 +4,6 @@
 
 cc.Class({
     extends: cc.Component,
-    name: 'hallScene', 
 
     properties: {
         nickname_label: cc.Label,
