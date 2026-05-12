@@ -467,3 +467,33 @@ Stage Summary:
   5. 弹窗创建逻辑修复 - 无法生效因为组件不存在
 - **解决方案**: 需要在Cocos Creator编辑器中重新检查组件挂载状态并重新构建
 - **文档**: 创建了详细分析报告 `docs/build_button_fix_analysis.md`
+
+---
+Task ID: 14
+Agent: Main Agent
+Task: 回滚错误的修复，恢复预览模式正常工作
+
+Work Log:
+- 用户报告：之前的修改导致预览模式完全失效，音效和按钮都不工作
+- 分析错误日志：
+  - "Should not specify class name loginScene for Component which defines in project"
+  - "Can not find class 'loginScene'"
+  - "Script attached to 'ROOT_UI' is missing or invalid"
+- 定位问题：
+  - 之前将 `isPlugin: true` 改为 `isPlugin: false`
+  - 但 cc.Class 中仍然有 `name: 'loginScene'`
+  - 在 Cocos Creator 中，非插件脚本不应该指定类名
+- 执行回滚：
+  - 恢复 loginScene.js 到原始版本
+  - 恢复 loginScene.js.meta 的 `isPlugin: true`
+  - 恢复 phone_login.js.meta 的 `isPlugin: true`
+  - 删除不需要的 loginSceneHelpers.js
+
+Stage Summary:
+- **问题根因**: `isPlugin: false` + `name: 'loginScene'` 组合导致组件类无法注册
+- **修复**: 回滚到 `isPlugin: true`，恢复预览模式正常工作
+- **提交**: 2d1eeca "revert: 恢复 loginScene.js 和 phone_login.js 的原始配置"
+- **重要结论**:
+  - 预览模式：`isPlugin: true` + `name: 'xxx'` 可以正常工作
+  - 构建模式：组件在构建后丢失，需要进一步调查
+- **下一步**: 构建后按钮问题的根本原因需要从Cocos Creator编辑器层面解决
