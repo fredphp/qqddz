@@ -1,7 +1,6 @@
 // 加入房间脚本
 
 cc.Class({
-    name: 'joinroom',
     extends: cc.Component,
 
     properties: {
