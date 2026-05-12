@@ -1167,13 +1167,22 @@ cc.Class({
 
     _doPhoneLogin: function() {
         console.log(">>> _doPhoneLogin 被调用");
-        
+
+        // 🔧 修复：防止重复点击导致多个弹窗
+        if (this._phoneLoginPopupShowing) {
+            console.log(">>> 登录弹窗正在显示中，忽略重复调用");
+            return;
+        }
+
         if (!this._checkAgreement()) {
             console.log(">>> 用户未同意协议");
             this._showError("请先同意用户协议");
             return;
         }
-        
+
+        // 设置标志位，防止重复弹窗
+        this._phoneLoginPopupShowing = true;
+
         console.log(">>> 准备显示手机登录弹窗");
         this._showPhoneLoginPopup();
     },
@@ -1348,6 +1357,9 @@ cc.Class({
         closeX.color = new cc.Color(255, 255, 255);
 
         closeBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            // 🔧 修复：重置弹窗显示标志位
+            self._phoneLoginPopupShowing = false;
+
             // 清理原生 HTML input 元素
             if (cc.sys.isBrowser) {
                 var container = document.getElementById('native-input-container');
