@@ -2278,6 +2278,30 @@ cc.Class({
     
     // 销毁时清理
     onDestroy () {
+        // 清理全局触摸监听
         this._removeGlobalTouchForMusic();
+        
+        // 🔧 修复：清理所有弹窗，防止带到其他场景
+        // 清理手机登录弹窗
+        if (this._phoneLoginPopup && cc.isValid(this._phoneLoginPopup)) {
+            this._phoneLoginPopup.destroy();
+            this._phoneLoginPopup = null;
+        }
+        
+        // 清理用户协议弹窗
+        if (this._userAgreementPopup && cc.isValid(this._userAgreementPopup)) {
+            this._userAgreementPopup.destroy();
+            this._userAgreementPopup = null;
+        }
+        
+        // 🔧 关键修复：清理原生 HTML input 元素
+        // 这些元素是直接添加到 document.body 的，不会随场景销毁
+        // 必须手动清理，否则会带到下一个场景
+        _removeNativeInputElements();
+        
+        // 重置弹窗标志位
+        this._phoneLoginPopupShowing = false;
+        
+        console.log("loginScene onDestroy: 已清理所有弹窗和原生元素");
     }
 });
