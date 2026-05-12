@@ -3,6 +3,7 @@
 // 设计：绿色头部 + 黑桃图标 + 米色内容区 + 黄色确认按钮
 
 cc.Class({
+    name: 'userAgreement',
     
     extends: cc.Component,
 
