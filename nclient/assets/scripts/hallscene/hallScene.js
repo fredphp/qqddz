@@ -3,7 +3,7 @@
 // 脚本加载日志
 
 cc.Class({
-    name: 'hallScene',
+    
     extends: cc.Component,
 
     properties: {

@@ -15,7 +15,7 @@
  */
 
 cc.Class({
-    name: 'TournamentFinalRankDialog',
+    
     extends: cc.Component,
 
     properties: {

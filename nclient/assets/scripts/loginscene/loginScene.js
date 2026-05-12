@@ -568,7 +568,7 @@ var _startInputObserver = function() {
 };
 
 cc.Class({
-    name: 'loginScene',
+    
     extends: cc.Component,
 
     properties: {

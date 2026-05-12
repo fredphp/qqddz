@@ -19,7 +19,7 @@ const TournamentStatus = {
 };
 
 cc.Class({
-    name: 'TournamentWaitingScene',
+    
     extends: cc.Component,
 
     properties: {

@@ -1,6 +1,6 @@
 
 cc.Class({
-    name: 'waitnode',
+    
     extends: cc.Component,
 
     properties: {

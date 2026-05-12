@@ -51,7 +51,7 @@ function playSound(path) {
 }
 
 cc.Class({
-    name: 'gameingUI',
+    
     extends: cc.Component,
 
     properties: {

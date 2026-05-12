@@ -3,7 +3,7 @@
 // 设计风格：中国风商业棋牌（响应式适配：宽度60%，高度自适应）
 
 cc.Class({
-    name: 'phone_login',
+    
     extends: cc.Component,
 
     properties: {
