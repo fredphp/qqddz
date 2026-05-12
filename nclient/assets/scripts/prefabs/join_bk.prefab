@@ -3367,7 +3367,9 @@
     "_id": ""
   },
   {
-    "__type__": "f5be78de-6d50-e2fa-aaf5-3f1e277d2741",
+    "__type__": {
+      "__uuid__": "f5be78de-6d50-e2fa-aaf5-3f1e277d2741"
+    },
     "_name": "",
     "_objFlags": 0,
     "node": {

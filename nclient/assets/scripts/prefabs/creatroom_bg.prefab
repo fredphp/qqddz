@@ -1251,7 +1251,9 @@
     "_id": ""
   },
   {
-    "__type__": "7bce5cf3-a172-34e2-ab0d-12e679efdf8f",
+    "__type__": {
+      "__uuid__": "7bce5cf3-a172-34e2-ab0d-12e679efdf8f"
+    },
     "_name": "",
     "_objFlags": 0,
     "node": {

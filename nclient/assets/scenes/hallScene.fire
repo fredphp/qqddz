@@ -2782,7 +2782,9 @@
     "_originalHeight": 0
   },
   {
-    "__type__": "hallScene",
+    "__type__": {
+      "__uuid__": "d2b3c4d5-e6f7-8901-abcd-ef1234567921"
+    },
     "_name": "",
     "_objFlags": 0,
     "node": {
