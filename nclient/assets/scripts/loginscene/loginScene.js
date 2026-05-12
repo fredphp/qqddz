@@ -1276,6 +1276,28 @@ cc.Class({
         mask.color = new cc.Color(0, 0, 0);
         mask.opacity = 150;
 
+        // 🔧 修复：点击遮罩层关闭弹窗
+        mask.on(cc.Node.EventType.TOUCH_END, function() {
+            console.log(">>> 点击遮罩层关闭弹窗");
+            // 重置标志位
+            self._phoneLoginPopupShowing = false;
+
+            // 清理原生 HTML input 元素
+            if (cc.sys.isBrowser) {
+                var container = document.getElementById('native-input-container');
+                if (container) {
+                    container.remove();
+                }
+            }
+            // 关闭动画
+            cc.tween(panel)
+                .to(0.15, { scale: 0.8, opacity: 0 }, { easing: 'backIn' })
+                .call(function() {
+                    popup.destroy();
+                })
+                .start();
+        }, this);
+
         // ==================== 弹窗面板 ====================
         var panel = new cc.Node("Panel");
         panel.parent = popup;
@@ -1365,8 +1387,10 @@ cc.Class({
         closeX.color = new cc.Color(255, 255, 255);
 
         closeBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            console.log(">>> 点击关闭按钮");
             // 🔧 修复：重置弹窗显示标志位
             self._phoneLoginPopupShowing = false;
+            console.log(">>> 已重置 _phoneLoginPopupShowing 为 false");
 
             // 清理原生 HTML input 元素
             if (cc.sys.isBrowser) {
