@@ -33,6 +33,11 @@ window.boot = function () {
             setLoadingDisplay();
         }
 
+        // 🔧 修复：禁用自动全屏功能
+        // 原代码会在某些浏览器上自动请求全屏，导致 "API can only be initiated by a user gesture" 错误
+        cc.view.enableAutoFullScreen(false);
+        console.log("main.js: 已禁用自动全屏功能");
+
         if (cc.sys.isMobile) {
             if (settings.orientation === 'landscape') {
                 cc.view.setOrientation(cc.macro.ORIENTATION_LANDSCAPE);
@@ -40,15 +45,6 @@ window.boot = function () {
             else if (settings.orientation === 'portrait') {
                 cc.view.setOrientation(cc.macro.ORIENTATION_PORTRAIT);
             }
-            cc.view.enableAutoFullScreen([
-                cc.sys.BROWSER_TYPE_BAIDU,
-                cc.sys.BROWSER_TYPE_BAIDU_APP,
-                cc.sys.BROWSER_TYPE_WECHAT,
-                cc.sys.BROWSER_TYPE_MOBILE_QQ,
-                cc.sys.BROWSER_TYPE_MIUI,
-                cc.sys.BROWSER_TYPE_HUAWEI,
-                cc.sys.BROWSER_TYPE_UC,
-            ].indexOf(cc.sys.browserType) < 0);
         }
 
         // Limit downloading max concurrent task to 2,
