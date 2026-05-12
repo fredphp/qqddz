@@ -19,6 +19,9 @@ cc.Class({
 
     onLoad () {
         
+        // 🔧 修复：清理登录场景残留的HTML元素（登录弹窗、原生输入框、CSS样式）
+        this._cleanupLoginResidue();
+        
         if (!window.myglobal) {
             console.warn("myglobal 未定义，等待初始化...");
             this._waitForMyglobal();
@@ -26,6 +29,41 @@ cc.Class({
         }
         
         this._initWithPlayerData();
+    },
+    
+    // 🔧 修复：清理登录场景残留的HTML元素
+    _cleanupLoginResidue: function() {
+        if (!cc.sys.isBrowser) return;
+        
+        try {
+            // 1. 清理原生输入框容器
+            var nativeInputContainer = document.getElementById('native-input-container');
+            if (nativeInputContainer) {
+                nativeInputContainer.remove();
+                console.log("✅ [大厅] 已清理登录弹窗残留的原生输入框容器");
+            }
+            
+            // 2. 清理登录弹窗的CSS样式
+            var editboxStyle = document.getElementById('cocos-editbox-fix-style');
+            if (editboxStyle) {
+                editboxStyle.remove();
+                console.log("✅ [大厅] 已清理登录弹窗残留的CSS样式");
+            }
+            
+            // 3. 清理可能残留的其他登录相关元素
+            var loginDialog = document.querySelector('[id*="LoginDialog"], [id*="login"], [class*="login-dialog"]');
+            if (loginDialog) {
+                loginDialog.remove();
+                console.log("✅ [大厅] 已清理登录弹窗残留元素");
+            }
+            
+            // 4. 禁用自动全屏（确保在hallScene也禁用）
+            if (cc.view && cc.view.enableAutoFullScreen) {
+                cc.view.enableAutoFullScreen(false);
+            }
+        } catch (e) {
+            console.warn("清理登录残留元素失败:", e);
+        }
     },
     
     _waitForMyglobal: function() {

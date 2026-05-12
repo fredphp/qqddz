@@ -1,6 +1,15 @@
 // 登录场景控制器
 // 使用点击事件实现复选框功能（不依赖 Toggle 组件）
 
+// 🔧 关键修复：在脚本加载时立即禁用移动端自动全屏功能
+// 这个必须在cc.Class定义之前执行，早于游戏引擎的初始化
+(function() {
+    if (typeof cc !== 'undefined' && cc.sys && cc.sys.isMobile && cc.view && cc.view.enableAutoFullScreen) {
+        cc.view.enableAutoFullScreen(false);
+        console.log("✅ [登录场景] 已在脚本加载时禁用移动端自动全屏功能");
+    }
+})();
+
 // 全局样式修复函数 - 更强大的版本
 var _globalStyleFixApplied = false;
 
