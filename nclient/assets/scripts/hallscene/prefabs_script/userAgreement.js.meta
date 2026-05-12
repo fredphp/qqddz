@@ -6,5 +6,10 @@
   "loadPluginInWeb": true,
   "loadPluginInNative": true,
   "loadPluginInEditor": false,
-  "subMetas": {}
+  "subMetas": {
+    "cc": {
+      "source": "",
+      "adapter": false
+    }
+  }
 }
