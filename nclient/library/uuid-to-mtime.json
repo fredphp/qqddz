@@ -1549,21 +1549,6 @@
     "meta": 1778500663747,
     "relativePath": "resources\\UI\\male_landlord_left.png"
   },
-  "dda573e2-4091-42b2-972b-ad10f291758f": {
-    "asset": 1778163311348,
-    "meta": 1778500664032,
-    "relativePath": "scripts\\gameScene\\gamebeforeUI.js"
-  },
-  "77743483-c5fc-49db-aada-70e9a15bdb6d": {
-    "asset": 1778336722755,
-    "meta": 1778500664035,
-    "relativePath": "scripts\\gameScene\\gameingUI.js"
-  },
-  "e2b3c4d5-e6f7-8901-abcd-ef1234567931": {
-    "asset": 1778216995006,
-    "meta": 1778500664036,
-    "relativePath": "scripts\\gameScene\\gameScene.js"
-  },
   "e1a3d6bf-a571-41ac-8449-e792f4814298": {
     "asset": 1778377184935,
     "meta": 1778500664038,
@@ -1573,11 +1558,6 @@
     "asset": 1778136569164,
     "meta": 1778500664029,
     "relativePath": "resources\\UI\\btn_shoping.png"
-  },
-  "d2b3c4d5-e6f7-8901-abcd-ef1234567921": {
-    "asset": 1778374965033,
-    "meta": 1778500664038,
-    "relativePath": "scripts\\hallscene\\hallScene.js"
   },
   "c26e5829-2c18-41c3-9d93-6edfe3ba2789": {
     "asset": 1778136571586,
@@ -1593,11 +1573,6 @@
     "asset": 1778136571652,
     "meta": 1778500664056,
     "relativePath": "scripts\\prefabs\\card.prefab"
-  },
-  "d8d266dc-c1ec-42d8-80a9-6f26bd58ad01": {
-    "asset": 1778491237086,
-    "meta": 1778500664061,
-    "relativePath": "scripts\\prefabs\\phone_login.js"
   },
   "a7b00965-17b9-415c-b18a-0d4c7673a6f6": {
     "asset": 1778136571663,
@@ -1633,11 +1608,6 @@
     "asset": 1778136569993,
     "meta": 1778500664067,
     "relativePath": "resources\\UI\\yuanbaoIcon.png"
-  },
-  "173183ef-d4cc-442d-be9d-fa8fd21e8d2c": {
-    "asset": 1778136571754,
-    "meta": 1778500664076,
-    "relativePath": "scripts\\util\\waitnode.js"
   },
   "ff539d38-2932-40f6-84a0-8618722eceb9": {
     "asset": 1778136571675,
@@ -1829,20 +1799,10 @@
     "meta": 1778500664314,
     "relativePath": "resources\\UI\\login\\btn_mobile_login.png"
   },
-  "2afe8af3-f760-4e97-b09b-41f2920a82e1": {
-    "asset": 1778136571515,
-    "meta": 1778500665114,
-    "relativePath": "scripts\\gameScene\\prefabs\\card.js"
-  },
   "565aa9fd-dbc3-47ef-be19-4dfd65632346": {
     "asset": 1778136569818,
     "meta": 1778500664319,
     "relativePath": "resources\\UI\\login\\btn_close.png"
-  },
-  "a2125ada-f750-4b2e-84af-9c59beed06da": {
-    "asset": 1778377184938,
-    "meta": 1778500665117,
-    "relativePath": "scripts\\gameScene\\prefabs\\player_node.js"
   },
   "7fd8fc0e-12e6-4380-a78e-e1ab33929453": {
     "asset": 1778136569452,
@@ -1868,11 +1828,6 @@
     "asset": 1778136569848,
     "meta": 1778500665118,
     "relativePath": "resources\\UI\\login\\get_mobile_code.png"
-  },
-  "b2c3d4e5-f678-90ab-cdef-123456789abc": {
-    "asset": 1778136571582,
-    "meta": 1778500665191,
-    "relativePath": "scripts\\hallscene\\prefabs_script\\userAgreement.js"
   },
   "cc69a33a-de02-4f94-aefb-062d59b87cc4": {
     "asset": 1778136569880,
@@ -1904,9 +1859,54 @@
     "meta": 1778542541761,
     "relativePath": "scripts\\data\\socket_ctr.js"
   },
+  "dda573e2-4091-42b2-972b-ad10f291758f": {
+    "asset": 1778163311348,
+    "meta": 1778558561412,
+    "relativePath": "scripts\\gameScene\\gamebeforeUI.js"
+  },
+  "77743483-c5fc-49db-aada-70e9a15bdb6d": {
+    "asset": 1778336722755,
+    "meta": 1778558561413,
+    "relativePath": "scripts\\gameScene\\gameingUI.js"
+  },
+  "e2b3c4d5-e6f7-8901-abcd-ef1234567931": {
+    "asset": 1778216995006,
+    "meta": 1778558561414,
+    "relativePath": "scripts\\gameScene\\gameScene.js"
+  },
+  "2afe8af3-f760-4e97-b09b-41f2920a82e1": {
+    "asset": 1778136571515,
+    "meta": 1778558561415,
+    "relativePath": "scripts\\gameScene\\prefabs\\card.js"
+  },
+  "a2125ada-f750-4b2e-84af-9c59beed06da": {
+    "asset": 1778377184938,
+    "meta": 1778558561416,
+    "relativePath": "scripts\\gameScene\\prefabs\\player_node.js"
+  },
+  "d2b3c4d5-e6f7-8901-abcd-ef1234567921": {
+    "asset": 1778374965033,
+    "meta": 1778558561416,
+    "relativePath": "scripts\\hallscene\\hallScene.js"
+  },
+  "b2c3d4e5-f678-90ab-cdef-123456789abc": {
+    "asset": 1778136571582,
+    "meta": 1778558561417,
+    "relativePath": "scripts\\hallscene\\prefabs_script\\userAgreement.js"
+  },
   "b05a6f20-48ea-415a-bf1d-76f4f4dc9a63": {
     "asset": 1778556680246,
-    "meta": 1778556689933,
+    "meta": 1778558561417,
     "relativePath": "scripts\\loginscene\\loginScene.js"
+  },
+  "d8d266dc-c1ec-42d8-80a9-6f26bd58ad01": {
+    "asset": 1778491237086,
+    "meta": 1778558561418,
+    "relativePath": "scripts\\prefabs\\phone_login.js"
+  },
+  "173183ef-d4cc-442d-be9d-fa8fd21e8d2c": {
+    "asset": 1778136571754,
+    "meta": 1778558561418,
+    "relativePath": "scripts\\util\\waitnode.js"
   }
 }
