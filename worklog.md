@@ -440,3 +440,30 @@ Stage Summary:
   3. 方案三：延迟组件定义 - 确保组件在正确时机注册
 - 约束：不能简单地将`isPlugin`改为`false`，因为会导致预览失效
 - 文档：已有详细分析报告 `docs/build_issue_analysis.md`
+
+---
+Task ID: 13
+Agent: Main Agent
+Task: 深度分析构建后按钮不响应问题并总结历史修复记录
+
+Work Log:
+- 分析Git历史记录，总结所有修复尝试
+- 检查构建输出文件结构
+- 分析场景JSON序列化格式
+- 对比源文件和构建输出
+- 发现loginScene组件在构建过程中丢失
+
+Stage Summary:
+- **问题根因**: `loginScene` 自定义组件在Cocos Creator构建过程中完全丢失
+- **证据**: 
+  - 构建输出的场景JSON类型定义列表中没有 `loginScene`
+  - ROOT_UI节点的组件列表只包含 cc.Canvas 和 cc.Widget
+  - 原始场景文件中的 `loginScene` 组件定义在构建后消失
+- **历史修复**: 
+  1. isPlugin设置修改 - 导致预览失败，已回滚
+  2. 脚本拆分 - 预览正常，构建后组件丢失
+  3. 禁用自动全屏 - 解决了requestFullscreen错误
+  4. 备用触摸事件 - 无法生效因为组件不存在
+  5. 弹窗创建逻辑修复 - 无法生效因为组件不存在
+- **解决方案**: 需要在Cocos Creator编辑器中重新检查组件挂载状态并重新构建
+- **文档**: 创建了详细分析报告 `docs/build_button_fix_analysis.md`
