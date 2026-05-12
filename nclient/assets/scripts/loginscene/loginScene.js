@@ -588,6 +588,13 @@ cc.Class({
 
     onLoad () {
 
+        // 🔧 修复：禁用移动端自动全屏功能（双重保险）
+        // 即使 main.js 中的设置没有生效，这里也会再次禁用
+        if (cc.sys.isMobile && cc.view && cc.view.enableAutoFullScreen) {
+            cc.view.enableAutoFullScreen(false);
+            console.log("loginScene: 已禁用移动端自动全屏功能");
+        }
+
         // 启动Web平台Input样式监听器
         _startInputObserver();
         _injectGlobalStyles('#000000', '#ffffff');

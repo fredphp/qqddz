@@ -14,7 +14,7 @@ window._CCSettings = {
     subpackages: [],
     launchScene: "db://assets/scenes/loginScene.fire",
     orientation: "",
-    debug: true,
+    debug: false,
     jsList: [
         "assets/scripts/data/player.9f09b.js",
         "assets/scripts/data/socket_ctr.7a7bb.js",
