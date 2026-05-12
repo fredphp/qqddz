@@ -374,3 +374,33 @@ Stage Summary:
   - mask_bg: 添加 Widget 组件实现全屏遮罩
   - content_panel: 固定尺寸 500x560，通过 scale 适配不同屏幕
 - 提交：eafb53c "fix: 修复登录弹窗被Widget拉伸为全屏的问题"
+
+---
+Task ID: 11
+Agent: Main Agent
+Task: 修复手机登录按钮点击事件可能无法触发的问题
+
+Work Log:
+- 分析问题：
+  - 用户报告点击手机登录按钮后直接显示全屏模式，但没有弹出登录界面
+  - 控制台报错：`Failed to execute 'requestFullscreen' on 'Element': API can only be initiated by a user gesture`
+  - 问题可能是 Button 组件的 clickEvents 在某些情况下无法正常触发
+- 排查代码：
+  1. 检查 loginScene.js 中的 _initLoginButtons 方法
+  2. 检查 Button 组件的 clickEvents 配置
+  3. 检查弹窗创建逻辑
+- 修复方案：
+  1. 为微信登录和手机登录按钮添加备用的 TOUCH_END 事件监听
+  2. 添加更多调试日志，方便追踪问题
+  3. 使用 event.stopPropagation() 防止事件冒泡
+
+Stage Summary:
+- 修改文件：
+  - nclient/assets/scripts/loginscene/loginScene.js
+  - client/assets/scripts/loginscene/loginScene.js（同步更新）
+- 问题根因：Button 组件的 clickEvents 可能在某些情况下无法正常触发
+- 修复内容：
+  - 添加 TOUCH_END 事件作为备用触发方式
+  - 增强调试日志输出
+- 提交：292f504 "fix: 修复手机登录按钮点击事件可能无法触发的问题"
+- 状态：已提交到本地仓库，等待推送到 GitHub（需要配置 Git 凭据）
