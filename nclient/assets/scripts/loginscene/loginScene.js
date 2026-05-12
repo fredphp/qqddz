@@ -1061,14 +1061,15 @@ cc.Class({
         
         // 使用 cc.resources.load 加载音频
         cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
+            if (!cc.isValid(self.node)) return;
             if (err) {
                 self._setupGlobalTouchForMusic();
                 return;
             }
-            
+
             // 保存音频剪辑
             self._bgMusicClip = clip;
-            
+
             try {
                 // 使用 playMusic 播放背景音乐（统一的背景音乐管理）
                 cc.audioEngine.playMusic(clip, true);
@@ -1104,12 +1105,13 @@ cc.Class({
         
         // 没有音频剪辑，需要加载
         cc.resources.load("sound/login_bg", cc.AudioClip, function(err, clip) {
+            if (!cc.isValid(self.node)) return;
             if (err) {
                 return;
             }
-            
+
             self._bgMusicClip = clip;
-            
+
             try {
                 cc.audioEngine.playMusic(clip, true);
                 self._musicPlaying = true;
@@ -1284,6 +1286,7 @@ cc.Class({
         } else {
             console.log(">>> 动态加载 prefabs/phone_login");
             cc.resources.load("prefabs/phone_login", cc.Prefab, function(err, prefab) {
+                if (!cc.isValid(self.node)) return;
                 if (err) {
                     console.error("加载 phone_login prefab 失败:", err);
                     self._showError("无法显示登录弹窗");
@@ -1402,6 +1405,7 @@ cc.Class({
 
         // 加载背景图（使用 UI/login/login_bg.png）
         cc.resources.load("UI/login/login_bg", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!cc.isValid(bg)) return;
             if (err) {
                 console.warn("加载 login_bg 失败，使用默认背景:", err);
                 // 降级：使用渐变背景
@@ -1521,11 +1525,10 @@ cc.Class({
         phoneIconNode.setContentSize(cc.size(iconSize, iconSize));
 
         cc.resources.load("UI/login/icon_phone", cc.SpriteFrame, function(err, spriteFrame) {
-            if (!err) {
-                var iconSprite = phoneIconNode.addComponent(cc.Sprite);
-                iconSprite.spriteFrame = spriteFrame;
-                iconSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            }
+            if (err || !cc.isValid(phoneIconNode)) return;
+            var iconSprite = phoneIconNode.addComponent(cc.Sprite);
+            iconSprite.spriteFrame = spriteFrame;
+            iconSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         });
 
         // ==================== 手机号输入框 ====================
@@ -1551,11 +1554,10 @@ cc.Class({
         codeIconNode.setContentSize(cc.size(iconSize, iconSize));
 
         cc.resources.load("UI/login/icon_shield", cc.SpriteFrame, function(err, spriteFrame) {
-            if (!err) {
-                var iconSprite = codeIconNode.addComponent(cc.Sprite);
-                iconSprite.spriteFrame = spriteFrame;
-                iconSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            }
+            if (err || !cc.isValid(codeIconNode)) return;
+            var iconSprite = codeIconNode.addComponent(cc.Sprite);
+            iconSprite.spriteFrame = spriteFrame;
+            iconSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         });
 
         // ==================== 验证码输入框 ====================
@@ -1580,6 +1582,7 @@ cc.Class({
         getCodeBtnComp.zoomScale = 0.95;
 
         cc.resources.load("UI/login/get_mobile_code", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!cc.isValid(getCodeBtn)) return;
             if (err) {
                 console.warn("加载获取验证码按钮图片失败:", err);
                 // 降级：使用纯色按钮
@@ -1650,6 +1653,7 @@ cc.Class({
 
         // 尝试加载按钮图片
         cc.resources.load("UI/login/btn_mobile_login", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!cc.isValid(loginBtn)) return;
             if (err) {
                 // 降级：使用纯色按钮
                 var loginGfx = loginBtn.addComponent(cc.Graphics);
@@ -1680,6 +1684,7 @@ cc.Class({
 
         // 尝试加载微信图标
         cc.resources.load("UI/login/icon_wechat", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!cc.isValid(wxBtn)) return;
             if (err) {
                 // 降级：使用绿色圆形背景
                 var wxBgGfx = wxBtn.addComponent(cc.Graphics);
@@ -2134,6 +2139,7 @@ cc.Class({
         
         // 加载背景图片
         cc.resources.load("images/user_agreement_bg", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!cc.isValid(panel)) return;
             if (!err && spriteFrame) {
                 panelSprite.spriteFrame = spriteFrame;
             }
