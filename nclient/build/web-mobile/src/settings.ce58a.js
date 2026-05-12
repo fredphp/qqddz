@@ -27,7 +27,7 @@ window._CCSettings = {
         "assets/scripts/hallscene/hallScene.542fd.js",
         "assets/scripts/hallscene/prefabs_script/userAgreement.16e83.js",
         "assets/scripts/lib/socket-io.beaf7.js",
-        "assets/scripts/loginscene/loginScene.afeb8.js",
+        "assets/scripts/loginscene/loginScene.3c6bc.js",
         "assets/scripts/mygolbal.87a0d.js",
         "assets/scripts/prefabs/phone_login.23e87.js",
         "assets/scripts/util/event_lister.5476b.js",
