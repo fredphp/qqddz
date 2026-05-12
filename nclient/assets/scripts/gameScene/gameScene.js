@@ -6,6 +6,7 @@
 // 3. 不依赖 scheduleOnce 控制发牌节奏
 
 cc.Class({
+    name: 'gameScene',
     extends: cc.Component,
 
     properties: {

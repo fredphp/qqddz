@@ -1,6 +1,7 @@
 // 创建房间脚本
 
 cc.Class({
+    name: 'creatroom',
     extends: cc.Component,
 
     properties: {
