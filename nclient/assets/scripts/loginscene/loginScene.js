@@ -771,6 +771,13 @@ cc.Class({
                 button.clickEvents.push(handler);
                 console.log("微信登录按钮初始化完成");
             }
+            
+            // 添加备用的触摸事件监听（确保点击事件一定能触发）
+            wxLoginNode.off(cc.Node.EventType.TOUCH_END);
+            wxLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                console.log(">>> 微信登录按钮 TOUCH_END 事件触发");
+                self._doWxLogin();
+            }, self);
         } else {
             console.error("未找到 login_wx 节点！");
         }
@@ -792,6 +799,14 @@ cc.Class({
                 button.clickEvents.push(handler);
                 console.log("手机登录按钮初始化完成");
             }
+            
+            // 添加备用的触摸事件监听（确保点击事件一定能触发）
+            phoneLoginNode.off(cc.Node.EventType.TOUCH_END);
+            phoneLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                console.log(">>> 手机登录按钮 TOUCH_END 事件触发");
+                event.stopPropagation();  // 阻止事件冒泡
+                self._doPhoneLogin();
+            }, self);
         } else {
             console.error("未找到 login_phone 节点！");
         }
@@ -1144,38 +1159,48 @@ cc.Class({
     },
 
     _doPhoneLogin: function() {
+        console.log(">>> _doPhoneLogin 被调用");
         
         if (!this._checkAgreement()) {
+            console.log(">>> 用户未同意协议");
             this._showError("请先同意用户协议");
             return;
         }
         
+        console.log(">>> 准备显示手机登录弹窗");
         this._showPhoneLoginPopup();
     },
 
     _showPhoneLoginPopup: function() {
         var self = this;
         
+        console.log(">>> _showPhoneLoginPopup 被调用");
+        console.log(">>> phone_login_prefab:", this.phone_login_prefab ? "存在" : "不存在");
         
         if (this.phone_login_prefab) {
             this._createPhoneLoginPopup(this.phone_login_prefab);
         } else {
+            console.log(">>> 动态加载 prefabs/phone_login");
             cc.resources.load("prefabs/phone_login", cc.Prefab, function(err, prefab) {
                 if (err) {
                     console.error("加载 phone_login prefab 失败:", err);
                     self._showError("无法显示登录弹窗");
                     return;
                 }
+                console.log(">>> phone_login prefab 加载成功");
                 self._createPhoneLoginPopup(prefab);
             });
         }
     },
 
     _createPhoneLoginPopup: function(prefab) {
+        console.log(">>> _createPhoneLoginPopup 被调用");
         
         // 动态创建弹窗（使用正确的背景图和尺寸）
         try {
+            console.log(">>> 开始动态创建登录弹窗");
             var popup = this._createPhoneLoginDynamic();
+            console.log(">>> 登录弹窗创建完成:", popup ? popup.name : "null");
             this._phoneLoginPopup = popup;
         } catch (e) {
             console.error("创建手机登录弹窗失败:", e);

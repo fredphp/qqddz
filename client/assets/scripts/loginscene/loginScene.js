@@ -49,7 +49,13 @@ var _applyInputStyles = function(fontColor, bgColor) {
 };
 
 // 样式化单个input元素 - 修复版：文字垂直居中 + 透明背景不遮挡边框
+// 注意：跳过原生输入框（native-phone-input, native-code-input），因为它们有精确的位置设置
 var _styleSingleInput = function(input, fontColor, bgColor) {
+    // ★ 跳过原生输入框，它们已经有正确的样式
+    if (input.id === 'native-phone-input' || input.id === 'native-code-input') {
+        return;
+    }
+    
     // ==================== 核心样式设置 ====================
     
     // 1. 文字颜色
@@ -120,7 +126,7 @@ var _styleSingleInput = function(input, fontColor, bgColor) {
     input.style.setProperty('outline-offset', '0', 'important');
 };
 
-// 注入全局CSS样式 - 修复版
+// 注入全局CSS样式 - 修复版（排除原生输入框）
 var _injectGlobalStyles = function(fontColor, bgColor) {
     try {
         var styleId = 'cocos-editbox-fix-style';
@@ -128,7 +134,9 @@ var _injectGlobalStyles = function(fontColor, bgColor) {
 
         var css = `
             /* 输入框基础样式 - 透明背景 + 文字居中 */
-            input, textarea {
+            /* 注意：排除原生输入框 #native-phone-input, #native-code-input */
+            input:not(#native-phone-input):not(#native-code-input), 
+            textarea:not(#native-phone-input):not(#native-code-input) {
                 color: ${fontColor} !important;
                 background-color: transparent !important;
                 opacity: 1 !important;
@@ -148,17 +156,18 @@ var _injectGlobalStyles = function(fontColor, bgColor) {
             }
             
             /* 聚焦状态 */
-            input:focus, textarea:focus {
+            input:focus:not(#native-phone-input):not(#native-code-input), 
+            textarea:focus:not(#native-phone-input):not(#native-code-input) {
                 color: ${fontColor} !important;
                 outline: none !important;
                 background-color: transparent !important;
             }
             
-            /* 文本类型输入框 - Flexbox 垂直居中 */
-            input[type="text"], 
-            input[type="number"], 
-            input[type="tel"],
-            input[type="password"] {
+            /* 文本类型输入框 - Flexbox 垂直居中（排除原生输入框）*/
+            input[type="text"]:not(#native-phone-input):not(#native-code-input), 
+            input[type="number"]:not(#native-phone-input):not(#native-code-input), 
+            input[type="tel"]:not(#native-phone-input):not(#native-code-input),
+            input[type="password"]:not(#native-phone-input):not(#native-code-input) {
                 display: flex !important;
                 align-items: center !important;
                 justify-content: flex-start !important;
@@ -188,7 +197,7 @@ var _injectGlobalStyles = function(fontColor, bgColor) {
 };
 
 // 创建原生 HTML input 元素（绕过 Cocos EditBox 的问题）
-// 改进版 v3：基于背景图尺寸直接计算输入框位置
+// 改进版 v4：使用节点世界坐标精确定位
 var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, inputWidth, inputHeight, codeInputW, panelWidth, panelHeight) {
     if (!cc.sys.isBrowser) return;
     
@@ -203,72 +212,67 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         var canvasRect = canvas.getBoundingClientRect();
         var winSize = cc.winSize;
         
-        console.log('=== 创建原生输入框（v3 - 基于背景图尺寸）===');
+        console.log('=== 创建原生输入框（v4 - 使用节点世界坐标）===');
         console.log('Canvas 位置:', canvasRect.left, canvasRect.top);
         console.log('Canvas 尺寸:', canvasRect.width, 'x', canvasRect.height);
         console.log('游戏分辨率:', winSize.width, 'x', winSize.height);
-        console.log('面板尺寸:', panelWidth, 'x', panelHeight);
         
         // 计算缩放比例（Canvas 实际尺寸 / 游戏设计分辨率）
         var scaleX = canvasRect.width / winSize.width;
         var scaleY = canvasRect.height / winSize.height;
         console.log('缩放比例:', scaleX.toFixed(3), scaleY.toFixed(3));
         
-        // ==================== 关键：原生输入框位置参数 ====================
-        // 修改这些值可以调整原生 HTML 输入框的位置
-        // Y 坐标：正值向上，负值向下（相对于面板中心）
-        // X 坐标：正值向右，负值向左（相对于面板中心）
+        // ==================== 关键改进：使用节点世界坐标 ====================
+        // 直接使用 Cocos 节点的世界坐标，而不是手动计算偏移
         
-        // ★★★ 修改这里调整输入框位置 ★★★
-        var phoneInputY = 75;    // 手机输入框 Y 坐标（正值向上）
-        var phoneInputX = 0;     // 手机输入框 X 坐标（0=居中）
-        var codeInputY = 5;      // 验证码输入框 Y 坐标（正值向上）
-        var codeInputX = 0;      // 验证码输入框 X 坐标（0=居中）
+        // 获取输入框节点的世界坐标
+        var phoneWorldPos = phoneInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
+        var codeWorldPos = codeInputNode.convertToWorldSpaceAR(cc.v2(0, 0));
         
-        // ★★★ 修改这里调整输入框尺寸 ★★★
-        var actualInputWidth = 180;      // 手机输入框宽度
-        var actualInputHeight = 50;      // 输入框高度
-        var actualCodeInputWidth = 110;  // 验证码输入框宽度
+        console.log('手机输入框世界坐标:', phoneWorldPos.x.toFixed(1), phoneWorldPos.y.toFixed(1));
+        console.log('验证码输入框世界坐标:', codeWorldPos.x.toFixed(1), codeWorldPos.y.toFixed(1));
         
-        console.log('=== 原生输入框参数 ===');
-        console.log('phoneInputY:', phoneInputY, ', phoneInputX:', phoneInputX);
-        console.log('codeInputY:', codeInputY, ', codeInputX:', codeInputX);
-        console.log('actualInputWidth:', actualInputWidth, ', actualInputHeight:', actualInputHeight);
+        // ★★★ 位置微调参数（如果需要微调，修改这里）★★★
+        var phoneOffsetX = 0;    // 手机输入框 X 偏移
+        var phoneOffsetY = 0;    // 手机输入框 Y 偏移
+        var codeOffsetX = 0;     // 验证码输入框 X 偏移
+        var codeOffsetY = 0;     // 验证码输入框 Y 偏移
         
-        // 获取面板位置
-        var panelPos = panel.getPosition();
-        console.log('面板位置:', panelPos.x.toFixed(1), panelPos.y.toFixed(1));
+        // ★★★ 尺寸参数 ★★★
+        var actualInputWidth = inputWidth;      // 使用传入的输入框宽度
+        var actualInputHeight = inputHeight;    // 使用传入的输入框高度
+        var actualCodeInputWidth = codeInputW;  // 使用传入的验证码输入框宽度
         
-        // 计算输入框相对于屏幕中心的最终位置
-        var phoneFinalX = panelPos.x + phoneInputX;
-        var phoneFinalY = panelPos.y + phoneInputY;
-        var codeFinalX = panelPos.x + codeInputX;
-        var codeFinalY = panelPos.y + codeInputY;
+        console.log('=== 输入框尺寸 ===');
+        console.log('手机输入框:', actualInputWidth, 'x', actualInputHeight);
+        console.log('验证码输入框:', actualCodeInputWidth, 'x', actualInputHeight);
         
-        console.log('手机输入框最终坐标:', phoneFinalX.toFixed(1), phoneFinalY.toFixed(1));
-        console.log('验证码输入框最终坐标:', codeFinalX.toFixed(1), codeFinalY.toFixed(1));
-        
-        // 计算屏幕位置
-        var canvasCenterX = canvasRect.width / 2 + canvasRect.left;
-        var canvasCenterY = canvasRect.height / 2 + canvasRect.top;
-        
-        var calcScreenPos = function(finalX, finalY, nodeWidth, nodeHeight) {
-            var screenCenterX = canvasCenterX + finalX * scaleX;
-            var screenCenterY = canvasCenterY - finalY * scaleY;
+        // 计算屏幕位置（世界坐标 -> 屏幕坐标）
+        // Cocos 坐标系：原点左下角，Y 向上
+        // HTML 坐标系：原点左上角，Y 向下
+        var calcScreenPosFromWorld = function(worldPos, nodeWidth, nodeHeight, offsetX, offsetY) {
+            // 世界坐标转换为屏幕坐标
+            var screenX = worldPos.x + offsetX;
+            var screenY = worldPos.y + offsetY;
             
+            // 转换为 Canvas 坐标
+            var canvasX = screenX * scaleX;
+            var canvasY = canvasRect.height - screenY * scaleY;  // Y 轴翻转
+            
+            // 计算实际尺寸
             var actualWidth = nodeWidth * scaleX;
             var actualHeight = nodeHeight * scaleY;
             
             return {
-                left: screenCenterX - actualWidth / 2,
-                top: screenCenterY - actualHeight / 2,
+                left: canvasRect.left + canvasX - actualWidth / 2,
+                top: canvasRect.top + canvasY - actualHeight / 2,
                 width: actualWidth,
                 height: actualHeight
             };
         };
         
-        var phoneScreen = calcScreenPos(phoneFinalX, phoneFinalY, actualInputWidth, actualInputHeight);
-        var codeScreen = calcScreenPos(codeFinalX, codeFinalY, actualCodeInputWidth, actualInputHeight);
+        var phoneScreen = calcScreenPosFromWorld(phoneWorldPos, actualInputWidth, actualInputHeight, phoneOffsetX, phoneOffsetY);
+        var codeScreen = calcScreenPosFromWorld(codeWorldPos, actualCodeInputWidth, actualInputHeight, codeOffsetX, codeOffsetY);
         
         console.log('手机输入框屏幕位置:', phoneScreen);
         console.log('验证码输入框屏幕位置:', codeScreen);
@@ -315,10 +319,10 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
             'top: ' + phoneScreen.top + 'px',
             'width: ' + phoneScreen.width + 'px',
             'height: ' + phoneScreen.height + 'px',
-            'background: rgba(255, 255, 255, 0.95)',
-            'border: 2px solid #DAA520',
-            'border-radius: 6px',
-            'font-size: 20px',
+            'background: transparent',
+            'border: none',
+            'border-radius: 0',
+            'font-size: 12px',
             'color: #333',
             'padding: 0 8px',
             'box-sizing: border-box',
@@ -344,10 +348,10 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
             'top: ' + codeScreen.top + 'px',
             'width: ' + codeScreen.width + 'px',
             'height: ' + codeScreen.height + 'px',
-            'background: rgba(255, 255, 255, 0.95)',
-            'border: 2px solid #DAA520',
-            'border-radius: 6px',
-            'font-size: 20px',
+            'background: transparent',
+            'border: none',
+            'border-radius: 0',
+            'font-size: 12px',
             'color: #333',
             'padding: 0 8px',
             'box-sizing: border-box',
@@ -392,6 +396,21 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         
     } catch (e) {
         console.error('创建原生输入框失败:', e);
+    }
+};
+
+// 移除原生 HTML 输入框元素（登录成功或关闭弹窗时调用）
+var _removeNativeInputElements = function() {
+    if (!cc.sys.isBrowser) return;
+    
+    try {
+        var container = document.getElementById('native-input-container');
+        if (container) {
+            container.remove();
+            console.log('原生输入框已移除');
+        }
+    } catch (e) {
+        console.error('移除原生输入框失败:', e);
     }
 };
 
@@ -724,11 +743,22 @@ cc.Class({
     _initLoginButtons: function() {
         var self = this;
         
+        console.log("=== 初始化登录按钮 ===");
+        console.log("当前节点:", this.node ? this.node.name : "null");
+        
+        // 打印所有子节点名称
+        var children = this.node.children;
+        console.log("子节点数量:", children.length);
+        for (var i = 0; i < children.length; i++) {
+            console.log("  子节点[" + i + "]:", children[i].name);
+        }
 
         // loginScene 脚本挂载在 ROOT_UI 节点上，所以 this.node 就是 ROOT_UI
         var wxLoginNode = this.node.getChildByName("login_wx");
+        console.log("wxLoginNode:", wxLoginNode ? "找到" : "未找到");
         if (wxLoginNode) {
             var button = wxLoginNode.getComponent(cc.Button);
+            console.log("wxLoginNode Button:", button ? "存在" : "不存在");
             if (button) {
                 button.interactable = true;
                 button.clickEvents = [];
@@ -739,13 +769,24 @@ cc.Class({
                 handler.handler = "_onWxLoginClick";
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
+                console.log("微信登录按钮初始化完成");
             }
+            
+            // 添加备用的触摸事件监听（确保点击事件一定能触发）
+            wxLoginNode.off(cc.Node.EventType.TOUCH_END);
+            wxLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                console.log(">>> 微信登录按钮 TOUCH_END 事件触发");
+                self._doWxLogin();
+            }, self);
         } else {
+            console.error("未找到 login_wx 节点！");
         }
 
         var phoneLoginNode = this.node.getChildByName("login_phone");
+        console.log("phoneLoginNode:", phoneLoginNode ? "找到" : "未找到");
         if (phoneLoginNode) {
             var button = phoneLoginNode.getComponent(cc.Button);
+            console.log("phoneLoginNode Button:", button ? "存在" : "不存在");
             if (button) {
                 button.interactable = true;
                 button.clickEvents = [];
@@ -756,10 +797,21 @@ cc.Class({
                 handler.handler = "_onPhoneLoginClick";
                 handler.customEventData = "";
                 button.clickEvents.push(handler);
+                console.log("手机登录按钮初始化完成");
             }
+            
+            // 添加备用的触摸事件监听（确保点击事件一定能触发）
+            phoneLoginNode.off(cc.Node.EventType.TOUCH_END);
+            phoneLoginNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                console.log(">>> 手机登录按钮 TOUCH_END 事件触发");
+                event.stopPropagation();  // 阻止事件冒泡
+                self._doPhoneLogin();
+            }, self);
         } else {
+            console.error("未找到 login_phone 节点！");
         }
         
+        console.log("=== 登录按钮初始化结束 ===");
     },
 
     _initUserAgreementLink: function() {
@@ -786,10 +838,12 @@ cc.Class({
     },
 
     _onWxLoginClick: function() {
+        console.log("=== 微信登录按钮被点击 ===");
         this._doWxLogin();
     },
 
     _onPhoneLoginClick: function() {
+        console.log("=== 手机登录按钮被点击 ===");
         this._doPhoneLogin();
     },
 
@@ -1105,38 +1159,48 @@ cc.Class({
     },
 
     _doPhoneLogin: function() {
+        console.log(">>> _doPhoneLogin 被调用");
         
         if (!this._checkAgreement()) {
+            console.log(">>> 用户未同意协议");
             this._showError("请先同意用户协议");
             return;
         }
         
+        console.log(">>> 准备显示手机登录弹窗");
         this._showPhoneLoginPopup();
     },
 
     _showPhoneLoginPopup: function() {
         var self = this;
         
+        console.log(">>> _showPhoneLoginPopup 被调用");
+        console.log(">>> phone_login_prefab:", this.phone_login_prefab ? "存在" : "不存在");
         
         if (this.phone_login_prefab) {
             this._createPhoneLoginPopup(this.phone_login_prefab);
         } else {
+            console.log(">>> 动态加载 prefabs/phone_login");
             cc.resources.load("prefabs/phone_login", cc.Prefab, function(err, prefab) {
                 if (err) {
                     console.error("加载 phone_login prefab 失败:", err);
                     self._showError("无法显示登录弹窗");
                     return;
                 }
+                console.log(">>> phone_login prefab 加载成功");
                 self._createPhoneLoginPopup(prefab);
             });
         }
     },
 
     _createPhoneLoginPopup: function(prefab) {
+        console.log(">>> _createPhoneLoginPopup 被调用");
         
         // 动态创建弹窗（使用正确的背景图和尺寸）
         try {
+            console.log(">>> 开始动态创建登录弹窗");
             var popup = this._createPhoneLoginDynamic();
+            console.log(">>> 登录弹窗创建完成:", popup ? popup.name : "null");
             this._phoneLoginPopup = popup;
         } catch (e) {
             console.error("创建手机登录弹窗失败:", e);
@@ -1154,8 +1218,8 @@ cc.Class({
         var winW = cc.winSize.width;
         var winH = cc.winSize.height;
 
-        // 图片原始尺寸
-        var imgWidth = 520;
+        // 图片原始尺寸 - 调宽弹窗
+        var imgWidth = 580;  // 原来是520，增加到580
         var imgHeight = 680;
 
         // 如果屏幕太小，按比例缩小
@@ -1305,11 +1369,12 @@ cc.Class({
 
         // 输入框尺寸
         var inputWidth = 220 * scaleRatio;   // 输入框宽度
-        var inputHeight = 60 * scaleRatio;   // 输入框高度
+        var inputHeight = 45 * scaleRatio;   // 输入框高度（减小）
         var iconSize = 25 * scaleRatio;      // 图标大小
-        var formY1 = 150 * scaleRatio;        // 第一个输入框Y坐标
-        var formY2 = 60 * scaleRatio;       // 第二个输入框Y坐标
+        var formY1 = 130 * scaleRatio;        // 第一个输入框Y坐标（向下移动）
+        var formY2 = 50 * scaleRatio;       // 第二个输入框Y坐标
         var getCodeBtnWidth = 90 * scaleRatio;  // 获取验证码按钮宽度
+        var btnHeight = 45 * scaleRatio;     // 统一按钮高度
 
         console.log("布局参数: scaleRatio=" + scaleRatio.toFixed(2));
 
@@ -1376,7 +1441,7 @@ cc.Class({
         // 获取验证码按钮
         var getCodeBtn = new cc.Node("BtnGetCode");
         getCodeBtn.parent = panel;
-        getCodeBtn.setContentSize(cc.size(getCodeBtnWidth, inputHeight));
+        getCodeBtn.setContentSize(cc.size(getCodeBtnWidth, btnHeight));
         getCodeBtn.setPosition(codeRowWidth/2 - getCodeBtnWidth/2, formY2);
 
         var getCodeBtnComp = getCodeBtn.addComponent(cc.Button);
@@ -1404,7 +1469,7 @@ cc.Class({
             var btnSprite = getCodeBtn.addComponent(cc.Sprite);
             btnSprite.spriteFrame = spriteFrame;
             btnSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            getCodeBtn.setContentSize(cc.size(getCodeBtnWidth, inputHeight - 5));
+            getCodeBtn.setContentSize(cc.size(getCodeBtnWidth, btnHeight));
         });
 
         // 倒计时状态
@@ -1442,9 +1507,10 @@ cc.Class({
         };
 
         // ==================== 手机登录按钮 ====================
+        // btn_mobile_login.png 原始尺寸: 340 x 50，宽高比 6.8:1
         var loginBtnY = formY2 - 70 * scaleRatio;
-        var loginBtnWidth = 200 * scaleRatio;
-        var loginBtnHeight = 50 * scaleRatio;
+        var loginBtnHeight = 50 * scaleRatio;  // 按钮高度
+        var loginBtnWidth = loginBtnHeight * 6.8;  // 按图片原始比例计算宽度 (340/50=6.8)
 
         var loginBtn = new cc.Node("BtnLogin");
         loginBtn.parent = panel;
@@ -1472,8 +1538,9 @@ cc.Class({
         loginBtnComp.zoomScale = 0.95;
 
         // ==================== 微信登录按钮 ====================
-        var wxBtnY = loginBtnY - 65 * scaleRatio;
-        var wxBtnSize = 50 * scaleRatio;
+        // icon_wechat.png 原始尺寸: 48 x 48（正方形）
+        var wxBtnY = loginBtnY - 155 * scaleRatio;  // 往下移动更多
+        var wxBtnSize = 48 * scaleRatio;  // 使用图片原始尺寸 48
 
         var wxBtn = new cc.Node("BtnWechat");
         wxBtn.parent = panel;
@@ -1500,15 +1567,15 @@ cc.Class({
         wxBtnComp.transition = cc.Button.Transition.SCALE;
         wxBtnComp.zoomScale = 0.95;
 
-        // 微信登录文字
-        var wxLabel = new cc.Node("LabelWechat");
-        wxLabel.parent = panel;
-        wxLabel.setPosition(0, wxBtnY - 35 * scaleRatio);
-        var wxLabelComp = wxLabel.addComponent(cc.Label);
-        wxLabelComp.string = "微信登录";
-        wxLabelComp.fontSize = 12 * scaleRatio;
-        wxLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        wxLabel.color = new cc.Color(100, 80, 60);
+        // 微信登录文字 - 隐藏
+        // var wxLabel = new cc.Node("LabelWechat");
+        // wxLabel.parent = panel;
+        // wxLabel.setPosition(0, wxBtnY - 35 * scaleRatio);
+        // var wxLabelComp = wxLabel.addComponent(cc.Label);
+        // wxLabelComp.string = "微信登录";
+        // wxLabelComp.fontSize = 12 * scaleRatio;
+        // wxLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        // wxLabel.color = new cc.Color(100, 80, 60);
 
         console.log("按钮位置: loginBtnY=" + loginBtnY.toFixed(0) + ", wxBtnY=" + wxBtnY.toFixed(0));
 
@@ -1691,6 +1758,7 @@ cc.Class({
                 }
                 showMessage("登录成功", false);
                 self.scheduleOnce(function() {
+                    _removeNativeInputElements();
                     popup.destroy();
                     cc.director.loadScene("hallScene");
                 }, 0.5);
@@ -1727,6 +1795,7 @@ cc.Class({
                                 window.myglobal.onLoginSuccess(loginData);
                             }
                             self.scheduleOnce(function() {
+                                _removeNativeInputElements();
                                 popup.destroy();
                                 cc.director.loadScene("hallScene");
                             }, 0.5);
@@ -1765,6 +1834,7 @@ cc.Class({
                                         window.myglobal.onLoginSuccess(loginData);
                                     }
                                     self.scheduleOnce(function() {
+                                        _removeNativeInputElements();
                                         popup.destroy();
                                         cc.director.loadScene("hallScene");
                                     }, 0.5);
@@ -1805,6 +1875,7 @@ cc.Class({
                 }
                 showMessage("登录成功", false);
                 self.scheduleOnce(function() {
+                    _removeNativeInputElements();
                     popup.destroy();
                     cc.director.loadScene("hallScene");
                 }, 0.5);
@@ -1839,6 +1910,7 @@ cc.Class({
                                 console.log("【微信登录】用户数据已保存, nickName =", window.myglobal.playerData.nickName);
                             }
                             self.scheduleOnce(function() {
+                                _removeNativeInputElements();
                                 popup.destroy();
                                 cc.director.loadScene("hallScene");
                             }, 0.5);
@@ -1873,6 +1945,7 @@ cc.Class({
                                         console.log("【微信登录XHR】用户数据已保存, nickName =", window.myglobal.playerData.nickName);
                                     }
                                     self.scheduleOnce(function() {
+                                        _removeNativeInputElements();
                                         popup.destroy();
                                         cc.director.loadScene("hallScene");
                                     }, 0.5);
