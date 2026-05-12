@@ -588,11 +588,17 @@ cc.Class({
 
     onLoad () {
 
-        // 🔧 修复：禁用移动端自动全屏功能（双重保险）
+        // 🔧 修复：禁用自动全屏功能（双重保险，移除 isMobile 检查）
         // 即使 main.js 中的设置没有生效，这里也会再次禁用
-        if (cc.sys.isMobile && cc.view && cc.view.enableAutoFullScreen) {
+        if (cc.view && cc.view.enableAutoFullScreen) {
             cc.view.enableAutoFullScreen(false);
-            console.log("loginScene: 已禁用移动端自动全屏功能");
+            console.log("loginScene: 已禁用自动全屏功能");
+        }
+
+        // 🔧 额外保险：禁用 screen 的自动全屏触摸监听器
+        if (cc.screen && cc.screen.disableAutoFullScreen) {
+            cc.screen.disableAutoFullScreen();
+            console.log("loginScene: 已禁用 screen 自动全屏触摸监听器");
         }
 
         // 启动Web平台Input样式监听器
