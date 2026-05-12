@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
 
-  <title>Cocos Creator | nclient</title>
+  <title><%= title %></title>
 
   <!--http://www.html5rocks.com/en/mobile/mobifying/-->
   <meta name="viewport"
@@ -22,13 +22,14 @@
   <meta name="msapplication-tap-highlight" content="no">
 
   <!-- 🔧 修复：禁用强制全屏，避免移动端全屏问题 -->
+  <!-- 原代码会在某些浏览器上自动请求全屏，导致 "API can only be initiated by a user gesture" 错误 -->
   <!-- <meta name="full-screen" content="yes"/> -->
   <!-- <meta name="x5-fullscreen" content="true"/> -->
   <!-- <meta name="360-fullscreen" content="true"/> -->
-  
+
   <!-- force screen orientation on some browser -->
-  <meta name="screen-orientation" content=""/>
-  <meta name="x5-orientation" content="">
+  <meta name="screen-orientation" content="<%= orientation %>"/>
+  <meta name="x5-orientation" content="<%= orientation %>">
 
   <!--fix fireball/issues/3568 -->
   <!--<meta name="browsermode" content="application">-->
@@ -37,8 +38,8 @@
   <!--<link rel="apple-touch-icon" href=".png" />-->
   <!--<link rel="apple-touch-icon-precomposed" href=".png" />-->
 
-  <link rel="stylesheet" type="text/css" href="style-mobile.25fc5.css"/>
-  <link rel="icon" href="favicon.8de18.ico"/>
+  <link rel="stylesheet" type="text/css" href="style-<%= cssMap %>.css"/>
+  <link rel="icon" href="favicon.<%= iconMd5 %>.ico"/>
 </head>
 <body>
   <canvas id="GameCanvas" oncontextmenu="event.preventDefault()" tabindex="0"></canvas>
@@ -48,23 +49,20 @@
     </div>
   </div>
 
-<script src="src/settings.0806e.js" charset="utf-8"></script>
-<script src="vconsole.min.bac6b.js"></script>
-<script src="main.63960.js" charset="utf-8"></script>
+<script src="src/settings.<%= settingsMd5 %>.js" charset="utf-8"></script>
+<% if (enableVConsole) { %><script src="vconsole.min.<%= vconsoleMd5 %>.js"></script><% } %>
+<script src="main.<%= bootMd5 %>.js" charset="utf-8"></script>
 
 <script type="text/javascript">
 (function () {
     // 🔧 修复：在游戏初始化前禁用全屏API
-    // 阻止Cocos引擎自动请求全屏
+    // 阻止Cocos引擎自动请求全屏，避免 "API can only be initiated by a user gesture" 错误
     (function disableFullscreenBeforeInit() {
         // 保存原始的全屏API
         var _requestFullscreen = Element.prototype.requestFullscreen ||
             Element.prototype.webkitRequestFullscreen ||
             Element.prototype.mozRequestFullScreen ||
             Element.prototype.msRequestFullscreen;
-
-        // 标记是否已禁用
-        var _fullscreenDisabled = false;
 
         // 创建一个标记，允许用户手势触发的全屏
         window.__allowFullscreen = false;
@@ -74,7 +72,7 @@
             Element.prototype.requestFullscreen = function() {
                 // 如果游戏还没有初始化完成，阻止全屏
                 if (!window.__allowFullscreen) {
-                    console.log('全屏请求已被阻止（游戏初始化阶段）');
+                    console.log('[全屏保护] 全屏请求已被阻止（游戏初始化阶段）');
                     return Promise.resolve();
                 }
                 return _requestFullscreen.apply(this, arguments);
@@ -84,7 +82,7 @@
             if (Element.prototype.webkitRequestFullscreen) {
                 Element.prototype.webkitRequestFullscreen = function() {
                     if (!window.__allowFullscreen) {
-                        console.log('全屏请求已被阻止（游戏初始化阶段）');
+                        console.log('[全屏保护] 全屏请求已被阻止（游戏初始化阶段）');
                         return;
                     }
                     return Element.prototype.webkitRequestFullscreen.apply(this, arguments);
@@ -92,13 +90,15 @@
             }
         }
 
-        console.log('全屏API保护已启用');
+        console.log('[全屏保护] 全屏API保护已启用');
     })();
 
+    <% if (enableVConsole) { %>
     // open web debugger console
     if (typeof VConsole !== 'undefined') {
         window.vConsole = new VConsole();
     }
+    <% } %>
 
     var debug = window._CCSettings.debug;
     var splash = document.getElementById('splash');
@@ -117,9 +117,9 @@
       document.body.appendChild(domScript);
     }
 
-    loadScript(debug ? 'cocos2d-js.e413a.js' : 'cocos2d-js-min.js', function () {
+    loadScript(debug ? 'cocos2d-js.<%= cocos2dMd5 %>.js' : 'cocos2d-js-min.<%= cocos2dMd5 %>.js', function () {
       if (CC_PHYSICS_BUILTIN || CC_PHYSICS_CANNON) {
-        loadScript(debug ? 'physics.8ff32.js' : 'physics-min.js', window.boot);
+        loadScript(debug ? 'physics.<%= physicsMd5 %>.js' : 'physics-min.<%= physicsMd5 %>.js', window.boot);
       }
       else {
         window.boot();
