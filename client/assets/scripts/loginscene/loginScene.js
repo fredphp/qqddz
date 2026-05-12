@@ -588,6 +588,13 @@ cc.Class({
 
     onLoad () {
 
+        // 🔧 修复：禁用移动端自动全屏功能，避免点击按钮时触发全屏导致登录弹窗无法正常显示
+        // requestFullscreen API 需要用户手势触发，自动全屏可能导致错误
+        if (cc.sys.isMobile && cc.view && cc.view.enableAutoFullScreen) {
+            cc.view.enableAutoFullScreen(false);
+            console.log("已禁用移动端自动全屏功能");
+        }
+
         // 启动Web平台Input样式监听器
         _startInputObserver();
         _injectGlobalStyles('#000000', '#ffffff');
