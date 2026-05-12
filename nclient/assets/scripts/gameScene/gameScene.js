@@ -226,6 +226,12 @@ cc.Class({
             }
         }.bind(this))
 
+        // 🔧【新增】监听玩家离开事件
+        myglobal.socket.onPlayerLeft(function(data) {
+            console.log("👋 [gameScene] 收到玩家离开通知:", JSON.stringify(data))
+            this._onPlayerLeft(data)
+        }.bind(this))
+
         myglobal.socket.onPlayerReady(function(data) {
             for (var i = 0; i < this.playerNodeList.length; i++) {
                 var node = this.playerNodeList[i]
@@ -743,6 +749,77 @@ cc.Class({
                     })
                     break
                 }
+            }
+        }
+    },
+
+    /**
+     * 🔧【新增】处理玩家离开通知
+     * 当收到服务端的 player_left 消息时，移除对应的玩家节点
+     */
+    _onPlayerLeft: function(data) {
+        console.log("👋 [_onPlayerLeft] 处理玩家离开, player_id:", data.player_id, "player_name:", data.player_name)
+        
+        var playerId = data.player_id
+        if (!playerId) {
+            console.warn("👋 [_onPlayerLeft] 缺少 player_id")
+            return
+        }
+        
+        // 从 playerNodeList 中查找并移除玩家节点
+        var removedIndex = -1
+        for (var i = 0; i < this.playerNodeList.length; i++) {
+            var node = this.playerNodeList[i]
+            if (node) {
+                var nodeScript = node.getComponent("player_node")
+                if (nodeScript && nodeScript.accountid === playerId) {
+                    console.log("👋 [_onPlayerLeft] 找到离开的玩家节点，准备移除:", playerId)
+                    
+                    // 销毁节点
+                    node.destroy()
+                    
+                    // 从列表中移除
+                    this.playerNodeList.splice(i, 1)
+                    removedIndex = i
+                    break
+                }
+            }
+        }
+        
+        // 从 _playerdataList 中移除玩家数据
+        if (this._playerdataList) {
+            for (var i = 0; i < this._playerdataList.length; i++) {
+                if (this._playerdataList[i].accountid === playerId) {
+                    this._playerdataList.splice(i, 1)
+                    console.log("👋 [_onPlayerLeft] 从玩家数据列表中移除:", playerId)
+                    break
+                }
+            }
+        }
+        
+        // 如果当前玩家数量不足3人，显示等待UI
+        var currentCount = this.playerNodeList.length
+        console.log("👋 [_onPlayerLeft] 当前玩家数量:", currentCount)
+        
+        // 检查是否是竞技场模式
+        var isArenaMode = this._isArenaMode || false
+        
+        if (!isArenaMode && currentCount < 3 && !this._isWaitingForPlayers) {
+            // 普通模式下，玩家离开后显示等待UI
+            var roomCode = this._currentRoomCode || ""
+            if (this.roomid_label) {
+                roomCode = this.roomid_label.string.replace("房间号:", "")
+            }
+            this._showWaitingUI(3 - currentCount, roomCode)
+        }
+        
+        // 更新房主信息（如果离开的是房主）
+        var myglobal = window.myglobal
+        if (myglobal && myglobal.playerData) {
+            // 服务端会在 player_left 消息中包含新的房主ID（如果需要）
+            if (data.new_creator_id) {
+                myglobal.playerData.housemanageid = data.new_creator_id
+                console.log("👋 [_onPlayerLeft] 新房主ID:", data.new_creator_id)
             }
         }
     }

@@ -1016,6 +1016,12 @@ window.socketCtr = function(){
         if (evt) evt.on("player_ready_notify", callback)
     }
 
+    // 🔧【新增】监听玩家离开事件
+    that.onPlayerLeft = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("player_left", callback)
+    }
+
     that.onGameStart = function(callback){
         var evt = _getEvent()
         if (evt) evt.on("gameStart_notify", callback)
