@@ -39,6 +39,13 @@
         <el-form-item label="版本号" prop="version">
           <el-input v-model="searchInfo.version" placeholder="搜索条件" />
         </el-form-item>
+        <el-form-item label="分类" prop="type">
+          <el-select v-model="searchInfo.type" placeholder="请选择" clearable>
+            <el-option label="用户协议" value="user_agreement" />
+            <el-option label="帮助中心" value="help" />
+            <el-option label="隐私政策" value="privacy" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-select v-model="searchInfo.status" placeholder="请选择" clearable>
             <el-option label="启用" :value="1" />
@@ -77,6 +84,13 @@
         </el-table-column>
 
         <el-table-column align="center" label="协议标题" prop="title" min-width="150" />
+        <el-table-column align="center" label="分类" prop="type" width="120">
+          <template #default="scope">
+            <el-tag :type="getTypeTagType(scope.row.type)">
+              {{ getTypeName(scope.row.type) }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column align="center" label="版本号" prop="version" width="100" />
         <el-table-column align="center" label="排序" prop="sort" width="80" />
         <el-table-column align="center" label="状态" prop="status" width="100">
@@ -155,6 +169,13 @@
             placeholder="请输入协议标题"
           />
         </el-form-item>
+        <el-form-item label="分类:" prop="type">
+          <el-select v-model="formData.type" placeholder="请选择分类" style="width: 100%;">
+            <el-option label="用户协议" value="user_agreement" />
+            <el-option label="帮助中心" value="help" />
+            <el-option label="隐私政策" value="privacy" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="版本号:" prop="version">
           <el-input
             v-model="formData.version"
@@ -210,8 +231,29 @@ const formData = ref({
   content: '',
   version: '',
   status: 1,
-  sort: 0
+  sort: 0,
+  type: 'user_agreement'
 })
+
+// 获取分类名称
+const getTypeName = (type) => {
+  const typeMap = {
+    'user_agreement': '用户协议',
+    'help': '帮助中心',
+    'privacy': '隐私政策'
+  }
+  return typeMap[type] || type || '未分类'
+}
+
+// 获取分类标签类型
+const getTypeTagType = (type) => {
+  const typeMap = {
+    'user_agreement': 'primary',
+    'help': 'success',
+    'privacy': 'warning'
+  }
+  return typeMap[type] || 'info'
+}
 
 const rule = reactive({
   title: [
@@ -375,7 +417,8 @@ const openDialog = () => {
     content: '',
     version: '',
     status: 1,
-    sort: 0
+    sort: 0,
+    type: 'user_agreement'
   }
   dialogFormVisible.value = true
 }
@@ -387,7 +430,8 @@ const closeDialog = () => {
     content: '',
     version: '',
     status: 1,
-    sort: 0
+    sort: 0,
+    type: 'user_agreement'
   }
 }
 
