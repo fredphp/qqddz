@@ -32,13 +32,6 @@ const (
         // CacheExpirationUserAgreement = 30 * time.Minute
 )
 
-// RedisClient Redis客户端接口
-type RedisClient interface {
-        Get(ctx context.Context, key string) (string, error)
-        Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
-        Del(ctx context.Context, keys ...string) error
-}
-
 // UserAgreement 用户协议模型
 type UserAgreement struct {
         ID        uint      `json:"id"`
