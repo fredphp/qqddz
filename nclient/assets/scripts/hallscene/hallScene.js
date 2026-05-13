@@ -7924,16 +7924,24 @@ cc.Class({
             var labelComp = contentLabel.addComponent(cc.Label);
             
             // 重要：Cocos Creator中Label属性设置顺序很关键
-            // 必须先设置overflow和wrapWidth，再设置string
+            // 1. 先设置基础属性
             labelComp.fontSize = 14;
             labelComp.lineHeight = 20;
             labelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+            
+            // 2. 设置换行模式 - 关键！
+            labelComp.enableWrapText = true;  // 启用文本换行
+            
+            // 3. 设置overflow为RESIZE_HEIGHT
             labelComp.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
             
-            // 使用固定宽度计算wrapWidth
+            // 4. 设置wrapWidth（换行宽度）
             var wrapWidth = itemWidth - 30;
             console.log("【帮助弹窗】第" + (index+1) + "条wrapWidth:", wrapWidth);
             labelComp.wrapWidth = wrapWidth;
+            
+            // 5. 设置节点尺寸
+            contentLabel.setContentSize(cc.size(wrapWidth, 20));
             
             // 设置颜色和锚点
             contentLabel.color = cc.color(220, 220, 220);
@@ -7942,7 +7950,7 @@ cc.Class({
             contentLabel.x = -itemWidth / 2 + 15;
             contentLabel.y = -10;  // 留出顶部边距
             
-            // 先添加到父节点，再设置文本内容
+            // 先添加到父节点
             contentLabel.parent = contentBox;
             
             // 最后设置文本内容
