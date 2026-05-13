@@ -21,11 +21,14 @@ USE `hlddz`;
 
 INSERT IGNORE INTO `sys_apis` (`id`, `created_at`, `updated_at`, `deleted_at`, `path`, `description`, `api_group`, `method`)
 VALUES
-(510, NOW(), NOW(), NULL, '/sysUserAgreement/createSysUserAgreement', '创建用户协议', '用户协议', 'POST'),
-(511, NOW(), NOW(), NULL, '/sysUserAgreement/updateSysUserAgreement', '更新用户协议', '用户协议', 'PUT'),
-(512, NOW(), NOW(), NULL, '/sysUserAgreement/deleteSysUserAgreement', '删除用户协议', '用户协议', 'DELETE'),
-(513, NOW(), NOW(), NULL, '/sysUserAgreement/deleteSysUserAgreementByIds', '批量删除用户协议', '用户协议', 'DELETE'),
-(514, NOW(), NOW(), NULL, '/sysUserAgreement/setUserAgreementStatus', '设置用户协议状态', '用户协议', 'PUT');
+(510, NOW(), NOW(), NULL, '/sysUserAgreement/getSysUserAgreementList', '获取单页列表', '单页管理', 'GET'),
+(511, NOW(), NOW(), NULL, '/sysUserAgreement/createSysUserAgreement', '创建单页', '单页管理', 'POST'),
+(512, NOW(), NOW(), NULL, '/sysUserAgreement/updateSysUserAgreement', '更新单页', '单页管理', 'PUT'),
+(513, NOW(), NOW(), NULL, '/sysUserAgreement/deleteSysUserAgreement', '删除单页', '单页管理', 'DELETE'),
+(514, NOW(), NOW(), NULL, '/sysUserAgreement/deleteSysUserAgreementByIds', '批量删除单页', '单页管理', 'DELETE'),
+(515, NOW(), NOW(), NULL, '/sysUserAgreement/findSysUserAgreement', '获取单页详情', '单页管理', 'GET'),
+(516, NOW(), NOW(), NULL, '/sysUserAgreement/setUserAgreementStatus', '设置单页状态', '单页管理', 'PUT'),
+(517, NOW(), NOW(), NULL, '/sysUserAgreement/refreshCache', '一键刷新缓存', '单页管理', 'POST');
 
 -- 如果INSERT IGNORE不生效，可以使用以下替代方案（先删除再插入）
 -- DELETE FROM `sys_apis` WHERE `path` LIKE '/sysUserAgreement/%' AND `api_group` = '用户协议';
@@ -43,19 +46,25 @@ VALUES
 
 -- 为888角色（管理员）添加用户协议管理权限
 INSERT IGNORE INTO `casbin_rule` (`ptype`, `v0`, `v1`, `v2`, `v3`, `v4`, `v5`) VALUES
+('p', '888', '/sysUserAgreement/getSysUserAgreementList', 'GET', '', '', ''),
 ('p', '888', '/sysUserAgreement/createSysUserAgreement', 'POST', '', '', ''),
 ('p', '888', '/sysUserAgreement/updateSysUserAgreement', 'PUT', '', '', ''),
 ('p', '888', '/sysUserAgreement/deleteSysUserAgreement', 'DELETE', '', '', ''),
 ('p', '888', '/sysUserAgreement/deleteSysUserAgreementByIds', 'DELETE', '', '', ''),
-('p', '888', '/sysUserAgreement/setUserAgreementStatus', 'PUT', '', '', '');
+('p', '888', '/sysUserAgreement/findSysUserAgreement', 'GET', '', '', ''),
+('p', '888', '/sysUserAgreement/setUserAgreementStatus', 'PUT', '', '', ''),
+('p', '888', '/sysUserAgreement/refreshCache', 'POST', '', '', '');
 
 -- 为9528角色（如果有）添加用户协议管理权限
 INSERT IGNORE INTO `casbin_rule` (`ptype`, `v0`, `v1`, `v2`, `v3`, `v4`, `v5`) VALUES
+('p', '9528', '/sysUserAgreement/getSysUserAgreementList', 'GET', '', '', ''),
 ('p', '9528', '/sysUserAgreement/createSysUserAgreement', 'POST', '', '', ''),
 ('p', '9528', '/sysUserAgreement/updateSysUserAgreement', 'PUT', '', '', ''),
 ('p', '9528', '/sysUserAgreement/deleteSysUserAgreement', 'DELETE', '', '', ''),
 ('p', '9528', '/sysUserAgreement/deleteSysUserAgreementByIds', 'DELETE', '', '', ''),
-('p', '9528', '/sysUserAgreement/setUserAgreementStatus', 'PUT', '', '', '');
+('p', '9528', '/sysUserAgreement/findSysUserAgreement', 'GET', '', '', ''),
+('p', '9528', '/sysUserAgreement/setUserAgreementStatus', 'PUT', '', '', ''),
+('p', '9528', '/sysUserAgreement/refreshCache', 'POST', '', '', '');
 
 -- ============================================
 -- 3. 验证插入结果

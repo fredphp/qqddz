@@ -11,9 +11,9 @@ USE `hlddz`;
 -- 1. 删除 sys_apis 表中的用户协议API定义
 -- ============================================
 
-DELETE FROM `sys_apis` 
-WHERE `path` LIKE '/sysUserAgreement/%' 
-AND `api_group` = '用户协议';
+DELETE FROM `sys_apis`
+WHERE `path` LIKE '/sysUserAgreement/%'
+AND `api_group` IN ('用户协议', '单页管理');
 
 -- ============================================
 -- 2. 删除 casbin_rule 表中的用户协议权限规则
