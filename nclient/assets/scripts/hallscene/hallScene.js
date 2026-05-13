@@ -7945,10 +7945,13 @@ cc.Class({
             contentBoxes.push({
                 contentBox: contentBox,
                 labelComp: labelComp,
-                contentBg: contentBg
+                contentBg: contentBg,
+                index: index
             });
             
-            contentBox.active = false;  // 初始隐藏
+            // 注意：不要在这里设置 contentBox.active = false
+            // 因为Label需要在激活状态下才能正确计算高度
+            // 将在延迟回调中设置
             
             // 添加点击事件
             titleBg.on(cc.Node.EventType.TOUCH_END, function() {
@@ -7986,12 +7989,16 @@ cc.Class({
             expandedItems[index] = false;
         });
         
-        // 延迟一帧更新高度，确保Label已计算完成
+        // 延迟更新高度，确保Label已计算完成
+        // 注意：必须在contentBox.active = true的状态下才能正确计算Label高度
         this.scheduleOnce(function() {
             console.log("【帮助弹窗】延迟更新Label高度");
             contentBoxes.forEach(function(item, idx) {
-                var actualHeight = item.labelComp.node.height;
+                // 强制Label更新布局
+                var labelNode = item.labelComp.node;
+                var actualHeight = labelNode.height;
                 console.log("【帮助弹窗】第" + (idx+1) + "条actualHeight:", actualHeight);
+                
                 if (actualHeight > 0) {
                     var newHeight = actualHeight + 30;  // 上下各留15px边距
                     item.contentBox.height = newHeight;
@@ -8007,12 +8014,35 @@ cc.Class({
                     }
                     console.log("【帮助弹窗】第" + (idx+1) + "条更新后高度:", newHeight);
                 } else {
-                    console.warn("【帮助弹窗】第" + (idx+1) + "条actualHeight为0，保持默认高度200");
+                    console.warn("【帮助弹窗】第" + (idx+1) + "条actualHeight为0，使用文本长度估算");
+                    // 使用文本长度估算高度
+                    var text = item.labelComp.string;
+                    var wrapWidth = item.contentBox.width - 30;
+                    var charWidth = 14 * 0.6;  // 字体大小 * 估算宽度比例
+                    var lineHeight = 20;
+                    var charsPerLine = Math.floor(wrapWidth / charWidth);
+                    var lines = Math.ceil(text.length / charsPerLine);
+                    var estimatedHeight = lines * lineHeight + 30;
+                    
+                    item.contentBox.height = estimatedHeight;
+                    item.contentBg.height = estimatedHeight;
+                    var g = item.contentBg.getComponent(cc.Graphics);
+                    if (g) {
+                        g.clear();
+                        g.fillColor = cc.color(45, 42, 55, 200);
+                        g.roundRect(-item.contentBg.width/2, -item.contentBg.height, item.contentBg.width, item.contentBg.height, 4);
+                        g.fill();
+                    }
+                    console.log("【帮助弹窗】第" + (idx+1) + "条估算高度:", estimatedHeight);
                 }
+                
+                // 现在可以隐藏contentBox了
+                item.contentBox.active = false;
             });
+            
             // 重新计算初始布局
             self._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
-        }, 0.1);  // 增加延迟时间
+        }, 0.2);  // 增加延迟时间确保布局完成
         
         // 初始布局
         this._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
