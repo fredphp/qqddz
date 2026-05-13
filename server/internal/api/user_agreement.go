@@ -389,17 +389,18 @@ func (h *UserAgreementHandler) GetLatestHelpArticle(w http.ResponseWriter, r *ht
 
 // GetHelpArticleList 获取帮助文章列表（带缓存）
 func (h *UserAgreementHandler) GetHelpArticleList(w http.ResponseWriter, r *http.Request) {
-        if h.db == nil {
-                writeJSONError(w, http.StatusServiceUnavailable, "数据库未配置")
-                return
-        }
-
         // 尝试从缓存获取
         if value, exists := h.cache.Get(CacheKeyHelpArticleList); exists {
                 if articles, ok := value.([]UserAgreement); ok {
                         writeJSONSuccess(w, articles)
                         return
                 }
+        }
+
+        // 如果没有数据库连接，返回空数组
+        if h.db == nil {
+                writeJSONSuccess(w, []UserAgreement{})
+                return
         }
 
         query := `SELECT id, created_at, updated_at, title, content, version, status, sort, type
@@ -409,7 +410,9 @@ func (h *UserAgreementHandler) GetHelpArticleList(w http.ResponseWriter, r *http
 
         rows, err := h.db.Query(query)
         if err != nil {
-                writeJSONError(w, http.StatusInternalServerError, "查询失败: "+err.Error())
+                // 数据库错误（表不存在等），返回空数组而不是报错
+                log.Printf("⚠️ 查询帮助文章失败，返回空数组: %v", err)
+                writeJSONSuccess(w, []UserAgreement{})
                 return
         }
         defer rows.Close()
@@ -429,8 +432,8 @@ func (h *UserAgreementHandler) GetHelpArticleList(w http.ResponseWriter, r *http
                         &article.Type,
                 )
                 if err != nil {
-                        writeJSONError(w, http.StatusInternalServerError, "解析数据失败: "+err.Error())
-                        return
+                        log.Printf("⚠️ 解析帮助文章数据失败: %v", err)
+                        continue
                 }
                 articles = append(articles, article)
         }
