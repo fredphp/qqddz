@@ -7,7 +7,7 @@
   "inlineSpriteFrames": true,
   "md5Cache": false,
   "useBuiltinServer": true,
-  "webOrientation": "auto",
+  "webOrientation": "landscape",
   "useCustomDefaultFont": false,
   "defaultFontPath": "",
   "nativeCode": {

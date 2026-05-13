@@ -104,17 +104,8 @@
         "cocos-services"
       ]
     },
-    " common-asset-worker-worker": {},
-    "window-1778560508570": {},
-    " build-worker-worker": {}
+    " common-asset-worker-worker": {}
   },
-  "panels": {
-    "builder": {
-      "x": 508,
-      "y": 32,
-      "width": 516,
-      "height": 739
-    }
-  },
+  "panels": {},
   "panelLabelWidth": {}
 }

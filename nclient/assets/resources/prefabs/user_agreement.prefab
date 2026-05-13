@@ -627,7 +627,7 @@
       "__id__": 1
     },
     "component": "",
-    "_componentId": "userAgreement",
+    "_componentId": "b2c3d4e5-f678-90ab-cdef-123456789abc",
     "handler": "onButtonClick",
     "customEventData": "close"
   },
@@ -1345,7 +1345,7 @@
       "__id__": 1
     },
     "component": "",
-    "_componentId": "userAgreement",
+    "_componentId": "b2c3d4e5-f678-90ab-cdef-123456789abc",
     "handler": "onButtonClick",
     "customEventData": "confirm"
   },
@@ -1386,7 +1386,7 @@
     "_id": ""
   },
   {
-    "__type__": "userAgreement",
+    "__type__": "b2c3d4e5-f678-90ab-cdef-123456789abc",
     "_name": "",
     "_objFlags": 0,
     "node": {
@@ -1451,7 +1451,7 @@
       "__id__": 1
     },
     "asset": {
-      "__uuid__": "c3d4e5f6-7890-abcd-ef12-3456789abcde"
+      "__uuid__": "1eb065a5-db22-443f-bada-73c5fbeda2f2"
     },
     "fileId": "userAgreementRoot",
     "sync": false
