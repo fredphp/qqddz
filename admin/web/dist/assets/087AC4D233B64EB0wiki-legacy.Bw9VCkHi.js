@@ -1,0 +1,4 @@
+/*! 
+ 柴米油盐后台管理系统 
+ Time : 1778684774000 */
+System.register(["./087AC4D233B64EB0index-legacy.DdE_NWmC.js"],function(t,e){"use strict";var r,n,l,i,u,o;return{setters:[function(t){r=t.o,n=t.c,l=t.F,i=t.y,u=t.a,o=t.t}],execute:function(){var e={class:"grid grid-cols-2 gap-2"},s=["href"];t("default",{__name:"wiki",setup:function(t){var c=[{title:"Vue3",url:"https://v3.cn.vuejs.org/guide/introduction.html"},{title:"GIN 文档",url:"https://gin-gonic.com/"},{title:"Go语言",url:"https://golang.google.cn/"},{title:"Element Plus",url:"https://element-plus.org/zh-CN/"}];return function(t,a){return r(),n("div",e,[(r(),n(l,null,i(c,function(t){return u("a",{key:t.url,href:t.url,class:"text-sm text-black/70 dark:text-white/70 no-underline hover:text-[var(--el-color-primary)] dark:hover:text-white",target:"_blank"},o(t.title),9,s)}),64))])}}})}}});
