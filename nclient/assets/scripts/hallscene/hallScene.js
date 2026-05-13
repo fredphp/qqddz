@@ -7902,13 +7902,14 @@ cc.Class({
             var contentBox = new cc.Node("contentBox");
             contentBox.setPosition(0, -itemHeight);
             contentBox.width = contentNode.width - 20;
+            contentBox.height = 200;  // 设置初始高度
             contentBox.anchorX = 0.5;
             contentBox.anchorY = 1;
 
             // 内容背景
             var contentBg = new cc.Node("contentBg");
             contentBg.width = contentBox.width;
-            contentBg.height = 100;  // 初始高度
+            contentBg.height = 200;  // 初始高度
             contentBg.anchorX = 0.5;
             contentBg.anchorY = 1;  // 锚点在顶部
             var contentBgGraphics = contentBg.addComponent(cc.Graphics);
@@ -7936,6 +7937,9 @@ cc.Class({
             contentLabel.x = -contentBox.width / 2 + 15;
             contentLabel.y = -10;  // 留出顶部边距
             contentLabel.parent = contentBox;
+            
+            console.log("【帮助弹窗】第" + (index+1) + "条contentLabel初始高度:", contentLabel.height);
+            console.log("【帮助弹窗】第" + (index+1) + "条contentBox初始高度:", contentBox.height);
             
             // 存储引用，稍后更新高度
             contentBoxes.push({
@@ -7985,12 +7989,14 @@ cc.Class({
         // 延迟一帧更新高度，确保Label已计算完成
         this.scheduleOnce(function() {
             console.log("【帮助弹窗】延迟更新Label高度");
-            contentBoxes.forEach(function(item) {
+            contentBoxes.forEach(function(item, idx) {
                 var actualHeight = item.labelComp.node.height;
+                console.log("【帮助弹窗】第" + (idx+1) + "条actualHeight:", actualHeight);
                 if (actualHeight > 0) {
-                    item.contentBox.height = actualHeight + 30;  // 上下各留15px边距
+                    var newHeight = actualHeight + 30;  // 上下各留15px边距
+                    item.contentBox.height = newHeight;
                     // 更新内容背景高度
-                    item.contentBg.height = actualHeight + 30;
+                    item.contentBg.height = newHeight;
                     // 重绘背景
                     var g = item.contentBg.getComponent(cc.Graphics);
                     if (g) {
@@ -7999,11 +8005,14 @@ cc.Class({
                         g.roundRect(-item.contentBg.width/2, -item.contentBg.height, item.contentBg.width, item.contentBg.height, 4);
                         g.fill();
                     }
+                    console.log("【帮助弹窗】第" + (idx+1) + "条更新后高度:", newHeight);
+                } else {
+                    console.warn("【帮助弹窗】第" + (idx+1) + "条actualHeight为0，保持默认高度200");
                 }
             });
             // 重新计算初始布局
             self._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
-        }, 0.05);
+        }, 0.1);  // 增加延迟时间
         
         // 初始布局
         this._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
