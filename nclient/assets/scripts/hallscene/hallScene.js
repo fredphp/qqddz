@@ -7457,6 +7457,7 @@ cc.Class({
         mask.parent = dialog;
         
         mask.on(cc.Node.EventType.TOUCH_END, function() {
+            self._helpScrollView = null;  // 清理引用
             dialog.destroy();
         });
         
@@ -7511,30 +7512,67 @@ cc.Class({
         titleNode.color = cc.color(255, 215, 0);
         titleNode.parent = dialog;
         
-        // ==================== 内容区域 - 带滚动 ====================
+        // ==================== 内容区域 - 带滚动视图 ====================
         var contentWidth = bgWidth - 40;
         var contentHeight = bgHeight - titleBarHeight - 80;
         var contentStartY = bgHeight/2 - titleBarHeight - 20;
         
-        // 内容容器
-        var contentContainer = new cc.Node("ContentContainer");
-        contentContainer.setPosition(0, contentStartY - contentHeight/2);
+        // 创建滚动视图容器
+        var scrollViewNode = new cc.Node("ScrollView");
+        scrollViewNode.setPosition(0, contentStartY - contentHeight/2);
+        scrollViewNode.setContentSize(cc.size(contentWidth, contentHeight));
+        scrollViewNode.anchorX = 0.5;
+        scrollViewNode.anchorY = 0.5;
+        scrollViewNode.parent = dialog;
+        
+        // 添加 ScrollView 组件
+        var scrollView = scrollViewNode.addComponent(cc.ScrollView);
+        scrollView.horizontal = false;
+        scrollView.vertical = true;
+        scrollView.inertia = true;
+        scrollView.brake = 0.5;
+        scrollView.elastic = true;
+        scrollView.bounceDuration = 0.5;
+        
+        // 创建 view 节点（滚动视口）
+        var viewNode = new cc.Node("view");
+        viewNode.setContentSize(cc.size(contentWidth, contentHeight));
+        viewNode.anchorX = 0.5;
+        viewNode.anchorY = 0.5;
+        viewNode.x = 0;
+        viewNode.y = 0;
+        viewNode.parent = scrollViewNode;
+        
+        // 添加 Mask 组件隐藏超出内容
+        var mask = viewNode.addComponent(cc.Mask);
+        mask.type = cc.Mask.Type.RECT;
+        
+        // 创建 content 节点（滚动内容容器）
+        var contentContainer = new cc.Node("content");
         contentContainer.setContentSize(cc.size(contentWidth, contentHeight));
         contentContainer.anchorX = 0.5;
-        contentContainer.anchorY = 0.5;
-        contentContainer.parent = dialog;
+        contentContainer.anchorY = 1;  // 锚点在顶部
+        contentContainer.x = 0;
+        contentContainer.y = contentHeight / 2;  // 顶部对齐
+        contentContainer.parent = viewNode;
+        
+        // 设置 ScrollView 的 content
+        scrollView.content = contentContainer;
         
         // 加载提示
         var loadingLabel = new cc.Node("LoadingLabel");
-        loadingLabel.setPosition(0, 0);
+        loadingLabel.setPosition(0, -contentHeight/2 + 20);  // 居中显示
         var loadingLabelComp = loadingLabel.addComponent(cc.Label);
         loadingLabelComp.string = "正在加载帮助内容...";
         loadingLabelComp.fontSize = 18;
-        loadingLabelComp.lineHeight = contentHeight;
+        loadingLabelComp.lineHeight = 24;
         loadingLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         loadingLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
         loadingLabel.color = cc.color(180, 180, 180);
         loadingLabel.parent = contentContainer;
+        
+        // 存储 scrollView 引用，后续更新高度时使用
+        self._helpScrollView = scrollView;
         
         // ==================== 从API获取帮助内容 ====================
         var fetchHelpContent = function() {
@@ -7708,6 +7746,7 @@ cc.Class({
         
         confirmBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
             event.stopPropagation();
+            self._helpScrollView = null;  // 清理引用
             dialog.destroy();
         });
         
@@ -7740,6 +7779,7 @@ cc.Class({
         
         closeBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
             event.stopPropagation();
+            self._helpScrollView = null;  // 清理引用
             dialog.destroy();
         });
     },
@@ -7788,13 +7828,14 @@ cc.Class({
         var expandedItems = {};  // 记录展开状态
         var contentBoxes = [];   // 存储所有contentBox引用，用于后续更新高度
         
-        // ==================== 简化方案：直接创建内容容器 ====================
+        // ==================== 创建内容容器（适配 ScrollView）====================
+        // container 已经是 ScrollView 的 content 节点，锚点在顶部
         var contentNode = new cc.Node("HelpContent");
-        contentNode.setContentSize(cc.size(container.width, container.height));
+        contentNode.setContentSize(cc.size(container.width, 100));  // 初始高度，后续会更新
         contentNode.anchorX = 0.5;
-        contentNode.anchorY = 1;
+        contentNode.anchorY = 1;  // 锚点在顶部
         contentNode.x = 0;
-        contentNode.y = container.height / 2;
+        contentNode.y = 0;  // 顶部对齐
         contentNode.parent = container;
         
         console.log("【帮助弹窗】contentNode 创建完成，尺寸:", container.width, "x", container.height);
@@ -7982,13 +8023,13 @@ cc.Class({
             return;
         }
 
-        // ==================== 简化方案：直接创建内容容器 ====================
+        // ==================== 创建内容容器（适配 ScrollView）====================
         var contentNode = new cc.Node("HelpContent");
-        contentNode.setContentSize(cc.size(container.width, container.height));
+        contentNode.setContentSize(cc.size(container.width, 100));  // 初始高度，后续会更新
         contentNode.anchorX = 0.5;
-        contentNode.anchorY = 1;
+        contentNode.anchorY = 1;  // 锚点在顶部
         contentNode.x = 0;
-        contentNode.y = container.height / 2;
+        contentNode.y = 0;  // 顶部对齐
         contentNode.parent = container;
         
         var self = this;
@@ -8134,24 +8175,48 @@ cc.Class({
         
         // 更新内容容器高度，确保最小高度
         contentNode.height = Math.max(totalHeight + 20, 100);
+        
+        // 同时更新 ScrollView 的 content 高度
+        var container = contentNode.parent;  // container 是 ScrollView 的 content 节点
+        if (container) {
+            var scrollView = this._helpScrollView;
+            if (scrollView) {
+                // 更新 container 的高度
+                container.height = Math.max(totalHeight + 40, container.height);
+                // 滚动到顶部
+                scrollView.scrollToTop(0.1);
+            }
+        }
+        
         console.log("【帮助弹窗】布局更新，总高度:", contentNode.height);
     },
     
     // 显示普通文本
     _showPlainText: function(container, content) {
         var contentLabel = new cc.Node("ContentLabel");
-        contentLabel.setPosition(0, 0);
+        contentLabel.setPosition(0, 0);  // 顶部对齐
         var labelComp = contentLabel.addComponent(cc.Label);
         labelComp.string = content;
         labelComp.fontSize = 16;
         labelComp.lineHeight = 24;
         labelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
         labelComp.verticalAlign = cc.Label.VerticalAlign.TOP;
-        labelComp.overflow = cc.Label.Overflow.CLAMP;
+        labelComp.overflow = cc.Label.Overflow.RESIZE_HEIGHT;  // 自动调整高度
         labelComp.wrapWidth = container.width - 20;
         contentLabel.color = cc.color(240, 240, 240);
-        contentLabel.anchorY = 1;
+        contentLabel.anchorX = 0.5;
+        contentLabel.anchorY = 1;  // 锚点在顶部
         contentLabel.parent = container;
+        
+        // 延迟更新容器高度
+        var self = this;
+        this.scheduleOnce(function() {
+            var actualHeight = contentLabel.height + 40;
+            container.height = Math.max(actualHeight, container.height);
+            if (self._helpScrollView) {
+                self._helpScrollView.scrollToTop(0);
+            }
+        }, 0.05);
     },
     
     // 场景销毁时清理资源
