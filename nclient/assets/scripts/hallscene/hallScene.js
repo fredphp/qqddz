@@ -7540,47 +7540,61 @@ cc.Class({
         var fetchHelpContent = function() {
             var apiUrl = window.defines ? window.defines.apiUrl : '';
             var cryptoKey = window.defines ? window.defines.cryptoKey : '';
-            
+
             if (!apiUrl) {
                 self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
                 return;
             }
-            
-            var url = apiUrl + '/api/v1/help-article/latest';
-            
+
+            // 使用列表接口获取所有帮助文章
+            var url = apiUrl + '/api/v1/help-article/list';
+
             var xhr = new XMLHttpRequest();
             xhr.open('GET', url, true);
             xhr.setRequestHeader('Content-Type', 'application/json');
-            
+
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
                     if (xhr.status === 200) {
                         try {
                             var response = JSON.parse(xhr.responseText);
-                            var content = '';
-                            
+                            var helpItems = null;
+
                             // 检查是否是加密响应
                             if (response.data && typeof response.data === 'string') {
                                 // 加密响应，尝试解密
                                 if (window.HttpAPI && window.HttpAPI.decryptResponse) {
                                     try {
                                         var decrypted = window.HttpAPI.decryptResponse(response, cryptoKey);
-                                        if (decrypted && decrypted.content) {
-                                            content = decrypted.content;
+                                        if (decrypted) {
+                                            // 解密后的数据可能是数组或对象
+                                            if (Array.isArray(decrypted)) {
+                                                helpItems = decrypted;
+                                            } else if (decrypted.data && Array.isArray(decrypted.data)) {
+                                                helpItems = decrypted.data;
+                                            }
                                         }
                                     } catch (e) {
                                         console.log("解密失败，使用默认内容");
                                     }
                                 }
                             } else if (response.code === 0 && response.data) {
-                                // 未加密响应
-                                if (response.data.content) {
-                                    content = response.data.content;
+                                // 未加密响应，data是数组
+                                if (Array.isArray(response.data)) {
+                                    helpItems = response.data;
                                 }
                             }
-                            
-                            if (content) {
-                                self._showHelpContent(contentContainer, loadingLabel, content);
+
+                            // 将服务端数据转换为手风琴格式
+                            if (helpItems && Array.isArray(helpItems) && helpItems.length > 0) {
+                                var accordionData = helpItems.map(function(item) {
+                                    return {
+                                        title: item.title || '无标题',
+                                        content: self._stripHtmlTags(item.content || '')
+                                    };
+                                });
+                                // 直接传递数组对象，而不是JSON字符串
+                                self._showHelpContentFromList(contentContainer, loadingLabel, accordionData);
                             } else {
                                 self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
                             }
@@ -7594,12 +7608,12 @@ cc.Class({
                     }
                 }
             };
-            
+
             xhr.onerror = function() {
                 console.log("请求失败，使用默认帮助内容");
                 self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
             };
-            
+
             xhr.send();
         };
         
@@ -7665,6 +7679,159 @@ cc.Class({
             event.stopPropagation();
             dialog.destroy();
         });
+    },
+    
+    // 去除HTML标签，只保留纯文本
+    _stripHtmlTags: function(html) {
+        if (!html) return '';
+        // 去除HTML标签
+        var text = html.replace(/<br\s*\/?>/gi, '\n');  // 保留换行
+        text = text.replace(/<\/p>/gi, '\n');  // 段落换行
+        text = text.replace(/<\/h[1-6]>/gi, '\n\n');  // 标题换行
+        text = text.replace(/<li>/gi, '• ');  // 列表项
+        text = text.replace(/<[^>]+>/g, '');  // 去除其他HTML标签
+        // 解码HTML实体
+        text = text.replace(/&nbsp;/g, ' ');
+        text = text.replace(/&lt;/g, '<');
+        text = text.replace(/&gt;/g, '>');
+        text = text.replace(/&amp;/g, '&');
+        text = text.replace(/&quot;/g, '"');
+        text = text.replace(/&#39;/g, "'");
+        // 清理多余空白
+        text = text.replace(/\n\s*\n\s*\n/g, '\n\n');
+        text = text.trim();
+        return text;
+    },
+    
+    // 直接从列表数据显示帮助内容（手风琴效果）
+    _showHelpContentFromList: function(container, loadingLabel, helpItems) {
+        // 移除加载提示
+        if (loadingLabel && loadingLabel.parent) {
+            loadingLabel.parent = null;
+        }
+        
+        if (!Array.isArray(helpItems) || helpItems.length === 0) {
+            this._showPlainText(container, getDefaultHelpContent());
+            return;
+        }
+        
+        // 创建滚动视图容器
+        var scrollView = new cc.Node("HelpScrollView");
+        scrollView.setPosition(0, 0);
+        scrollView.width = container.width;
+        scrollView.height = container.height;
+        
+        // 创建内容容器
+        var contentNode = new cc.Node("view");
+        contentNode.width = container.width - 20;
+        contentNode.anchorY = 1;
+        contentNode.y = container.height / 2;
+        
+        var totalHeight = 0;
+        var itemHeight = 45;
+        var expandedItems = {};  // 记录展开状态
+        
+        // 为每个帮助项创建标题和内容
+        helpItems.forEach(function(item, index) {
+            var itemNode = new cc.Node("item_" + index);
+            itemNode.width = contentNode.width;
+            itemNode.anchorY = 1;
+            
+            // 创建标题背景
+            var titleBg = new cc.Node("titleBg");
+            titleBg.setPosition(0, 0);
+            var bgSprite = titleBg.addComponent(cc.Sprite);
+            bgSprite.spriteFrame = new cc.SpriteFrame(cc.url.raw("resources/ui/setting/btn_bg.png"));
+            titleBg.width = contentNode.width - 10;
+            titleBg.height = itemHeight;
+            titleBg.anchorY = 1;
+            
+            // 创建标题文字
+            var titleNode = new cc.Node("title");
+            var titleLabel = titleNode.addComponent(cc.Label);
+            titleLabel.string = (index + 1) + ". " + item.title;
+            titleLabel.fontSize = 18;
+            titleLabel.lineHeight = 22;
+            titleLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+            titleNode.color = cc.color(255, 220, 100);
+            titleNode.anchorX = 0;
+            titleNode.x = -contentNode.width / 2 + 30;
+            titleNode.y = -itemHeight / 2 + 5;
+            
+            // 创建展开/收缩图标
+            var iconNode = new cc.Node("icon");
+            var iconLabel = iconNode.addComponent(cc.Label);
+            iconLabel.string = "▶";
+            iconLabel.fontSize = 14;
+            iconNode.color = cc.color(255, 255, 255);
+            iconNode.x = contentNode.width / 2 - 25;
+            iconNode.y = -itemHeight / 2 + 5;
+            
+            // 创建内容节点（初始隐藏）
+            var contentBox = new cc.Node("contentBox");
+            contentBox.setPosition(0, -itemHeight);
+            contentBox.width = contentNode.width - 20;
+            contentBox.anchorY = 1;
+            
+            var contentLabel = new cc.Node("contentLabel");
+            var labelComp = contentLabel.addComponent(cc.Label);
+            labelComp.string = item.content;
+            labelComp.fontSize = 14;
+            labelComp.lineHeight = 20;
+            labelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+            labelComp.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
+            labelComp.wrapWidth = contentBox.width - 20;
+            contentLabel.color = cc.color(220, 220, 220);
+            contentLabel.anchorX = 0;
+            contentLabel.anchorY = 1;
+            contentLabel.x = -contentBox.width / 2 + 10;
+            contentLabel.y = 0;
+            
+            contentLabel.parent = contentBox;
+            contentBox.height = labelComp.node.height + 20;
+            contentBox.active = false;  // 初始隐藏
+            
+            // 添加点击事件
+            titleBg.on(cc.Node.EventType.TOUCH_END, function() {
+                var isExpanded = contentBox.active;
+                
+                // 收起所有其他项
+                for (var key in expandedItems) {
+                    if (key != index && expandedItems[key]) {
+                        var otherContent = contentNode.getChildByName("item_" + key);
+                        if (otherContent) {
+                            var otherBox = otherContent.getChildByName("contentBox");
+                            var otherIcon = otherContent.getChildByName("titleBg").getChildByName("icon");
+                            if (otherBox) otherBox.active = false;
+                            if (otherIcon) otherIcon.getComponent(cc.Label).string = "▶";
+                            expandedItems[key] = false;
+                        }
+                    }
+                }
+                
+                // 切换当前项
+                contentBox.active = !isExpanded;
+                iconLabel.string = contentBox.active ? "▼" : "▶";
+                expandedItems[index] = contentBox.active;
+                
+                // 重新计算布局
+                this._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
+            }.bind(this));
+            
+            titleNode.parent = titleBg;
+            iconNode.parent = titleBg;
+            titleBg.parent = itemNode;
+            contentBox.parent = itemNode;
+            itemNode.parent = contentNode;
+            
+            expandedItems[index] = false;
+        }.bind(this));
+        
+        // 初始布局
+        this._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
+        
+        contentNode.parent = scrollView;
+        scrollView.parent = container;
     },
     
     // 显示帮助内容（手风琴效果）
