@@ -7783,42 +7783,21 @@ cc.Class({
         
         console.log("【帮助弹窗】第一条数据:", JSON.stringify(helpItems[0]));
         
-        // 创建滚动视图容器（添加真正的ScrollView组件实现滚动）
-        var scrollView = new cc.Node("HelpScrollView");
-        scrollView.setPosition(0, 0);
-        scrollView.setContentSize(cc.size(container.width, container.height));  // 使用 setContentSize
-        scrollView.anchorX = 0.5;
-        scrollView.anchorY = 0.5;
-
-        // 添加 cc.ScrollView 组件实现真正的滚动功能
-        var scrollViewComp = scrollView.addComponent(cc.ScrollView);
-        scrollViewComp.horizontal = false;  // 禁用水平滚动
-        scrollViewComp.vertical = true;     // 启用垂直滚动
-        scrollViewComp.inertia = true;      // 惯性滚动
-        scrollViewComp.elastic = true;      // 弹性效果
-        scrollViewComp.brake = 0.5;         // 刹车系数
-
-        // 添加遮罩组件，隐藏超出部分
-        var maskComp = scrollView.addComponent(cc.Mask);
-        maskComp.type = cc.Mask.Type.RECT;
-
-        // 创建内容容器
-        var contentNode = new cc.Node("view");
-        contentNode.setContentSize(cc.size(container.width - 20, container.height));  // 使用 setContentSize
-        contentNode.anchorX = 0.5;
-        contentNode.anchorY = 1;
-        contentNode.x = 0;
-        // content 的 y 位置：scrollView 高度的一半，使 content 顶部对齐 scrollView 顶部
-        contentNode.y = scrollView.height / 2;
-
-        // 设置 ScrollView 的 content 属性
-        scrollViewComp.content = contentNode;
-        
         var self = this;
-        var totalHeight = 0;
         var itemHeight = 45;
         var expandedItems = {};  // 记录展开状态
         var contentBoxes = [];   // 存储所有contentBox引用，用于后续更新高度
+        
+        // ==================== 简化方案：直接创建内容容器 ====================
+        var contentNode = new cc.Node("HelpContent");
+        contentNode.setContentSize(cc.size(container.width, container.height));
+        contentNode.anchorX = 0.5;
+        contentNode.anchorY = 1;
+        contentNode.x = 0;
+        contentNode.y = container.height / 2;
+        contentNode.parent = container;
+        
+        console.log("【帮助弹窗】contentNode 创建完成，尺寸:", container.width, "x", container.height);
         
         // 为每个帮助项创建标题和内容
         helpItems.forEach(function(item, index) {
@@ -7977,21 +7956,8 @@ cc.Class({
         // 初始布局
         this._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
 
-        // 添加调试日志
-        console.log("【帮助弹窗】scrollView 尺寸:", scrollView.width, "x", scrollView.height);
-        console.log("【帮助弹窗】contentNode 尺寸:", contentNode.width, "x", contentNode.height);
-        console.log("【帮助弹窗】contentNode 位置:", contentNode.x, ",", contentNode.y);
+        console.log("【帮助弹窗】UI创建完成，内容高度:", contentNode.height);
         console.log("【帮助弹窗】itemNode 数量:", contentNode.children.length);
-        if (contentNode.children.length > 0) {
-            var firstItem = contentNode.children[0];
-            console.log("【帮助弹窗】第一个 itemNode 位置:", firstItem.x, ",", firstItem.y);
-        }
-
-        // 注意：contentNode已通过 scrollViewComp.content = contentNode 设置了父子关系
-        // 只需要将scrollView添加到容器
-        scrollView.parent = container;
-
-        console.log("【帮助弹窗】UI创建完成，scrollView已添加到container，内容高度:", contentNode.height);
     },
     
     // 显示帮助内容（手风琴效果）
@@ -8016,38 +7982,16 @@ cc.Class({
             return;
         }
 
-        // ==================== 创建ScrollView组件 ====================
-        var scrollView = new cc.Node("HelpScrollView");
-        scrollView.setPosition(0, 0);
-        scrollView.setContentSize(cc.size(container.width, container.height));
-        scrollView.anchorX = 0.5;
-        scrollView.anchorY = 0.5;
-
-        // 添加 cc.ScrollView 组件
-        var scrollViewComp = scrollView.addComponent(cc.ScrollView);
-        scrollViewComp.horizontal = false;
-        scrollViewComp.vertical = true;
-        scrollViewComp.inertia = true;
-        scrollViewComp.elastic = true;
-        scrollViewComp.brake = 0.5;
-
-        // 添加 cc.Mask 组件 - 用于裁剪超出内容
-        var maskComp = scrollView.addComponent(cc.Mask);
-        maskComp.type = cc.Mask.Type.RECT;
-
-        // ==================== 创建内容容器 ====================
-        var contentNode = new cc.Node("view");
-        contentNode.setContentSize(cc.size(container.width - 20, container.height));
+        // ==================== 简化方案：直接创建内容容器 ====================
+        var contentNode = new cc.Node("HelpContent");
+        contentNode.setContentSize(cc.size(container.width, container.height));
         contentNode.anchorX = 0.5;
         contentNode.anchorY = 1;
         contentNode.x = 0;
-        // content 的 y 位置：scrollView 高度的一半，使 content 顶部对齐 scrollView 顶部
-        contentNode.y = scrollView.height / 2;
-
-        // 设置ScrollView的内容节点
-        scrollViewComp.content = contentNode;
+        contentNode.y = container.height / 2;
+        contentNode.parent = container;
         
-        var totalHeight = 0;
+        var self = this;
         var itemHeight = 45;
         var expandedItems = {};  // 记录展开状态
 
@@ -8055,9 +7999,9 @@ cc.Class({
         helpItems.forEach(function(item, index) {
             var itemNode = new cc.Node("item_" + index);
             itemNode.width = contentNode.width;
-            itemNode.anchorX = 0.5;  // 重要：设置水平锚点居中
-            itemNode.anchorY = 1;    // 锚点在顶部
-            itemNode.x = 0;          // 水平居中
+            itemNode.anchorX = 0.5;
+            itemNode.anchorY = 1;
+            itemNode.x = 0;
 
             // 创建标题背景 - 使用Graphics绘制
             var titleBg = new cc.Node("titleBg");
@@ -8162,9 +8106,7 @@ cc.Class({
         // 初始布局
         this._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
 
-        // 注意：contentNode已通过 scrollViewComp.content = contentNode 设置了父子关系
-        // 只需要将scrollView添加到容器
-        scrollView.parent = container;
+        console.log("【帮助弹窗】UI创建完成（简化版），内容高度:", contentNode.height);
     },
     
     // 重新布局帮助项
