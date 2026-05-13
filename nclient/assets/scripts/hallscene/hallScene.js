@@ -7831,12 +7831,14 @@ cc.Class({
             titleBg.setPosition(0, 0);
             titleBg.width = contentNode.width - 10;
             titleBg.height = itemHeight;
-            titleBg.anchorY = 1;
-            
+            titleBg.anchorX = 0.5;
+            titleBg.anchorY = 1;  // 锚点在顶部
+
             // 使用Graphics绘制背景，确保可见性
+            // 注意：anchorY=1时，绘制从-y到0（负方向向下）
             var bgGraphics = titleBg.addComponent(cc.Graphics);
             bgGraphics.fillColor = cc.color(60, 55, 75, 255);  // 深紫色背景
-            bgGraphics.roundRect(-titleBg.width/2, -titleBg.height/2, titleBg.width, titleBg.height, 6);
+            bgGraphics.roundRect(-titleBg.width/2, -titleBg.height, titleBg.width, titleBg.height, 6);
             bgGraphics.fill();
             // 添加边框
             bgGraphics.strokeColor = cc.color(100, 90, 120, 255);
@@ -7852,32 +7854,38 @@ cc.Class({
             titleLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
             titleNode.color = cc.color(255, 220, 100);
             titleNode.anchorX = 0;
+            titleNode.anchorY = 0.5;
             titleNode.x = -titleBg.width / 2 + 15;
-            titleNode.y = 0;  // 垂直居中
-            
+            titleNode.y = -itemHeight / 2;  // 垂直居中（anchorY=1时向下为负）
+
             // 创建展开/收缩图标
             var iconNode = new cc.Node("icon");
             var iconLabel = iconNode.addComponent(cc.Label);
             iconLabel.string = "▶";
             iconLabel.fontSize = 14;
             iconNode.color = cc.color(200, 200, 200);
+            iconNode.anchorY = 0.5;
             iconNode.x = titleBg.width / 2 - 20;
-            iconNode.y = 0;  // 垂直居中
+            iconNode.y = -itemHeight / 2;  // 垂直居中（anchorY=1时向下为负）
             
             // 创建内容节点（初始隐藏）
             var contentBox = new cc.Node("contentBox");
             contentBox.setPosition(0, -itemHeight);
             contentBox.width = contentNode.width - 20;
+            contentBox.anchorX = 0.5;
             contentBox.anchorY = 1;
-            
+
             // 内容背景
             var contentBg = new cc.Node("contentBg");
             contentBg.width = contentBox.width;
+            contentBg.height = 100;  // 初始高度
+            contentBg.anchorX = 0.5;
+            contentBg.anchorY = 1;  // 锚点在顶部
             var contentBgGraphics = contentBg.addComponent(cc.Graphics);
             contentBgGraphics.fillColor = cc.color(45, 42, 55, 200);  // 稍暗的背景
-            contentBgGraphics.roundRect(-contentBg.width/2, -100, contentBg.width, 100, 4);
+            // anchorY=1时，绘制从-height到0
+            contentBgGraphics.roundRect(-contentBg.width/2, -contentBg.height, contentBg.width, contentBg.height, 4);
             contentBgGraphics.fill();
-            contentBg.anchorY = 1;
             contentBg.y = 0;
             contentBg.parent = contentBox;
             
@@ -7966,11 +7974,12 @@ cc.Class({
         
         // 初始布局
         this._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
-        
-        contentNode.parent = scrollView;
+
+        // 注意：contentNode已通过 scrollViewComp.content = contentNode 设置了父子关系
+        // 只需要将scrollView添加到容器
         scrollView.parent = container;
-        
-        console.log("【帮助弹窗】UI创建完成，scrollView已添加到container");
+
+        console.log("【帮助弹窗】UI创建完成，scrollView已添加到container，内容高度:", contentNode.height);
     },
     
     // 显示帮助内容（手风琴效果）
@@ -7979,7 +7988,7 @@ cc.Class({
         if (loadingLabel && loadingLabel.parent) {
             loadingLabel.parent = null;
         }
-        
+
         // 尝试解析JSON格式的帮助内容
         var helpItems = null;
         try {
@@ -7989,23 +7998,41 @@ cc.Class({
             this._showPlainText(container, content);
             return;
         }
-        
+
         if (!Array.isArray(helpItems) || helpItems.length === 0) {
             this._showPlainText(container, content);
             return;
         }
-        
-        // 创建滚动视图容器
+
+        // ==================== 创建ScrollView组件 ====================
         var scrollView = new cc.Node("HelpScrollView");
         scrollView.setPosition(0, 0);
-        scrollView.width = container.width;
-        scrollView.height = container.height;
-        
-        // 创建内容容器
+        scrollView.setContentSize(cc.size(container.width, container.height));
+        scrollView.anchorX = 0.5;
+        scrollView.anchorY = 0.5;
+
+        // 添加 cc.ScrollView 组件
+        var scrollViewComp = scrollView.addComponent(cc.ScrollView);
+        scrollViewComp.horizontal = false;
+        scrollViewComp.vertical = true;
+        scrollViewComp.inertia = true;
+        scrollViewComp.elastic = true;
+        scrollViewComp.brake = 0.5;
+
+        // 添加 cc.Mask 组件 - 用于裁剪超出内容
+        var maskComp = scrollView.addComponent(cc.Mask);
+        maskComp.type = cc.Mask.Type.RECT;
+
+        // ==================== 创建内容容器 ====================
         var contentNode = new cc.Node("view");
-        contentNode.width = container.width - 20;
+        contentNode.setContentSize(cc.size(container.width - 20, container.height));
+        contentNode.anchorX = 0.5;
         contentNode.anchorY = 1;
+        contentNode.x = 0;
         contentNode.y = container.height / 2;
+
+        // 设置ScrollView的内容节点
+        scrollViewComp.content = contentNode;
         
         var totalHeight = 0;
         var itemHeight = 45;
@@ -8016,16 +8043,23 @@ cc.Class({
             var itemNode = new cc.Node("item_" + index);
             itemNode.width = contentNode.width;
             itemNode.anchorY = 1;
-            
-            // 创建标题背景
+
+            // 创建标题背景 - 使用Graphics绘制
             var titleBg = new cc.Node("titleBg");
             titleBg.setPosition(0, 0);
-            var bgSprite = titleBg.addComponent(cc.Sprite);
-            bgSprite.spriteFrame = new cc.SpriteFrame(cc.url.raw("resources/ui/setting/btn_bg.png"));
             titleBg.width = contentNode.width - 10;
             titleBg.height = itemHeight;
+            titleBg.anchorX = 0.5;
             titleBg.anchorY = 1;
-            
+
+            var bgGraphics = titleBg.addComponent(cc.Graphics);
+            bgGraphics.fillColor = cc.color(60, 55, 75, 255);
+            bgGraphics.roundRect(-titleBg.width/2, -titleBg.height, titleBg.width, titleBg.height, 6);
+            bgGraphics.fill();
+            bgGraphics.strokeColor = cc.color(100, 90, 120, 255);
+            bgGraphics.lineWidth = 1;
+            bgGraphics.stroke();
+
             // 创建标题文字
             var titleNode = new cc.Node("title");
             var titleLabel = titleNode.addComponent(cc.Label);
@@ -8035,24 +8069,27 @@ cc.Class({
             titleLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
             titleNode.color = cc.color(255, 220, 100);
             titleNode.anchorX = 0;
-            titleNode.x = -contentNode.width / 2 + 30;
-            titleNode.y = -itemHeight / 2 + 5;
-            
+            titleNode.anchorY = 0.5;
+            titleNode.x = -titleBg.width / 2 + 15;
+            titleNode.y = -itemHeight / 2;
+
             // 创建展开/收缩图标
             var iconNode = new cc.Node("icon");
             var iconLabel = iconNode.addComponent(cc.Label);
             iconLabel.string = "▶";
             iconLabel.fontSize = 14;
-            iconNode.color = cc.color(255, 255, 255);
-            iconNode.x = contentNode.width / 2 - 25;
-            iconNode.y = -itemHeight / 2 + 5;
-            
+            iconNode.color = cc.color(200, 200, 200);
+            iconNode.anchorY = 0.5;
+            iconNode.x = titleBg.width / 2 - 20;
+            iconNode.y = -itemHeight / 2;
+
             // 创建内容节点（初始隐藏）
             var contentBox = new cc.Node("contentBox");
             contentBox.setPosition(0, -itemHeight);
             contentBox.width = contentNode.width - 20;
+            contentBox.anchorX = 0.5;
             contentBox.anchorY = 1;
-            
+
             var contentLabel = new cc.Node("contentLabel");
             var labelComp = contentLabel.addComponent(cc.Label);
             labelComp.string = item.content;
@@ -8060,13 +8097,13 @@ cc.Class({
             labelComp.lineHeight = 20;
             labelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
             labelComp.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
-            labelComp.wrapWidth = contentBox.width - 20;
+            labelComp.wrapWidth = contentBox.width - 30;
             contentLabel.color = cc.color(220, 220, 220);
             contentLabel.anchorX = 0;
             contentLabel.anchorY = 1;
-            contentLabel.x = -contentBox.width / 2 + 10;
-            contentLabel.y = 0;
-            
+            contentLabel.x = -contentBox.width / 2 + 15;
+            contentLabel.y = -10;
+
             contentLabel.parent = contentBox;
             contentBox.height = labelComp.node.height + 20;
             contentBox.active = false;  // 初始隐藏
@@ -8109,8 +8146,9 @@ cc.Class({
         
         // 初始布局
         this._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
-        
-        contentNode.parent = scrollView;
+
+        // 注意：contentNode已通过 scrollViewComp.content = contentNode 设置了父子关系
+        // 只需要将scrollView添加到容器
         scrollView.parent = container;
     },
     
