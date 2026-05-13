@@ -125,3 +125,17 @@ export const setUserAgreementStatus = (params) => {
     params
   })
 }
+
+// @Tags SysUserAgreement
+// @Summary 一键刷新缓存（同步到Redis和游戏服务器）
+// @Security ApiKeyAuth
+// @accept application/json
+// @Produce application/json
+// @Success 200 {string} string "{"success":true,"data":{},"msg":"缓存刷新成功"}"
+// @Router /sysUserAgreement/refreshCache [post]
+export const refreshCache = () => {
+  return service({
+    url: '/sysUserAgreement/refreshCache',
+    method: 'post'
+  })
+}

@@ -68,6 +68,12 @@
           :disabled="!multipleSelection.length"
           @click="onDelete"
         >删除</el-button>
+        <el-button
+          type="warning"
+          icon="refresh"
+          style="margin-left: 10px"
+          @click="onRefreshCache"
+        >刷新缓存</el-button>
       </div>
       <el-table
         ref="multipleTable"
@@ -214,7 +220,8 @@ import {
   updateSysUserAgreement,
   findSysUserAgreement,
   getSysUserAgreementList,
-  setUserAgreementStatus
+  setUserAgreementStatus,
+  refreshCache
 } from '@/api/sysUserAgreement'
 
 import { formatDate } from '@/utils/format'
@@ -454,6 +461,20 @@ const enterDialog = async () => {
       ElMessage({ type: 'success', message: '操作成功' })
       closeDialog()
       getTableData()
+    }
+  })
+}
+
+// 刷新缓存
+const onRefreshCache = async () => {
+  ElMessageBox.confirm('确定要刷新缓存吗？这将同步数据到Redis和游戏服务器。', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    const res = await refreshCache()
+    if (res.code === 0) {
+      ElMessage({ type: 'success', message: '缓存刷新成功' })
     }
   })
 }

@@ -467,3 +467,21 @@ func (a *SysUserAgreementApi) GetLatestHelpArticle(c *gin.Context) {
 
         response.OkWithDetailed(article, "获取成功", c)
 }
+
+// RefreshCache 一键刷新缓存
+// @Tags SysUserAgreement
+// @Summary 一键刷新缓存（同步到Redis和游戏服务器）
+// @Security ApiKeyAuth
+// @accept application/json
+// @Produce application/json
+// @Success 200 {object} response.Response "成功"
+// @Router /sysUserAgreement/refreshCache [post]
+func (a *SysUserAgreementApi) RefreshCache(c *gin.Context) {
+        // 同步到Redis
+        syncAllToRedis()
+
+        // 刷新游戏服务器缓存
+        game_server.RefreshUserAgreementCache()
+
+        response.OkWithMessage("缓存刷新成功", c)
+}
