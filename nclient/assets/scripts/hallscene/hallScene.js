@@ -7856,11 +7856,13 @@ cc.Class({
             itemNode.anchorY = 1;    // 锚点在顶部
             itemNode.x = 0;          // 水平居中
 
+            // 使用固定的内容宽度，确保换行正确
+            var itemWidth = 560;  // 固定宽度，与弹窗宽度匹配
+
             // 创建标题背景 - 使用Graphics绘制确保可见
             var titleBg = new cc.Node("titleBg");
             titleBg.setPosition(0, 0);
-            titleBg.width = contentNode.width - 10;
-            titleBg.height = itemHeight;
+            titleBg.setContentSize(cc.size(itemWidth, itemHeight));
             titleBg.anchorX = 0.5;
             titleBg.anchorY = 1;  // 锚点在顶部
 
@@ -7868,7 +7870,7 @@ cc.Class({
             // 注意：anchorY=1时，绘制从-y到0（负方向向下）
             var bgGraphics = titleBg.addComponent(cc.Graphics);
             bgGraphics.fillColor = cc.color(60, 55, 75, 255);  // 深紫色背景
-            bgGraphics.roundRect(-titleBg.width/2, -titleBg.height, titleBg.width, titleBg.height, 6);
+            bgGraphics.roundRect(-itemWidth/2, -itemHeight, itemWidth, itemHeight, 6);
             bgGraphics.fill();
             // 添加边框
             bgGraphics.strokeColor = cc.color(100, 90, 120, 255);
@@ -7885,7 +7887,7 @@ cc.Class({
             titleNode.color = cc.color(255, 220, 100);
             titleNode.anchorX = 0;
             titleNode.anchorY = 0.5;
-            titleNode.x = -titleBg.width / 2 + 15;
+            titleNode.x = -itemWidth / 2 + 15;
             titleNode.y = -itemHeight / 2;  // 垂直居中（anchorY=1时向下为负）
 
             // 创建展开/收缩图标
@@ -7895,48 +7897,58 @@ cc.Class({
             iconLabel.fontSize = 14;
             iconNode.color = cc.color(200, 200, 200);
             iconNode.anchorY = 0.5;
-            iconNode.x = titleBg.width / 2 - 20;
+            iconNode.x = itemWidth / 2 - 20;
             iconNode.y = -itemHeight / 2;  // 垂直居中（anchorY=1时向下为负）
             
             // 创建内容节点（初始隐藏）
             var contentBox = new cc.Node("contentBox");
             contentBox.setPosition(0, -itemHeight);
-            contentBox.width = contentNode.width - 20;
-            contentBox.height = 200;  // 设置初始高度
+            contentBox.setContentSize(cc.size(itemWidth, 200));  // 使用固定宽度
             contentBox.anchorX = 0.5;
             contentBox.anchorY = 1;
 
             // 内容背景
             var contentBg = new cc.Node("contentBg");
-            contentBg.width = contentBox.width;
-            contentBg.height = 200;  // 初始高度
+            contentBg.setContentSize(cc.size(itemWidth, 200));  // 使用固定宽度
             contentBg.anchorX = 0.5;
             contentBg.anchorY = 1;  // 锚点在顶部
             var contentBgGraphics = contentBg.addComponent(cc.Graphics);
             contentBgGraphics.fillColor = cc.color(45, 42, 55, 200);  // 稍暗的背景
             // anchorY=1时，绘制从-height到0
-            contentBgGraphics.roundRect(-contentBg.width/2, -contentBg.height, contentBg.width, contentBg.height, 4);
+            contentBgGraphics.roundRect(-itemWidth/2, -200, itemWidth, 200, 4);
             contentBgGraphics.fill();
             contentBg.y = 0;
             contentBg.parent = contentBox;
             
             var contentLabel = new cc.Node("contentLabel");
             var labelComp = contentLabel.addComponent(cc.Label);
-            var displayContent = item.content || '暂无内容';
-            console.log("【帮助弹窗】第" + (index+1) + "条内容:", displayContent.substring(0, 100) + "...");
-            console.log("【帮助弹窗】第" + (index+1) + "条内容长度:", displayContent.length);
-            labelComp.string = displayContent;
+            
+            // 重要：Cocos Creator中Label属性设置顺序很关键
+            // 必须先设置overflow和wrapWidth，再设置string
             labelComp.fontSize = 14;
             labelComp.lineHeight = 20;
             labelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
             labelComp.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
-            labelComp.wrapWidth = contentBox.width - 30;
+            
+            // 使用固定宽度计算wrapWidth
+            var wrapWidth = itemWidth - 30;
+            console.log("【帮助弹窗】第" + (index+1) + "条wrapWidth:", wrapWidth);
+            labelComp.wrapWidth = wrapWidth;
+            
+            // 设置颜色和锚点
             contentLabel.color = cc.color(220, 220, 220);
             contentLabel.anchorX = 0;
             contentLabel.anchorY = 1;
-            contentLabel.x = -contentBox.width / 2 + 15;
+            contentLabel.x = -itemWidth / 2 + 15;
             contentLabel.y = -10;  // 留出顶部边距
+            
+            // 先添加到父节点，再设置文本内容
             contentLabel.parent = contentBox;
+            
+            // 最后设置文本内容
+            var displayContent = item.content || '暂无内容';
+            console.log("【帮助弹窗】第" + (index+1) + "条内容长度:", displayContent.length);
+            labelComp.string = displayContent;
             
             console.log("【帮助弹窗】第" + (index+1) + "条contentLabel初始高度:", contentLabel.height);
             console.log("【帮助弹窗】第" + (index+1) + "条contentBox初始高度:", contentBox.height);
@@ -7991,6 +8003,7 @@ cc.Class({
         
         // 延迟更新高度，确保Label已计算完成
         // 注意：必须在contentBox.active = true的状态下才能正确计算Label高度
+        var fixedItemWidth = 560;  // 使用固定宽度
         this.scheduleOnce(function() {
             console.log("【帮助弹窗】延迟更新Label高度");
             contentBoxes.forEach(function(item, idx) {
@@ -7999,42 +8012,34 @@ cc.Class({
                 var actualHeight = labelNode.height;
                 console.log("【帮助弹窗】第" + (idx+1) + "条actualHeight:", actualHeight);
                 
-                if (actualHeight > 0) {
-                    var newHeight = actualHeight + 30;  // 上下各留15px边距
-                    item.contentBox.height = newHeight;
-                    // 更新内容背景高度
-                    item.contentBg.height = newHeight;
-                    // 重绘背景
-                    var g = item.contentBg.getComponent(cc.Graphics);
-                    if (g) {
-                        g.clear();
-                        g.fillColor = cc.color(45, 42, 55, 200);
-                        g.roundRect(-item.contentBg.width/2, -item.contentBg.height, item.contentBg.width, item.contentBg.height, 4);
-                        g.fill();
-                    }
-                    console.log("【帮助弹窗】第" + (idx+1) + "条更新后高度:", newHeight);
+                var newHeight = 200;  // 默认高度
+                if (actualHeight > 0 && actualHeight < 5000) {  // 合理的高度范围
+                    newHeight = actualHeight + 30;  // 上下各留15px边距
                 } else {
-                    console.warn("【帮助弹窗】第" + (idx+1) + "条actualHeight为0，使用文本长度估算");
                     // 使用文本长度估算高度
                     var text = item.labelComp.string;
-                    var wrapWidth = item.contentBox.width - 30;
+                    var wrapWidth = fixedItemWidth - 30;
                     var charWidth = 14 * 0.6;  // 字体大小 * 估算宽度比例
                     var lineHeight = 20;
                     var charsPerLine = Math.floor(wrapWidth / charWidth);
                     var lines = Math.ceil(text.length / charsPerLine);
-                    var estimatedHeight = lines * lineHeight + 30;
-                    
-                    item.contentBox.height = estimatedHeight;
-                    item.contentBg.height = estimatedHeight;
-                    var g = item.contentBg.getComponent(cc.Graphics);
-                    if (g) {
-                        g.clear();
-                        g.fillColor = cc.color(45, 42, 55, 200);
-                        g.roundRect(-item.contentBg.width/2, -item.contentBg.height, item.contentBg.width, item.contentBg.height, 4);
-                        g.fill();
-                    }
-                    console.log("【帮助弹窗】第" + (idx+1) + "条估算高度:", estimatedHeight);
+                    newHeight = lines * lineHeight + 30;
+                    console.log("【帮助弹窗】第" + (idx+1) + "条估算高度:", newHeight);
                 }
+                
+                // 更新高度
+                item.contentBox.setContentSize(cc.size(fixedItemWidth, newHeight));
+                item.contentBg.setContentSize(cc.size(fixedItemWidth, newHeight));
+                
+                // 重绘背景
+                var g = item.contentBg.getComponent(cc.Graphics);
+                if (g) {
+                    g.clear();
+                    g.fillColor = cc.color(45, 42, 55, 200);
+                    g.roundRect(-fixedItemWidth/2, -newHeight, fixedItemWidth, newHeight, 4);
+                    g.fill();
+                }
+                console.log("【帮助弹窗】第" + (idx+1) + "条更新后高度:", newHeight);
                 
                 // 现在可以隐藏contentBox了
                 item.contentBox.active = false;
