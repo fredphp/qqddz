@@ -18,6 +18,8 @@ const (
         CacheKeyUserAgreementLatest = "user_agreement:latest"
         CacheKeyUserAgreementPrefix = "user_agreement:id:"
         CacheKeyUserAgreementList   = "user_agreement:list"
+        CacheKeyHelpArticleLatest   = "help_article:latest"
+        CacheKeyHelpArticleList     = "help_article:list"
 
         // 缓存永不过期，只有后台管理更新数据时才刷新缓存
         // CacheExpirationUserAgreement = 30 * time.Minute
@@ -33,6 +35,7 @@ type UserAgreement struct {
         Version   string    `json:"version"`
         Status    int       `json:"status"`
         Sort      int       `json:"sort"`
+        Type      string    `json:"type"` // 类型: user_agreement, help, privacy
 }
 
 // UserAgreementHandler 用户协议处理器
@@ -308,4 +311,171 @@ func writeJSONError(w http.ResponseWriter, code int, message string) {
                 Code:    code,
                 Message: message,
         })
+}
+
+// ==================== 帮助文章API ====================
+
+// GetLatestHelpArticle 获取最新的帮助文章（带缓存）
+func (h *UserAgreementHandler) GetLatestHelpArticle(w http.ResponseWriter, r *http.Request) {
+        if h.db == nil {
+                // 没有数据库时返回默认数据
+                writeJSONSuccess(w, &UserAgreement{
+                        ID:        1,
+                        Title:     "游戏帮助",
+                        Content:   getDefaultHelpContent(),
+                        Version:   "v1.0.0",
+                        Status:    1,
+                        Sort:      1,
+                        Type:      "help",
+                        CreatedAt: time.Now(),
+                        UpdatedAt: time.Now(),
+                })
+                return
+        }
+
+        // 尝试从缓存获取
+        if value, exists := h.cache.Get(CacheKeyHelpArticleLatest); exists {
+                if article, ok := value.(*UserAgreement); ok {
+                        writeJSONSuccess(w, article)
+                        return
+                }
+        }
+
+        // 从数据库查询
+        var article UserAgreement
+        query := `SELECT id, created_at, updated_at, title, content, version, status, sort, type
+                          FROM sys_user_agreement
+                          WHERE status = 1 AND type = 'help' AND deleted_at IS NULL
+                          ORDER BY sort ASC, created_at DESC
+                          LIMIT 1`
+
+        err := h.db.QueryRow(query).Scan(
+                &article.ID,
+                &article.CreatedAt,
+                &article.UpdatedAt,
+                &article.Title,
+                &article.Content,
+                &article.Version,
+                &article.Status,
+                &article.Sort,
+                &article.Type,
+        )
+
+        if err != nil {
+                if err == sql.ErrNoRows {
+                        // 没有找到帮助文章，返回默认内容
+                        writeJSONSuccess(w, &UserAgreement{
+                                ID:        0,
+                                Title:     "游戏帮助",
+                                Content:   getDefaultHelpContent(),
+                                Version:   "v1.0.0",
+                                Status:    1,
+                                Sort:      1,
+                                Type:      "help",
+                                CreatedAt: time.Now(),
+                                UpdatedAt: time.Now(),
+                        })
+                        return
+                }
+                writeJSONError(w, http.StatusInternalServerError, "查询失败: "+err.Error())
+                return
+        }
+
+        // 缓存结果
+        h.cache.Set(CacheKeyHelpArticleLatest, &article, 0)
+
+        writeJSONSuccess(w, article)
+}
+
+// GetHelpArticleList 获取帮助文章列表（带缓存）
+func (h *UserAgreementHandler) GetHelpArticleList(w http.ResponseWriter, r *http.Request) {
+        if h.db == nil {
+                writeJSONError(w, http.StatusServiceUnavailable, "数据库未配置")
+                return
+        }
+
+        // 尝试从缓存获取
+        if value, exists := h.cache.Get(CacheKeyHelpArticleList); exists {
+                if articles, ok := value.([]UserAgreement); ok {
+                        writeJSONSuccess(w, articles)
+                        return
+                }
+        }
+
+        query := `SELECT id, created_at, updated_at, title, content, version, status, sort, type
+                          FROM sys_user_agreement
+                          WHERE status = 1 AND type = 'help' AND deleted_at IS NULL
+                          ORDER BY sort ASC, created_at DESC`
+
+        rows, err := h.db.Query(query)
+        if err != nil {
+                writeJSONError(w, http.StatusInternalServerError, "查询失败: "+err.Error())
+                return
+        }
+        defer rows.Close()
+
+        var articles []UserAgreement
+        for rows.Next() {
+                var article UserAgreement
+                err := rows.Scan(
+                        &article.ID,
+                        &article.CreatedAt,
+                        &article.UpdatedAt,
+                        &article.Title,
+                        &article.Content,
+                        &article.Version,
+                        &article.Status,
+                        &article.Sort,
+                        &article.Type,
+                )
+                if err != nil {
+                        writeJSONError(w, http.StatusInternalServerError, "解析数据失败: "+err.Error())
+                        return
+                }
+                articles = append(articles, article)
+        }
+
+        if articles == nil {
+                articles = []UserAgreement{}
+        }
+
+        // 缓存结果
+        h.cache.Set(CacheKeyHelpArticleList, articles, 0)
+
+        writeJSONSuccess(w, articles)
+}
+
+// ClearHelpCache 清除帮助文章缓存
+func (h *UserAgreementHandler) ClearHelpCache() {
+        h.cache.Delete(CacheKeyHelpArticleLatest)
+        h.cache.Delete(CacheKeyHelpArticleList)
+}
+
+// getDefaultHelpContent 获取默认帮助内容
+func getDefaultHelpContent() string {
+        return `【游戏规则】
+
+本游戏为经典斗地主扑克牌游戏，支持3人玩法。
+
+【基本规则】
+• 一副牌54张，一人17张，留3张做底牌
+• 叫地主：玩家可选择叫地主或不叫，叫地主者获得3张底牌
+• 出牌：地主先出牌，按逆时针顺序出牌
+• 牌型：单张、对子、三张、三带一、三带二、顺子、连对、飞机、炸弹、王炸等
+
+【牌型大小】
+• 王炸 > 炸弹 > 其他牌型
+• 同牌型按点数比较大小
+• 大王 > 小王 > 2 > A > K > Q > J > 10 > 9 > 8 > 7 > 6 > 5 > 4 > 3
+
+【获胜条件】
+• 地主：先出完所有牌即获胜
+• 农民：任一农民先出完牌，农民方获胜
+
+【货币说明】
+• 欢乐豆：普通场游戏货币，用于报名参赛
+• 竞技币：竞技场专用货币，参与锦标赛使用
+
+【联系客服】
+如有问题，请联系客服处理。`
 }

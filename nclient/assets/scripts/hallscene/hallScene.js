@@ -2,6 +2,29 @@
 
 // 脚本加载日志
 
+// 获取默认帮助内容
+var getDefaultHelpContent = function() {
+    return "【游戏规则】\n\n" +
+        "本游戏为经典斗地主扑克牌游戏，支持3人玩法。\n\n" +
+        "【基本规则】\n" +
+        "• 一副牌54张，一人17张，留3张做底牌\n" +
+        "• 叫地主：玩家可选择叫地主或不叫，叫地主者获得3张底牌\n" +
+        "• 出牌：地主先出牌，按逆时针顺序出牌\n" +
+        "• 牌型：单张、对子、三张、三带一、三带二、顺子、连对、飞机、炸弹、王炸等\n\n" +
+        "【牌型大小】\n" +
+        "• 王炸 > 炸弹 > 其他牌型\n" +
+        "• 同牌型按点数比较大小\n" +
+        "• 大王 > 小王 > 2 > A > K > Q > J > 10 > 9 > 8 > 7 > 6 > 5 > 4 > 3\n\n" +
+        "【获胜条件】\n" +
+        "• 地主：先出完所有牌即获胜\n" +
+        "• 农民：任一农民先出完牌，农民方获胜\n\n" +
+        "【货币说明】\n" +
+        "• 欢乐豆：普通场游戏货币，用于报名参赛\n" +
+        "• 竞技币：竞技场专用货币，参与锦标赛使用\n\n" +
+        "【联系客服】\n" +
+        "如有问题，请联系客服处理。";
+};
+
 cc.Class({
     extends: cc.Component,
 
@@ -7414,7 +7437,7 @@ cc.Class({
             return;
         }
         
-        // 创建弹窗容器
+        // ==================== 创建弹窗容器 ====================
         var dialog = new cc.Node("HelpDialog");
         dialog.setPosition(0, 0);
         dialog.anchorX = 0.5;
@@ -7425,8 +7448,10 @@ cc.Class({
         // 遮罩层
         var mask = new cc.Node("Mask");
         mask.setContentSize(cc.size(1280, 720));
+        mask.anchorX = 0.5;
+        mask.anchorY = 0.5;
         var maskGraphics = mask.addComponent(cc.Graphics);
-        maskGraphics.fillColor = cc.color(0, 0, 0, 180);
+        maskGraphics.fillColor = cc.color(0, 0, 0, 160);
         maskGraphics.rect(-640, -360, 1280, 720);
         maskGraphics.fill();
         mask.parent = dialog;
@@ -7435,99 +7460,172 @@ cc.Class({
             dialog.destroy();
         });
         
-        // 弹窗背景
+        // ==================== 弹窗背景 - 美化样式 ====================
         var bgWidth = 500;
-        var bgHeight = 450;
+        var bgHeight = 480;
         var bgNode = new cc.Node("BgNode");
+        bgNode.setPosition(0, 0);
         bgNode.setContentSize(cc.size(bgWidth, bgHeight));
+        bgNode.anchorX = 0.5;
+        bgNode.anchorY = 0.5;
         var bgGraphics = bgNode.addComponent(cc.Graphics);
-        bgGraphics.fillColor = cc.color(45, 40, 60, 245);
-        bgGraphics.roundRect(-bgWidth/2, -bgHeight/2, bgWidth, bgHeight, 15);
+        
+        // 阴影效果
+        bgGraphics.fillColor = cc.color(0, 0, 0, 60);
+        bgGraphics.roundRect(-bgWidth/2 + 5, -bgHeight/2 - 5, bgWidth, bgHeight, 16);
         bgGraphics.fill();
-        bgGraphics.strokeColor = cc.color(255, 200, 100, 200);
-        bgGraphics.lineWidth = 3;
+        
+        // 主背景
+        bgGraphics.fillColor = cc.color(35, 35, 50, 250);
+        bgGraphics.roundRect(-bgWidth/2, -bgHeight/2, bgWidth, bgHeight, 16);
+        bgGraphics.fill();
+        
+        // 金色边框
+        bgGraphics.strokeColor = cc.color(218, 165, 32, 255);
+        bgGraphics.lineWidth = 2;
         bgGraphics.stroke();
         bgNode.parent = dialog;
         
-        // 标题
+        // ==================== 标题栏背景 ====================
+        var titleBarHeight = 50;
+        var titleBar = new cc.Node("TitleBar");
+        titleBar.setPosition(0, bgHeight/2 - titleBarHeight/2);
+        titleBar.setContentSize(cc.size(bgWidth - 4, titleBarHeight));
+        titleBar.anchorX = 0.5;
+        titleBar.anchorY = 0.5;
+        var titleBarGraphics = titleBar.addComponent(cc.Graphics);
+        titleBarGraphics.fillColor = cc.color(60, 50, 80, 255);
+        titleBarGraphics.roundRect(-(bgWidth - 4)/2, -titleBarHeight/2, bgWidth - 4, titleBarHeight, 14);
+        titleBarGraphics.fill();
+        titleBar.parent = dialog;
+        
+        // 标题文字 - 垂直居中
         var titleNode = new cc.Node("Title");
-        titleNode.setPosition(0, bgHeight/2 - 40);
+        titleNode.setPosition(0, bgHeight/2 - titleBarHeight/2);
         var titleLabel = titleNode.addComponent(cc.Label);
-        titleLabel.string = "❓ 游戏帮助";
-        titleLabel.fontSize = 32;
-        titleLabel.lineHeight = 40;
+        titleLabel.string = "游 戏 帮 助";
+        titleLabel.fontSize = 24;
+        titleLabel.lineHeight = titleBarHeight;
         titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        titleLabel.verticalAlign = cc.Label.VerticalAlign.CENTER;
         titleNode.color = cc.color(255, 215, 0);
         titleNode.parent = dialog;
         
-        // 帮助内容
-        var helpContent = [
-            "🎴 游戏规则",
-            "本游戏为经典斗地主扑克牌游戏",
-            "",
-            "🎮 操作说明",
-            "• 选择房间进入游戏",
-            "• 普通场使用欢乐豆报名",
-            "• 竞技场使用竞技币报名",
-            "",
-            "💰 货币说明",
-            "• 欢乐豆：普通场游戏货币",
-            "• 竞技币：竞技场专用货币",
-            "",
-            "🏆 获胜奖励",
-            "赢得比赛可获得相应货币奖励"
-        ];
+        // ==================== 内容区域 - 带滚动 ====================
+        var contentWidth = bgWidth - 40;
+        var contentHeight = bgHeight - titleBarHeight - 80;
+        var contentStartY = bgHeight/2 - titleBarHeight - 20;
         
-        var contentNode = new cc.Node("Content");
-        contentNode.setPosition(0, 0);
-        var contentLabel = contentNode.addComponent(cc.Label);
-        contentLabel.string = helpContent.join('\n');
-        contentLabel.fontSize = 18;
-        contentLabel.lineHeight = 26;
-        contentLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
-        contentLabel.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
-        contentLabel.wrapWidth = bgWidth - 60;
-        contentNode.color = cc.color(220, 220, 220);
-        contentNode.parent = dialog;
+        // 内容容器
+        var contentContainer = new cc.Node("ContentContainer");
+        contentContainer.setPosition(0, contentStartY - contentHeight/2);
+        contentContainer.setContentSize(cc.size(contentWidth, contentHeight));
+        contentContainer.anchorX = 0.5;
+        contentContainer.anchorY = 0.5;
+        contentContainer.parent = dialog;
         
-        // 关闭按钮
-        var closeBtn = new cc.Node("CloseBtn");
-        closeBtn.setPosition(bgWidth/2 - 25, bgHeight/2 - 25);
-        closeBtn.setContentSize(cc.size(36, 36));
-        var closeGraphics = closeBtn.addComponent(cc.Graphics);
-        closeGraphics.fillColor = cc.color(80, 80, 80, 200);
-        closeGraphics.circle(0, 0, 18);
-        closeGraphics.fill();
-        closeBtn.parent = dialog;
+        // 加载提示
+        var loadingLabel = new cc.Node("LoadingLabel");
+        loadingLabel.setPosition(0, 0);
+        var loadingLabelComp = loadingLabel.addComponent(cc.Label);
+        loadingLabelComp.string = "正在加载帮助内容...";
+        loadingLabelComp.fontSize = 18;
+        loadingLabelComp.lineHeight = contentHeight;
+        loadingLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        loadingLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        loadingLabel.color = cc.color(180, 180, 180);
+        loadingLabel.parent = contentContainer;
         
-        var closeX = new cc.Node("X");
-        var closeXLabel = closeX.addComponent(cc.Label);
-        closeXLabel.string = "✕";
-        closeXLabel.fontSize = 20;
-        closeXLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        closeX.color = cc.color(255, 255, 255);
-        closeX.parent = closeBtn;
+        // ==================== 从API获取帮助内容 ====================
+        var fetchHelpContent = function() {
+            var apiUrl = window.defines ? window.defines.apiUrl : '';
+            var cryptoKey = window.defines ? window.defines.cryptoKey : '';
+            
+            if (!apiUrl) {
+                self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+                return;
+            }
+            
+            var url = apiUrl + '/api/v1/help-article/latest';
+            
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', url, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            var response = JSON.parse(xhr.responseText);
+                            var content = '';
+                            
+                            // 检查是否是加密响应
+                            if (response.data && typeof response.data === 'string') {
+                                // 加密响应，尝试解密
+                                if (window.HttpAPI && window.HttpAPI.decryptResponse) {
+                                    try {
+                                        var decrypted = window.HttpAPI.decryptResponse(response, cryptoKey);
+                                        if (decrypted && decrypted.content) {
+                                            content = decrypted.content;
+                                        }
+                                    } catch (e) {
+                                        console.log("解密失败，使用默认内容");
+                                    }
+                                }
+                            } else if (response.code === 0 && response.data) {
+                                // 未加密响应
+                                if (response.data.content) {
+                                    content = response.data.content;
+                                }
+                            }
+                            
+                            if (content) {
+                                self._showHelpContent(contentContainer, loadingLabel, content);
+                            } else {
+                                self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+                            }
+                        } catch (e) {
+                            console.error("解析帮助内容失败:", e);
+                            self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+                        }
+                    } else {
+                        console.log("获取帮助内容失败，使用默认内容");
+                        self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+                    }
+                }
+            };
+            
+            xhr.onerror = function() {
+                console.log("请求失败，使用默认帮助内容");
+                self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+            };
+            
+            xhr.send();
+        };
         
-        closeBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
-            event.stopPropagation();
-            dialog.destroy();
-        });
+        // 延迟获取内容
+        setTimeout(fetchHelpContent, 100);
         
-        // 确定按钮
+        // ==================== 确定按钮 ====================
         var confirmBtn = new cc.Node("ConfirmBtn");
         confirmBtn.setPosition(0, -bgHeight/2 + 40);
         confirmBtn.setContentSize(cc.size(120, 40));
+        confirmBtn.anchorX = 0.5;
+        confirmBtn.anchorY = 0.5;
         var confirmGraphics = confirmBtn.addComponent(cc.Graphics);
-        confirmGraphics.fillColor = cc.color(100, 180, 100, 255);
+        confirmGraphics.fillColor = cc.color(76, 175, 80, 255);
         confirmGraphics.roundRect(-60, -20, 120, 40, 8);
         confirmGraphics.fill();
         confirmBtn.parent = dialog;
         
+        // 确定按钮文字 - 垂直居中
         var confirmLabel = new cc.Node("Label");
         var confirmLabelComp = confirmLabel.addComponent(cc.Label);
         confirmLabelComp.string = "我知道了";
-        confirmLabelComp.fontSize = 18;
+        confirmLabelComp.fontSize = 16;
+        confirmLabelComp.lineHeight = 40;
         confirmLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        confirmLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
         confirmLabel.color = cc.color(255, 255, 255);
         confirmLabel.parent = confirmBtn;
         
@@ -7535,6 +7633,61 @@ cc.Class({
             event.stopPropagation();
             dialog.destroy();
         });
+        
+        // ==================== 关闭按钮（右上角X）====================
+        var closeBtn = new cc.Node("CloseBtn");
+        closeBtn.setPosition(bgWidth/2 - 28, bgHeight/2 - 28);
+        closeBtn.setContentSize(cc.size(32, 32));
+        closeBtn.anchorX = 0.5;
+        closeBtn.anchorY = 0.5;
+        var closeGraphics = closeBtn.addComponent(cc.Graphics);
+        closeGraphics.fillColor = cc.color(100, 90, 110, 230);
+        closeGraphics.circle(0, 0, 16);
+        closeGraphics.fill();
+        closeGraphics.strokeColor = cc.color(180, 170, 190, 150);
+        closeGraphics.lineWidth = 1;
+        closeGraphics.circle(0, 0, 16);
+        closeGraphics.stroke();
+        closeBtn.parent = dialog;
+        
+        // 关闭按钮X标记 - 垂直居中
+        var closeX = new cc.Node("X");
+        var closeXLabel = closeX.addComponent(cc.Label);
+        closeXLabel.string = "✕";
+        closeXLabel.fontSize = 18;
+        closeXLabel.lineHeight = 32;
+        closeXLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        closeXLabel.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        closeX.color = cc.color(255, 255, 255);
+        closeX.parent = closeBtn;
+        
+        closeBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            dialog.destroy();
+        });
+    },
+    
+    // 显示帮助内容
+    _showHelpContent: function(container, loadingLabel, content) {
+        // 移除加载提示
+        if (loadingLabel && loadingLabel.parent) {
+            loadingLabel.parent = null;
+        }
+        
+        // 创建内容标签
+        var contentLabel = new cc.Node("ContentLabel");
+        contentLabel.setPosition(0, 0);
+        var labelComp = contentLabel.addComponent(cc.Label);
+        labelComp.string = content;
+        labelComp.fontSize = 16;
+        labelComp.lineHeight = 24;
+        labelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+        labelComp.verticalAlign = cc.Label.VerticalAlign.TOP;
+        labelComp.overflow = cc.Label.Overflow.CLAMP;
+        labelComp.wrapWidth = container.width - 20;
+        contentLabel.color = cc.color(240, 240, 240);
+        contentLabel.anchorY = 1;
+        contentLabel.parent = container;
     },
     
     // 场景销毁时清理资源

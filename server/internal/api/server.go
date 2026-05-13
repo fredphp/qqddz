@@ -145,6 +145,12 @@ func RegisterRoutes(mux *http.ServeMux, h *Handler) {
         log.Println("📝 注册路由: /api/v1/user-agreement/list")
         mux.HandleFunc("/api/v1/user-agreement/list", h.EncryptMiddleware(h.agreement.List))
 
+        // 帮助文章接口（加密响应）
+        log.Println("📝 注册路由: /api/v1/help-article/latest")
+        mux.HandleFunc("/api/v1/help-article/latest", h.EncryptMiddleware(h.agreement.GetLatestHelpArticle))
+        log.Println("📝 注册路由: /api/v1/help-article/list")
+        mux.HandleFunc("/api/v1/help-article/list", h.EncryptMiddleware(h.agreement.GetHelpArticleList))
+
         // 内部接口（用于后台管理调用，刷新缓存，不加密）
         log.Println("📝 注册路由: /api/internal/cache/refresh/user-agreement")
         mux.HandleFunc("/api/internal/cache/refresh/user-agreement", h.agreement.RefreshCache)

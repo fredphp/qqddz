@@ -64,6 +64,7 @@ func RegisterTables() {
                 system.SysError{},
                 system.SysApiToken{},
                 system.SysLoginLog{},
+                system.SysUserAgreement{},
         )
         if err != nil {
                 global.GVA_LOG.Error("register table failed", zap.Error(err))

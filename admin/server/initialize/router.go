@@ -98,6 +98,7 @@ func Routers() *gin.Engine {
                 systemRouter.InitLoginLogRouter(PrivateGroup)                         // 登录日志
                 systemRouter.InitApiTokenRouter(PrivateGroup)                         // apiToken签发
                 systemRouter.InitSkillsRouter(PrivateGroup, PublicGroup)              // Skills 定义器
+                systemRouter.InitSysUserAgreementRouter(PrivateGroup, PublicGroup)    // 用户协议/单页管理
         }
 
         //插件路由安装
