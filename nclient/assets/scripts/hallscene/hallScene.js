@@ -7571,15 +7571,44 @@ cc.Class({
                                 // 加密响应，使用 HttpAPI.decryptAESGCM 解密
                                 if (window.HttpAPI && window.HttpAPI.decryptAESGCM) {
                                     window.HttpAPI.decryptAESGCM(response.data, cryptoKey).then(function(decrypted) {
-                                        console.log("【帮助弹窗】解密成功，数据类型:", typeof decrypted, Array.isArray(decrypted));
-                                        // 解密成功，处理数据
+                                        console.log("【帮助弹窗】解密成功，数据类型:", typeof decrypted, "是否数组:", Array.isArray(decrypted));
+                                        console.log("【帮助弹窗】解密后数据:", JSON.stringify(decrypted).substring(0, 1000));
+                                        
+                                        // 打印对象的所有属性名
+                                        if (decrypted && typeof decrypted === 'object') {
+                                            console.log("【帮助弹窗】解密后对象的属性:", Object.keys(decrypted));
+                                        }
+                                        
+                                        // 解密成功，处理数据 - 支持多种数据结构
                                         var helpItems = null;
+                                        
                                         if (Array.isArray(decrypted)) {
+                                            // 直接是数组
                                             helpItems = decrypted;
-                                        } else if (decrypted && decrypted.data && Array.isArray(decrypted.data)) {
-                                            helpItems = decrypted.data;
-                                        } else if (decrypted && Array.isArray(decrypted)) {
-                                            helpItems = decrypted;
+                                        } else if (decrypted && typeof decrypted === 'object') {
+                                            // 尝试各种可能的属性名
+                                            if (Array.isArray(decrypted.data)) {
+                                                helpItems = decrypted.data;
+                                            } else if (Array.isArray(decrypted.list)) {
+                                                helpItems = decrypted.list;
+                                            } else if (Array.isArray(decrypted.items)) {
+                                                helpItems = decrypted.items;
+                                            } else if (Array.isArray(decrypted.records)) {
+                                                helpItems = decrypted.records;
+                                            } else if (Array.isArray(decrypted.rows)) {
+                                                helpItems = decrypted.rows;
+                                            } else if (Array.isArray(decrypted.articles)) {
+                                                helpItems = decrypted.articles;
+                                            } else {
+                                                // 尝试查找对象中第一个数组类型的属性
+                                                for (var key in decrypted) {
+                                                    if (Array.isArray(decrypted[key])) {
+                                                        helpItems = decrypted[key];
+                                                        console.log("【帮助弹窗】从属性 '" + key + "' 提取到数组");
+                                                        break;
+                                                    }
+                                                }
+                                            }
                                         }
 
                                         console.log("【帮助弹窗】解析后helpItems条数:", helpItems ? helpItems.length : 0);
