@@ -7652,10 +7652,13 @@ cc.Class({
                                         console.log("【帮助弹窗】解析后helpItems条数:", helpItems ? helpItems.length : 0);
 
                                         if (helpItems && helpItems.length > 0) {
+                                            console.log("【帮助弹窗】helpItems[0]原始content:", helpItems[0].content ? helpItems[0].content.substring(0, 200) : "空");
                                             var accordionData = helpItems.map(function(item) {
+                                                var strippedContent = self._stripHtmlTags(item.content || '');
+                                                console.log("【帮助弹窗】处理后标题:", item.title, "内容长度:", strippedContent.length);
                                                 return {
                                                     title: item.title || '无标题',
-                                                    content: self._stripHtmlTags(item.content || '')
+                                                    content: strippedContent
                                                 };
                                             });
                                             console.log("【帮助弹窗】准备显示手风琴数据，条数:", accordionData.length);
@@ -7683,10 +7686,13 @@ cc.Class({
                                 console.log("【帮助弹窗】非加密响应helpItems条数:", helpItems ? helpItems.length : 0);
 
                                 if (helpItems && helpItems.length > 0) {
+                                    console.log("【帮助弹窗】非加密helpItems[0]原始content:", helpItems[0].content ? helpItems[0].content.substring(0, 200) : "空");
                                     var accordionData = helpItems.map(function(item) {
+                                        var strippedContent = self._stripHtmlTags(item.content || '');
+                                        console.log("【帮助弹窗】处理后标题:", item.title, "内容长度:", strippedContent.length);
                                         return {
                                             title: item.title || '无标题',
-                                            content: self._stripHtmlTags(item.content || '')
+                                            content: strippedContent
                                         };
                                     });
                                     console.log("【帮助弹窗】准备显示手风琴数据，条数:", accordionData.length);
@@ -7822,6 +7828,8 @@ cc.Class({
         }
         
         console.log("【帮助弹窗】第一条数据:", JSON.stringify(helpItems[0]));
+        console.log("【帮助弹窗】第一条数据content字段:", helpItems[0].content);
+        console.log("【帮助弹窗】第一条数据content长度:", helpItems[0].content ? helpItems[0].content.length : 0);
         
         var self = this;
         var itemHeight = 45;
@@ -7913,7 +7921,10 @@ cc.Class({
             
             var contentLabel = new cc.Node("contentLabel");
             var labelComp = contentLabel.addComponent(cc.Label);
-            labelComp.string = item.content || '暂无内容';
+            var displayContent = item.content || '暂无内容';
+            console.log("【帮助弹窗】第" + (index+1) + "条内容:", displayContent.substring(0, 100) + "...");
+            console.log("【帮助弹窗】第" + (index+1) + "条内容长度:", displayContent.length);
+            labelComp.string = displayContent;
             labelComp.fontSize = 14;
             labelComp.lineHeight = 20;
             labelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
