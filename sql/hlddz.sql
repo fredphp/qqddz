@@ -11,7 +11,7 @@
  Target Server Version : 80045 (8.0.45-0ubuntu0.24.04.1)
  File Encoding         : 65001
 
- Date: 11/05/2026 22:02:28
+ Date: 13/05/2026 22:32:22
 */
 
 SET NAMES utf8mb4;
@@ -32,307 +32,314 @@ CREATE TABLE `casbin_rule`  (
   `v5` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `idx_casbin_rule`(`ptype` ASC, `v0` ASC, `v1` ASC, `v2` ASC, `v3` ASC, `v4` ASC, `v5` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3835 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 4162 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of casbin_rule
 -- ----------------------------
-INSERT INTO `casbin_rule` VALUES (3815, 'p', '888', '/api/createApi', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3814, 'p', '888', '/api/deleteApi', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3809, 'p', '888', '/api/deleteApisByIds', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3806, 'p', '888', '/api/enterSyncApi', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3811, 'p', '888', '/api/getAllApis', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3810, 'p', '888', '/api/getApiById', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3807, 'p', '888', '/api/getApiGroups', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3812, 'p', '888', '/api/getApiList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3804, 'p', '888', '/api/getApiRoles', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3805, 'p', '888', '/api/ignoreApi', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3803, 'p', '888', '/api/setApiRoles', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3808, 'p', '888', '/api/syncApi', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3813, 'p', '888', '/api/updateApi', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3654, 'p', '888', '/attachmentCategory/addCategory', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3653, 'p', '888', '/attachmentCategory/deleteCategory', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3655, 'p', '888', '/attachmentCategory/getCategoryList', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3802, 'p', '888', '/authority/copyAuthority', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3801, 'p', '888', '/authority/createAuthority', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3800, 'p', '888', '/authority/deleteAuthority', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3798, 'p', '888', '/authority/getAuthorityList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3796, 'p', '888', '/authority/getUsersByAuthority', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3797, 'p', '888', '/authority/setDataAuthority', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3795, 'p', '888', '/authority/setRoleUsers', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3799, 'p', '888', '/authority/updateAuthority', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3686, 'p', '888', '/authorityBtn/canRemoveAuthorityBtn', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3687, 'p', '888', '/authorityBtn/getAuthorityBtn', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3688, 'p', '888', '/authorityBtn/setAuthorityBtn', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3715, 'p', '888', '/autoCode/addFunc', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3723, 'p', '888', '/autoCode/createPackage', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3742, 'p', '888', '/autoCode/createTemp', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3725, 'p', '888', '/autoCode/deleteAIWorkflowSession', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3720, 'p', '888', '/autoCode/delPackage', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3716, 'p', '888', '/autoCode/delSysHistory', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3724, 'p', '888', '/autoCode/dumpAIWorkflowMarkdown', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3726, 'p', '888', '/autoCode/getAIWorkflowSessionDetail', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3727, 'p', '888', '/autoCode/getAIWorkflowSessionList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3740, 'p', '888', '/autoCode/getColumn', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3744, 'p', '888', '/autoCode/getDB', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3719, 'p', '888', '/autoCode/getMeta', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3721, 'p', '888', '/autoCode/getPackage', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3736, 'p', '888', '/autoCode/getPluginList', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3717, 'p', '888', '/autoCode/getSysHistory', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3743, 'p', '888', '/autoCode/getTables', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3722, 'p', '888', '/autoCode/getTemplates', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3739, 'p', '888', '/autoCode/installPlugin', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3735, 'p', '888', '/autoCode/mcp', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3729, 'p', '888', '/autoCode/mcpList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3731, 'p', '888', '/autoCode/mcpRoutes', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3733, 'p', '888', '/autoCode/mcpStart', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3734, 'p', '888', '/autoCode/mcpStatus', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3732, 'p', '888', '/autoCode/mcpStop', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3730, 'p', '888', '/autoCode/mcpTest', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3741, 'p', '888', '/autoCode/preview', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3738, 'p', '888', '/autoCode/pubPlug', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3737, 'p', '888', '/autoCode/removePlugin', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3718, 'p', '888', '/autoCode/rollback', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3728, 'p', '888', '/autoCode/saveAIWorkflowSession', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3793, 'p', '888', '/casbin/getPolicyPathByAuthorityId', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3794, 'p', '888', '/casbin/updateCasbin', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3747, 'p', '888', '/customer/customer', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3746, 'p', '888', '/customer/customer', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3748, 'p', '888', '/customer/customer', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3749, 'p', '888', '/customer/customer', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3745, 'p', '888', '/customer/customerList', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3547, 'p', '888', '/ddz/adReward/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3542, 'p', '888', '/ddz/arena/cancel', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3540, 'p', '888', '/ddz/arena/list', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3543, 'p', '888', '/ddz/arena/register', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3539, 'p', '888', '/ddz/arena/registration/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3541, 'p', '888', '/ddz/arena/status', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3546, 'p', '888', '/ddz/arenaCoinLog/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3548, 'p', '888', '/ddz/arenaGoldLog/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3596, 'p', '888', '/ddz/arenaPeriod/delete', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3598, 'p', '888', '/ddz/arenaPeriod/info', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3599, 'p', '888', '/ddz/arenaPeriod/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3595, 'p', '888', '/ddz/arenaPeriod/players', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3594, 'p', '888', '/ddz/arenaPeriod/signupLogs', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3593, 'p', '888', '/ddz/arenaPeriod/stats', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3597, 'p', '888', '/ddz/arenaPeriod/update', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3563, 'p', '888', '/ddz/arenaRoundRecord/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3564, 'p', '888', '/ddz/arenaSession/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3562, 'p', '888', '/ddz/arenaSignupLog/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3561, 'p', '888', '/ddz/arenaTable/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3625, 'p', '888', '/ddz/game/detail', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3626, 'p', '888', '/ddz/game/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3560, 'p', '888', '/ddz/gameConfig/create', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3559, 'p', '888', '/ddz/gameConfig/delete', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3578, 'p', '888', '/ddz/gameConfig/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3577, 'p', '888', '/ddz/gameConfig/update', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3558, 'p', '888', '/ddz/gameDetail/gamePlayerRecordList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3557, 'p', '888', '/ddz/gameDetail/gamePlayRecordList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3633, 'p', '888', '/ddz/gameRecord/delete', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3634, 'p', '888', '/ddz/gameRecord/detail', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3635, 'p', '888', '/ddz/gameRecord/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3545, 'p', '888', '/ddz/goldLog/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3632, 'p', '888', '/ddz/log/bid/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3631, 'p', '888', '/ddz/log/deal/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3630, 'p', '888', '/ddz/log/play/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3583, 'p', '888', '/ddz/player/arenaCoin', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3588, 'p', '888', '/ddz/player/ban', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3582, 'p', '888', '/ddz/player/coinLogs', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3585, 'p', '888', '/ddz/player/coins', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3584, 'p', '888', '/ddz/player/currency', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3592, 'p', '888', '/ddz/player/delete', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3591, 'p', '888', '/ddz/player/deleteByPlayerId', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3581, 'p', '888', '/ddz/player/freeze', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3576, 'p', '888', '/ddz/player/generateRobots', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3589, 'p', '888', '/ddz/player/info', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3590, 'p', '888', '/ddz/player/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3579, 'p', '888', '/ddz/player/statusLogs', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3587, 'p', '888', '/ddz/player/unban', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3580, 'p', '888', '/ddz/player/unfreeze', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3586, 'p', '888', '/ddz/player/update', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3629, 'p', '888', '/ddz/playerStat/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3611, 'p', '888', '/ddz/rewardGoods/create', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3609, 'p', '888', '/ddz/rewardGoods/delete', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3612, 'p', '888', '/ddz/rewardGoods/detail', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3613, 'p', '888', '/ddz/rewardGoods/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3610, 'p', '888', '/ddz/rewardGoods/update', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3605, 'p', '888', '/ddz/rewardOrders/cancel', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3607, 'p', '888', '/ddz/rewardOrders/detail', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3608, 'p', '888', '/ddz/rewardOrders/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3606, 'p', '888', '/ddz/rewardOrders/ship', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3575, 'p', '888', '/ddz/robot/generateRobots', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3574, 'p', '888', '/ddz/robot/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3573, 'p', '888', '/ddz/robot/release', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3565, 'p', '888', '/ddz/robotConfig/all', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3572, 'p', '888', '/ddz/robotConfig/create', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3566, 'p', '888', '/ddz/robotConfig/default', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3570, 'p', '888', '/ddz/robotConfig/delete', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3567, 'p', '888', '/ddz/robotConfig/info', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3568, 'p', '888', '/ddz/robotConfig/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3569, 'p', '888', '/ddz/robotConfig/setDefault', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3571, 'p', '888', '/ddz/robotConfig/update', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3614, 'p', '888', '/ddz/room/delete', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3615, 'p', '888', '/ddz/room/detail', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3544, 'p', '888', '/ddz/room/game-records', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3616, 'p', '888', '/ddz/room/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3617, 'p', '888', '/ddz/roomConfig/bg-image-options', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3603, 'p', '888', '/ddz/roomConfig/create', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3601, 'p', '888', '/ddz/roomConfig/delete', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3604, 'p', '888', '/ddz/roomConfig/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3600, 'p', '888', '/ddz/roomConfig/options', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3618, 'p', '888', '/ddz/roomConfig/refresh-cache', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3602, 'p', '888', '/ddz/roomConfig/update', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3627, 'p', '888', '/ddz/smsCode/delete', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3628, 'p', '888', '/ddz/smsCode/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3620, 'p', '888', '/ddz/stats/chart/active', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3619, 'p', '888', '/ddz/stats/chart/games', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3623, 'p', '888', '/ddz/stats/daily', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3622, 'p', '888', '/ddz/stats/leaderboard', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3624, 'p', '888', '/ddz/stats/overview', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3621, 'p', '888', '/ddz/stats/player', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3556, 'p', '888', '/ddz/statsDetail/dailyStatsList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3555, 'p', '888', '/ddz/statsDetail/leaderboardList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3554, 'p', '888', '/ddz/statsDetail/playerOnlineList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3553, 'p', '888', '/ddz/statsDetail/roomPlayerList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3550, 'p', '888', '/ddz/system/pendingGameDataList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3549, 'p', '888', '/ddz/system/writeQueueErrorLogList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3551, 'p', '888', '/ddz/tournament/eliminationList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3552, 'p', '888', '/ddz/tournament/roundList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3639, 'p', '888', '/ddz/userAccount/bindPhone', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3645, 'p', '888', '/ddz/userAccount/create', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3644, 'p', '888', '/ddz/userAccount/delete', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3642, 'p', '888', '/ddz/userAccount/info', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3643, 'p', '888', '/ddz/userAccount/list', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3636, 'p', '888', '/ddz/userAccount/loginLog', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3637, 'p', '888', '/ddz/userAccount/resetToken', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3640, 'p', '888', '/ddz/userAccount/status', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3638, 'p', '888', '/ddz/userAccount/unbindWechat', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3641, 'p', '888', '/ddz/userAccount/update', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3690, 'p', '888', '/email/emailTest', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3689, 'p', '888', '/email/sendEmail', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3780, 'p', '888', '/fileUploadAndDownload/breakpointContinue', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3779, 'p', '888', '/fileUploadAndDownload/breakpointContinueFinish', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3776, 'p', '888', '/fileUploadAndDownload/deleteFile', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3775, 'p', '888', '/fileUploadAndDownload/editFileName', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3781, 'p', '888', '/fileUploadAndDownload/findFile', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3774, 'p', '888', '/fileUploadAndDownload/getFileList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3773, 'p', '888', '/fileUploadAndDownload/importURL', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3778, 'p', '888', '/fileUploadAndDownload/removeChunk', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3777, 'p', '888', '/fileUploadAndDownload/upload', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3668, 'p', '888', '/info/createInfo', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3667, 'p', '888', '/info/deleteInfo', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3666, 'p', '888', '/info/deleteInfoByIds', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3664, 'p', '888', '/info/findInfo', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3663, 'p', '888', '/info/getInfoList', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3665, 'p', '888', '/info/updateInfo', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3834, 'p', '888', '/jwt/jsonInBlacklist', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3792, 'p', '888', '/menu/addBaseMenu', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3784, 'p', '888', '/menu/addMenuAuthority', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3790, 'p', '888', '/menu/deleteBaseMenu', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3788, 'p', '888', '/menu/getBaseMenuById', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3786, 'p', '888', '/menu/getBaseMenuTree', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3791, 'p', '888', '/menu/getMenu', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3785, 'p', '888', '/menu/getMenuAuthority', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3787, 'p', '888', '/menu/getMenuList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3783, 'p', '888', '/menu/getMenuRoles', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3782, 'p', '888', '/menu/setMenuRoles', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3789, 'p', '888', '/menu/updateBaseMenu', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3692, 'p', '888', '/simpleUploader/checkFileMd5', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3691, 'p', '888', '/simpleUploader/mergeFileMd5', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3693, 'p', '888', '/simpleUploader/upload', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3758, 'p', '888', '/skills/createReference', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3761, 'p', '888', '/skills/createResource', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3764, 'p', '888', '/skills/createScript', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3755, 'p', '888', '/skills/createTemplate', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3765, 'p', '888', '/skills/deleteSkill', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3752, 'p', '888', '/skills/getGlobalConstraint', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3757, 'p', '888', '/skills/getReference', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3760, 'p', '888', '/skills/getResource', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3763, 'p', '888', '/skills/getScript', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3767, 'p', '888', '/skills/getSkillDetail', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3768, 'p', '888', '/skills/getSkillList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3754, 'p', '888', '/skills/getTemplate', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3769, 'p', '888', '/skills/getTools', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3750, 'p', '888', '/skills/packageSkill', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3751, 'p', '888', '/skills/saveGlobalConstraint', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3756, 'p', '888', '/skills/saveReference', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3759, 'p', '888', '/skills/saveResource', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3762, 'p', '888', '/skills/saveScript', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3766, 'p', '888', '/skills/saveSkill', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3753, 'p', '888', '/skills/saveTemplate', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3829, 'p', '888', '/sysApiToken/createApiToken', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3827, 'p', '888', '/sysApiToken/deleteApiToken', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3828, 'p', '888', '/sysApiToken/getApiTokenList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3705, 'p', '888', '/sysDictionary/createSysDictionary', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3704, 'p', '888', '/sysDictionary/deleteSysDictionary', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3699, 'p', '888', '/sysDictionary/exportSysDictionary', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3702, 'p', '888', '/sysDictionary/findSysDictionary', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3701, 'p', '888', '/sysDictionary/getSysDictionaryList', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3700, 'p', '888', '/sysDictionary/importSysDictionary', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3703, 'p', '888', '/sysDictionary/updateSysDictionary', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3713, 'p', '888', '/sysDictionaryDetail/createSysDictionaryDetail', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3712, 'p', '888', '/sysDictionaryDetail/deleteSysDictionaryDetail', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3711, 'p', '888', '/sysDictionaryDetail/findSysDictionaryDetail', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3707, 'p', '888', '/sysDictionaryDetail/getDictionaryDetailsByParent', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3706, 'p', '888', '/sysDictionaryDetail/getDictionaryPath', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3709, 'p', '888', '/sysDictionaryDetail/getDictionaryTreeList', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3708, 'p', '888', '/sysDictionaryDetail/getDictionaryTreeListByType', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3710, 'p', '888', '/sysDictionaryDetail/getSysDictionaryDetailList', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3714, 'p', '888', '/sysDictionaryDetail/updateSysDictionaryDetail', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3675, 'p', '888', '/sysError/createSysError', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3674, 'p', '888', '/sysError/deleteSysError', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3673, 'p', '888', '/sysError/deleteSysErrorByIds', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3671, 'p', '888', '/sysError/findSysError', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3670, 'p', '888', '/sysError/getSysErrorList', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3669, 'p', '888', '/sysError/getSysErrorSolution', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3672, 'p', '888', '/sysError/updateSysError', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3685, 'p', '888', '/sysExportTemplate/createSysExportTemplate', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3684, 'p', '888', '/sysExportTemplate/deleteSysExportTemplate', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3683, 'p', '888', '/sysExportTemplate/deleteSysExportTemplateByIds', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3679, 'p', '888', '/sysExportTemplate/exportExcel', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3678, 'p', '888', '/sysExportTemplate/exportTemplate', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3681, 'p', '888', '/sysExportTemplate/findSysExportTemplate', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3680, 'p', '888', '/sysExportTemplate/getSysExportTemplateList', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3676, 'p', '888', '/sysExportTemplate/importExcel', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3677, 'p', '888', '/sysExportTemplate/previewSQL', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3682, 'p', '888', '/sysExportTemplate/updateSysExportTemplate', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3833, 'p', '888', '/sysLoginLog/deleteLoginLog', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3832, 'p', '888', '/sysLoginLog/deleteLoginLogByIds', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3831, 'p', '888', '/sysLoginLog/findLoginLog', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3830, 'p', '888', '/sysLoginLog/getLoginLogList', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3698, 'p', '888', '/sysOperationRecord/createSysOperationRecord', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3695, 'p', '888', '/sysOperationRecord/deleteSysOperationRecord', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3694, 'p', '888', '/sysOperationRecord/deleteSysOperationRecordByIds', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3697, 'p', '888', '/sysOperationRecord/findSysOperationRecord', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3696, 'p', '888', '/sysOperationRecord/getSysOperationRecordList', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3662, 'p', '888', '/sysParams/createSysParams', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3661, 'p', '888', '/sysParams/deleteSysParams', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3660, 'p', '888', '/sysParams/deleteSysParamsByIds', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3658, 'p', '888', '/sysParams/findSysParams', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3656, 'p', '888', '/sysParams/getSysParam', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3657, 'p', '888', '/sysParams/getSysParamsList', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3659, 'p', '888', '/sysParams/updateSysParams', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3772, 'p', '888', '/system/getServerInfo', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3771, 'p', '888', '/system/getSystemConfig', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3770, 'p', '888', '/system/setSystemConfig', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3647, 'p', '888', '/sysVersion/deleteSysVersion', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3646, 'p', '888', '/sysVersion/deleteSysVersionByIds', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3650, 'p', '888', '/sysVersion/downloadVersionJson', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3649, 'p', '888', '/sysVersion/exportVersion', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3652, 'p', '888', '/sysVersion/findSysVersion', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3651, 'p', '888', '/sysVersion/getSysVersionList', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3648, 'p', '888', '/sysVersion/importVersion', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3825, 'p', '888', '/user/admin_register', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3819, 'p', '888', '/user/changePassword', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3826, 'p', '888', '/user/deleteUser', 'DELETE', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3821, 'p', '888', '/user/getUserInfo', 'GET', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3824, 'p', '888', '/user/getUserList', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3817, 'p', '888', '/user/resetPassword', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3822, 'p', '888', '/user/setSelfInfo', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3816, 'p', '888', '/user/setSelfSetting', 'PUT', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3820, 'p', '888', '/user/setUserAuthorities', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3818, 'p', '888', '/user/setUserAuthority', 'POST', '', '', '');
-INSERT INTO `casbin_rule` VALUES (3823, 'p', '888', '/user/setUserInfo', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4142, 'p', '888', '/api/createApi', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4141, 'p', '888', '/api/deleteApi', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4136, 'p', '888', '/api/deleteApisByIds', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4133, 'p', '888', '/api/enterSyncApi', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4138, 'p', '888', '/api/getAllApis', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4137, 'p', '888', '/api/getApiById', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4134, 'p', '888', '/api/getApiGroups', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4139, 'p', '888', '/api/getApiList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4131, 'p', '888', '/api/getApiRoles', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4132, 'p', '888', '/api/ignoreApi', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4130, 'p', '888', '/api/setApiRoles', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4135, 'p', '888', '/api/syncApi', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4140, 'p', '888', '/api/updateApi', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3981, 'p', '888', '/attachmentCategory/addCategory', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3980, 'p', '888', '/attachmentCategory/deleteCategory', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3982, 'p', '888', '/attachmentCategory/getCategoryList', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4129, 'p', '888', '/authority/copyAuthority', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4128, 'p', '888', '/authority/createAuthority', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4127, 'p', '888', '/authority/deleteAuthority', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4125, 'p', '888', '/authority/getAuthorityList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4123, 'p', '888', '/authority/getUsersByAuthority', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4124, 'p', '888', '/authority/setDataAuthority', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4122, 'p', '888', '/authority/setRoleUsers', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4126, 'p', '888', '/authority/updateAuthority', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4013, 'p', '888', '/authorityBtn/canRemoveAuthorityBtn', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4014, 'p', '888', '/authorityBtn/getAuthorityBtn', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4015, 'p', '888', '/authorityBtn/setAuthorityBtn', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4042, 'p', '888', '/autoCode/addFunc', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4050, 'p', '888', '/autoCode/createPackage', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4069, 'p', '888', '/autoCode/createTemp', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4052, 'p', '888', '/autoCode/deleteAIWorkflowSession', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4047, 'p', '888', '/autoCode/delPackage', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4043, 'p', '888', '/autoCode/delSysHistory', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4051, 'p', '888', '/autoCode/dumpAIWorkflowMarkdown', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4053, 'p', '888', '/autoCode/getAIWorkflowSessionDetail', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4054, 'p', '888', '/autoCode/getAIWorkflowSessionList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4067, 'p', '888', '/autoCode/getColumn', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4071, 'p', '888', '/autoCode/getDB', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4046, 'p', '888', '/autoCode/getMeta', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4048, 'p', '888', '/autoCode/getPackage', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4063, 'p', '888', '/autoCode/getPluginList', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4044, 'p', '888', '/autoCode/getSysHistory', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4070, 'p', '888', '/autoCode/getTables', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4049, 'p', '888', '/autoCode/getTemplates', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4066, 'p', '888', '/autoCode/installPlugin', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4062, 'p', '888', '/autoCode/mcp', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4056, 'p', '888', '/autoCode/mcpList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4058, 'p', '888', '/autoCode/mcpRoutes', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4060, 'p', '888', '/autoCode/mcpStart', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4061, 'p', '888', '/autoCode/mcpStatus', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4059, 'p', '888', '/autoCode/mcpStop', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4057, 'p', '888', '/autoCode/mcpTest', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4068, 'p', '888', '/autoCode/preview', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4065, 'p', '888', '/autoCode/pubPlug', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4064, 'p', '888', '/autoCode/removePlugin', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4045, 'p', '888', '/autoCode/rollback', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4055, 'p', '888', '/autoCode/saveAIWorkflowSession', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4120, 'p', '888', '/casbin/getPolicyPathByAuthorityId', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4121, 'p', '888', '/casbin/updateCasbin', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4074, 'p', '888', '/customer/customer', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4073, 'p', '888', '/customer/customer', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4075, 'p', '888', '/customer/customer', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4076, 'p', '888', '/customer/customer', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4072, 'p', '888', '/customer/customerList', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3874, 'p', '888', '/ddz/adReward/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3869, 'p', '888', '/ddz/arena/cancel', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3867, 'p', '888', '/ddz/arena/list', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3870, 'p', '888', '/ddz/arena/register', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3866, 'p', '888', '/ddz/arena/registration/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3868, 'p', '888', '/ddz/arena/status', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3873, 'p', '888', '/ddz/arenaCoinLog/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3875, 'p', '888', '/ddz/arenaGoldLog/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3923, 'p', '888', '/ddz/arenaPeriod/delete', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3925, 'p', '888', '/ddz/arenaPeriod/info', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3926, 'p', '888', '/ddz/arenaPeriod/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3922, 'p', '888', '/ddz/arenaPeriod/players', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3921, 'p', '888', '/ddz/arenaPeriod/signupLogs', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3920, 'p', '888', '/ddz/arenaPeriod/stats', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3924, 'p', '888', '/ddz/arenaPeriod/update', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3890, 'p', '888', '/ddz/arenaRoundRecord/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3891, 'p', '888', '/ddz/arenaSession/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3889, 'p', '888', '/ddz/arenaSignupLog/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3888, 'p', '888', '/ddz/arenaTable/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3952, 'p', '888', '/ddz/game/detail', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3953, 'p', '888', '/ddz/game/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3887, 'p', '888', '/ddz/gameConfig/create', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3886, 'p', '888', '/ddz/gameConfig/delete', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3905, 'p', '888', '/ddz/gameConfig/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3904, 'p', '888', '/ddz/gameConfig/update', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3885, 'p', '888', '/ddz/gameDetail/gamePlayerRecordList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3884, 'p', '888', '/ddz/gameDetail/gamePlayRecordList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3960, 'p', '888', '/ddz/gameRecord/delete', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3961, 'p', '888', '/ddz/gameRecord/detail', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3962, 'p', '888', '/ddz/gameRecord/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3872, 'p', '888', '/ddz/goldLog/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3959, 'p', '888', '/ddz/log/bid/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3958, 'p', '888', '/ddz/log/deal/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3957, 'p', '888', '/ddz/log/play/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3910, 'p', '888', '/ddz/player/arenaCoin', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3915, 'p', '888', '/ddz/player/ban', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3909, 'p', '888', '/ddz/player/coinLogs', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3912, 'p', '888', '/ddz/player/coins', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3911, 'p', '888', '/ddz/player/currency', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3919, 'p', '888', '/ddz/player/delete', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3918, 'p', '888', '/ddz/player/deleteByPlayerId', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3908, 'p', '888', '/ddz/player/freeze', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3903, 'p', '888', '/ddz/player/generateRobots', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3916, 'p', '888', '/ddz/player/info', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3917, 'p', '888', '/ddz/player/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3906, 'p', '888', '/ddz/player/statusLogs', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3914, 'p', '888', '/ddz/player/unban', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3907, 'p', '888', '/ddz/player/unfreeze', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3913, 'p', '888', '/ddz/player/update', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3956, 'p', '888', '/ddz/playerStat/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3938, 'p', '888', '/ddz/rewardGoods/create', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3936, 'p', '888', '/ddz/rewardGoods/delete', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3939, 'p', '888', '/ddz/rewardGoods/detail', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3940, 'p', '888', '/ddz/rewardGoods/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3937, 'p', '888', '/ddz/rewardGoods/update', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3932, 'p', '888', '/ddz/rewardOrders/cancel', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3934, 'p', '888', '/ddz/rewardOrders/detail', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3935, 'p', '888', '/ddz/rewardOrders/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3933, 'p', '888', '/ddz/rewardOrders/ship', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3902, 'p', '888', '/ddz/robot/generateRobots', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3901, 'p', '888', '/ddz/robot/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3900, 'p', '888', '/ddz/robot/release', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3892, 'p', '888', '/ddz/robotConfig/all', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3899, 'p', '888', '/ddz/robotConfig/create', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3893, 'p', '888', '/ddz/robotConfig/default', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3897, 'p', '888', '/ddz/robotConfig/delete', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3894, 'p', '888', '/ddz/robotConfig/info', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3895, 'p', '888', '/ddz/robotConfig/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3896, 'p', '888', '/ddz/robotConfig/setDefault', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3898, 'p', '888', '/ddz/robotConfig/update', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3941, 'p', '888', '/ddz/room/delete', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3942, 'p', '888', '/ddz/room/detail', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3871, 'p', '888', '/ddz/room/game-records', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3943, 'p', '888', '/ddz/room/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3944, 'p', '888', '/ddz/roomConfig/bg-image-options', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3930, 'p', '888', '/ddz/roomConfig/create', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3928, 'p', '888', '/ddz/roomConfig/delete', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3931, 'p', '888', '/ddz/roomConfig/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3927, 'p', '888', '/ddz/roomConfig/options', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3945, 'p', '888', '/ddz/roomConfig/refresh-cache', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3929, 'p', '888', '/ddz/roomConfig/update', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3954, 'p', '888', '/ddz/smsCode/delete', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3955, 'p', '888', '/ddz/smsCode/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3947, 'p', '888', '/ddz/stats/chart/active', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3946, 'p', '888', '/ddz/stats/chart/games', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3950, 'p', '888', '/ddz/stats/daily', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3949, 'p', '888', '/ddz/stats/leaderboard', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3951, 'p', '888', '/ddz/stats/overview', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3948, 'p', '888', '/ddz/stats/player', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3883, 'p', '888', '/ddz/statsDetail/dailyStatsList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3882, 'p', '888', '/ddz/statsDetail/leaderboardList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3881, 'p', '888', '/ddz/statsDetail/playerOnlineList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3880, 'p', '888', '/ddz/statsDetail/roomPlayerList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3877, 'p', '888', '/ddz/system/pendingGameDataList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3876, 'p', '888', '/ddz/system/writeQueueErrorLogList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3878, 'p', '888', '/ddz/tournament/eliminationList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3879, 'p', '888', '/ddz/tournament/roundList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3966, 'p', '888', '/ddz/userAccount/bindPhone', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3972, 'p', '888', '/ddz/userAccount/create', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3971, 'p', '888', '/ddz/userAccount/delete', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3969, 'p', '888', '/ddz/userAccount/info', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3970, 'p', '888', '/ddz/userAccount/list', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3963, 'p', '888', '/ddz/userAccount/loginLog', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3964, 'p', '888', '/ddz/userAccount/resetToken', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3967, 'p', '888', '/ddz/userAccount/status', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3965, 'p', '888', '/ddz/userAccount/unbindWechat', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3968, 'p', '888', '/ddz/userAccount/update', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4017, 'p', '888', '/email/emailTest', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4016, 'p', '888', '/email/sendEmail', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4107, 'p', '888', '/fileUploadAndDownload/breakpointContinue', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4106, 'p', '888', '/fileUploadAndDownload/breakpointContinueFinish', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4103, 'p', '888', '/fileUploadAndDownload/deleteFile', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4102, 'p', '888', '/fileUploadAndDownload/editFileName', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4108, 'p', '888', '/fileUploadAndDownload/findFile', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4101, 'p', '888', '/fileUploadAndDownload/getFileList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4100, 'p', '888', '/fileUploadAndDownload/importURL', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4105, 'p', '888', '/fileUploadAndDownload/removeChunk', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4104, 'p', '888', '/fileUploadAndDownload/upload', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3995, 'p', '888', '/info/createInfo', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3994, 'p', '888', '/info/deleteInfo', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3993, 'p', '888', '/info/deleteInfoByIds', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3991, 'p', '888', '/info/findInfo', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3990, 'p', '888', '/info/getInfoList', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3992, 'p', '888', '/info/updateInfo', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4161, 'p', '888', '/jwt/jsonInBlacklist', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4119, 'p', '888', '/menu/addBaseMenu', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4111, 'p', '888', '/menu/addMenuAuthority', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4117, 'p', '888', '/menu/deleteBaseMenu', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4115, 'p', '888', '/menu/getBaseMenuById', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4113, 'p', '888', '/menu/getBaseMenuTree', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4118, 'p', '888', '/menu/getMenu', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4112, 'p', '888', '/menu/getMenuAuthority', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4114, 'p', '888', '/menu/getMenuList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4110, 'p', '888', '/menu/getMenuRoles', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4109, 'p', '888', '/menu/setMenuRoles', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4116, 'p', '888', '/menu/updateBaseMenu', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4019, 'p', '888', '/simpleUploader/checkFileMd5', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4018, 'p', '888', '/simpleUploader/mergeFileMd5', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4020, 'p', '888', '/simpleUploader/upload', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4085, 'p', '888', '/skills/createReference', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4088, 'p', '888', '/skills/createResource', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4091, 'p', '888', '/skills/createScript', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4082, 'p', '888', '/skills/createTemplate', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4092, 'p', '888', '/skills/deleteSkill', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4079, 'p', '888', '/skills/getGlobalConstraint', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4084, 'p', '888', '/skills/getReference', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4087, 'p', '888', '/skills/getResource', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4090, 'p', '888', '/skills/getScript', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4094, 'p', '888', '/skills/getSkillDetail', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4095, 'p', '888', '/skills/getSkillList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4081, 'p', '888', '/skills/getTemplate', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4096, 'p', '888', '/skills/getTools', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4077, 'p', '888', '/skills/packageSkill', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4078, 'p', '888', '/skills/saveGlobalConstraint', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4083, 'p', '888', '/skills/saveReference', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4086, 'p', '888', '/skills/saveResource', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4089, 'p', '888', '/skills/saveScript', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4093, 'p', '888', '/skills/saveSkill', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4080, 'p', '888', '/skills/saveTemplate', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4156, 'p', '888', '/sysApiToken/createApiToken', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4154, 'p', '888', '/sysApiToken/deleteApiToken', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4155, 'p', '888', '/sysApiToken/getApiTokenList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4032, 'p', '888', '/sysDictionary/createSysDictionary', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4031, 'p', '888', '/sysDictionary/deleteSysDictionary', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4026, 'p', '888', '/sysDictionary/exportSysDictionary', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4029, 'p', '888', '/sysDictionary/findSysDictionary', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4028, 'p', '888', '/sysDictionary/getSysDictionaryList', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4027, 'p', '888', '/sysDictionary/importSysDictionary', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4030, 'p', '888', '/sysDictionary/updateSysDictionary', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4040, 'p', '888', '/sysDictionaryDetail/createSysDictionaryDetail', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4039, 'p', '888', '/sysDictionaryDetail/deleteSysDictionaryDetail', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4038, 'p', '888', '/sysDictionaryDetail/findSysDictionaryDetail', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4034, 'p', '888', '/sysDictionaryDetail/getDictionaryDetailsByParent', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4033, 'p', '888', '/sysDictionaryDetail/getDictionaryPath', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4036, 'p', '888', '/sysDictionaryDetail/getDictionaryTreeList', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4035, 'p', '888', '/sysDictionaryDetail/getDictionaryTreeListByType', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4037, 'p', '888', '/sysDictionaryDetail/getSysDictionaryDetailList', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4041, 'p', '888', '/sysDictionaryDetail/updateSysDictionaryDetail', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4002, 'p', '888', '/sysError/createSysError', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4001, 'p', '888', '/sysError/deleteSysError', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4000, 'p', '888', '/sysError/deleteSysErrorByIds', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3998, 'p', '888', '/sysError/findSysError', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3997, 'p', '888', '/sysError/getSysErrorList', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3996, 'p', '888', '/sysError/getSysErrorSolution', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3999, 'p', '888', '/sysError/updateSysError', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4012, 'p', '888', '/sysExportTemplate/createSysExportTemplate', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4011, 'p', '888', '/sysExportTemplate/deleteSysExportTemplate', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4010, 'p', '888', '/sysExportTemplate/deleteSysExportTemplateByIds', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4006, 'p', '888', '/sysExportTemplate/exportExcel', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4005, 'p', '888', '/sysExportTemplate/exportTemplate', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4008, 'p', '888', '/sysExportTemplate/findSysExportTemplate', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4007, 'p', '888', '/sysExportTemplate/getSysExportTemplateList', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4003, 'p', '888', '/sysExportTemplate/importExcel', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4004, 'p', '888', '/sysExportTemplate/previewSQL', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4009, 'p', '888', '/sysExportTemplate/updateSysExportTemplate', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4160, 'p', '888', '/sysLoginLog/deleteLoginLog', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4159, 'p', '888', '/sysLoginLog/deleteLoginLogByIds', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4158, 'p', '888', '/sysLoginLog/findLoginLog', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4157, 'p', '888', '/sysLoginLog/getLoginLogList', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4025, 'p', '888', '/sysOperationRecord/createSysOperationRecord', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4022, 'p', '888', '/sysOperationRecord/deleteSysOperationRecord', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4021, 'p', '888', '/sysOperationRecord/deleteSysOperationRecordByIds', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4024, 'p', '888', '/sysOperationRecord/findSysOperationRecord', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4023, 'p', '888', '/sysOperationRecord/getSysOperationRecordList', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3989, 'p', '888', '/sysParams/createSysParams', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3988, 'p', '888', '/sysParams/deleteSysParams', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3987, 'p', '888', '/sysParams/deleteSysParamsByIds', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3985, 'p', '888', '/sysParams/findSysParams', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3983, 'p', '888', '/sysParams/getSysParam', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3984, 'p', '888', '/sysParams/getSysParamsList', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3986, 'p', '888', '/sysParams/updateSysParams', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4099, 'p', '888', '/system/getServerInfo', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4098, 'p', '888', '/system/getSystemConfig', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4097, 'p', '888', '/system/setSystemConfig', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3865, 'p', '888', '/sysUserAgreement/createSysUserAgreement', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3863, 'p', '888', '/sysUserAgreement/deleteSysUserAgreement', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3862, 'p', '888', '/sysUserAgreement/deleteSysUserAgreementByIds', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3860, 'p', '888', '/sysUserAgreement/findSysUserAgreement', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3859, 'p', '888', '/sysUserAgreement/refreshCache', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3861, 'p', '888', '/sysUserAgreement/setUserAgreementStatus', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3864, 'p', '888', '/sysUserAgreement/updateSysUserAgreement', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3974, 'p', '888', '/sysVersion/deleteSysVersion', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3973, 'p', '888', '/sysVersion/deleteSysVersionByIds', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3977, 'p', '888', '/sysVersion/downloadVersionJson', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3976, 'p', '888', '/sysVersion/exportVersion', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3979, 'p', '888', '/sysVersion/findSysVersion', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3978, 'p', '888', '/sysVersion/getSysVersionList', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3975, 'p', '888', '/sysVersion/importVersion', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4152, 'p', '888', '/user/admin_register', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4146, 'p', '888', '/user/changePassword', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4153, 'p', '888', '/user/deleteUser', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4148, 'p', '888', '/user/getUserInfo', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4151, 'p', '888', '/user/getUserList', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4144, 'p', '888', '/user/resetPassword', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4149, 'p', '888', '/user/setSelfInfo', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4143, 'p', '888', '/user/setSelfSetting', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4147, 'p', '888', '/user/setUserAuthorities', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4145, 'p', '888', '/user/setUserAuthority', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (4150, 'p', '888', '/user/setUserInfo', 'PUT', '', '', '');
 INSERT INTO `casbin_rule` VALUES (193, 'p', '8881', '/api/createApi', 'POST', '', '', '');
 INSERT INTO `casbin_rule` VALUES (196, 'p', '8881', '/api/deleteApi', 'POST', '', '', '');
 INSERT INTO `casbin_rule` VALUES (198, 'p', '8881', '/api/getAllApis', 'POST', '', '', '');
@@ -467,6 +474,13 @@ INSERT INTO `casbin_rule` VALUES (375, 'p', '9528', '/sysParams/getSysParamsList
 INSERT INTO `casbin_rule` VALUES (377, 'p', '9528', '/sysParams/updateSysParams', 'PUT', '', '', '');
 INSERT INTO `casbin_rule` VALUES (426, 'p', '9528', '/system/getSystemConfig', 'POST', '', '', '');
 INSERT INTO `casbin_rule` VALUES (425, 'p', '9528', '/system/setSystemConfig', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3841, 'p', '9528', '/sysUserAgreement/createSysUserAgreement', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3843, 'p', '9528', '/sysUserAgreement/deleteSysUserAgreement', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3844, 'p', '9528', '/sysUserAgreement/deleteSysUserAgreementByIds', 'DELETE', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3857, 'p', '9528', '/sysUserAgreement/findSysUserAgreement', 'GET', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3858, 'p', '9528', '/sysUserAgreement/refreshCache', 'POST', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3840, 'p', '9528', '/sysUserAgreement/setUserAgreementStatus', 'PUT', '', '', '');
+INSERT INTO `casbin_rule` VALUES (3842, 'p', '9528', '/sysUserAgreement/updateSysUserAgreement', 'PUT', '', '', '');
 INSERT INTO `casbin_rule` VALUES (365, 'p', '9528', '/sysVersion/deleteSysVersion', 'DELETE', '', '', '');
 INSERT INTO `casbin_rule` VALUES (364, 'p', '9528', '/sysVersion/deleteSysVersionByIds', 'DELETE', '', '', '');
 INSERT INTO `casbin_rule` VALUES (368, 'p', '9528', '/sysVersion/downloadVersionJson', 'GET', '', '', '');
@@ -651,7 +665,7 @@ CREATE TABLE `sys_ai_workflow_sessions`  (
   INDEX `idx_sys_ai_workflow_sessions_tab`(`tab` ASC) USING BTREE,
   INDEX `idx_sys_ai_workflow_sessions_deleted_at`(`deleted_at` ASC) USING BTREE,
   INDEX `idx_sys_ai_workflow_sessions_user_id`(`user_id` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of sys_ai_workflow_sessions
@@ -695,7 +709,7 @@ CREATE TABLE `sys_apis`  (
   `method` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT 'POST' COMMENT '方法',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_sys_apis_deleted_at`(`deleted_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 509 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 517 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of sys_apis
@@ -1000,6 +1014,14 @@ INSERT INTO `sys_apis` VALUES (505, '2026-05-11 09:53:46.000', '2026-05-11 09:53
 INSERT INTO `sys_apis` VALUES (506, '2026-05-11 09:53:46.000', '2026-05-11 09:53:46.000', NULL, '/ddz/arena/status', '获取报名状态', 'DDZ竞技场报名', 'GET');
 INSERT INTO `sys_apis` VALUES (507, '2026-05-11 09:53:46.000', '2026-05-11 09:53:46.000', NULL, '/ddz/arena/list', '获取竞技场列表', 'DDZ竞技场报名', 'GET');
 INSERT INTO `sys_apis` VALUES (508, '2026-05-11 09:53:46.000', '2026-05-11 09:53:46.000', NULL, '/ddz/arena/registration/list', '获取报名记录列表', 'DDZ竞技场报名', 'POST');
+INSERT INTO `sys_apis` VALUES (509, '2026-05-13 17:57:01.000', '2026-05-13 17:57:01.000', NULL, '/sysUserAgreement/setUserAgreementStatus', '设置单页管理状态', '单页管理', 'PUT');
+INSERT INTO `sys_apis` VALUES (510, '2026-05-13 18:24:52.000', '2026-05-13 18:24:52.000', NULL, '/sysUserAgreement/createSysUserAgreement', '创建单页管理', '单页管理', 'POST');
+INSERT INTO `sys_apis` VALUES (511, '2026-05-13 18:24:52.000', '2026-05-13 18:24:52.000', NULL, '/sysUserAgreement/updateSysUserAgreement', '更新单页管理', '单页管理', 'PUT');
+INSERT INTO `sys_apis` VALUES (512, '2026-05-13 18:24:52.000', '2026-05-13 18:24:52.000', NULL, '/sysUserAgreement/deleteSysUserAgreement', '删除单页管理', '单页管理', 'DELETE');
+INSERT INTO `sys_apis` VALUES (513, '2026-05-13 18:24:52.000', '2026-05-13 18:24:52.000', NULL, '/sysUserAgreement/deleteSysUserAgreementByIds', '批量删除单页管理', '单页管理', 'DELETE');
+INSERT INTO `sys_apis` VALUES (514, '2026-05-13 18:24:52.000', '2026-05-13 18:24:52.000', NULL, '/sysUserAgreement/setUserAgreementStatus', '设置单页管理状态', '单页管理', 'PUT');
+INSERT INTO `sys_apis` VALUES (515, '2026-05-13 20:20:27.000', '2026-05-13 20:20:27.000', NULL, '/sysUserAgreement/findSysUserAgreement', '获取单页详情', '单页管理', 'GET');
+INSERT INTO `sys_apis` VALUES (516, '2026-05-13 20:20:27.000', '2026-05-13 20:20:27.000', NULL, '/sysUserAgreement/refreshCache', '一键刷新缓存', '单页管理', 'POST');
 
 -- ----------------------------
 -- Table structure for sys_authorities
@@ -1467,7 +1489,7 @@ CREATE TABLE `sys_error`  (
   `status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT '未处理' COMMENT '处理状态',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_sys_error_deleted_at`(`deleted_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 253 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 254 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of sys_error
@@ -1724,6 +1746,7 @@ INSERT INTO `sys_error` VALUES (249, '2026-05-11 11:45:10.846', '2026-05-11 11:4
 INSERT INTO `sys_error` VALUES (250, '2026-05-11 11:50:03.136', '2026-05-11 11:50:03.136', NULL, '前端', '错误信息: AxiosError: Request failed with status code 500\nStack: 调用栈: AxiosError: Request failed with status code 500\n    at settle (http://localhost:8080/node_modules/.vite/deps/axios.js?v=b9dd7b77:1218:12)\n    at XMLHttpRequest.onloadend (http://localhost:8080/node_modules/.vite/deps/axios.js?v=b9dd7b77:1550:7)\n    at Axios.request (http://localhost:8080/node_modules/.vite/deps/axios.js?v=b9dd7b77:2108:41)\n    at async getTableData (http://localhost:8080/src/view/ddz/arenaSession/arenaSession.vue:81:15)', 'error', NULL, '未处理');
 INSERT INTO `sys_error` VALUES (251, '2026-05-11 12:00:33.113', '2026-05-11 12:00:33.113', NULL, '后端', '获取报名状态失败! | 错误: 玩家不存在 \n 源文件:/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/arena_registration.go:92 \n 调用栈：github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZArenaRegistrationApi).GetStatus\n	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/arena_registration.go:92\ngithub.com/gin-gonic/gin.(*Context).Next\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185\ngithub.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4\n	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:93\ngithub.com/gin-gonic/gin.(*Context).Next\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185\ngithub.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3\n	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69\ngithub.com/gin-gonic/gin.(*Context).Next\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185\ngithub.com/gin-gonic/gin.LoggerWithConfig.func1\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249\ngithub.com/gin-gonic/gin.(*Context).Next\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185\ngithub.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2\n	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78\ngithub.com/gin-gonic/gin.(*Context).Next\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185\ngithub.com/gin-gonic/gin.(*Engine).handleHTTPRequest\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633\ngithub.com/gin-gonic/gin.(*Engine).ServeHTTP\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589\nnet/http.serverHandler.ServeHTTP\n	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301\nnet/http.(*conn).serve\n	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102 \n 最终调用方法:/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/arena_registration.go:92 (GetStatus lines 82-98)\n----- 产生日志的方法代码如下 -----\nfunc (api *DDZArenaRegistrationApi) GetStatus(c *gin.Context) {\n	playerIDStr := c.Query(\"playerId\")\n	if playerIDStr == \"\" {\n		response.FailWithMessage(\"玩家ID不能为空\", c)\n		return\n	}\n\n	playerID := utils.StringToUint64(playerIDStr)\n	result, err := ddzArenaRegistrationService.GetStatus(playerID)\n	if err != nil {\n		global.GVA_LOG.Error(\"获取报名状态失败!\", zap.Error(err))\n		response.FailWithMessage(err.Error(), c)\n		return\n	}\n\n	response.OkWithDetailed(result, \"获取成功\", c)\n}', 'error', NULL, '未处理');
 INSERT INTO `sys_error` VALUES (252, '2026-05-11 12:11:22.781', '2026-05-11 12:11:22.781', NULL, '后端', '获取报名状态失败! | 错误: 玩家不存在 \n 源文件:/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/arena_registration.go:92 \n 调用栈：github.com/flipped-aurora/gin-vue-admin/server/api/v1/ddz.(*DDZArenaRegistrationApi).GetStatus\n	/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/arena_registration.go:92\ngithub.com/gin-gonic/gin.(*Context).Next\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185\ngithub.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4\n	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:93\ngithub.com/gin-gonic/gin.(*Context).Next\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185\ngithub.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3\n	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69\ngithub.com/gin-gonic/gin.(*Context).Next\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185\ngithub.com/gin-gonic/gin.LoggerWithConfig.func1\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249\ngithub.com/gin-gonic/gin.(*Context).Next\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185\ngithub.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2\n	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78\ngithub.com/gin-gonic/gin.(*Context).Next\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185\ngithub.com/gin-gonic/gin.(*Engine).handleHTTPRequest\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633\ngithub.com/gin-gonic/gin.(*Engine).ServeHTTP\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589\nnet/http.serverHandler.ServeHTTP\n	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301\nnet/http.(*conn).serve\n	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102 \n 最终调用方法:/mnt/d/game/hlddz/ddz/admin/server/api/v1/ddz/arena_registration.go:92 (GetStatus lines 82-98)\n----- 产生日志的方法代码如下 -----\nfunc (api *DDZArenaRegistrationApi) GetStatus(c *gin.Context) {\n	playerIDStr := c.Query(\"playerId\")\n	if playerIDStr == \"\" {\n		response.FailWithMessage(\"玩家ID不能为空\", c)\n		return\n	}\n\n	playerID := utils.StringToUint64(playerIDStr)\n	result, err := ddzArenaRegistrationService.GetStatus(playerID)\n	if err != nil {\n		global.GVA_LOG.Error(\"获取报名状态失败!\", zap.Error(err))\n		response.FailWithMessage(err.Error(), c)\n		return\n	}\n\n	response.OkWithDetailed(result, \"获取成功\", c)\n}', 'error', NULL, '未处理');
+INSERT INTO `sys_error` VALUES (253, '2026-05-13 18:31:42.267', '2026-05-13 18:31:42.267', NULL, '后端', '刷新游戏服务器用户协议缓存失败 | 错误: 请求失败: Post \"http://127.0.0.1:1781/api/internal/cache/refresh/user-agreement\": dial tcp 127.0.0.1:1781: connect: connection refused \n 源文件:/mnt/d/game/hlddz/ddz/admin/server/utils/game_server/game_server.go:86 \n 调用栈：github.com/flipped-aurora/gin-vue-admin/server/utils/game_server.RefreshUserAgreementCache\n	/mnt/d/game/hlddz/ddz/admin/server/utils/game_server/game_server.go:86\ngithub.com/flipped-aurora/gin-vue-admin/server/api/v1/system.(*SysUserAgreementApi).UpdateSysUserAgreement\n	/mnt/d/game/hlddz/ddz/admin/server/api/v1/system/sys_user_agreement.go:168\ngithub.com/gin-gonic/gin.(*Context).Next\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185\ngithub.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.CasbinHandler.func4\n	/mnt/d/game/hlddz/ddz/admin/server/middleware/casbin_rbac.go:93\ngithub.com/gin-gonic/gin.(*Context).Next\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185\ngithub.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3\n	/mnt/d/game/hlddz/ddz/admin/server/middleware/jwt.go:69\ngithub.com/gin-gonic/gin.(*Context).Next\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185\ngithub.com/gin-gonic/gin.LoggerWithConfig.func1\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249\ngithub.com/gin-gonic/gin.(*Context).Next\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185\ngithub.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2\n	/mnt/d/game/hlddz/ddz/admin/server/middleware/error.go:78\ngithub.com/gin-gonic/gin.(*Context).Next\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185\ngithub.com/gin-gonic/gin.(*Engine).handleHTTPRequest\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633\ngithub.com/gin-gonic/gin.(*Engine).ServeHTTP\n	/home/adminis/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589\nnet/http.serverHandler.ServeHTTP\n	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301\nnet/http.(*conn).serve\n	/home/adminis/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102 \n 最终调用方法:/mnt/d/game/hlddz/ddz/admin/server/utils/game_server/game_server.go:86 (RefreshUserAgreementCache lines 83-88)\n----- 产生日志的方法代码如下 -----\nfunc RefreshUserAgreementCache() {\n        client := GetGameServerClient()\n        if err := client.RefreshUserAgreementCache(); err != nil {\n                global.GVA_LOG.Error(\"刷新游戏服务器用户协议缓存失败\", zap.Error(err))\n        }\n}', 'error', NULL, '未处理');
 
 -- ----------------------------
 -- Table structure for sys_export_template_condition
@@ -1847,7 +1870,7 @@ CREATE TABLE `sys_login_logs`  (
   `user_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '用户id',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_sys_login_logs_deleted_at`(`deleted_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 13 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of sys_login_logs
@@ -1862,6 +1885,8 @@ INSERT INTO `sys_login_logs` VALUES (7, '2026-05-04 07:15:28.645', '2026-05-04 0
 INSERT INTO `sys_login_logs` VALUES (8, '2026-05-04 07:15:38.923', '2026-05-04 07:15:38.923', NULL, 'admin', '127.0.0.1', 0, '用户名不存在或者密码错误', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 0);
 INSERT INTO `sys_login_logs` VALUES (9, '2026-05-04 07:15:51.371', '2026-05-04 07:15:51.371', NULL, 'admin', '127.0.0.1', 1, '登录成功', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 1);
 INSERT INTO `sys_login_logs` VALUES (10, '2026-05-06 15:49:01.107', '2026-05-06 15:49:01.107', NULL, 'admin', '127.0.0.1', 1, '登录成功', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 1);
+INSERT INTO `sys_login_logs` VALUES (11, '2026-05-11 22:20:03.052', '2026-05-11 22:20:03.052', NULL, 'admin', '127.0.0.1', 1, '登录成功', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 1);
+INSERT INTO `sys_login_logs` VALUES (12, '2026-05-13 18:31:32.661', '2026-05-13 18:31:32.661', NULL, 'admin', '127.0.0.1', 1, '登录成功', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 1);
 
 -- ----------------------------
 -- Table structure for sys_operation_records
@@ -1884,7 +1909,7 @@ CREATE TABLE `sys_operation_records`  (
   `user_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '用户id',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_sys_operation_records_deleted_at`(`deleted_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 319 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 320 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of sys_operation_records
@@ -2207,6 +2232,7 @@ INSERT INTO `sys_operation_records` VALUES (315, '2026-05-11 08:13:38.868', '202
 INSERT INTO `sys_operation_records` VALUES (316, '2026-05-11 08:13:38.891', '2026-05-11 08:13:38.891', NULL, '127.0.0.1', 'GET', '/api/getApiGroups', 200, 1457262, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '', '{}', '{\"code\":0,\"data\":{\"apiGroupMap\":{\"api\":\"api\",\"attachmentCategory\":\"媒体库分类\",\"authority\":\"角色\",\"authorityBtn\":\"按钮权限\",\"autoCode\":\"代码生成器历史\",\"casbin\":\"casbin\",\"customer\":\"客户\",\"ddz\":\"斗地主游戏房间\",\"email\":\"email\",\"fileUploadAndDownload\":\"文件上传与下载\",\"info\":\"公告\",\"jwt\":\"jwt\",\"menu\":\"菜单\",\"simpleUploader\":\"断点续传(插件版)\",\"skills\":\"skills\",\"sysApiToken\":\"API Token\",\"sysDictionary\":\"系统字典\",\"sysDictionaryDetail\":\"系统字典详情\",\"sysError\":\"错误日志\",\"sysExportTemplate\":\"导出模板\",\"sysLoginLog\":\"登录日志\",\"sysOperationRecord\":\"操作记录\",\"sysParams\":\"参数管理\",\"sysVersion\":\"版本控制\",\"system\":\"系统服务\",\"user\":\"系统用户\"},\"groups\":[\"jwt\",\"登录日志\",\"API Token\",\"系统用户\",\"api\",\"角色\",\"casbin\",\"菜单\",\"分片上传\",\"文件上传与下载\",\"系统服务\",\"skills\",\"客户\",\"代码生成器\",\"模板配置\",\"代码生成器历史\",\"系统字典详情\",\"系统字典\",\"操作记录\",\"断点续传(插件版)\",\"email\",\"按钮权限\",\"导出模板\",\"错误日志\",\"公告\",\"参数管理\",\"媒体库分类\",\"版本控制\",\"DDZ用户账户\",\"DDZ玩家\",\"DDZ游戏记录\",\"DDZ游戏日志\",\"DDZ玩家统计\",\"DDZ房间配置\",\"DDZ短信记录\",\"DDZ游戏\",\"DDZ统计\",\"DDZ游戏房间配置\",\"DDZ游戏房间\",\"DDZ奖励商品\",\"DDZ奖励订单\",\"DDZ期号管理\",\"DDZ游戏配置\",\"DDZ玩家管理\",\"DDZ机器人配置\",\"斗地主竞技场会话\",\"斗地主轮次记录\",\"斗地主报名日志\",\"斗地主桌号管理\",\"斗地主游戏配置\",\"斗地主游戏详情\",\"斗地主统计分析\",\"斗地主锦标赛\",\"斗地主系统\",\"斗地主竞技场金币流水\",\"斗地主广告奖励\",\"斗地主竞技币流水\",\"斗地主金币流水\",\"斗地主游戏房间\"]},\"msg\":\"成功\"}', 1);
 INSERT INTO `sys_operation_records` VALUES (317, '2026-05-11 08:14:32.261', '2026-05-11 08:14:32.261', NULL, '127.0.0.1', 'POST', '/casbin/updateCasbin', 200, 36953646, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '', '[超出记录长度]', '{\"code\":0,\"data\":{},\"msg\":\"更新成功\"}', 1);
 INSERT INTO `sys_operation_records` VALUES (318, '2026-05-11 09:54:02.863', '2026-05-11 09:54:02.863', NULL, '127.0.0.1', 'POST', '/casbin/updateCasbin', 200, 61634175, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '', '[超出记录长度]', '{\"code\":0,\"data\":{},\"msg\":\"更新成功\"}', 1);
+INSERT INTO `sys_operation_records` VALUES (319, '2026-05-13 20:21:55.171', '2026-05-13 20:21:55.171', NULL, '127.0.0.1', 'POST', '/casbin/updateCasbin', 200, 55276001, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '', '[超出记录长度]', '{\"code\":0,\"data\":{},\"msg\":\"更新成功\"}', 1);
 
 -- ----------------------------
 -- Table structure for sys_params
@@ -2238,20 +2264,30 @@ CREATE TABLE `sys_user_agreement`  (
   `created_at` datetime(3) NULL DEFAULT NULL,
   `updated_at` datetime(3) NULL DEFAULT NULL,
   `deleted_at` datetime(3) NULL DEFAULT NULL,
-  `title` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '协议标题',
-  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '协议内容',
-  `version` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '版本号',
-  `status` int NULL DEFAULT 1 COMMENT '状态(1:启用,0:禁用)',
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '标题',
+  `content` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '内容',
+  `version` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '版本号',
+  `status` bigint NULL DEFAULT 1 COMMENT '状态 0-禁用 1-启用',
   `sort` int NULL DEFAULT 0 COMMENT '排序',
+  `type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT 'user_agreement' COMMENT '类型 user_agreement-用户协议 help-帮助中心 privacy-隐私政策',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_sys_user_agreement_deleted_at`(`deleted_at` ASC) USING BTREE,
   INDEX `idx_sys_user_agreement_status`(`status` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户协议表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户协议表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of sys_user_agreement
 -- ----------------------------
-INSERT INTO `sys_user_agreement` VALUES (1, '2026-04-22 10:48:00.000', '2026-04-22 10:48:00.000', NULL, '用户协议', '<h1>用户协议</h1>\n<p><strong>最后更新日期：2026年4月22日</strong></p>\n\n<h2>一、服务条款的确认和接纳</h2>\n<p>欢迎使用我们的斗地主游戏服务。在使用本服务前，请您仔细阅读以下条款。使用本服务即表示您同意遵守这些条款。</p>\n\n<h2>二、用户注册</h2>\n<p>1. 用户应按照注册页面提示完成注册流程。您应当对注册信息的真实性、合法性负责。</p>\n<p>2. 您注册成功后，将获得一个账号和密码。您应妥善保管账号和密码，并对以您的账号进行的所有活动负责。</p>\n\n<h2>三、使用规则</h2>\n<p>1. 用户不得利用本服务从事违法活动。</p>\n<p>2. 用户不得干扰本服务的正常运行。</p>\n<p>3. 用户不得侵犯他人的合法权益。</p>\n\n<h2>四、知识产权</h2>\n<p>本游戏的所有内容，包括但不限于文字、图片、音频、视频、软件等，均受知识产权法律保护。</p>\n\n<h2>五、免责声明</h2>\n<p>1. 本服务按\"现状\"提供，不提供任何形式的担保。</p>\n<p>2. 对于因使用本服务而产生的任何直接或间接损失，我们不承担责任。</p>\n\n<h2>六、条款修改</h2>\n<p>我们保留随时修改本协议的权利。修改后的协议将在本页面公布，敬请关注。</p>\n\n<h2>七、联系我们</h2>\n<p>如有任何问题，请通过游戏内的客服系统联系我们。</p>', 'v1.0.0', 1, 1);
+INSERT INTO `sys_user_agreement` VALUES (1, '2026-04-22 10:48:00.000', '2026-05-13 18:31:42.245', NULL, '用户协议', '<h1>用户协议</h1><p><strong>最后更新日期：2026年4月22日</strong></p><h2>一、服务条款的确认和接纳</h2><p>欢迎使用我们的斗地主游戏服务。在使用本服务前，请您仔细阅读以下条款。使用本服务即表示您同意遵守这些条款。</p><h2>二、用户注册</h2><p>1. 用户应按照注册页面提示完成注册流程。您应当对注册信息的真实性、合法性负责。</p><p>2. 您注册成功后，将获得一个账号和密码。您应妥善保管账号和密码，并对以您的账号进行的所有活动负责。</p><h2>三、使用规则</h2><p>1. 用户不得利用本服务从事违法活动。</p><p>2. 用户不得干扰本服务的正常运行。</p><p>3. 用户不得侵犯他人的合法权益。</p><h2>四、知识产权</h2><p>本游戏的所有内容，包括但不限于文字、图片、音频、视频、软件等，均受知识产权法律保护。</p><h2>五、免责声明</h2><p>1. 本服务按\"现状\"提供，不提供任何形式的担保。</p><p>2. 对于因使用本服务而产生的任何直接或间接损失，我们不承担责任。</p><h2>六、条款修改</h2><p>我们保留随时修改本协议的权利。修改后的协议将在本页面公布，敬请关注。</p><h2>七、联系我们</h2><p>如有任何问题，请通过游戏内的客服系统联系我们。</p>', 'v1.0.0', 1, 1, 'user_agreement');
+INSERT INTO `sys_user_agreement` VALUES (2, '2026-05-13 18:39:14.000', '2026-05-13 18:39:14.000', NULL, '斗地主基本规则', '<h1>斗地主基本规则</h1>\r\n<p><strong>最后更新日期：2026年5月14日</strong></p>\r\n\r\n<h2>一、游戏简介</h2>\r\n<p>斗地主是一款三人扑克牌游戏，一副牌54张，一人做地主，另外两人做农民，双方对战，先出完牌的一方获胜。</p>\r\n\r\n<h2>二、发牌规则</h2>\r\n<p>1. 使用一副54张的扑克牌，包括大小王。</p>\r\n<p>2. 每人发17张牌，留3张作为底牌。</p>\r\n<p>3. 通过叫地主/抢地主确定地主身份，地主获得3张底牌，共20张牌。</p>\r\n\r\n<h2>三、叫地主规则</h2>\r\n<p>1. 系统随机选择一名玩家先开始叫地主。</p>\r\n<p>2. 玩家可以选择\"叫地主\"或\"不叫\"。</p>\r\n<p>3. 如果有人叫地主，其他玩家可以选择\"抢地主\"或\"不抢\"。</p>\r\n<p>4. 最终确定地主身份后，地主获得3张底牌。</p>\r\n\r\n<h2>四、出牌规则</h2>\r\n<p>1. 地主先出牌，按照顺时针方向依次出牌。</p>\r\n<p>2. 后出的牌必须比前面的牌大，或者选择\"不出\"。</p>\r\n<p>3. 当有玩家出完所有牌时，游戏结束。</p>\r\n\r\n<h2>五、胜负判定</h2>\r\n<p>1. 地主先出完所有牌，地主获胜。</p>\r\n<p>2. 任一农民先出完所有牌，农民方获胜。</p>\r\n<p>3. 胜利方获得相应金币奖励，失败方扣除相应金币。</p>\r\n\r\n<h2>六、特殊规则</h2>\r\n<p><strong>春天：</strong>地主出完所有牌，两名农民一张牌都未出，称为\"春天\"，积分翻倍。</p>\r\n<p><strong>反春：</strong>农民出完所有牌，地主一张牌都未出，称为\"反春\"，积分翻倍。</p>', 'v1.0.0', 1, 100, 'help');
+INSERT INTO `sys_user_agreement` VALUES (3, '2026-05-13 18:39:14.000', '2026-05-13 18:39:14.000', NULL, '牌型大全及大小比较', '<h1>牌型大全及大小比较</h1>\r\n<p><strong>最后更新日期：2026年5月14日</strong></p>\r\n\r\n<h2>一、基本牌型</h2>\r\n\r\n<h3>1. 单张</h3>\r\n<p>任意一张单牌。</p>\r\n<p>大小顺序：大王 > 小王 > 2 > A > K > Q > J > 10 > 9 > 8 > 7 > 6 > 5 > 4 > 3</p>\r\n\r\n<h3>2. 对子</h3>\r\n<p>两张点数相同的牌。如：33、KK、AA。</p>\r\n\r\n<h3>3. 三张</h3>\r\n<p>三张点数相同的牌。如：333、JJJ。</p>\r\n\r\n<h3>4. 三带一</h3>\r\n<p>三张点数相同的牌 + 一张单牌。如：333+5、JJJ+9。</p>\r\n\r\n<h3>5. 三带二</h3>\r\n<p>三张点数相同的牌 + 一对。如：333+55、JJJ+99。</p>\r\n\r\n<h3>6. 顺子</h3>\r\n<p>五张或更多连续的单牌，不能包含2和王。如：34567、45678910JQK。</p>\r\n\r\n<h3>7. 连对</h3>\r\n<p>三对或更多连续的对子，不能包含2和王。如：334455、7788991010。</p>\r\n\r\n<h3>8. 飞机（三顺）</h3>\r\n<p>两个或更多连续的三张，可带单牌或不带。</p>\r\n<p>如：333444、333444+56、333444555+667788。</p>\r\n\r\n<h2>二、炸弹牌型</h2>\r\n\r\n<h3>1. 炸弹</h3>\r\n<p>四张点数相同的牌。如：3333、AAAA。</p>\r\n<p>炸弹可以炸任何非炸弹牌型，炸弹之间按点数比大小。</p>\r\n\r\n<h3>2. 四带二</h3>\r\n<p>四张点数相同的牌 + 两张单牌。如：3333+56。</p>\r\n\r\n<h3>3. 四带两对</h3>\r\n<p>四张点数相同的牌 + 两对。如：3333+5566。</p>\r\n\r\n<h3>4. 王炸</h3>\r\n<p>大王 + 小王。最大的牌型，可以炸任何牌型。</p>\r\n\r\n<h2>三、牌型大小比较规则</h2>\r\n<p>1. 同类型牌才能比较大小。</p>\r\n<p>2. 炸弹大于所有非炸弹牌型。</p>\r\n<p>3. 王炸是最大的炸弹。</p>\r\n<p>4. 炸弹之间按点数比较大小。</p>', 'v1.0.0', 1, 99, 'help');
+INSERT INTO `sys_user_agreement` VALUES (4, '2026-05-13 18:39:14.000', '2026-05-13 18:39:14.000', NULL, '欢乐豆与金币说明', '<h1>欢乐豆与金币说明</h1>\r\n<p><strong>最后更新日期：2026年5月14日</strong></p>\r\n\r\n<h2>一、欢乐豆（金币）简介</h2>\r\n<p>欢乐豆是本游戏的虚拟货币，用于普通场游戏中进行对局结算。欢乐豆可以通过以下方式获取：</p>\r\n\r\n<h2>二、获取方式</h2>\r\n\r\n<h3>1. 新玩家赠送</h3>\r\n<p>新注册玩家将获得初始欢乐豆奖励，帮助您开始游戏之旅。</p>\r\n\r\n<h3>2. 观看广告</h3>\r\n<p>在游戏大厅观看广告视频，每次可获得一定数量的欢乐豆奖励。</p>\r\n<ul>\r\n<li>每日观看次数有限，请合理使用</li>\r\n<li>观看广告后需等待冷却时间才能再次观看</li>\r\n</ul>\r\n\r\n<h3>3. 游戏获胜</h3>\r\n<p>在普通场游戏中获胜可获得欢乐豆奖励，具体数量取决于房间底分和牌型倍数。</p>\r\n\r\n<h3>4. 系统赠送</h3>\r\n<p>官方活动期间可能发放欢乐豆奖励，请关注游戏公告。</p>\r\n\r\n<h2>三、欢乐豆用途</h2>\r\n<p>1. 用于普通场游戏的入场门票。</p>\r\n<p>2. 游戏失败时将扣除相应欢乐豆。</p>\r\n\r\n<h2>四、欢乐豆不足处理</h2>\r\n<p>当欢乐豆不足时：</p>\r\n<p>1. 无法进入相应等级的房间。</p>\r\n<p>2. 可通过观看广告获取欢乐豆。</p>\r\n<p>3. 可参与竞技场获取更多奖励。</p>\r\n\r\n<h2>五、注意事项</h2>\r\n<p>1. 欢乐豆为虚拟货币，不可兑换现金。</p>\r\n<p>2. 请合理安排游戏时间，理性娱乐。</p>', 'v1.0.0', 1, 98, 'help');
+INSERT INTO `sys_user_agreement` VALUES (5, '2026-05-13 18:39:14.000', '2026-05-13 18:39:14.000', NULL, '竞技币获取与使用', '<h1>竞技币获取与使用</h1>\r\n<p><strong>最后更新日期：2026年5月14日</strong></p>\r\n\r\n<h2>一、竞技币简介</h2>\r\n<p>竞技币是竞技场专属货币，仅用于竞技场报名和奖励结算。与欢乐豆相互独立，不可互换。</p>\r\n\r\n<h2>二、获取方式</h2>\r\n\r\n<h3>1. 观看广告</h3>\r\n<p>在竞技场界面观看广告视频，每次可获得一定数量的竞技币奖励。</p>\r\n\r\n<h3>2. 竞技场奖励</h3>\r\n<p>参与竞技场比赛，根据排名获得竞技币奖励：</p>\r\n<ul>\r\n<li>冠军：丰厚竞技币奖励</li>\r\n<li>亚军：较多竞技币奖励</li>\r\n<li>四强：中等竞技币奖励</li>\r\n<li>八强：基础竞技币奖励</li>\r\n</ul>\r\n\r\n<h3>3. 系统活动</h3>\r\n<p>官方不定期举办活动，可能发放竞技币奖励。</p>\r\n\r\n<h2>三、竞技币用途</h2>\r\n<p>1. 竞技场报名费用（不同等级竞技场消耗不同数量竞技币）。</p>\r\n<p>2. 竞技场比赛的奖励结算货币。</p>\r\n\r\n<h2>四、注意事项</h2>\r\n<p>1. 竞技币与欢乐豆相互独立，不可转换。</p>\r\n<p>2. 竞技币仅限竞技场使用，普通场使用欢乐豆。</p>\r\n<p>3. 竞技币为虚拟货币，不可兑换现金。</p>', 'v1.0.0', 1, 97, 'help');
+INSERT INTO `sys_user_agreement` VALUES (6, '2026-05-13 18:39:14.000', '2026-05-13 18:39:14.000', NULL, '普通场入场规则', '<h1>普通场入场规则</h1>\r\n<p><strong>最后更新日期：2026年5月14日</strong></p>\r\n\r\n<h2>一、房间等级说明</h2>\r\n<p>游戏设有多个等级的房间，每个房间有不同的底分和入场门槛：</p>\r\n\r\n<table border=\"1\" style=\"border-collapse:collapse;width:100%;\">\r\n<tr><th>房间</th><th>底分</th><th>最低金币</th><th>最高金币</th></tr>\r\n<tr><td>新手场</td><td>1</td><td>1,000</td><td>50,000</td></tr>\r\n<tr><td>普通场</td><td>2</td><td>50,000</td><td>200,000</td></tr>\r\n<tr><td>高级场</td><td>5</td><td>200,000</td><td>1,000,000</td></tr>\r\n<tr><td>富豪场</td><td>10</td><td>1,000,000</td><td>5,000,000</td></tr>\r\n<tr><td>至尊场</td><td>20</td><td>5,000,000</td><td>无限制</td></tr>\r\n</table>\r\n\r\n<h2>二、入场条件</h2>\r\n<p>1. 欢乐豆数量需达到该房间的最低入场要求。</p>\r\n<p>2. 欢乐豆数量不得超过该房间的最高限制（如有）。</p>\r\n<p>3. 账号状态正常，无封禁记录。</p>\r\n\r\n<h2>三、创建房间</h2>\r\n<p>1. 在大厅点击\"创建房间\"按钮。</p>\r\n<p>2. 选择想要创建的房间等级。</p>\r\n<p>3. 等待其他玩家加入，满3人后游戏自动开始。</p>\r\n\r\n<h2>四、加入房间</h2>\r\n<p>1. 在大厅点击\"加入房间\"按钮。</p>\r\n<p>2. 选择符合自己欢乐豆数量的房间。</p>\r\n<p>3. 进入房间后点击\"准备\"，等待游戏开始。</p>\r\n\r\n<h2>五、快速匹配</h2>\r\n<p>1. 在大厅点击\"快速匹配\"按钮。</p>\r\n<p>2. 系统自动为您匹配符合条件且有空位的房间。</p>\r\n<p>3. 匹配成功后自动进入房间，点击\"准备\"等待游戏开始。</p>\r\n\r\n<h2>六、离开房间</h2>\r\n<p>1. 游戏进行中无法离开房间。</p>\r\n<p>2. 游戏结束后可随时离开房间。</p>\r\n<p>3. 长时间未准备可能会被系统踢出房间。</p>', 'v1.0.0', 1, 96, 'help');
+INSERT INTO `sys_user_agreement` VALUES (7, '2026-05-13 18:39:14.000', '2026-05-13 18:39:14.000', NULL, '竞技场规则说明', '<h1>竞技场规则说明</h1>\r\n<p><strong>最后更新日期：2026年5月14日</strong></p>\r\n\r\n<h2>一、竞技场简介</h2>\r\n<p>竞技场是高水平玩家展示实力的舞台，采用淘汰赛制，争夺丰厚奖励。</p>\r\n\r\n<h2>二、报名时间</h2>\r\n<p>1. 每期竞技场设有固定的报名时间，通常为开赛前5分钟。</p>\r\n<p>2. 报名时间结束后，不可再报名本期比赛。</p>\r\n<p>3. 期号格式：YYMMDD + 房间ID + 期序号</p>\r\n\r\n<h2>三、报名规则</h2>\r\n<p>1. 点击竞技场界面的\"报名\"按钮进行报名。</p>\r\n<p>2. 报名需要消耗相应数量的竞技币。</p>\r\n<p>3. 报名成功后可在报名列表查看自己的信息。</p>\r\n<p>4. 开赛前可随时取消报名，取消后竞技币会退还。</p>\r\n\r\n<h2>四、比赛流程</h2>\r\n\r\n<h3>1. 准备阶段（60秒）</h3>\r\n<p>报名玩家需在准备阶段进入比赛房间，超时未进入视为放弃。</p>\r\n\r\n<h3>2. 分桌匹配</h3>\r\n<p>系统根据报名人数自动分桌，每桌3人。</p>\r\n\r\n<h3>3. 淘汰赛制</h3>\r\n<p>每桌胜者晋级下一轮，败者淘汰。</p>\r\n<p>如果某桌人数不足3人，系统会安排机器人补位。</p>\r\n\r\n<h3>4. 决赛</h3>\r\n<p>最终决出冠军、亚军等名次。</p>\r\n\r\n<h2>五、奖励规则</h2>\r\n<p>1. 根据最终名次发放竞技币奖励。</p>\r\n<p>2. 冠军获得最丰厚的奖励。</p>\r\n<p>3. 奖励将在比赛结束后自动发放到账户。</p>\r\n\r\n<h2>六、注意事项</h2>\r\n<p>1. 比赛期间请保持网络稳定，断线可能导致比赛失败。</p>\r\n<p>2. 长时间不操作会被系统托管出牌。</p>\r\n<p>3. 禁止任何作弊行为，一经发现将取消比赛资格。</p>', 'v1.0.0', 1, 95, 'help');
+INSERT INTO `sys_user_agreement` VALUES (8, '2026-05-13 18:39:14.000', '2026-05-13 18:39:14.000', NULL, '观看广告获取奖励', '<h1>观看广告获取奖励</h1>\r\n<p><strong>最后更新日期：2026年5月14日</strong></p>\r\n\r\n<h2>一、广告奖励简介</h2>\r\n<p>通过观看广告视频，可以获得免费的欢乐豆或竞技币奖励，帮助您更好地体验游戏。</p>\r\n\r\n<h2>二、奖励类型</h2>\r\n\r\n<h3>1. 欢乐豆奖励</h3>\r\n<p>在普通场大厅观看广告，可获得欢乐豆奖励。</p>\r\n<p>适合金币不足时快速补充。</p>\r\n\r\n<h3>2. 竞技币奖励</h3>\r\n<p>在竞技场界面观看广告，可获得竞技币奖励。</p>\r\n<p>用于竞技场报名费用。</p>\r\n\r\n<h2>三、观看规则</h3>\r\n<p>1. 每日观看次数有限，请合理安排使用。</p>\r\n<p>2. 观看广告后有冷却时间，需等待一段时间才能再次观看。</p>\r\n<p>3. 广告需完整观看才能获得奖励。</p>\r\n<p>4. 同一设备短时间内重复观看可能被限制。</p>\r\n\r\n<h2>四、支持的广告平台</h2>\r\n<p>游戏支持多种广告平台，包括：</p>\r\n<ul>\r\n<li>穿山甲（字节跳动）</li>\r\n<li>优量汇（腾讯）</li>\r\n<li>快手广告</li>\r\n<li>百度广告</li>\r\n</ul>\r\n\r\n<h2>五、常见问题</h2>\r\n\r\n<h3>Q: 为什么看了广告没有获得奖励？</h3>\r\n<p>A: 请确保完整观看广告，中途退出将无法获得奖励。如仍有问题，请联系客服。</p>\r\n\r\n<h3>Q: 每天可以看多少次广告？</h3>\r\n<p>A: 每日观看次数有限制，具体数量请查看游戏内提示。</p>\r\n\r\n<h3>Q: 广告加载失败怎么办？</h3>\r\n<p>A: 请检查网络连接，或稍后再试。</p>\r\n\r\n<h2>六、注意事项</h2>\r\n<p>1. 请勿使用任何作弊手段获取广告奖励。</p>\r\n<p>2. 异常行为可能导致账号被封禁。</p>', 'v1.0.0', 1, 94, 'help');
+INSERT INTO `sys_user_agreement` VALUES (9, '2026-05-13 18:39:14.000', '2026-05-13 19:54:14.127', NULL, '账户安全指南', '<h1>账户安全指南</h1><p><strong>最后更新日期：2026年5月14日</strong></p><h2>一、登录方式</h2><h3>1. 手机号登录</h3><p>使用手机号接收验证码进行登录，安全便捷。</p><p>步骤：输入手机号 → 获取验证码 → 输入验证码 → 登录成功</p><h3>2. 微信登录</h3><p>支持微信小程序授权登录和微信APP登录。</p><p>一键授权，快速登录游戏。</p><h2>二、账号绑定</h2><p>建议绑定手机号，以便：</p><p>1. 账号丢失时可以找回。</p><p>2. 接收重要通知和验证码。</p><p>3. 保护账号安全。</p><h2>三、安全提示</h2><h3>密码安全</h3><p>1. 不要将账号密码告诉他人。</p><p>2. 不要使用过于简单的密码。</p><p>3. 定期更换密码。</p><h3>设备安全</h3><p>1. 不要在公共设备上保存登录状态。</p><p>2. 发现异常登录请及时修改密码。</p><p>3. 不要使用非官方版本的游戏客户端。</p><h3>防范诈骗</h3><p>1. 官方不会索要您的密码或验证码。</p><p>2. 不要相信任何代练、充值优惠等信息。</p><p>3. 不要点击来路不明的链接。</p><h2>四、账号异常处理</h2><p>如发现账号异常，请及时：</p><p>1. 修改密码。</p><p>2. 检查绑定手机号是否正确。</p><p>3. 联系客服处理。</p><h2>五、联系客服</h2><p>如有任何账号安全问题，请通过游戏内的客服系统联系我们。</p>', 'v1.0.0', 1, 93, 'help');
+INSERT INTO `sys_user_agreement` VALUES (10, '2026-05-13 18:39:14.000', '2026-05-13 18:39:14.000', NULL, '常见问题解答', '<h1>常见问题解答</h1>\r\n<p><strong>最后更新日期：2026年5月14日</strong></p>\r\n\r\n<h2>一、登录相关</h2>\r\n\r\n<h3>Q: 手机号收不到验证码怎么办？</h3>\r\n<p>A: 请检查手机号是否正确，短信是否被拦截。如仍无法收到，请稍后再试或联系客服。</p>\r\n\r\n<h3>Q: 微信登录失败怎么办？</h3>\r\n<p>A: 请确保微信版本为最新，并已授权游戏获取用户信息。</p>\r\n\r\n<h3>Q: 登录提示\"账号已在其他设备登录\"？</h3>\r\n<p>A: 您的账号可能在其他设备登录，请确认是否本人操作。如非本人，请立即修改密码。</p>\r\n\r\n<h2>二、游戏相关</h2>\r\n\r\n<h3>Q: 游戏中断线了怎么办？</h3>\r\n<p>A: 游戏支持断线重连，请尽快重新登录游戏，系统会自动带您回到当前牌局。</p>\r\n\r\n<h3>Q: 为什么进入不了房间？</h3>\r\n<p>A: 请检查您的欢乐豆数量是否满足房间的入场要求。</p>\r\n\r\n<h3>Q: 游戏卡顿怎么办？</h3>\r\n<p>A: 请检查网络连接，尝试切换WiFi或4G网络，或重启游戏客户端。</p>\r\n\r\n<h2>三、货币相关</h2>\r\n\r\n<h3>Q: 欢乐豆用完了怎么办？</h3>\r\n<p>A: 可以通过观看广告获取欢乐豆，或参与竞技场获得更多奖励。</p>\r\n\r\n<h3>Q: 竞技币和欢乐豆可以互换吗？</h3>\r\n<p>A: 不可以。竞技币仅用于竞技场，欢乐豆用于普通场。</p>\r\n\r\n<h2>四、竞技场相关</h2>\r\n\r\n<h3>Q: 竞技场报名后可以取消吗？</h3>\r\n<p>A: 可以。在比赛开始前都可以取消报名，取消后竞技币会退还。</p>\r\n\r\n<h3>Q: 竞技场断线了怎么办？</h3>\r\n<p>A: 断线可能导致比赛失败，请确保比赛期间网络稳定。如需重连，请尽快重新登录。</p>\r\n\r\n<h2>五、其他问题</h2>\r\n\r\n<h3>Q: 如何联系客服？</h3>\r\n<p>A: 请通过游戏内的客服系统联系我们，我们会尽快为您处理。</p>\r\n\r\n<h3>Q: 发现玩家作弊怎么办？</h3>\r\n<p>A: 请通过客服系统举报，我们会在核实后进行处理。</p>', 'v1.0.0', 1, 92, 'help');
 
 -- ----------------------------
 -- Table structure for sys_user_authority

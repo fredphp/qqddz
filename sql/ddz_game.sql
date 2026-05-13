@@ -11,7 +11,7 @@
  Target Server Version : 80045 (8.0.45-0ubuntu0.24.04.1)
  File Encoding         : 65001
 
- Date: 11/05/2026 22:02:13
+ Date: 13/05/2026 22:30:23
 */
 
 SET NAMES utf8mb4;
@@ -162,7 +162,7 @@ CREATE TABLE `ddz_arena_coin_logs_202604`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技币流水表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技币流水表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_coin_logs_202604
@@ -184,7 +184,7 @@ CREATE TABLE `ddz_arena_coin_logs_202605`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技币流水表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技币流水表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_coin_logs_202605
@@ -206,7 +206,7 @@ CREATE TABLE `ddz_arena_coin_logs_202606`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技币流水表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技币流水表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_coin_logs_202606
@@ -611,7 +611,7 @@ CREATE TABLE `ddz_arena_gold_logs_202606`  (
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_match_id`(`match_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场金币流水表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场金币流水表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_gold_logs_202606
@@ -691,7 +691,7 @@ CREATE TABLE `ddz_arena_participations`  (
   INDEX `idx_participations_session_rank`(`session_id` ASC, `rank` ASC) USING BTREE,
   INDEX `idx_is_robot`(`session_id` ASC, `is_robot` ASC) USING BTREE,
   INDEX `idx_period_no`(`period_no` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '参赛记录表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '参赛记录表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_participations
@@ -828,7 +828,7 @@ CREATE TABLE `ddz_arena_participations_202606`  (
   INDEX `idx_period_no`(`period_no` ASC) USING BTREE,
   INDEX `idx_is_eliminated`(`is_eliminated` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场参赛记录表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场参赛记录表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_participations_202606
@@ -1176,7 +1176,7 @@ CREATE TABLE `ddz_arena_period_players_202606`  (
   INDEX `idx_room_id`(`room_id` ASC) USING BTREE,
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场期号玩家表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场期号玩家表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_period_players_202606
@@ -1363,7 +1363,7 @@ CREATE TABLE `ddz_arena_periods_202605`  (
   INDEX `idx_status`(`status` ASC) USING BTREE,
   INDEX `idx_start_time`(`start_time` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1237 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场期号表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1327 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场期号表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_periods_202605
@@ -2527,8 +2527,92 @@ INSERT INTO `ddz_arena_periods_202605` VALUES (1231, '260511010262', 1, 1, 262, 
 INSERT INTO `ddz_arena_periods_202605` VALUES (1232, '260511010263', 1, 1, 263, '2026-05-11 21:50:00', '2026-05-11 21:51:00', '2026-05-11 21:55:00', '2026-05-11 21:55:00', 0, 0, 0, 2, NULL, '2026-05-11 21:55:00', '2026-05-11 21:50:00', '2026-05-11 21:55:00');
 INSERT INTO `ddz_arena_periods_202605` VALUES (1233, '260511020030', 2, 2, 30, '2026-05-11 21:50:00', '2026-05-11 21:51:00', '2026-05-11 22:00:00', '2026-05-11 21:55:00', 0, 0, 0, 2, NULL, '2026-05-11 22:00:00', '2026-05-11 21:50:00', '2026-05-11 22:00:00');
 INSERT INTO `ddz_arena_periods_202605` VALUES (1234, '260511010264', 1, 1, 264, '2026-05-11 21:55:00', '2026-05-11 21:56:00', '2026-05-11 22:00:00', '2026-05-11 22:00:00', 0, 0, 0, 2, NULL, '2026-05-11 22:00:00', '2026-05-11 21:55:00', '2026-05-11 22:00:00');
-INSERT INTO `ddz_arena_periods_202605` VALUES (1235, '260511010265', 1, 1, 265, '2026-05-11 22:00:00', '2026-05-11 22:01:00', '2026-05-11 22:05:00', '2026-05-11 22:05:00', 0, 0, 0, 1, NULL, NULL, '2026-05-11 22:00:00', '2026-05-11 22:01:00');
-INSERT INTO `ddz_arena_periods_202605` VALUES (1236, '260511020031', 2, 2, 31, '2026-05-11 22:00:00', '2026-05-11 22:01:00', '2026-05-11 22:10:00', '2026-05-11 22:05:00', 0, 0, 0, 1, NULL, NULL, '2026-05-11 22:00:00', '2026-05-11 22:01:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1235, '260511010265', 1, 1, 265, '2026-05-11 22:00:00', '2026-05-11 22:01:00', '2026-05-11 22:05:00', '2026-05-11 22:05:00', 0, 0, 0, 2, NULL, '2026-05-11 22:05:00', '2026-05-11 22:00:00', '2026-05-11 22:05:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1236, '260511020031', 2, 2, 31, '2026-05-11 22:00:00', '2026-05-11 22:01:00', '2026-05-11 22:10:00', '2026-05-11 22:05:00', 0, 0, 0, 2, NULL, '2026-05-11 22:10:00', '2026-05-11 22:00:00', '2026-05-11 22:10:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1237, '260511010266', 1, 1, 266, '2026-05-11 22:05:00', '2026-05-11 22:06:00', '2026-05-11 22:10:00', '2026-05-11 22:10:00', 0, 0, 0, 2, NULL, '2026-05-11 22:10:00', '2026-05-11 22:05:00', '2026-05-11 22:10:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1238, '260511010267', 1, 1, 267, '2026-05-11 22:10:00', '2026-05-11 22:11:00', '2026-05-11 22:15:00', '2026-05-11 22:15:00', 0, 0, 0, 2, NULL, '2026-05-11 22:15:00', '2026-05-11 22:10:00', '2026-05-11 22:15:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1239, '260511020032', 2, 2, 32, '2026-05-11 22:10:00', '2026-05-11 22:11:00', '2026-05-11 22:20:00', '2026-05-11 22:15:00', 0, 0, 0, 2, NULL, '2026-05-11 22:20:00', '2026-05-11 22:10:00', '2026-05-11 22:20:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1240, '260511010268', 1, 1, 268, '2026-05-11 22:15:00', '2026-05-11 22:16:00', '2026-05-11 22:20:00', '2026-05-11 22:20:00', 0, 0, 0, 2, NULL, '2026-05-11 22:20:00', '2026-05-11 22:15:00', '2026-05-11 22:20:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1241, '260511010269', 1, 1, 269, '2026-05-11 22:20:00', '2026-05-11 22:21:00', '2026-05-11 22:25:00', '2026-05-11 22:25:00', 0, 0, 0, 2, NULL, '2026-05-11 22:25:00', '2026-05-11 22:20:00', '2026-05-11 22:25:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1242, '260511020033', 2, 2, 33, '2026-05-11 22:20:00', '2026-05-11 22:21:00', '2026-05-11 22:30:00', '2026-05-11 22:25:00', 0, 0, 0, 2, NULL, '2026-05-11 22:30:00', '2026-05-11 22:20:00', '2026-05-11 22:30:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1243, '260511010270', 1, 1, 270, '2026-05-11 22:25:00', '2026-05-11 22:26:00', '2026-05-11 22:30:00', '2026-05-11 22:30:00', 0, 0, 0, 2, NULL, '2026-05-11 22:30:00', '2026-05-11 22:25:00', '2026-05-11 22:30:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1244, '260511010271', 1, 1, 271, '2026-05-11 22:30:00', '2026-05-11 22:31:00', '2026-05-11 22:35:00', '2026-05-11 22:35:00', 0, 0, 0, 2, NULL, '2026-05-11 22:35:00', '2026-05-11 22:30:00', '2026-05-11 22:35:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1245, '260511020034', 2, 2, 34, '2026-05-11 22:30:00', '2026-05-11 22:31:00', '2026-05-11 22:40:00', '2026-05-11 22:35:00', 0, 0, 0, 2, NULL, '2026-05-11 22:40:00', '2026-05-11 22:30:00', '2026-05-11 22:40:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1246, '260511010272', 1, 1, 272, '2026-05-11 22:35:00', '2026-05-11 22:36:00', '2026-05-11 22:40:00', '2026-05-11 22:40:00', 0, 0, 0, 2, NULL, '2026-05-11 22:40:00', '2026-05-11 22:35:00', '2026-05-11 22:40:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1247, '260511010273', 1, 1, 273, '2026-05-11 22:40:00', '2026-05-11 22:41:00', '2026-05-11 22:45:00', '2026-05-11 22:45:00', 0, 0, 0, 2, NULL, '2026-05-11 22:45:00', '2026-05-11 22:40:00', '2026-05-11 22:45:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1248, '260511020035', 2, 2, 35, '2026-05-11 22:40:00', '2026-05-11 22:41:00', '2026-05-11 22:50:00', '2026-05-11 22:45:00', 0, 0, 0, 1, NULL, NULL, '2026-05-11 22:40:00', '2026-05-11 22:41:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1249, '260511010274', 1, 1, 274, '2026-05-11 22:45:00', '2026-05-11 22:46:00', '2026-05-11 22:50:00', '2026-05-11 22:50:00', 0, 0, 0, 0, NULL, NULL, '2026-05-11 22:45:00', '2026-05-11 22:45:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1250, '260513010227', 1, 1, 227, '2026-05-13 18:50:00', '2026-05-13 18:51:00', '2026-05-13 18:55:00', '2026-05-13 18:55:00', 0, 0, 0, 2, NULL, '2026-05-13 18:55:00', '2026-05-13 18:50:00', '2026-05-13 18:55:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1251, '260513020012', 2, 2, 12, '2026-05-13 18:50:00', '2026-05-13 18:51:00', '2026-05-13 19:00:00', '2026-05-13 18:55:00', 0, 0, 0, 2, NULL, '2026-05-13 19:00:00', '2026-05-13 18:50:00', '2026-05-13 19:00:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1252, '260513010228', 1, 1, 228, '2026-05-13 18:55:00', '2026-05-13 18:56:00', '2026-05-13 19:00:00', '2026-05-13 19:00:00', 0, 0, 0, 2, NULL, '2026-05-13 19:00:00', '2026-05-13 18:55:00', '2026-05-13 19:00:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1253, '260513010229', 1, 1, 229, '2026-05-13 19:00:00', '2026-05-13 19:01:00', '2026-05-13 19:05:00', '2026-05-13 19:05:00', 0, 0, 0, 2, NULL, '2026-05-13 19:05:00', '2026-05-13 19:00:00', '2026-05-13 19:05:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1254, '260513020013', 2, 2, 13, '2026-05-13 19:00:00', '2026-05-13 19:01:00', '2026-05-13 19:10:00', '2026-05-13 19:05:00', 0, 0, 0, 2, NULL, '2026-05-13 19:10:00', '2026-05-13 19:00:00', '2026-05-13 19:10:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1255, '260513030005', 3, 3, 5, '2026-05-13 19:00:00', '2026-05-13 19:01:00', '2026-05-13 19:30:00', '2026-05-13 19:05:00', 0, 0, 0, 2, NULL, '2026-05-13 19:30:00', '2026-05-13 19:00:00', '2026-05-13 19:30:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1256, '260513010230', 1, 1, 230, '2026-05-13 19:05:00', '2026-05-13 19:06:00', '2026-05-13 19:10:00', '2026-05-13 19:10:00', 0, 0, 0, 2, NULL, '2026-05-13 19:10:00', '2026-05-13 19:05:00', '2026-05-13 19:10:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1257, '260513010231', 1, 1, 231, '2026-05-13 19:10:00', '2026-05-13 19:11:00', '2026-05-13 19:15:00', '2026-05-13 19:15:00', 0, 0, 0, 2, NULL, '2026-05-13 19:15:01', '2026-05-13 19:10:00', '2026-05-13 19:15:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1258, '260513020014', 2, 2, 14, '2026-05-13 19:10:00', '2026-05-13 19:11:00', '2026-05-13 19:20:00', '2026-05-13 19:15:00', 0, 0, 0, 2, NULL, '2026-05-13 19:20:00', '2026-05-13 19:10:00', '2026-05-13 19:20:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1259, '260513010232', 1, 1, 232, '2026-05-13 19:15:00', '2026-05-13 19:16:00', '2026-05-13 19:20:00', '2026-05-13 19:20:00', 0, 0, 0, 2, NULL, '2026-05-13 19:20:00', '2026-05-13 19:15:01', '2026-05-13 19:20:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1260, '260513010233', 1, 1, 233, '2026-05-13 19:20:00', '2026-05-13 19:21:00', '2026-05-13 19:25:00', '2026-05-13 19:25:00', 0, 0, 0, 2, NULL, '2026-05-13 19:25:01', '2026-05-13 19:20:00', '2026-05-13 19:25:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1261, '260513020015', 2, 2, 15, '2026-05-13 19:20:00', '2026-05-13 19:21:00', '2026-05-13 19:30:00', '2026-05-13 19:25:00', 0, 0, 0, 2, NULL, '2026-05-13 19:30:00', '2026-05-13 19:20:00', '2026-05-13 19:30:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1262, '260513010234', 1, 1, 234, '2026-05-13 19:25:00', '2026-05-13 19:26:00', '2026-05-13 19:30:00', '2026-05-13 19:30:00', 0, 0, 0, 2, NULL, '2026-05-13 19:30:00', '2026-05-13 19:25:00', '2026-05-13 19:30:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1263, '260513010235', 1, 1, 235, '2026-05-13 19:30:00', '2026-05-13 19:31:00', '2026-05-13 19:35:00', '2026-05-13 19:35:00', 0, 0, 0, 2, NULL, '2026-05-13 19:35:00', '2026-05-13 19:30:00', '2026-05-13 19:35:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1264, '260513020016', 2, 2, 16, '2026-05-13 19:30:00', '2026-05-13 19:31:00', '2026-05-13 19:40:00', '2026-05-13 19:35:00', 0, 0, 0, 2, NULL, '2026-05-13 19:40:01', '2026-05-13 19:30:00', '2026-05-13 19:40:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1265, '260513030006', 3, 3, 6, '2026-05-13 19:30:00', '2026-05-13 19:31:00', '2026-05-13 20:00:00', '2026-05-13 19:35:00', 0, 0, 0, 2, NULL, '2026-05-13 20:00:01', '2026-05-13 19:30:00', '2026-05-13 20:00:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1266, '260513010236', 1, 1, 236, '2026-05-13 19:35:00', '2026-05-13 19:36:00', '2026-05-13 19:40:00', '2026-05-13 19:40:00', 0, 0, 0, 2, NULL, '2026-05-13 19:40:01', '2026-05-13 19:35:00', '2026-05-13 19:40:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1267, '260513010237', 1, 1, 237, '2026-05-13 19:40:00', '2026-05-13 19:41:00', '2026-05-13 19:45:00', '2026-05-13 19:45:00', 0, 0, 0, 2, NULL, '2026-05-13 19:45:01', '2026-05-13 19:40:00', '2026-05-13 19:45:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1268, '260513020017', 2, 2, 17, '2026-05-13 19:40:00', '2026-05-13 19:41:00', '2026-05-13 19:50:00', '2026-05-13 19:45:00', 0, 0, 0, 2, NULL, '2026-05-13 19:50:00', '2026-05-13 19:40:00', '2026-05-13 19:50:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1269, '260513010238', 1, 1, 238, '2026-05-13 19:45:00', '2026-05-13 19:46:00', '2026-05-13 19:50:00', '2026-05-13 19:50:00', 0, 0, 0, 2, NULL, '2026-05-13 19:50:00', '2026-05-13 19:45:00', '2026-05-13 19:50:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1270, '260513010239', 1, 1, 239, '2026-05-13 19:50:00', '2026-05-13 19:51:00', '2026-05-13 19:55:00', '2026-05-13 19:55:00', 0, 0, 0, 2, NULL, '2026-05-13 19:55:01', '2026-05-13 19:50:00', '2026-05-13 19:55:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1271, '260513020018', 2, 2, 18, '2026-05-13 19:50:00', '2026-05-13 19:51:00', '2026-05-13 20:00:00', '2026-05-13 19:55:00', 0, 0, 0, 2, NULL, '2026-05-13 20:00:01', '2026-05-13 19:50:00', '2026-05-13 20:00:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1272, '260513010240', 1, 1, 240, '2026-05-13 19:55:00', '2026-05-13 19:56:00', '2026-05-13 20:00:00', '2026-05-13 20:00:00', 0, 0, 0, 2, NULL, '2026-05-13 20:00:01', '2026-05-13 19:55:00', '2026-05-13 20:00:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1273, '260513010241', 1, 1, 241, '2026-05-13 20:00:00', '2026-05-13 20:01:00', '2026-05-13 20:05:00', '2026-05-13 20:05:00', 0, 0, 0, 2, NULL, '2026-05-13 20:05:00', '2026-05-13 20:00:00', '2026-05-13 20:05:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1274, '260513020019', 2, 2, 19, '2026-05-13 20:00:00', '2026-05-13 20:01:00', '2026-05-13 20:10:00', '2026-05-13 20:05:00', 0, 0, 0, 2, NULL, '2026-05-13 20:10:01', '2026-05-13 20:00:00', '2026-05-13 20:10:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1275, '260513030007', 3, 3, 7, '2026-05-13 20:00:00', '2026-05-13 20:01:00', '2026-05-13 20:30:00', '2026-05-13 20:05:00', 0, 0, 0, 2, NULL, '2026-05-13 20:30:01', '2026-05-13 20:00:00', '2026-05-13 20:30:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1282, '260513010242', 1, 1, 242, '2026-05-13 20:05:00', '2026-05-13 20:06:00', '2026-05-13 20:10:00', '2026-05-13 20:10:00', 0, 0, 0, 2, NULL, '2026-05-13 20:10:01', '2026-05-13 20:05:00', '2026-05-13 20:10:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1283, '260513010243', 1, 1, 243, '2026-05-13 20:10:00', '2026-05-13 20:11:00', '2026-05-13 20:15:00', '2026-05-13 20:15:00', 0, 0, 0, 2, NULL, '2026-05-13 20:15:00', '2026-05-13 20:10:00', '2026-05-13 20:15:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1284, '260513020020', 2, 2, 20, '2026-05-13 20:10:00', '2026-05-13 20:11:00', '2026-05-13 20:20:00', '2026-05-13 20:15:00', 0, 0, 0, 2, NULL, '2026-05-13 20:20:00', '2026-05-13 20:10:00', '2026-05-13 20:20:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1285, '260513010244', 1, 1, 244, '2026-05-13 20:15:00', '2026-05-13 20:16:00', '2026-05-13 20:20:00', '2026-05-13 20:20:00', 0, 0, 0, 2, NULL, '2026-05-13 20:20:00', '2026-05-13 20:15:00', '2026-05-13 20:20:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1286, '260513010245', 1, 1, 245, '2026-05-13 20:20:00', '2026-05-13 20:21:00', '2026-05-13 20:25:00', '2026-05-13 20:25:00', 0, 0, 0, 1, NULL, NULL, '2026-05-13 20:20:00', '2026-05-13 20:21:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1287, '260513020021', 2, 2, 21, '2026-05-13 20:20:00', '2026-05-13 20:21:00', '2026-05-13 20:30:00', '2026-05-13 20:25:00', 0, 0, 0, 2, NULL, '2026-05-13 20:30:01', '2026-05-13 20:20:00', '2026-05-13 20:30:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1288, '260513010247', 1, 1, 247, '2026-05-13 20:30:00', '2026-05-13 20:31:00', '2026-05-13 20:35:00', '2026-05-13 20:35:00', 0, 0, 0, 2, NULL, '2026-05-13 20:35:01', '2026-05-13 20:30:00', '2026-05-13 20:35:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1289, '260513020022', 2, 2, 22, '2026-05-13 20:30:00', '2026-05-13 20:31:00', '2026-05-13 20:40:00', '2026-05-13 20:35:00', 0, 0, 0, 2, NULL, '2026-05-13 20:40:00', '2026-05-13 20:30:00', '2026-05-13 20:40:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1290, '260513030008', 3, 3, 8, '2026-05-13 20:30:00', '2026-05-13 20:31:00', '2026-05-13 21:00:00', '2026-05-13 20:35:00', 0, 0, 0, 1, NULL, NULL, '2026-05-13 20:30:00', '2026-05-13 20:31:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1291, '260513010248', 1, 1, 248, '2026-05-13 20:35:00', '2026-05-13 20:36:00', '2026-05-13 20:40:00', '2026-05-13 20:40:00', 0, 0, 0, 2, NULL, '2026-05-13 20:40:00', '2026-05-13 20:35:00', '2026-05-13 20:40:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1292, '260513010249', 1, 1, 249, '2026-05-13 20:40:00', '2026-05-13 20:41:00', '2026-05-13 20:45:00', '2026-05-13 20:45:00', 0, 0, 0, 2, NULL, '2026-05-13 20:45:01', '2026-05-13 20:40:00', '2026-05-13 20:45:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1293, '260513020023', 2, 2, 23, '2026-05-13 20:40:00', '2026-05-13 20:41:00', '2026-05-13 20:50:00', '2026-05-13 20:45:00', 0, 0, 0, 2, NULL, '2026-05-13 20:50:00', '2026-05-13 20:40:00', '2026-05-13 20:50:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1294, '260513010250', 1, 1, 250, '2026-05-13 20:45:00', '2026-05-13 20:46:00', '2026-05-13 20:50:00', '2026-05-13 20:50:00', 0, 0, 0, 2, NULL, '2026-05-13 20:50:00', '2026-05-13 20:45:00', '2026-05-13 20:50:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1295, '260513010251', 1, 1, 251, '2026-05-13 20:50:00', '2026-05-13 20:51:00', '2026-05-13 20:55:00', '2026-05-13 20:55:00', 0, 0, 0, 2, NULL, '2026-05-13 20:55:00', '2026-05-13 20:50:00', '2026-05-13 20:55:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1296, '260513020024', 2, 2, 24, '2026-05-13 20:50:00', '2026-05-13 20:51:00', '2026-05-13 21:00:00', '2026-05-13 20:55:00', 0, 0, 0, 2, NULL, '2026-05-13 21:00:00', '2026-05-13 20:50:00', '2026-05-13 21:00:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1297, '260513010252', 1, 1, 252, '2026-05-13 20:55:00', '2026-05-13 20:56:00', '2026-05-13 21:00:00', '2026-05-13 21:00:00', 0, 0, 0, 2, NULL, '2026-05-13 21:00:00', '2026-05-13 20:55:00', '2026-05-13 21:00:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1298, '260513010253', 1, 1, 253, '2026-05-13 21:00:00', '2026-05-13 21:01:00', '2026-05-13 21:05:00', '2026-05-13 21:05:00', 0, 0, 0, 2, NULL, '2026-05-13 21:05:01', '2026-05-13 21:00:00', '2026-05-13 21:05:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1299, '260513020025', 2, 2, 25, '2026-05-13 21:00:00', '2026-05-13 21:01:00', '2026-05-13 21:10:00', '2026-05-13 21:05:00', 0, 0, 0, 2, NULL, '2026-05-13 21:10:00', '2026-05-13 21:00:00', '2026-05-13 21:10:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1300, '260513010254', 1, 1, 254, '2026-05-13 21:05:00', '2026-05-13 21:06:00', '2026-05-13 21:10:00', '2026-05-13 21:10:00', 0, 0, 0, 2, NULL, '2026-05-13 21:10:00', '2026-05-13 21:05:00', '2026-05-13 21:10:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1301, '260513010255', 1, 1, 255, '2026-05-13 21:10:00', '2026-05-13 21:11:00', '2026-05-13 21:15:00', '2026-05-13 21:15:00', 0, 0, 0, 2, NULL, '2026-05-13 21:15:01', '2026-05-13 21:10:00', '2026-05-13 21:15:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1302, '260513020026', 2, 2, 26, '2026-05-13 21:10:00', '2026-05-13 21:11:00', '2026-05-13 21:20:00', '2026-05-13 21:15:00', 0, 0, 0, 2, NULL, '2026-05-13 21:20:01', '2026-05-13 21:10:00', '2026-05-13 21:20:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1303, '260513010256', 1, 1, 256, '2026-05-13 21:15:00', '2026-05-13 21:16:00', '2026-05-13 21:20:00', '2026-05-13 21:20:00', 0, 0, 0, 2, NULL, '2026-05-13 21:20:01', '2026-05-13 21:15:00', '2026-05-13 21:20:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1304, '260513010257', 1, 1, 257, '2026-05-13 21:20:00', '2026-05-13 21:21:00', '2026-05-13 21:25:00', '2026-05-13 21:25:00', 0, 0, 0, 2, NULL, '2026-05-13 21:25:01', '2026-05-13 21:20:00', '2026-05-13 21:25:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1305, '260513020027', 2, 2, 27, '2026-05-13 21:20:00', '2026-05-13 21:21:00', '2026-05-13 21:30:00', '2026-05-13 21:25:00', 0, 0, 0, 2, NULL, '2026-05-13 21:30:01', '2026-05-13 21:20:00', '2026-05-13 21:30:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1306, '260513010258', 1, 1, 258, '2026-05-13 21:25:00', '2026-05-13 21:26:00', '2026-05-13 21:30:00', '2026-05-13 21:30:00', 0, 0, 0, 2, NULL, '2026-05-13 21:30:01', '2026-05-13 21:25:00', '2026-05-13 21:30:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1307, '260513010259', 1, 1, 259, '2026-05-13 21:30:00', '2026-05-13 21:31:00', '2026-05-13 21:35:00', '2026-05-13 21:35:00', 0, 0, 0, 2, NULL, '2026-05-13 21:35:00', '2026-05-13 21:30:00', '2026-05-13 21:35:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1308, '260513020028', 2, 2, 28, '2026-05-13 21:30:00', '2026-05-13 21:31:00', '2026-05-13 21:40:00', '2026-05-13 21:35:00', 0, 0, 0, 2, NULL, '2026-05-13 21:40:01', '2026-05-13 21:30:00', '2026-05-13 21:40:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1309, '260513010260', 1, 1, 260, '2026-05-13 21:35:00', '2026-05-13 21:36:00', '2026-05-13 21:40:00', '2026-05-13 21:40:00', 0, 0, 0, 2, NULL, '2026-05-13 21:40:01', '2026-05-13 21:35:00', '2026-05-13 21:40:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1310, '260513010261', 1, 1, 261, '2026-05-13 21:40:00', '2026-05-13 21:41:00', '2026-05-13 21:45:00', '2026-05-13 21:45:00', 0, 0, 0, 2, NULL, '2026-05-13 21:45:00', '2026-05-13 21:40:00', '2026-05-13 21:45:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1311, '260513020029', 2, 2, 29, '2026-05-13 21:40:00', '2026-05-13 21:41:00', '2026-05-13 21:50:00', '2026-05-13 21:45:00', 0, 0, 0, 2, NULL, '2026-05-13 21:50:01', '2026-05-13 21:40:01', '2026-05-13 21:50:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1312, '260513010262', 1, 1, 262, '2026-05-13 21:45:00', '2026-05-13 21:46:00', '2026-05-13 21:50:00', '2026-05-13 21:50:00', 0, 0, 0, 2, NULL, '2026-05-13 21:50:01', '2026-05-13 21:45:00', '2026-05-13 21:50:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1313, '260513010263', 1, 1, 263, '2026-05-13 21:50:00', '2026-05-13 21:51:00', '2026-05-13 21:55:00', '2026-05-13 21:55:00', 0, 0, 0, 2, NULL, '2026-05-13 21:55:00', '2026-05-13 21:50:00', '2026-05-13 21:55:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1314, '260513020030', 2, 2, 30, '2026-05-13 21:50:00', '2026-05-13 21:51:00', '2026-05-13 22:00:00', '2026-05-13 21:55:00', 0, 0, 0, 2, NULL, '2026-05-13 22:00:01', '2026-05-13 21:50:00', '2026-05-13 22:00:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1315, '260513010264', 1, 1, 264, '2026-05-13 21:55:00', '2026-05-13 21:56:00', '2026-05-13 22:00:00', '2026-05-13 22:00:00', 0, 0, 0, 2, NULL, '2026-05-13 22:00:01', '2026-05-13 21:55:00', '2026-05-13 22:00:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1316, '260513010265', 1, 1, 265, '2026-05-13 22:00:00', '2026-05-13 22:01:00', '2026-05-13 22:05:00', '2026-05-13 22:05:00', 0, 0, 0, 2, NULL, '2026-05-13 22:05:01', '2026-05-13 22:00:00', '2026-05-13 22:05:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1317, '260513020031', 2, 2, 31, '2026-05-13 22:00:00', '2026-05-13 22:01:00', '2026-05-13 22:10:00', '2026-05-13 22:05:00', 0, 0, 0, 2, NULL, '2026-05-13 22:10:00', '2026-05-13 22:00:00', '2026-05-13 22:10:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1318, '260513010266', 1, 1, 266, '2026-05-13 22:05:00', '2026-05-13 22:06:00', '2026-05-13 22:10:00', '2026-05-13 22:10:00', 0, 0, 0, 2, NULL, '2026-05-13 22:10:00', '2026-05-13 22:05:00', '2026-05-13 22:10:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1319, '260513010267', 1, 1, 267, '2026-05-13 22:10:00', '2026-05-13 22:11:00', '2026-05-13 22:15:00', '2026-05-13 22:15:00', 0, 0, 0, 2, NULL, '2026-05-13 22:15:00', '2026-05-13 22:10:00', '2026-05-13 22:15:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1320, '260513020032', 2, 2, 32, '2026-05-13 22:10:00', '2026-05-13 22:11:00', '2026-05-13 22:20:00', '2026-05-13 22:15:00', 0, 0, 0, 2, NULL, '2026-05-13 22:20:00', '2026-05-13 22:10:00', '2026-05-13 22:20:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1321, '260513010268', 1, 1, 268, '2026-05-13 22:15:00', '2026-05-13 22:16:00', '2026-05-13 22:20:00', '2026-05-13 22:20:00', 0, 0, 0, 2, NULL, '2026-05-13 22:20:00', '2026-05-13 22:15:00', '2026-05-13 22:20:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1322, '260513010269', 1, 1, 269, '2026-05-13 22:20:00', '2026-05-13 22:21:00', '2026-05-13 22:25:00', '2026-05-13 22:25:00', 0, 0, 0, 2, NULL, '2026-05-13 22:25:00', '2026-05-13 22:20:00', '2026-05-13 22:25:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1323, '260513020033', 2, 2, 33, '2026-05-13 22:20:00', '2026-05-13 22:21:00', '2026-05-13 22:30:00', '2026-05-13 22:25:00', 0, 0, 0, 2, NULL, '2026-05-13 22:30:00', '2026-05-13 22:20:00', '2026-05-13 22:30:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1324, '260513010270', 1, 1, 270, '2026-05-13 22:25:00', '2026-05-13 22:26:00', '2026-05-13 22:30:00', '2026-05-13 22:30:00', 0, 0, 0, 2, NULL, '2026-05-13 22:30:00', '2026-05-13 22:25:00', '2026-05-13 22:30:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1325, '260513010271', 1, 1, 271, '2026-05-13 22:30:00', '2026-05-13 22:31:00', '2026-05-13 22:35:00', '2026-05-13 22:35:00', 0, 0, 0, 0, NULL, NULL, '2026-05-13 22:30:00', '2026-05-13 22:30:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1326, '260513020034', 2, 2, 34, '2026-05-13 22:30:00', '2026-05-13 22:31:00', '2026-05-13 22:40:00', '2026-05-13 22:35:00', 0, 0, 0, 0, NULL, NULL, '2026-05-13 22:30:00', '2026-05-13 22:30:00');
 
 -- ----------------------------
 -- Table structure for ddz_arena_periods_202606
@@ -2559,7 +2643,7 @@ CREATE TABLE `ddz_arena_periods_202606`  (
   INDEX `idx_status`(`status` ASC) USING BTREE,
   INDEX `idx_start_time`(`start_time` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场期号表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场期号表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_periods_202606
@@ -2865,7 +2949,7 @@ CREATE TABLE `ddz_arena_signup_logs_202606`  (
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_action_type`(`action_type` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场报名日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场报名日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_signup_logs_202606
@@ -3002,7 +3086,7 @@ CREATE TABLE `ddz_bid_logs_202606`  (
   INDEX `idx_game_id`(`game_id` ASC) USING BTREE,
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '叫地主日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '叫地主日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_bid_logs_202606
@@ -3031,12 +3115,13 @@ CREATE TABLE `ddz_daily_stats`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_ddz_daily_stats_deleted_at`(`deleted_at` ASC) USING BTREE,
   UNIQUE INDEX `idx_ddz_daily_stats_stat_date`(`stat_date` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_daily_stats
 -- ----------------------------
 INSERT INTO `ddz_daily_stats` VALUES (1, '2026-05-11 20:33:21', '2026-05-11 20:33:21', NULL, NULL, 36, 0, 1, 0, 0, 0, 0, NULL, '2026-05-11', 0);
+INSERT INTO `ddz_daily_stats` VALUES (2, '2026-05-13 18:49:02', '2026-05-13 18:49:02', NULL, NULL, 36, 0, 1, 0, 0, 0, 0, NULL, '2026-05-13', 0);
 
 -- ----------------------------
 -- Table structure for ddz_deal_logs
@@ -3304,7 +3389,7 @@ CREATE TABLE `ddz_deal_logs_202604`  (
   INDEX `idx_game_id`(`game_id` ASC) USING BTREE,
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '发牌日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '发牌日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_deal_logs_202604
@@ -3527,7 +3612,7 @@ CREATE TABLE `ddz_deal_logs_202606`  (
   INDEX `idx_game_id`(`game_id` ASC) USING BTREE,
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '发牌日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '发牌日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_deal_logs_202606
@@ -3772,7 +3857,7 @@ CREATE TABLE `ddz_game_records_202604`  (
   INDEX `idx_farmer2_id`(`farmer2_id` ASC) USING BTREE,
   INDEX `idx_started_at`(`started_at` ASC) USING BTREE,
   INDEX `idx_result`(`result` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '游戏记录表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '游戏记录表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_game_records_202604
@@ -3917,7 +4002,7 @@ CREATE TABLE `ddz_game_records_202606`  (
   INDEX `idx_farmer2_id`(`farmer2_id` ASC) USING BTREE,
   INDEX `idx_started_at`(`started_at` ASC) USING BTREE,
   INDEX `idx_result`(`result` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '游戏记录表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '游戏记录表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_game_records_202606
@@ -3995,7 +4080,7 @@ CREATE TABLE `ddz_login_logs`  (
   INDEX `idx_ddz_login_logs_created_at`(`created_at` ASC) USING BTREE,
   CONSTRAINT `fk_ddz_login_logs_account` FOREIGN KEY (`account_id`) REFERENCES `ddz_user_accounts` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_ddz_login_logs_player` FOREIGN KEY (`player_id`) REFERENCES `ddz_players` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 46 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 47 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_login_logs
@@ -4042,6 +4127,7 @@ INSERT INTO `ddz_login_logs` VALUES (42, 7, 6, 1, 1, '', '127.0.0.1', '', 'Andro
 INSERT INTO `ddz_login_logs` VALUES (43, 4, 4, 1, 1, '', '127.0.0.1', '', 'iPhone', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '', '2026-05-03 21:18:24');
 INSERT INTO `ddz_login_logs` VALUES (44, 8, 7, 1, 1, '', '127.0.0.1', '', 'Android', 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36 Edg/146.0.0.0', '', '2026-05-06 21:37:35');
 INSERT INTO `ddz_login_logs` VALUES (45, 4, 4, 1, 1, '', '127.0.0.1', '', 'iPhone', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '', '2026-05-11 20:33:22');
+INSERT INTO `ddz_login_logs` VALUES (46, 5, 5, 1, 1, '', '127.0.0.1', '', 'iPhone', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '', '2026-05-13 18:49:03');
 
 -- ----------------------------
 -- Table structure for ddz_login_logs_202604
@@ -4064,7 +4150,7 @@ CREATE TABLE `ddz_login_logs_202604`  (
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_account_id`(`account_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '登录日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '登录日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_login_logs_202604
@@ -4091,7 +4177,7 @@ CREATE TABLE `ddz_login_logs_202605`  (
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_account_id`(`account_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '登录日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '登录日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_login_logs_202605
@@ -4118,7 +4204,7 @@ CREATE TABLE `ddz_login_logs_202606`  (
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_account_id`(`account_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '登录日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '登录日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_login_logs_202606
@@ -4710,7 +4796,7 @@ CREATE TABLE `ddz_play_logs_202604`  (
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_round_num`(`round_num` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '出牌日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '出牌日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_play_logs_202604
@@ -5990,7 +6076,7 @@ CREATE TABLE `ddz_play_logs_202606`  (
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_round_num`(`round_num` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '出牌日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '出牌日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_play_logs_202606
@@ -6139,7 +6225,7 @@ INSERT INTO `ddz_players` VALUES (1, 'phone_13800138000', '用户80000147', '', 
 INSERT INTO `ddz_players` VALUES (2, 'phone_13800138001', '用户80018735', '', 0, 1, 0, NULL, NULL, 1000, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, '2026-04-25 12:11:15', '[::1]', '2026-04-25 12:11:06', '2026-04-25 12:11:15', NULL, 0, '', NULL);
 INSERT INTO `ddz_players` VALUES (3, 'phone_13800138003', '用户80032758', '', 0, 1, 0, NULL, NULL, 1000, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, '2026-04-25 12:11:20', '[::1]', '2026-04-25 12:11:20', '2026-04-25 12:11:20', NULL, 0, '', NULL);
 INSERT INTO `ddz_players` VALUES (4, 'phone_15888888888', '李宁', 'uploads/file/2026/05/06/b6f61982-aae1-4d61-afd2-fbab61193356.jpg', 0, 1, 0, NULL, NULL, 15980, 5200, 0, 0, 1, 0, 59, 23, 57, 25, 1, '2026-05-11 20:33:22', '127.0.0.1', '2026-04-25 15:53:53', '2026-05-11 20:33:22', NULL, 0, '', NULL);
-INSERT INTO `ddz_players` VALUES (5, 'phone_15208384146', '用户41461120', '', 0, 1, 0, NULL, NULL, 10380, 0, 0, 0, 1, 0, 4, 5, 3, 6, 1, '2026-04-27 21:16:37', '127.0.0.1', '2026-04-25 16:05:56', '2026-05-03 19:04:18', NULL, 0, '', NULL);
+INSERT INTO `ddz_players` VALUES (5, 'phone_15208384146', '用户41461120', '', 0, 1, 0, NULL, NULL, 10380, 0, 0, 0, 1, 0, 4, 5, 3, 6, 1, '2026-05-13 18:49:03', '127.0.0.1', '2026-04-25 16:05:56', '2026-05-13 18:49:03', NULL, 0, '', NULL);
 INSERT INTO `ddz_players` VALUES (7, 'phone_13999999999', '用户99995055', 'uploads/file/2026/05/06/b6f61982-aae1-4d61-afd2-fbab61193356.jpg', 2, 1, 0, NULL, NULL, 9760, 0, 0, 0, 1, 0, 2, 7, 3, 6, 1, '2026-04-29 10:42:23', '127.0.0.1', '2026-04-29 10:42:23', '2026-05-10 19:04:29', NULL, 0, '', NULL);
 INSERT INTO `ddz_players` VALUES (8, 'phone_13888888888', '用户88886547', '', 0, 1, 0, NULL, NULL, 1000, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, '2026-05-06 21:37:35', '127.0.0.1', '2026-05-06 21:37:35', '2026-05-06 21:37:35', NULL, 0, '', NULL);
 INSERT INTO `ddz_players` VALUES (9, 'robot_1778117063805_6545', '活泼松鼠', '/uploads/file/avatar/avatar_28.jpg', 1, 2, 0, NULL, NULL, 8993, 0, 0, 0, 1, 0, 2, 8, 3, 7, 1, NULL, '', '2026-05-07 09:24:24', '2026-05-10 16:18:16', NULL, 0, '', NULL);
@@ -6456,7 +6542,7 @@ CREATE TABLE `ddz_room_players_202606`  (
   INDEX `idx_room_code`(`room_code` ASC) USING BTREE,
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_joined_at`(`joined_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '房间玩家表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '房间玩家表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_room_players_202606
@@ -6691,7 +6777,7 @@ CREATE TABLE `ddz_rooms_202606`  (
   INDEX `idx_creator_id`(`creator_id` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '房间表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '房间表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_rooms_202606
@@ -6771,7 +6857,7 @@ CREATE TABLE `ddz_tournament_eliminations_202605`  (
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_round_num`(`round_num` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '锦标赛淘汰记录表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '锦标赛淘汰记录表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_tournament_eliminations_202605
@@ -6795,7 +6881,7 @@ CREATE TABLE `ddz_tournament_eliminations_202606`  (
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_round_num`(`round_num` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '锦标赛淘汰记录表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '锦标赛淘汰记录表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_tournament_eliminations_202606
@@ -6853,7 +6939,7 @@ CREATE TABLE `ddz_tournament_rounds_202605`  (
   INDEX `idx_session_id`(`session_id` ASC) USING BTREE,
   INDEX `idx_stage`(`stage` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '锦标赛轮次表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '锦标赛轮次表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_tournament_rounds_202605
@@ -6880,7 +6966,7 @@ CREATE TABLE `ddz_tournament_rounds_202606`  (
   INDEX `idx_session_id`(`session_id` ASC) USING BTREE,
   INDEX `idx_stage`(`stage` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '锦标赛轮次表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '锦标赛轮次表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_tournament_rounds_202606
@@ -6931,7 +7017,7 @@ INSERT INTO `ddz_user_accounts` VALUES (1, 1, '13800138000', '', NULL, NULL, '',
 INSERT INTO `ddz_user_accounts` VALUES (2, 2, '13800138001', '', NULL, NULL, '', '', '', 1, 'qA7bInyI9iVJeJ4ZTA5fjIaMrVwbFKTQ', '2026-05-02 12:11:15', '', NULL, '', 'Unknown', '2026-04-25 12:11:15', '[::1]', 2, 1, '2026-04-25 12:11:06', '2026-04-25 12:11:15', NULL);
 INSERT INTO `ddz_user_accounts` VALUES (3, 3, '13800138003', '', NULL, NULL, '', '', '', 1, 'jNNq8rDPAs7MyuxqymDEJpMPlk8Fl5Nk', '2026-05-02 12:11:20', '', NULL, '', 'Unknown', '2026-04-25 12:11:20', '[::1]', 1, 1, '2026-04-25 12:11:20', '2026-04-25 12:11:20', NULL);
 INSERT INTO `ddz_user_accounts` VALUES (4, 4, '15888888888', '', NULL, NULL, '', '', '', 1, '4lTeqfNxZh3y79yQ8S8x0TLtkiLcfvJ6', '2026-05-18 20:33:22', '', NULL, '', 'iPhone', '2026-05-11 20:33:22', '127.0.0.1', 21, 1, '2026-04-25 15:53:53', '2026-05-11 20:33:22', NULL);
-INSERT INTO `ddz_user_accounts` VALUES (5, 5, '15208384146', '', NULL, NULL, '', '', '', 1, 'K0fLKImDSNABfVAv5HNgf8CZ3AOwj80A', '2026-05-04 21:16:37', '', NULL, '', 'Windows', '2026-04-27 21:16:37', '127.0.0.1', 15, 1, '2026-04-25 16:05:56', '2026-04-27 21:16:37', NULL);
+INSERT INTO `ddz_user_accounts` VALUES (5, 5, '15208384146', '', NULL, NULL, '', '', '', 1, 'YDr5d9mxfnqox5FZgqyHY2UGBuRT7lLo', '2026-05-20 18:49:03', '', NULL, '', 'iPhone', '2026-05-13 18:49:03', '127.0.0.1', 16, 1, '2026-04-25 16:05:56', '2026-05-13 18:49:03', NULL);
 INSERT INTO `ddz_user_accounts` VALUES (6, 7, '13999999999', '', NULL, NULL, '', '', '', 1, 'tTPp0v2CJkFVxEjGnn1L4KYxIdwWJga3', '2026-05-06 10:42:23', '', NULL, '', 'Android', '2026-04-29 10:42:23', '127.0.0.1', 1, 1, '2026-04-29 10:42:23', '2026-04-29 10:42:23', NULL);
 INSERT INTO `ddz_user_accounts` VALUES (7, 8, '13888888888', '', NULL, NULL, '', '', '', 1, 'JVgvFtD7U9T7O4oUMM9XDUgPGNvQJx46', '2026-05-13 21:37:35', '', NULL, '', 'Android', '2026-05-06 21:37:35', '127.0.0.1', 1, 1, '2026-05-06 21:37:35', '2026-05-06 21:37:35', NULL);
 INSERT INTO `ddz_user_accounts` VALUES (8, 9, NULL, '', 'robot_ffdf151f42fb85e3', 'union_e056998b2152a51a', '', '活泼松鼠', '/uploads/file/avatar/avatar_28.jpg', 2, 'WdpuL6OjkfSrC501', '2026-05-14 09:24:24', '', NULL, '', 'robot', '2026-05-07 09:24:24', '', 1, 1, '2026-05-07 09:24:24', '2026-05-07 09:24:24', NULL);
