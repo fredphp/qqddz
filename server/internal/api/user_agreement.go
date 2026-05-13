@@ -1,6 +1,7 @@
 package api
 
 import (
+        "context"
         "database/sql"
         "encoding/json"
         "fmt"
@@ -11,6 +12,12 @@ import (
         "github.com/palemoky/fight-the-landlord/internal/cache"
 
         _ "github.com/go-sql-driver/mysql"
+)
+
+// Redis key 常量
+const (
+        RedisKeyHelpArticleList = "ddz:help_article:list"
+        RedisKeyUserAgreementList = "ddz:user_agreement:list"
 )
 
 // 缓存键前缀
@@ -24,6 +31,13 @@ const (
         // 缓存永不过期，只有后台管理更新数据时才刷新缓存
         // CacheExpirationUserAgreement = 30 * time.Minute
 )
+
+// RedisClient Redis客户端接口
+type RedisClient interface {
+        Get(ctx context.Context, key string) (string, error)
+        Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
+        Del(ctx context.Context, keys ...string) error
+}
 
 // UserAgreement 用户协议模型
 type UserAgreement struct {
@@ -42,6 +56,13 @@ type UserAgreement struct {
 type UserAgreementHandler struct {
         db    *sql.DB
         cache *cache.Cache
+        redis RedisClient
+}
+
+// SetRedis 设置Redis客户端
+func (h *UserAgreementHandler) SetRedis(client RedisClient) {
+        h.redis = client
+        log.Println("✅ UserAgreementHandler Redis客户端已设置")
 }
 
 // NewUserAgreementHandler 创建用户协议处理器
@@ -387,22 +408,43 @@ func (h *UserAgreementHandler) GetLatestHelpArticle(w http.ResponseWriter, r *ht
         writeJSONSuccess(w, article)
 }
 
-// GetHelpArticleList 获取帮助文章列表（带缓存）
+// GetHelpArticleList 获取帮助文章列表（优先从Redis获取）
 func (h *UserAgreementHandler) GetHelpArticleList(w http.ResponseWriter, r *http.Request) {
-        // 尝试从缓存获取
+        // 1. 优先从本地内存缓存获取
         if value, exists := h.cache.Get(CacheKeyHelpArticleList); exists {
                 if articles, ok := value.([]UserAgreement); ok {
+                        log.Println("📖 [帮助文章] 从本地内存缓存获取成功，条数:", len(articles))
                         writeJSONSuccess(w, articles)
                         return
                 }
         }
 
-        // 如果没有数据库连接，返回空数组
+        // 2. 尝试从 Redis 获取
+        if h.redis != nil {
+                ctx := context.Background()
+                data, err := h.redis.Get(ctx, RedisKeyHelpArticleList)
+                if err == nil && data != "" {
+                        var articles []UserAgreement
+                        if err := json.Unmarshal([]byte(data), &articles); err == nil {
+                                // 存入本地缓存
+                                h.cache.Set(CacheKeyHelpArticleList, articles, 0)
+                                log.Println("📖 [帮助文章] 从Redis获取成功，条数:", len(articles))
+                                writeJSONSuccess(w, articles)
+                                return
+                        }
+                        log.Printf("⚠️ [帮助文章] Redis数据解析失败: %v", err)
+                }
+                log.Printf("📖 [帮助文章] Redis获取失败或为空: %v", err)
+        }
+
+        // 3. 如果没有数据库连接，返回空数组
         if h.db == nil {
+                log.Println("📖 [帮助文章] 数据库未配置，返回空数组")
                 writeJSONSuccess(w, []UserAgreement{})
                 return
         }
 
+        // 4. 从数据库查询
         query := `SELECT id, created_at, updated_at, title, content, version, status, sort, type
                           FROM sys_user_agreement
                           WHERE status = 1 AND type = 'help' AND deleted_at IS NULL
@@ -410,8 +452,7 @@ func (h *UserAgreementHandler) GetHelpArticleList(w http.ResponseWriter, r *http
 
         rows, err := h.db.Query(query)
         if err != nil {
-                // 数据库错误（表不存在等），返回空数组而不是报错
-                log.Printf("⚠️ 查询帮助文章失败，返回空数组: %v", err)
+                log.Printf("⚠️ [帮助文章] 数据库查询失败: %v", err)
                 writeJSONSuccess(w, []UserAgreement{})
                 return
         }
@@ -442,9 +483,10 @@ func (h *UserAgreementHandler) GetHelpArticleList(w http.ResponseWriter, r *http
                 articles = []UserAgreement{}
         }
 
-        // 缓存结果
+        // 缓存结果到本地
         h.cache.Set(CacheKeyHelpArticleList, articles, 0)
 
+        log.Println("📖 [帮助文章] 从数据库获取成功，条数:", len(articles))
         writeJSONSuccess(w, articles)
 }
 

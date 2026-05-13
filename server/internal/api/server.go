@@ -96,6 +96,9 @@ func (s *Server) SetRedis(client RedisClient) {
         if s.handler.arena != nil {
                 s.handler.arena.SetRedis(client)
         }
+        if s.handler.agreement != nil {
+                s.handler.agreement.SetRedis(client)
+        }
         log.Println("✅ API服务器Redis客户端已设置")
 }
 
