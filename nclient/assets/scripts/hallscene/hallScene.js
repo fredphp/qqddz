@@ -7541,13 +7541,17 @@ cc.Class({
             var apiUrl = window.defines ? window.defines.apiUrl : '';
             var cryptoKey = window.defines ? window.defines.cryptoKey : '';
 
+            console.log("【帮助弹窗】开始获取帮助内容，apiUrl:", apiUrl);
+
             if (!apiUrl) {
+                console.warn("【帮助弹窗】apiUrl 为空，使用默认内容");
                 self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
                 return;
             }
 
             // 使用列表接口获取所有帮助文章
             var url = apiUrl + '/api/v1/help-article/list';
+            console.log("【帮助弹窗】请求URL:", url);
 
             var xhr = new XMLHttpRequest();
             xhr.open('GET', url, true);
@@ -7555,62 +7559,92 @@ cc.Class({
 
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
+                    console.log("【帮助弹窗】请求完成，状态:", xhr.status);
                     if (xhr.status === 200) {
                         try {
                             var response = JSON.parse(xhr.responseText);
-                            var helpItems = null;
+                            console.log("【帮助弹窗】响应数据:", JSON.stringify(response).substring(0, 500));
 
-                            // 检查是否是加密响应
-                            if (response.data && typeof response.data === 'string') {
-                                // 加密响应，尝试解密
-                                if (window.HttpAPI && window.HttpAPI.decryptResponse) {
-                                    try {
-                                        var decrypted = window.HttpAPI.decryptResponse(response, cryptoKey);
-                                        if (decrypted) {
-                                            // 解密后的数据可能是数组或对象
-                                            if (Array.isArray(decrypted)) {
-                                                helpItems = decrypted;
-                                            } else if (decrypted.data && Array.isArray(decrypted.data)) {
-                                                helpItems = decrypted.data;
-                                            }
+                            // 检查是否是加密响应 (有 data 和 timestamp 字段，且 data 是字符串)
+                            if (response.data && response.timestamp && typeof response.data === 'string') {
+                                console.log("【帮助弹窗】检测到加密响应，准备解密");
+                                // 加密响应，使用 HttpAPI.decryptAESGCM 解密
+                                if (window.HttpAPI && window.HttpAPI.decryptAESGCM) {
+                                    window.HttpAPI.decryptAESGCM(response.data, cryptoKey).then(function(decrypted) {
+                                        console.log("【帮助弹窗】解密成功，数据类型:", typeof decrypted, Array.isArray(decrypted));
+                                        // 解密成功，处理数据
+                                        var helpItems = null;
+                                        if (Array.isArray(decrypted)) {
+                                            helpItems = decrypted;
+                                        } else if (decrypted && decrypted.data && Array.isArray(decrypted.data)) {
+                                            helpItems = decrypted.data;
+                                        } else if (decrypted && Array.isArray(decrypted)) {
+                                            helpItems = decrypted;
                                         }
-                                    } catch (e) {
-                                        console.log("解密失败，使用默认内容");
-                                    }
+
+                                        console.log("【帮助弹窗】解析后helpItems条数:", helpItems ? helpItems.length : 0);
+
+                                        if (helpItems && helpItems.length > 0) {
+                                            var accordionData = helpItems.map(function(item) {
+                                                return {
+                                                    title: item.title || '无标题',
+                                                    content: self._stripHtmlTags(item.content || '')
+                                                };
+                                            });
+                                            console.log("【帮助弹窗】准备显示手风琴数据，条数:", accordionData.length);
+                                            self._showHelpContentFromList(contentContainer, loadingLabel, accordionData);
+                                        } else {
+                                            console.warn("【帮助弹窗】helpItems为空，使用默认内容");
+                                            self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+                                        }
+                                    }).catch(function(err) {
+                                        console.error("【帮助弹窗】解密失败:", err);
+                                        self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+                                    });
+                                } else {
+                                    console.warn("【帮助弹窗】HttpAPI.decryptAESGCM 不可用，使用默认内容");
+                                    self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
                                 }
                             } else if (response.code === 0 && response.data) {
+                                console.log("【帮助弹窗】检测到非加密响应，code=0");
                                 // 未加密响应，data是数组
+                                var helpItems = null;
                                 if (Array.isArray(response.data)) {
                                     helpItems = response.data;
                                 }
-                            }
 
-                            // 将服务端数据转换为手风琴格式
-                            if (helpItems && Array.isArray(helpItems) && helpItems.length > 0) {
-                                var accordionData = helpItems.map(function(item) {
-                                    return {
-                                        title: item.title || '无标题',
-                                        content: self._stripHtmlTags(item.content || '')
-                                    };
-                                });
-                                // 直接传递数组对象，而不是JSON字符串
-                                self._showHelpContentFromList(contentContainer, loadingLabel, accordionData);
+                                console.log("【帮助弹窗】非加密响应helpItems条数:", helpItems ? helpItems.length : 0);
+
+                                if (helpItems && helpItems.length > 0) {
+                                    var accordionData = helpItems.map(function(item) {
+                                        return {
+                                            title: item.title || '无标题',
+                                            content: self._stripHtmlTags(item.content || '')
+                                        };
+                                    });
+                                    console.log("【帮助弹窗】准备显示手风琴数据，条数:", accordionData.length);
+                                    self._showHelpContentFromList(contentContainer, loadingLabel, accordionData);
+                                } else {
+                                    console.warn("【帮助弹窗】helpItems为空，使用默认内容");
+                                    self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+                                }
                             } else {
+                                console.warn("【帮助弹窗】响应格式不正确，code:", response.code, "data:", response.data ? "存在" : "不存在");
                                 self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
                             }
                         } catch (e) {
-                            console.error("解析帮助内容失败:", e);
+                            console.error("【帮助弹窗】解析帮助内容失败:", e);
                             self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
                         }
                     } else {
-                        console.log("获取帮助内容失败，使用默认内容");
+                        console.warn("【帮助弹窗】获取帮助内容失败，状态码:", xhr.status);
                         self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
                     }
                 }
             };
 
             xhr.onerror = function() {
-                console.log("请求失败，使用默认帮助内容");
+                console.error("【帮助弹窗】请求失败，网络错误");
                 self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
             };
 
@@ -7705,15 +7739,20 @@ cc.Class({
     
     // 直接从列表数据显示帮助内容（手风琴效果）
     _showHelpContentFromList: function(container, loadingLabel, helpItems) {
+        console.log("【帮助弹窗】_showHelpContentFromList 被调用，数据条数:", helpItems ? helpItems.length : 0);
+        
         // 移除加载提示
         if (loadingLabel && loadingLabel.parent) {
             loadingLabel.parent = null;
         }
         
         if (!Array.isArray(helpItems) || helpItems.length === 0) {
+            console.warn("【帮助弹窗】helpItems 为空或不是数组，使用默认内容");
             this._showPlainText(container, getDefaultHelpContent());
             return;
         }
+        
+        console.log("【帮助弹窗】第一条数据:", JSON.stringify(helpItems[0]));
         
         // 创建滚动视图容器
         var scrollView = new cc.Node("HelpScrollView");
@@ -7727,9 +7766,11 @@ cc.Class({
         contentNode.anchorY = 1;
         contentNode.y = container.height / 2;
         
+        var self = this;
         var totalHeight = 0;
         var itemHeight = 45;
         var expandedItems = {};  // 记录展开状态
+        var contentBoxes = [];   // 存储所有contentBox引用，用于后续更新高度
         
         // 为每个帮助项创建标题和内容
         helpItems.forEach(function(item, index) {
@@ -7737,14 +7778,22 @@ cc.Class({
             itemNode.width = contentNode.width;
             itemNode.anchorY = 1;
             
-            // 创建标题背景
+            // 创建标题背景 - 使用Graphics绘制确保可见
             var titleBg = new cc.Node("titleBg");
             titleBg.setPosition(0, 0);
-            var bgSprite = titleBg.addComponent(cc.Sprite);
-            bgSprite.spriteFrame = new cc.SpriteFrame(cc.url.raw("resources/ui/setting/btn_bg.png"));
             titleBg.width = contentNode.width - 10;
             titleBg.height = itemHeight;
             titleBg.anchorY = 1;
+            
+            // 使用Graphics绘制背景，确保可见性
+            var bgGraphics = titleBg.addComponent(cc.Graphics);
+            bgGraphics.fillColor = cc.color(60, 55, 75, 255);  // 深紫色背景
+            bgGraphics.roundRect(-titleBg.width/2, -titleBg.height/2, titleBg.width, titleBg.height, 6);
+            bgGraphics.fill();
+            // 添加边框
+            bgGraphics.strokeColor = cc.color(100, 90, 120, 255);
+            bgGraphics.lineWidth = 1;
+            bgGraphics.stroke();
             
             // 创建标题文字
             var titleNode = new cc.Node("title");
@@ -7755,17 +7804,17 @@ cc.Class({
             titleLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
             titleNode.color = cc.color(255, 220, 100);
             titleNode.anchorX = 0;
-            titleNode.x = -contentNode.width / 2 + 30;
-            titleNode.y = -itemHeight / 2 + 5;
+            titleNode.x = -titleBg.width / 2 + 15;
+            titleNode.y = 0;  // 垂直居中
             
             // 创建展开/收缩图标
             var iconNode = new cc.Node("icon");
             var iconLabel = iconNode.addComponent(cc.Label);
             iconLabel.string = "▶";
             iconLabel.fontSize = 14;
-            iconNode.color = cc.color(255, 255, 255);
-            iconNode.x = contentNode.width / 2 - 25;
-            iconNode.y = -itemHeight / 2 + 5;
+            iconNode.color = cc.color(200, 200, 200);
+            iconNode.x = titleBg.width / 2 - 20;
+            iconNode.y = 0;  // 垂直居中
             
             // 创建内容节点（初始隐藏）
             var contentBox = new cc.Node("contentBox");
@@ -7773,22 +7822,39 @@ cc.Class({
             contentBox.width = contentNode.width - 20;
             contentBox.anchorY = 1;
             
+            // 内容背景
+            var contentBg = new cc.Node("contentBg");
+            contentBg.width = contentBox.width;
+            var contentBgGraphics = contentBg.addComponent(cc.Graphics);
+            contentBgGraphics.fillColor = cc.color(45, 42, 55, 200);  // 稍暗的背景
+            contentBgGraphics.roundRect(-contentBg.width/2, -100, contentBg.width, 100, 4);
+            contentBgGraphics.fill();
+            contentBg.anchorY = 1;
+            contentBg.y = 0;
+            contentBg.parent = contentBox;
+            
             var contentLabel = new cc.Node("contentLabel");
             var labelComp = contentLabel.addComponent(cc.Label);
-            labelComp.string = item.content;
+            labelComp.string = item.content || '暂无内容';
             labelComp.fontSize = 14;
             labelComp.lineHeight = 20;
             labelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
             labelComp.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
-            labelComp.wrapWidth = contentBox.width - 20;
+            labelComp.wrapWidth = contentBox.width - 30;
             contentLabel.color = cc.color(220, 220, 220);
             contentLabel.anchorX = 0;
             contentLabel.anchorY = 1;
-            contentLabel.x = -contentBox.width / 2 + 10;
-            contentLabel.y = 0;
-            
+            contentLabel.x = -contentBox.width / 2 + 15;
+            contentLabel.y = -10;  // 留出顶部边距
             contentLabel.parent = contentBox;
-            contentBox.height = labelComp.node.height + 20;
+            
+            // 存储引用，稍后更新高度
+            contentBoxes.push({
+                contentBox: contentBox,
+                labelComp: labelComp,
+                contentBg: contentBg
+            });
+            
             contentBox.active = false;  // 初始隐藏
             
             // 添加点击事件
@@ -7815,8 +7881,8 @@ cc.Class({
                 expandedItems[index] = contentBox.active;
                 
                 // 重新计算布局
-                this._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
-            }.bind(this));
+                self._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
+            });
             
             titleNode.parent = titleBg;
             iconNode.parent = titleBg;
@@ -7825,13 +7891,38 @@ cc.Class({
             itemNode.parent = contentNode;
             
             expandedItems[index] = false;
-        }.bind(this));
+        });
+        
+        // 延迟一帧更新高度，确保Label已计算完成
+        this.scheduleOnce(function() {
+            console.log("【帮助弹窗】延迟更新Label高度");
+            contentBoxes.forEach(function(item) {
+                var actualHeight = item.labelComp.node.height;
+                if (actualHeight > 0) {
+                    item.contentBox.height = actualHeight + 30;  // 上下各留15px边距
+                    // 更新内容背景高度
+                    item.contentBg.height = actualHeight + 30;
+                    // 重绘背景
+                    var g = item.contentBg.getComponent(cc.Graphics);
+                    if (g) {
+                        g.clear();
+                        g.fillColor = cc.color(45, 42, 55, 200);
+                        g.roundRect(-item.contentBg.width/2, -item.contentBg.height, item.contentBg.width, item.contentBg.height, 4);
+                        g.fill();
+                    }
+                }
+            });
+            // 重新计算初始布局
+            self._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
+        }, 0.05);
         
         // 初始布局
         this._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
         
         contentNode.parent = scrollView;
         scrollView.parent = container;
+        
+        console.log("【帮助弹窗】UI创建完成，scrollView已添加到container");
     },
     
     // 显示帮助内容（手风琴效果）
@@ -7986,12 +8077,15 @@ cc.Class({
                 
                 var contentBox = itemNode.getChildByName("contentBox");
                 if (contentBox && expandedItems[index]) {
-                    totalHeight += contentBox.height + 5;
+                    // 使用contentBox的实际高度，如果有的话
+                    var boxHeight = contentBox.height || 50;
+                    totalHeight += boxHeight + 5;
                 }
             }
         });
         
         contentNode.height = totalHeight + 20;
+        console.log("【帮助弹窗】布局更新，总高度:", totalHeight + 20);
     },
     
     // 显示普通文本
