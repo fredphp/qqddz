@@ -5,7 +5,6 @@ import (
 
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	"github.com/shopspring/decimal"
-	"gorm.io/gorm"
 )
 
 // SysUserAgreement 用户协议/单页管理表

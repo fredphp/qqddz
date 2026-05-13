@@ -1,0 +1,23 @@
+[qqddz-admin]2026-05-13 15:07:21.914	[31merror[0m	/opt/qqddz/admin/server/utils/claims.go:49	重新写入cookie token失败,未能成功解析token,请检查请求头是否存在x-token且claims是否为规定结构
+github.com/flipped-aurora/gin-vue-admin/server/utils.GetToken
+	/opt/qqddz/admin/server/utils/claims.go:49
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.JWTAuth.func3
+	/opt/qqddz/admin/server/middleware/jwt.go:19
+github.com/gin-gonic/gin.(*Context).Next
+	/root/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.LoggerWithConfig.func1
+	/root/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/logger.go:249
+github.com/gin-gonic/gin.(*Context).Next
+	/root/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/flipped-aurora/gin-vue-admin/server/initialize.Routers.GinRecovery.func2
+	/opt/qqddz/admin/server/middleware/error.go:78
+github.com/gin-gonic/gin.(*Context).Next
+	/root/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	/root/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	/root/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:3301
+net/http.(*conn).serve
+	/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.2.linux-amd64/src/net/http/server.go:2102

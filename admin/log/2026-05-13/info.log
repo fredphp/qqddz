@@ -1,0 +1,60 @@
+[qqddz-admin]2026-05-13 15:01:13.258	[34minfo[0m	/opt/qqddz/admin/server/initialize/gorm.go:38	auto-migrate is disabled, skipping table registration
+[qqddz-admin]2026-05-13 15:01:13.259	[34minfo[0m	/opt/qqddz/admin/server/initialize/redis.go:35	redis connect ping response:	{"name": "", "pong": "PONG"}
+[qqddz-admin]2026-05-13 15:01:13.259	[34minfo[0m	/opt/qqddz/admin/server/initialize/router.go:61	register swagger handler
+[qqddz-admin]2026-05-13 15:01:13.268	[34minfo[0m	/opt/qqddz/admin/server/initialize/router.go:112	router register success
+[qqddz-admin]2026-05-13 15:01:29.342	[34minfo[0m	/opt/qqddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[qqddz-admin]2026-05-13 15:01:29.342	[34minfo[0m	/opt/qqddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[qqddz-admin]2026-05-13 15:01:29.367	[34minfo[0m	/opt/qqddz/admin/server/initialize/gorm.go:38	auto-migrate is disabled, skipping table registration
+[qqddz-admin]2026-05-13 15:01:29.368	[34minfo[0m	/opt/qqddz/admin/server/initialize/redis.go:35	redis connect ping response:	{"name": "", "pong": "PONG"}
+[qqddz-admin]2026-05-13 15:01:29.368	[34minfo[0m	/opt/qqddz/admin/server/initialize/router.go:61	register swagger handler
+[qqddz-admin]2026-05-13 15:01:29.378	[34minfo[0m	/opt/qqddz/admin/server/initialize/router.go:112	router register success
+[qqddz-admin]2026-05-13 15:05:00.003	[34minfo[0m	/opt/qqddz/admin/server/task/cleanup_stale_rooms.go:86	开始执行清理僵尸房间任务...
+[qqddz-admin]2026-05-13 15:05:00.006	[34minfo[0m	/opt/qqddz/admin/server/task/cleanup_stale_rooms.go:95	清理僵尸房间任务完成	{"duration": 0.002767738}
+[qqddz-admin]2026-05-13 15:07:18.517	[34minfo[0m	/opt/qqddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[qqddz-admin]2026-05-13 15:07:18.518	[34minfo[0m	/opt/qqddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[qqddz-admin]2026-05-13 15:07:18.540	[34minfo[0m	/opt/qqddz/admin/server/initialize/gorm.go:38	auto-migrate is disabled, skipping table registration
+[qqddz-admin]2026-05-13 15:07:18.540	[34minfo[0m	/opt/qqddz/admin/server/initialize/redis.go:35	redis connect ping response:	{"name": "", "pong": "PONG"}
+[qqddz-admin]2026-05-13 15:07:18.541	[34minfo[0m	/opt/qqddz/admin/server/initialize/router.go:61	register swagger handler
+[qqddz-admin]2026-05-13 15:07:18.549	[34minfo[0m	/opt/qqddz/admin/server/initialize/router.go:112	router register success
+[qqddz-admin]2026-05-13 15:07:43.150	[34minfo[0m	/opt/qqddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[qqddz-admin]2026-05-13 15:07:43.151	[34minfo[0m	/opt/qqddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[qqddz-admin]2026-05-13 15:07:43.718	[34minfo[0m	/opt/qqddz/admin/server/initialize/gorm.go:38	auto-migrate is disabled, skipping table registration
+[qqddz-admin]2026-05-13 15:07:43.719	[34minfo[0m	/opt/qqddz/admin/server/initialize/redis.go:35	redis connect ping response:	{"name": "", "pong": "PONG"}
+[qqddz-admin]2026-05-13 15:07:43.719	[34minfo[0m	/opt/qqddz/admin/server/initialize/router.go:61	register swagger handler
+[qqddz-admin]2026-05-13 15:07:43.729	[34minfo[0m	/opt/qqddz/admin/server/initialize/router.go:112	router register success
+[qqddz-admin]2026-05-13 15:10:00.038	[34minfo[0m	/opt/qqddz/admin/server/task/cleanup_stale_rooms.go:86	开始执行清理僵尸房间任务...
+[qqddz-admin]2026-05-13 15:10:00.041	[34minfo[0m	/opt/qqddz/admin/server/task/cleanup_stale_rooms.go:95	清理僵尸房间任务完成	{"duration": 0.002475491}
+[qqddz-admin]2026-05-13 15:15:00.052	[34minfo[0m	/opt/qqddz/admin/server/task/cleanup_stale_rooms.go:86	开始执行清理僵尸房间任务...
+[qqddz-admin]2026-05-13 15:15:00.054	[34minfo[0m	/opt/qqddz/admin/server/task/cleanup_stale_rooms.go:95	清理僵尸房间任务完成	{"duration": 0.00207303}
+[qqddz-admin]2026-05-13 15:20:00.055	[34minfo[0m	/opt/qqddz/admin/server/task/cleanup_stale_rooms.go:86	开始执行清理僵尸房间任务...
+[qqddz-admin]2026-05-13 15:20:00.057	[34minfo[0m	/opt/qqddz/admin/server/task/cleanup_stale_rooms.go:95	清理僵尸房间任务完成	{"duration": 0.002156861}
+[qqddz-admin]2026-05-13 15:22:55.985	[34minfo[0m	/opt/qqddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[qqddz-admin]2026-05-13 15:22:55.985	[34minfo[0m	/opt/qqddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[qqddz-admin]2026-05-13 15:22:56.548	[34minfo[0m	/opt/qqddz/admin/server/initialize/gorm.go:38	auto-migrate is disabled, skipping table registration
+[qqddz-admin]2026-05-13 15:22:56.549	[34minfo[0m	/opt/qqddz/admin/server/initialize/redis.go:35	redis connect ping response:	{"name": "", "pong": "PONG"}
+[qqddz-admin]2026-05-13 15:22:56.549	[34minfo[0m	/opt/qqddz/admin/server/initialize/router.go:61	register swagger handler
+[qqddz-admin]2026-05-13 15:22:56.558	[34minfo[0m	/opt/qqddz/admin/server/initialize/router.go:112	router register success
+[qqddz-admin]2026-05-13 15:23:51.441	[34minfo[0m	/opt/qqddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[qqddz-admin]2026-05-13 15:23:51.441	[34minfo[0m	/opt/qqddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[qqddz-admin]2026-05-13 15:23:52.017	[34minfo[0m	/opt/qqddz/admin/server/initialize/gorm.go:38	auto-migrate is disabled, skipping table registration
+[qqddz-admin]2026-05-13 15:23:52.017	[34minfo[0m	/opt/qqddz/admin/server/initialize/redis.go:35	redis connect ping response:	{"name": "", "pong": "PONG"}
+[qqddz-admin]2026-05-13 15:23:52.018	[34minfo[0m	/opt/qqddz/admin/server/initialize/router.go:61	register swagger handler
+[qqddz-admin]2026-05-13 15:23:52.026	[34minfo[0m	/opt/qqddz/admin/server/initialize/router.go:112	router register success
+[qqddz-admin]2026-05-13 15:23:55.153	[34minfo[0m	/opt/qqddz/admin/server/utils/game_server/game_server.go:78	游戏服务器用户协议缓存已刷新	{"url": "http://127.0.0.1:1781/api/internal/cache/refresh/user-agreement"}
+[qqddz-admin]2026-05-13 15:25:00.004	[34minfo[0m	/opt/qqddz/admin/server/task/cleanup_stale_rooms.go:86	开始执行清理僵尸房间任务...
+[qqddz-admin]2026-05-13 15:25:00.007	[34minfo[0m	/opt/qqddz/admin/server/task/cleanup_stale_rooms.go:95	清理僵尸房间任务完成	{"duration": 0.002319066}
+[qqddz-admin]2026-05-13 15:29:16.916	[34minfo[0m	/opt/qqddz/admin/server/core/server_run.go:48	关闭WEB服务...
+[qqddz-admin]2026-05-13 15:29:16.916	[34minfo[0m	/opt/qqddz/admin/server/core/server_run.go:59	WEB服务已关闭
+[qqddz-admin]2026-05-13 15:29:17.477	[34minfo[0m	/opt/qqddz/admin/server/initialize/gorm.go:38	auto-migrate is disabled, skipping table registration
+[qqddz-admin]2026-05-13 15:29:17.477	[34minfo[0m	/opt/qqddz/admin/server/initialize/redis.go:35	redis connect ping response:	{"name": "", "pong": "PONG"}
+[qqddz-admin]2026-05-13 15:29:17.479	[34minfo[0m	/opt/qqddz/admin/server/initialize/router.go:61	register swagger handler
+[qqddz-admin]2026-05-13 15:29:17.490	[34minfo[0m	/opt/qqddz/admin/server/initialize/router.go:112	router register success
+[qqddz-admin]2026-05-13 15:29:20.616	[34minfo[0m	/opt/qqddz/admin/server/utils/game_server/game_server.go:78	游戏服务器用户协议缓存已刷新	{"url": "http://127.0.0.1:1781/api/internal/cache/refresh/user-agreement"}
+[qqddz-admin]2026-05-13 15:30:00.038	[34minfo[0m	/opt/qqddz/admin/server/task/cleanup_stale_rooms.go:86	开始执行清理僵尸房间任务...
+[qqddz-admin]2026-05-13 15:30:00.041	[34minfo[0m	/opt/qqddz/admin/server/task/cleanup_stale_rooms.go:95	清理僵尸房间任务完成	{"duration": 0.003787968}
+[qqddz-admin]2026-05-13 15:30:18.642	[34minfo[0m	/opt/qqddz/admin/server/utils/game_server/game_server.go:78	游戏服务器用户协议缓存已刷新	{"url": "http://127.0.0.1:1781/api/internal/cache/refresh/user-agreement"}
+[qqddz-admin]2026-05-13 15:30:21.539	[34minfo[0m	/opt/qqddz/admin/server/utils/game_server/game_server.go:78	游戏服务器用户协议缓存已刷新	{"url": "http://127.0.0.1:1781/api/internal/cache/refresh/user-agreement"}
+[qqddz-admin]2026-05-13 15:35:00.038	[34minfo[0m	/opt/qqddz/admin/server/task/cleanup_stale_rooms.go:86	开始执行清理僵尸房间任务...
+[qqddz-admin]2026-05-13 15:35:00.040	[34minfo[0m	/opt/qqddz/admin/server/task/cleanup_stale_rooms.go:95	清理僵尸房间任务完成	{"duration": 0.00213856}
+[qqddz-admin]2026-05-13 15:40:00.041	[34minfo[0m	/opt/qqddz/admin/server/task/cleanup_stale_rooms.go:86	开始执行清理僵尸房间任务...
+[qqddz-admin]2026-05-13 15:40:00.043	[34minfo[0m	/opt/qqddz/admin/server/task/cleanup_stale_rooms.go:95	清理僵尸房间任务完成	{"duration": 0.001878013}

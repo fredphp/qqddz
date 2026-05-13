@@ -4,11 +4,10 @@ import (
 	"strconv"
 
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
-	"github.com/flipped-aurora/gin-vue-admin/server/model/common/request"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/common/response"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/system"
-	"github.com/flipped-aurora/gin-vue-admin/server/model/system/request"
-	"github.com/flipped-aurora/gin-vue-admin/server/utils"
+	sysrequest "github.com/flipped-aurora/gin-vue-admin/server/model/system/request"
+commonrequest "github.com/flipped-aurora/gin-vue-admin/server/model/common/request"
 	"github.com/flipped-aurora/gin-vue-admin/server/utils/game_server"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -23,11 +22,11 @@ type SysUserAgreementApi struct{}
 // @Security ApiKeyAuth
 // @accept application/json
 // @Produce application/json
-// @Param data query request.SysUserAgreementSearch true "分页参数"
+// @Param data query sysrequest.SysUserAgreementSearch true "分页参数"
 // @Success 200 {object} response.Response{data=response.PageResult} "成功"
 // @Router /sysUserAgreement/getSysUserAgreementList [get]
 func (a *SysUserAgreementApi) GetSysUserAgreementList(c *gin.Context) {
-	var req request.SysUserAgreementSearch
+	var req sysrequest.SysUserAgreementSearch
 	if err := c.ShouldBindQuery(&req); err != nil {
 		response.FailWithMessage(err.Error(), c)
 		return
@@ -82,11 +81,11 @@ func (a *SysUserAgreementApi) GetSysUserAgreementList(c *gin.Context) {
 // @Security ApiKeyAuth
 // @accept application/json
 // @Produce application/json
-// @Param data body request.SysUserAgreementCreate true "创建请求"
+// @Param data body sysrequest.SysUserAgreementCreate true "创建请求"
 // @Success 200 {object} response.Response "成功"
 // @Router /sysUserAgreement/createSysUserAgreement [post]
 func (a *SysUserAgreementApi) CreateSysUserAgreement(c *gin.Context) {
-	var req request.SysUserAgreementCreate
+	var req sysrequest.SysUserAgreementCreate
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.FailWithMessage(err.Error(), c)
 		return
@@ -123,11 +122,11 @@ func (a *SysUserAgreementApi) CreateSysUserAgreement(c *gin.Context) {
 // @Security ApiKeyAuth
 // @accept application/json
 // @Produce application/json
-// @Param data body request.SysUserAgreementUpdate true "更新请求"
+// @Param data body sysrequest.SysUserAgreementUpdate true "更新请求"
 // @Success 200 {object} response.Response "成功"
 // @Router /sysUserAgreement/updateSysUserAgreement [put]
 func (a *SysUserAgreementApi) UpdateSysUserAgreement(c *gin.Context) {
-	var req request.SysUserAgreementUpdate
+	var req sysrequest.SysUserAgreementUpdate
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.FailWithMessage(err.Error(), c)
 		return
@@ -181,7 +180,12 @@ func (a *SysUserAgreementApi) UpdateSysUserAgreement(c *gin.Context) {
 // @Success 200 {object} response.Response "成功"
 // @Router /sysUserAgreement/deleteSysUserAgreement [delete]
 func (a *SysUserAgreementApi) DeleteSysUserAgreement(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Query("id"), 10, 64)
+	// 兼容大小写参数
+	idStr := c.Query("ID")
+	if idStr == "" {
+		idStr = c.Query("id")
+	}
+	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
 		response.FailWithMessage("无效的ID", c)
 		return
@@ -205,11 +209,11 @@ func (a *SysUserAgreementApi) DeleteSysUserAgreement(c *gin.Context) {
 // @Security ApiKeyAuth
 // @accept application/json
 // @Produce application/json
-// @Param data body request.IdsReq true "ID列表"
+// @Param data body commonrequest.IdsReq true "ID列表"
 // @Success 200 {object} response.Response "成功"
 // @Router /sysUserAgreement/deleteSysUserAgreementByIds [delete]
 func (a *SysUserAgreementApi) DeleteSysUserAgreementByIds(c *gin.Context) {
-	var req request.IdsReq
+	var req commonrequest.IdsReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.FailWithMessage(err.Error(), c)
 		return
@@ -237,7 +241,12 @@ func (a *SysUserAgreementApi) DeleteSysUserAgreementByIds(c *gin.Context) {
 // @Success 200 {object} response.Response{data=system.SysUserAgreement} "成功"
 // @Router /sysUserAgreement/findSysUserAgreement [get]
 func (a *SysUserAgreementApi) FindSysUserAgreement(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Query("id"), 10, 64)
+	// 兼容大小写参数
+	idStr := c.Query("ID")
+	if idStr == "" {
+		idStr = c.Query("id")
+	}
+	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
 		response.FailWithMessage("无效的ID", c)
 		return
@@ -280,14 +289,36 @@ func (a *SysUserAgreementApi) GetLatestUserAgreement(c *gin.Context) {
 // @Security ApiKeyAuth
 // @accept application/json
 // @Produce application/json
-// @Param data body request.SysUserAgreementStatus true "状态请求"
+// @Param data body sysrequest.SysUserAgreementStatus true "状态请求"
 // @Success 200 {object} response.Response "成功"
 // @Router /sysUserAgreement/setUserAgreementStatus [put]
 func (a *SysUserAgreementApi) SetUserAgreementStatus(c *gin.Context) {
-	var req request.SysUserAgreementStatus
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.FailWithMessage(err.Error(), c)
-		return
+	var req sysrequest.SysUserAgreementStatus
+	
+	// 优先从URL参数获取，如果没有则从JSON请求体获取
+	idStr := c.Query("id")
+	statusStr := c.Query("status")
+	
+	if idStr != "" && statusStr != "" {
+		// 从URL参数获取
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			response.FailWithMessage("无效的ID", c)
+			return
+		}
+		status, err := strconv.Atoi(statusStr)
+		if err != nil {
+			response.FailWithMessage("无效的状态", c)
+			return
+		}
+		req.ID = uint(id)
+		req.Status = status
+	} else {
+		// 从JSON请求体获取
+		if err := c.ShouldBindJSON(&req); err != nil {
+			response.FailWithMessage(err.Error(), c)
+			return
+		}
 	}
 
 	if err := global.GVA_DB.Model(&system.SysUserAgreement{}).Where("id = ?", req.ID).Update("status", req.Status).Error; err != nil {

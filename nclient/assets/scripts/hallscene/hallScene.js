@@ -7667,14 +7667,168 @@ cc.Class({
         });
     },
     
-    // 显示帮助内容
+    // 显示帮助内容（手风琴效果）
     _showHelpContent: function(container, loadingLabel, content) {
         // 移除加载提示
         if (loadingLabel && loadingLabel.parent) {
             loadingLabel.parent = null;
         }
         
-        // 创建内容标签
+        // 尝试解析JSON格式的帮助内容
+        var helpItems = null;
+        try {
+            helpItems = JSON.parse(content);
+        } catch (e) {
+            // 如果不是JSON格式，显示为普通文本
+            this._showPlainText(container, content);
+            return;
+        }
+        
+        if (!Array.isArray(helpItems) || helpItems.length === 0) {
+            this._showPlainText(container, content);
+            return;
+        }
+        
+        // 创建滚动视图容器
+        var scrollView = new cc.Node("HelpScrollView");
+        scrollView.setPosition(0, 0);
+        scrollView.width = container.width;
+        scrollView.height = container.height;
+        
+        // 创建内容容器
+        var contentNode = new cc.Node("view");
+        contentNode.width = container.width - 20;
+        contentNode.anchorY = 1;
+        contentNode.y = container.height / 2;
+        
+        var totalHeight = 0;
+        var itemHeight = 45;
+        var expandedItems = {};  // 记录展开状态
+        
+        // 为每个帮助项创建标题和内容
+        helpItems.forEach(function(item, index) {
+            var itemNode = new cc.Node("item_" + index);
+            itemNode.width = contentNode.width;
+            itemNode.anchorY = 1;
+            
+            // 创建标题背景
+            var titleBg = new cc.Node("titleBg");
+            titleBg.setPosition(0, 0);
+            var bgSprite = titleBg.addComponent(cc.Sprite);
+            bgSprite.spriteFrame = new cc.SpriteFrame(cc.url.raw("resources/ui/setting/btn_bg.png"));
+            titleBg.width = contentNode.width - 10;
+            titleBg.height = itemHeight;
+            titleBg.anchorY = 1;
+            
+            // 创建标题文字
+            var titleNode = new cc.Node("title");
+            var titleLabel = titleNode.addComponent(cc.Label);
+            titleLabel.string = (index + 1) + ". " + item.title;
+            titleLabel.fontSize = 18;
+            titleLabel.lineHeight = 22;
+            titleLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+            titleNode.color = cc.color(255, 220, 100);
+            titleNode.anchorX = 0;
+            titleNode.x = -contentNode.width / 2 + 30;
+            titleNode.y = -itemHeight / 2 + 5;
+            
+            // 创建展开/收缩图标
+            var iconNode = new cc.Node("icon");
+            var iconLabel = iconNode.addComponent(cc.Label);
+            iconLabel.string = "▶";
+            iconLabel.fontSize = 14;
+            iconNode.color = cc.color(255, 255, 255);
+            iconNode.x = contentNode.width / 2 - 25;
+            iconNode.y = -itemHeight / 2 + 5;
+            
+            // 创建内容节点（初始隐藏）
+            var contentBox = new cc.Node("contentBox");
+            contentBox.setPosition(0, -itemHeight);
+            contentBox.width = contentNode.width - 20;
+            contentBox.anchorY = 1;
+            
+            var contentLabel = new cc.Node("contentLabel");
+            var labelComp = contentLabel.addComponent(cc.Label);
+            labelComp.string = item.content;
+            labelComp.fontSize = 14;
+            labelComp.lineHeight = 20;
+            labelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+            labelComp.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
+            labelComp.wrapWidth = contentBox.width - 20;
+            contentLabel.color = cc.color(220, 220, 220);
+            contentLabel.anchorX = 0;
+            contentLabel.anchorY = 1;
+            contentLabel.x = -contentBox.width / 2 + 10;
+            contentLabel.y = 0;
+            
+            contentLabel.parent = contentBox;
+            contentBox.height = labelComp.node.height + 20;
+            contentBox.active = false;  // 初始隐藏
+            
+            // 添加点击事件
+            titleBg.on(cc.Node.EventType.TOUCH_END, function() {
+                var isExpanded = contentBox.active;
+                
+                // 收起所有其他项
+                for (var key in expandedItems) {
+                    if (key != index && expandedItems[key]) {
+                        var otherContent = contentNode.getChildByName("item_" + key);
+                        if (otherContent) {
+                            var otherBox = otherContent.getChildByName("contentBox");
+                            var otherIcon = otherContent.getChildByName("titleBg").getChildByName("icon");
+                            if (otherBox) otherBox.active = false;
+                            if (otherIcon) otherIcon.getComponent(cc.Label).string = "▶";
+                            expandedItems[key] = false;
+                        }
+                    }
+                }
+                
+                // 切换当前项
+                contentBox.active = !isExpanded;
+                iconLabel.string = contentBox.active ? "▼" : "▶";
+                expandedItems[index] = contentBox.active;
+                
+                // 重新计算布局
+                this._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
+            }.bind(this));
+            
+            titleNode.parent = titleBg;
+            iconNode.parent = titleBg;
+            titleBg.parent = itemNode;
+            contentBox.parent = itemNode;
+            itemNode.parent = contentNode;
+            
+            expandedItems[index] = false;
+        }.bind(this));
+        
+        // 初始布局
+        this._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
+        
+        contentNode.parent = scrollView;
+        scrollView.parent = container;
+    },
+    
+    // 重新布局帮助项
+    _relayoutHelpItems: function(contentNode, helpItems, itemHeight, expandedItems) {
+        var totalHeight = 0;
+        helpItems.forEach(function(item, index) {
+            var itemNode = contentNode.getChildByName("item_" + index);
+            if (itemNode) {
+                itemNode.y = -totalHeight;
+                totalHeight += itemHeight + 5;
+                
+                var contentBox = itemNode.getChildByName("contentBox");
+                if (contentBox && expandedItems[index]) {
+                    totalHeight += contentBox.height + 5;
+                }
+            }
+        });
+        
+        contentNode.height = totalHeight + 20;
+    },
+    
+    // 显示普通文本
+    _showPlainText: function(container, content) {
         var contentLabel = new cc.Node("ContentLabel");
         contentLabel.setPosition(0, 0);
         var labelComp = contentLabel.addComponent(cc.Label);
