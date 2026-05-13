@@ -7461,8 +7461,8 @@ cc.Class({
         });
         
         // ==================== 弹窗背景 - 美化样式 ====================
-        var bgWidth = 500;
-        var bgHeight = 480;
+        var bgWidth = 650;  // 加宽弹窗
+        var bgHeight = 520;
         var bgNode = new cc.Node("BgNode");
         bgNode.setPosition(0, 0);
         bgNode.setContentSize(cc.size(bgWidth, bgHeight));
@@ -7783,17 +7783,36 @@ cc.Class({
         
         console.log("【帮助弹窗】第一条数据:", JSON.stringify(helpItems[0]));
         
-        // 创建滚动视图容器
+        // 创建滚动视图容器（添加真正的ScrollView组件实现滚动）
         var scrollView = new cc.Node("HelpScrollView");
         scrollView.setPosition(0, 0);
         scrollView.width = container.width;
         scrollView.height = container.height;
+        scrollView.anchorX = 0.5;
+        scrollView.anchorY = 0.5;
+        
+        // 添加 cc.ScrollView 组件实现真正的滚动功能
+        var scrollViewComp = scrollView.addComponent(cc.ScrollView);
+        scrollViewComp.horizontal = false;  // 禁用水平滚动
+        scrollViewComp.vertical = true;     // 启用垂直滚动
+        scrollViewComp.inertia = true;      // 惯性滚动
+        scrollViewComp.elastic = true;      // 弹性效果
+        scrollViewComp.brake = 0.5;         // 刹车系数
+        
+        // 添加遮罩组件，隐藏超出部分
+        var maskComp = scrollView.addComponent(cc.Mask);
+        maskComp.type = cc.Mask.Type.RECT;
         
         // 创建内容容器
         var contentNode = new cc.Node("view");
         contentNode.width = container.width - 20;
+        contentNode.anchorX = 0.5;
         contentNode.anchorY = 1;
         contentNode.y = container.height / 2;
+        contentNode.x = 0;
+        
+        // 设置 ScrollView 的 content 属性
+        scrollViewComp.content = contentNode;
         
         var self = this;
         var totalHeight = 0;
@@ -8098,23 +8117,29 @@ cc.Class({
     // 重新布局帮助项
     _relayoutHelpItems: function(contentNode, helpItems, itemHeight, expandedItems) {
         var totalHeight = 0;
+        var gap = 8;  // 项目间距
+        
         helpItems.forEach(function(item, index) {
             var itemNode = contentNode.getChildByName("item_" + index);
             if (itemNode) {
+                // 设置当前项的Y位置
                 itemNode.y = -totalHeight;
-                totalHeight += itemHeight + 5;
+                totalHeight += itemHeight + gap;
                 
                 var contentBox = itemNode.getChildByName("contentBox");
                 if (contentBox && expandedItems[index]) {
-                    // 使用contentBox的实际高度，如果有的话
-                    var boxHeight = contentBox.height || 50;
-                    totalHeight += boxHeight + 5;
+                    // 获取内容实际高度
+                    var boxHeight = contentBox.height || 80;
+                    // 更新contentBox位置（紧跟在标题下方）
+                    contentBox.y = -itemHeight - 5;
+                    totalHeight += boxHeight + gap;
                 }
             }
         });
         
-        contentNode.height = totalHeight + 20;
-        console.log("【帮助弹窗】布局更新，总高度:", totalHeight + 20);
+        // 更新内容容器高度，确保最小高度
+        contentNode.height = Math.max(totalHeight + 20, 100);
+        console.log("【帮助弹窗】布局更新，总高度:", contentNode.height);
     },
     
     // 显示普通文本
