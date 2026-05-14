@@ -1776,10 +1776,17 @@ cc.Class({
         // 🔧【新增】监听竞技场比赛开始通知
         if (socket && socket.onArenaMatchStart) {
             socket.onArenaMatchStart(function(data) {
+                console.log("🏆 [Arena] 收到 arena_match_start 消息:", JSON.stringify(data));
                 if (self.node && self.node.isValid) {
+                    console.log("🏆 [Arena] 节点有效，准备显示弹窗");
                     self._onArenaMatchStart(data);
+                } else {
+                    console.warn("🏆 [Arena] 节点无效，无法显示弹窗");
                 }
             });
+            console.log("🏟️ [Arena] 已注册 onArenaMatchStart 监听器");
+        } else {
+            console.warn("🏟️ [Arena] socket 或 onArenaMatchStart 方法不可用");
         }
 
         // 🔧【新增】监听竞技场关闭弹窗通知（新期号开始时关闭上一轮弹窗）
@@ -1805,6 +1812,7 @@ cc.Class({
     // 🔧【新增】处理竞技场比赛开始通知
     _onArenaMatchStart: function(data) {
         var self = this;
+        console.log("🏆 [Arena] _onArenaMatchStart 开始处理，data:", JSON.stringify(data));
         
         // 🔧【修复】先关闭之前可能存在的弹窗
         this._closeArenaMatchStartDialog();
@@ -1813,6 +1821,7 @@ cc.Class({
         this._currentMatchData = data;
         
         // 弹出进入游戏弹窗
+        console.log("🏆 [Arena] 准备调用 _showArenaMatchStartDialog");
         this._showArenaMatchStartDialog(data);
     },
     

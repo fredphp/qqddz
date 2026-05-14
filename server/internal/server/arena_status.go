@@ -307,14 +307,19 @@ func (b *ArenaStatusBroadcaster) handlePeriodChange(roomID uint64, oldPeriodNo, 
         b.processedPeriodsMu.Lock()
         defer b.processedPeriodsMu.Unlock()
 
+        // 🔧【调试】添加日志
+        log.Printf("[ArenaStatus] 🔄 期号变化: roomID=%d, oldPeriodNo=%s, newPeriodNo=%s", roomID, oldPeriodNo, newPeriodNo)
+
         // 检查是否已处理过这个新期号
         if lastProcessed, exists := b.processedPeriods[roomID]; exists && lastProcessed == newPeriodNo {
+                log.Printf("[ArenaStatus] ⚠️ 期号 %s 已处理过，跳过", newPeriodNo)
                 return
         }
 
         // 获取期号缓存信息
         periodInfo := b.getPeriodCache(roomID)
         if periodInfo == nil {
+                log.Printf("[ArenaStatus] ⚠️ 无法获取期号缓存信息: roomID=%d", roomID)
                 return
         }
 
@@ -323,6 +328,7 @@ func (b *ArenaStatusBroadcaster) handlePeriodChange(roomID uint64, oldPeriodNo, 
                 // 🔧【新增】在结算之前，先获取上一期的报名玩家并发送比赛开始通知
                 // 获取上一期的报名玩家列表
                 signupPlayers := b.GetSignupList(oldPeriodNo)
+                log.Printf("[ArenaStatus] 📋 获取报名列表: oldPeriodNo=%s, 报名人数=%d", oldPeriodNo, len(signupPlayers))
                 
                 // 🔧【重构】如果报名人数不是3的倍数，自动添加机器人补位
                 // 例如：31人 -> 补2个机器人 -> 33人（11桌）
@@ -338,19 +344,25 @@ func (b *ArenaStatusBroadcaster) handlePeriodChange(roomID uint64, oldPeriodNo, 
                                 robots := b.fillRobotsToSignupList(oldPeriodNo, roomID, fillCount)
                                 if len(robots) > 0 {
                                         signupPlayers = append(signupPlayers, robots...)
+                                        log.Printf("[ArenaStatus] 🤖 添加 %d 个机器人补位", len(robots))
                                 }
                         }
                 }
                 
                 if len(signupPlayers) > 0 {
+                        log.Printf("[ArenaStatus] 🚀 开始发送比赛开始通知: roomID=%d, periodNo=%s, 总人数=%d", roomID, oldPeriodNo, len(signupPlayers))
                         // 发送比赛开始通知给已报名玩家
                         b.sendMatchStartNotification(roomID, oldPeriodNo, signupPlayers)
+                } else {
+                        log.Printf("[ArenaStatus] ⚠️ 报名列表为空，不发送比赛开始通知")
                 }
 
                 b.queue.PushPeriodFinalize(PeriodFinalizeData{
                         PeriodNo: oldPeriodNo,
                         RoomID:   roomID,
                 })
+        } else {
+                log.Printf("[ArenaStatus] ℹ️ 没有上一期，跳过结算")
         }
 
         // 2. 创建新期号记录
@@ -639,17 +651,35 @@ func (b *ArenaStatusBroadcaster) sendMatchStartPopup(roomID uint64, periodNo str
 
         msg := codec.MustNewMessage(protocol.MsgArenaMatchStart, payload)
 
+        // 🔧【调试】添加日志
+        log.Printf("[ArenaStatus] 📢 发送比赛开始弹窗: periodNo=%s, roomID=%d, realPlayers=%v", periodNo, roomID, realPlayers)
+
         // 发送给所有在线的真人玩家
         b.server.clientsMu.RLock()
+        sentCount := 0
         for _, playerID := range realPlayers {
+                found := false
                 for _, client := range b.server.clients {
-                        if client.PlayerID == playerID && client.GetRoom() == "" {
-                                client.SendMessage(msg)
+                        if client.PlayerID == playerID {
+                                found = true
+                                roomCode := client.GetRoom()
+                                log.Printf("[ArenaStatus] 📢 检查玩家 %d: 在线=%v, 当前房间='%s'", playerID, true, roomCode)
+                                if roomCode == "" {
+                                        client.SendMessage(msg)
+                                        sentCount++
+                                        log.Printf("[ArenaStatus] ✅ 已发送弹窗给玩家 %d", playerID)
+                                } else {
+                                        log.Printf("[ArenaStatus] ⚠️ 玩家 %d 当前在房间 '%s'，跳过发送", playerID, roomCode)
+                                }
                                 break
                         }
                 }
+                if !found {
+                        log.Printf("[ArenaStatus] ⚠️ 玩家 %d 不在线，无法发送弹窗", playerID)
+                }
         }
         b.server.clientsMu.RUnlock()
+        log.Printf("[ArenaStatus] 📢 弹窗发送完成: 成功发送 %d 个", sentCount)
 }
 
 // 🔧【重构】为一桌玩家创建房间并开始游戏
