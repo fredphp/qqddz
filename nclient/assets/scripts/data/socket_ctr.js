@@ -29,7 +29,7 @@ window.socketCtr = function(){
     var _heartbeatInterval = null      // 心跳定时器
     var _heartbeatTimeout = null       // 心跳超时定时器
     var _heartbeatIntervalMs = 30000   // 心跳间隔（30秒）
-    var _heartbeatTimeoutMs = 10000    // 心跳超时时间（10秒）
+    var _heartbeatTimeoutMs = 20000    // 🔧【修复】心跳超时时间（20秒）- 避免过于敏感
     var _lastHeartbeatTime = 0         // 上次心跳时间
     var _missedHeartbeats = 0          // 连续丢失的心跳次数
     var _maxMissedHeartbeats = 3       // 最大允许丢失的心跳次数
@@ -1514,16 +1514,19 @@ window.socketCtr = function(){
 
         document.addEventListener('visibilitychange', _pageVisibilityHandler)
 
-        // 定期检查连接状态（每30秒）
+        // 🔧【修复】定期检查连接状态（每60秒）
+        // 避免过于频繁的检查导致不必要的重连
         _backgroundCheckInterval = setInterval(function() {
             if (document.visibilityState === 'visible') {
                 // 页面可见时检查连接
                 if (!_socket || _socket.readyState !== WebSocket.OPEN) {
-                    console.log("🔄 [BackgroundCheck] 检测到连接断开，尝试重连...")
-                    _autoReconnect()
+                    // 🔧【修复】只在心跳机制检测到问题时才重连
+                    // 不要主动触发重连，让心跳机制处理
+                    // 这样可以避免过度敏感的重连
+                    console.log("🔄 [BackgroundCheck] 检测到连接断开，等待心跳机制处理...")
                 }
             }
-        }, 30000)
+        }, 60000)
     }
 
     /**

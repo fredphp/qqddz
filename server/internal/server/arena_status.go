@@ -2040,3 +2040,66 @@ func (b *ArenaStatusBroadcaster) ForceBroadcastRoomNow(roomID uint64) {
 
         log.Printf("✅ [ForceBroadcastRoomNow] 广播完成，房间 %d 报名人数=%d", roomID, targetStatus.TotalPlayers)
 }
+
+// 🔧【新增】OnPlayerReconnect 处理玩家重连时的竞技场状态恢复
+// 当玩家断线重连时，检查是否有未处理的竞技场进入阶段，并发送相应的弹窗消息
+func (b *ArenaStatusBroadcaster) OnPlayerReconnect(playerID uint64, client types.ClientInterface) {
+        b.enterPhasesMu.RLock()
+        defer b.enterPhasesMu.RUnlock()
+
+        // 遍历所有进入阶段，查找该玩家
+        for periodNo, enterPhase := range b.enterPhases {
+                status, exists := enterPhase.PlayerStatuses[playerID]
+                if !exists {
+                        continue
+                }
+
+                // 玩家已报名但未进入且未取消
+                if !status.HasEntered && !status.HasCancelled && !status.IsRobot {
+                        log.Printf("[ArenaStatus] 🔄 玩家 %d 重连，恢复竞技场弹窗: periodNo=%s", playerID, periodNo)
+
+                        // 获取房间配置
+                        roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
+                        if err != nil {
+                                log.Printf("[ArenaStatus] ⚠️ 获取房间配置失败: %v", err)
+                                continue
+                        }
+
+                        // 计算剩余倒计时
+                        elapsed := time.Since(enterPhase.StartTime)
+                        remaining := enterPhase.Countdown - int(elapsed.Seconds())
+                        if remaining < 0 {
+                                remaining = 0
+                        }
+
+                        // 计算总轮次
+                        var rules tournament.EliminationRules
+                        if roomConfig.EliminationRules != "" {
+                                if err := json.Unmarshal([]byte(roomConfig.EliminationRules), &rules); err != nil {
+                                        rules = tournament.EliminationRules{60, 30, 18, 9, 3}
+                                }
+                        } else {
+                                rules = tournament.EliminationRules{60, 30, 18, 9, 3}
+                        }
+                        totalRounds := rules.GetTotalRounds(len(enterPhase.PlayerStatuses))
+
+                        // 发送弹窗消息
+                        payload := &protocol.ArenaMatchStartPayload{
+                                PeriodNo:      periodNo,
+                                RoomID:        enterPhase.RoomID,
+                                RoomName:      roomConfig.RoomName,
+                                RoomConfigID:  enterPhase.RoomID,
+                                SignupFee:     enterPhase.SignupFee,
+                                TotalPlayers:  len(enterPhase.PlayerStatuses),
+                                MatchDuration: PeriodTotalMinutes,
+                                MatchRounds:   totalRounds,
+                                Countdown:     remaining,
+                                Message:       "比赛正在进行中，请点击进入！",
+                        }
+
+                        client.SendMessage(codec.MustNewMessage(protocol.MsgArenaMatchStart, payload))
+                        log.Printf("[ArenaStatus] ✅ 已发送竞技场弹窗给重连玩家 %d, periodNo=%s, countdown=%d", playerID, periodNo, remaining)
+                        return // 只处理第一个找到的进入阶段
+                }
+        }
+}
