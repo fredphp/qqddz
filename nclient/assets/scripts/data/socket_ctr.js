@@ -152,6 +152,7 @@ window.socketCtr = function(){
         ARENA_WAITING_STATUS: "arena_waiting_status",    // 等待阶段状态推送
         ARENA_WAITING_TICK: "arena_waiting_tick",        // 等待阶段倒计时更新
         ARENA_ASSIGN_START: "arena_assign_start",       // 分配阶段开始
+        ARENA_CHAMPION_BROADCAST: "arena_champion_broadcast", // 🏆 冠军跑马灯广播
     }
 
     // 发送消息
@@ -734,6 +735,25 @@ window.socketCtr = function(){
                 })
                 break
                 
+            // 🏆 冠军跑马灯广播
+            case MessageType.ARENA_CHAMPION_BROADCAST:
+                console.log("🏆 [Arena] 收到冠军跑马灯广播:", JSON.stringify(data));
+                evt.fire("arena_champion_broadcast_notify", {
+                    period_no: data.period_no || "",
+                    room_id: data.room_id || 0,
+                    room_name: data.room_name || "竞技场",
+                    champion_id: data.champion_id || 0,
+                    champion_name: data.champion_name || "",
+                    champion_avatar: data.champion_avatar || "",
+                    runner_up_name: data.runner_up_name || "",
+                    third_name: data.third_name || "",
+                    total_players: data.total_players || 0,
+                    match_coin: data.match_coin || 0,
+                    message: data.message || "",
+                    timestamp: data.timestamp || 0
+                })
+                break
+            
             default:
                 evt.fire(type, data)
         }
@@ -1590,6 +1610,13 @@ window.socketCtr = function(){
     that.onArenaReconnectState = function(callback){
         var evt = _getEvent()
         if (evt) evt.on("arena_reconnect_state_notify", callback)
+    }
+
+
+    // 🏆 监听冠军跑马灯广播
+    that.onArenaChampionBroadcast = function(callback){
+        var evt = that.getEvt()
+        if (evt) evt.on("arena_champion_broadcast_notify", callback)
     }
 
     // ============================================================
