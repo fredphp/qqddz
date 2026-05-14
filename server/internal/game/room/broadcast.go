@@ -60,7 +60,7 @@ func (r *Room) PreloadArenaGold() {
                 return
         }
 
-        for playerID, player := range r.Players {
+        for _, player := range r.Players {
                 if player == nil || player.Client == nil {
                         continue
                 }
