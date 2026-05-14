@@ -731,13 +731,22 @@ type ArenaAutoReadyPayload struct {
 
 // ArenaReconnectStatePayload 竞技场断线重连状态恢复
 // 玩家断线重连时，服务端发送此消息恢复当前状态
+// [Enhanced] Added more fields for complete state recovery
 type ArenaReconnectStatePayload struct {
-        Phase       string `json:"phase"`        // 当前阶段: "settlement"/"countdown"/"playing"
-        PeriodNo    string `json:"period_no"`    // 当前期号
-        RoomID      uint64 `json:"room_id"`      // 房间配置ID
-        Round       int    `json:"round"`        // 当前轮次
-        Countdown   int    `json:"countdown"`    // 剩余倒计时秒数（如果phase是countdown）
-        Message     string `json:"message"`      // 提示消息
+        Phase          string `json:"phase"`           // Current phase
+        PeriodNo       string `json:"period_no"`       // Period number
+        RoomID         uint64 `json:"room_id"`         // Room config ID
+        RoomName       string `json:"room_name"`       // Room name
+        Round          int    `json:"round"`           // Current round
+        TotalRounds    int    `json:"total_rounds"`    // Total rounds
+        Countdown      int    `json:"countdown"`       // Remaining countdown
+        ArenaGold      int64  `json:"arena_gold"`      // Arena gold
+        TableID        int    `json:"table_id"`        // Table number
+        RoomCode       string `json:"room_code"`       // Room code
+        TotalPlayers   int    `json:"total_players"`   // Total players
+        MyRank         int    `json:"my_rank"`         // My rank
+        IsEliminated   bool   `json:"is_eliminated"`   // Is eliminated
+        Message        string `json:"message"`         // Message
 }
 
 // ArenaMatchEndPayload 竞技场比赛结束通知

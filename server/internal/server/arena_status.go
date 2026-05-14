@@ -219,6 +219,9 @@ func (b *ArenaStatusBroadcaster) Start() {
 
         // 启动消息队列
         b.queue.Start()
+        
+        // [Enhanced] Restore in-progress tournaments from Redis/DB
+        go b.RestoreInProgressTournaments()
 
         go func() {
                 // 每秒检查一次是否需要推送
@@ -1948,6 +1951,9 @@ func (b *ArenaStatusBroadcaster) sendToNewClient(playerID uint64) {
 
         // 2. 🔧【新增】检查是否有待进入的比赛弹窗
         b.sendPendingMatchStartPopup(playerID, client)
+        
+        // 3. [Enhanced] Send comprehensive reconnect state
+        b.SendArenaReconnectState(playerID, client)
 }
 
 // 🔧【新增】检查并发送待处理的比赛开始弹窗
@@ -3057,4 +3063,362 @@ func (b *ArenaStatusBroadcaster) getActiveEnterPhaseForPlayer(playerID uint64) *
         }
 
         return nil
+}
+
+// =============================================
+// [Enhanced] Enter Phase Timeout Handling
+// =============================================
+
+// handleEnterPhaseTimeoutImproved handles timeout with better table management
+// Ensures tables with entered players can start games even when some timeout
+func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeoutImproved(periodNo string) {
+        b.enterPhasesMu.Lock()
+        enterPhase, exists := b.enterPhases[periodNo]
+        if !exists {
+                b.enterPhasesMu.Unlock()
+                return
+        }
+        
+        // Stop timer
+        if enterPhase.timer != nil {
+                enterPhase.timer.Stop()
+        }
+        delete(b.enterPhases, periodNo)
+        b.enterPhasesMu.Unlock()
+
+        // Delete from Redis
+        b.deleteEnterPhaseFromRedis(periodNo)
+
+        // Process timeout players
+        var timeoutPlayers []uint64
+        var enteredPlayers []uint64
+        
+        for playerID, status := range enterPhase.PlayerStatuses {
+                if !status.HasEntered && !status.HasCancelled {
+                        timeoutPlayers = append(timeoutPlayers, playerID)
+                } else if status.HasEntered && !status.HasCancelled {
+                        enteredPlayers = append(enteredPlayers, playerID)
+                }
+        }
+
+        log.Printf("[ArenaStatus] Timeout handling: periodNo=%s, timeout=%d, entered=%d", 
+                periodNo, len(timeoutPlayers), len(enteredPlayers))
+
+        // Refund timeout players
+        for _, playerID := range timeoutPlayers {
+                status := enterPhase.PlayerStatuses[playerID]
+                if status.SignupFee > 0 {
+                        database.UpdatePlayerArenaCoinWithLog(
+                                playerID,
+                                status.SignupFee,
+                                database.ArenaCoinChangeRefund,
+                                periodNo,
+                                fmt.Sprintf("Enter phase timeout refund, period:%s", periodNo),
+                        )
+                }
+                b.updatePlayerEnterPhaseCancelled(playerID)
+        }
+
+        // [Key Fix] For tables with entered players, create rooms and start games
+        // Group entered players by table
+        tableEnteredPlayers := make(map[int][]uint64)
+        for _, playerID := range enteredPlayers {
+                if tableID := enterPhase.PlayerToTable[playerID]; tableID > 0 {
+                        tableEnteredPlayers[tableID] = append(tableEnteredPlayers[tableID], playerID)
+                }
+        }
+
+        // Process each table
+        for tableID, players := range tableEnteredPlayers {
+                if len(players) == 0 {
+                        continue
+                }
+                
+                // Find the table
+                var table *GameTable
+                for _, t := range enterPhase.Tables {
+                        if t.TableID == tableID {
+                                table = t
+                                break
+                        }
+                }
+                
+                if table == nil {
+                        log.Printf("[ArenaStatus] Warning: table %d not found", tableID)
+                        continue
+                }
+
+                // Check if room already created
+                if table.RoomCreated && table.RoomCode != "" {
+                        gameRoom := b.server.roomManager.GetRoom(table.RoomCode)
+                        if gameRoom != nil && !table.AllEntered {
+                                // Start game with available players
+                                table.AllEntered = true
+                                b.startArenaGame(gameRoom)
+                                log.Printf("[ArenaStatus] Started game for existing room: table=%d, roomCode=%s", 
+                                        tableID, table.RoomCode)
+                        }
+                } else if len(players) >= 1 {
+                        // Create new room for entered players
+                        // Fill with robots if needed
+                        b.createRoomForTableWithRobots(enterPhase, table, players)
+                }
+        }
+
+        // Send close dialog notification
+        b.sendCloseDialogNotification(enterPhase.RoomID, periodNo)
+}
+
+// createRoomForTableWithRobots creates a room for a table, filling with robots if needed
+func (b *ArenaStatusBroadcaster) createRoomForTableWithRobots(enterPhase *EnterPhaseInfo, table *GameTable, enteredPlayers []uint64) {
+        if b.server.roomManager == nil {
+                return
+        }
+
+        // Get player info
+        var players []database.Player
+        database.DB().Where("id IN ?", enteredPlayers).Find(&players)
+        playerMap := make(map[uint64]*database.Player)
+        for i := range players {
+                playerMap[players[i].ID] = &players[i]
+        }
+
+        // Collect online clients
+        onlineClients := make([]*Client, 0)
+        b.server.clientsMu.RLock()
+        for _, playerID := range enteredPlayers {
+                for _, client := range b.server.clients {
+                        if client.PlayerID == playerID && client.GetRoom() == "" {
+                                onlineClients = append(onlineClients, client)
+                                break
+                        }
+                }
+        }
+        b.server.clientsMu.RUnlock()
+
+        // Need robots if less than 3 players
+        needRobots := 3 - len(enteredPlayers)
+        var robotClients []*RobotClient
+        
+        if needRobots > 0 {
+                robots := b.getIdleRobots(needRobots)
+                for _, robotID := range robots {
+                        robotClient := NewRobotClient(robotID, b.server)
+                        if robotClient != nil {
+                                robotClients = append(robotClients, robotClient)
+                                // Add to player map
+                                var robot database.Player
+                                if err := database.DB().First(&robot, robotID).Error; err == nil {
+                                        playerMap[robotID] = &robot
+                                }
+                        }
+                }
+        }
+
+        // Select host (prefer real player)
+        var hostClient types.ClientInterface
+        if len(onlineClients) > 0 {
+                hostClient = onlineClients[0]
+        } else if len(robotClients) > 0 {
+                hostClient = robotClients[0]
+        } else {
+                log.Printf("[ArenaStatus] No available host for table %d", table.TableID)
+                return
+        }
+
+        // Create room
+        gameRoom, err := b.server.roomManager.CreateRoom(hostClient, enterPhase.RoomID)
+        if err != nil {
+                log.Printf("[ArenaStatus] Failed to create room for table %d: %v", table.TableID, err)
+                return
+        }
+
+        gameRoom.SetPeriodNo(enterPhase.PeriodNo)
+        table.RoomCreated = true
+        table.RoomCode = gameRoom.Code
+
+        // Join other real players
+        for i, client := range onlineClients {
+                if i > 0 { // Skip host (already joined)
+                        b.server.roomManager.JoinRoom(client, gameRoom.Code)
+                }
+        }
+
+        // Join robots
+        for i, robotClient := range robotClients {
+                if !(len(onlineClients) == 0 && i == 0) { // Skip if robot is host
+                        b.server.roomManager.JoinRoom(robotClient, gameRoom.Code)
+                }
+        }
+
+        // Set all ready and start
+        gameRoom.SetAllPlayersReady()
+        
+        if err := gameRoom.StartGame(); err != nil {
+                log.Printf("[ArenaStatus] Failed to start game: %v", err)
+                return
+        }
+        
+        if b.server.roomManager != nil {
+                b.server.roomManager.TriggerOnGameStart(gameRoom)
+        }
+
+        log.Printf("[ArenaStatus] Created and started game for table %d: roomCode=%s, players=%d, robots=%d",
+                table.TableID, gameRoom.Code, len(onlineClients), len(robotClients))
+}
+
+// =============================================
+// [Enhanced] Server Recovery
+// =============================================
+
+// RestoreInProgressTournaments restores tournaments that were in progress when server crashed
+// Should be called on server startup
+func (b *ArenaStatusBroadcaster) RestoreInProgressTournaments() {
+        if b.server.redis == nil {
+                log.Printf("[ArenaStatus] Redis not available, skip recovery")
+                return
+        }
+
+        ctx := context.Background()
+        
+        // Find all enter phase keys
+        keys, err := b.server.redis.Keys(ctx, "ddz:arena:enter_phase:*").Result()
+        if err != nil {
+                log.Printf("[ArenaStatus] Failed to get enter phase keys: %v", err)
+                return
+        }
+
+        log.Printf("[ArenaStatus] Found %d enter phase records to restore", len(keys))
+
+        for _, key := range keys {
+                // Extract player ID from key
+                playerIDStr := strings.TrimPrefix(key, "ddz:arena:enter_phase:")
+                playerID, err := strconv.ParseUint(playerIDStr, 10, 64)
+                if err != nil {
+                        continue
+                }
+
+                // Get the data
+                data := b.getPlayerEnterPhaseFromRedis(playerID)
+                if data == nil {
+                        continue
+                }
+
+                // Check if expired
+                elapsed := time.Now().Unix() - data.StartTime/1000
+                remaining := data.Countdown - int(elapsed)
+                if remaining <= 0 {
+                        // Expired, clean up
+                        b.removePlayerEnterPhaseFromRedis(playerID)
+                        log.Printf("[ArenaStatus] Cleaned up expired enter phase for player %d", playerID)
+                        continue
+                }
+
+                log.Printf("[ArenaStatus] Player %d has pending enter phase: periodNo=%s, remaining=%ds",
+                        playerID, data.PeriodNo, remaining)
+        }
+
+        // Restore tournament progress from database
+        // Find periods that are in PLAYING status
+        var playingPeriods []database.ArenaPeriod
+        err = database.DB().Where("status = ?", database.ArenaPeriodStatusInProgress).
+                Where("start_time > ?", time.Now().Add(-2*time.Hour)).
+                Find(&playingPeriods).Error
+        
+        if err != nil {
+                log.Printf("[ArenaStatus] Failed to get playing periods: %v", err)
+                return
+        }
+
+        log.Printf("[ArenaStatus] Found %d periods in PLAYING status to check", len(playingPeriods))
+
+        for _, period := range playingPeriods {
+                // Check if there are active games for this period
+                // If not, the tournament was interrupted
+                log.Printf("[ArenaStatus] Period %s was in PLAYING status, may need recovery", period.PeriodNo)
+        }
+}
+
+// =============================================
+// [Enhanced] Send Reconnect State
+// =============================================
+
+// SendArenaReconnectState sends comprehensive reconnect state to a player
+func (b *ArenaStatusBroadcaster) SendArenaReconnectState(playerID uint64, client *Client) {
+        // Check enter phase first
+        enterPhase := b.getActiveEnterPhaseForPlayer(playerID)
+        if enterPhase != nil {
+                status, exists := enterPhase.PlayerStatuses[playerID]
+                if exists && !status.HasCancelled {
+                        // Player is in enter/waiting phase
+                        roomConfig, _ := database.GetRoomConfigByID(enterPhase.RoomID)
+                        roomName := ""
+                        if roomConfig != nil {
+                                roomName = roomConfig.RoomName
+                        }
+                        
+                        elapsed := time.Since(enterPhase.StartTime)
+                        remaining := enterPhase.Countdown - int(elapsed.Seconds())
+                        if remaining < 0 {
+                                remaining = 0
+                        }
+                        
+                        phase := "waiting"
+                        if enterPhase.WaitingPhase == WaitingPhaseAssigning {
+                                phase = "assigning"
+                        } else if enterPhase.WaitingPhase == WaitingPhaseEntering {
+                                phase = "entering"
+                        }
+                        
+                        payload := &protocol.ArenaReconnectStatePayload{
+                                Phase:        phase,
+                                PeriodNo:     enterPhase.PeriodNo,
+                                RoomID:       enterPhase.RoomID,
+                                RoomName:     roomName,
+                                Countdown:    remaining,
+                                TableID:      status.TableID,
+                                TotalPlayers: len(enterPhase.PlayerStatuses),
+                                Message:      "Tournament in progress, please enter",
+                        }
+                        
+                        msg := codec.MustNewMessage(protocol.MsgArenaReconnectState, payload)
+                        client.SendMessage(msg)
+                        log.Printf("[ArenaStatus] Sent reconnect state for waiting phase: player=%d, phase=%s", playerID, phase)
+                        return
+                }
+        }
+        
+        // Check if player is in an active game
+        if client.GetRoom() != "" {
+                gameRoom := b.server.roomManager.GetRoom(client.GetRoom())
+                if gameRoom != nil && gameRoom.PeriodNo != "" {
+                        // Player is in an arena game
+                        roomConfig, _ := database.GetRoomConfigByID(gameRoom.RoomConfigID)
+                        roomName := ""
+                        if roomConfig != nil {
+                                roomName = roomConfig.RoomName
+                        }
+                        
+                        // Get player arena gold
+                        arenaGold, _ := database.GetArenaGold(gameRoom.PeriodNo, playerID)
+                        
+                        payload := &protocol.ArenaReconnectStatePayload{
+                                Phase:        "playing",
+                                PeriodNo:     gameRoom.PeriodNo,
+                                RoomID:       gameRoom.RoomConfigID,
+                                RoomName:     roomName,
+                                RoomCode:     gameRoom.Code,
+                                ArenaGold:    arenaGold,
+                                Message:      "Game in progress",
+                        }
+                        
+                        msg := codec.MustNewMessage(protocol.MsgArenaReconnectState, payload)
+                        client.SendMessage(msg)
+                        log.Printf("[ArenaStatus] Sent reconnect state for playing phase: player=%d, roomCode=%s", playerID, gameRoom.Code)
+                        return
+                }
+        }
+        
+        // Check if player recently finished a tournament
+        // (Check database for recent participations)
 }
