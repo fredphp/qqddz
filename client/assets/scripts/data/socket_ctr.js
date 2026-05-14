@@ -1320,8 +1320,39 @@ window.socketCtr = function(){
                 _stopHeartbeat()
                 return
             }
+            
+            // 🔧【优化】检查上次心跳是否有响应
+            // 如果连续多次心跳没响应，可能是网络问题或浏览器节流
+            var timeSinceLastHeartbeat = Date.now() - _lastHeartbeatTime
+            if (timeSinceLastHeartbeat > _heartbeatIntervalMs * 2) {
+                // 两次心跳周期都没有发送成功，可能是浏览器节流
+                console.log("⚠️ [Heartbeat] 检测到可能的心跳延迟，时间差:", Math.round(timeSinceLastHeartbeat / 1000), "秒")
+            }
+            
             _sendmsg(MessageType.PING, { timestamp: Date.now() }, null)
             _lastHeartbeatTime = Date.now()
+            
+            // 🔧【新增】设置心跳响应超时检测
+            if (_heartbeatTimeout) {
+                clearTimeout(_heartbeatTimeout)
+            }
+            _heartbeatTimeout = setTimeout(function(){
+                // 心跳发送后，等待响应超时
+                // 如果多次心跳没响应，考虑重连
+                _missedHeartbeats++
+                console.log("⚠️ [Heartbeat] 心跳响应超时，累计:", _missedHeartbeats)
+                
+                if (_missedHeartbeats >= _maxMissedHeartbeats) {
+                    console.log("🔄 [Heartbeat] 连续多次心跳无响应，尝试重连...")
+                    _missedHeartbeats = 0
+                    // 主动重连
+                    if (_socket) {
+                        _socket.close()
+                    }
+                    _autoReconnect()
+                }
+            }, _heartbeatTimeoutMs)
+            
         }, _heartbeatIntervalMs)
     }
     
@@ -1339,6 +1370,11 @@ window.socketCtr = function(){
     
     var _onHeartbeatAck = function(data){
         _missedHeartbeats = 0
+        // 收到 pong 响应，清除超时检测
+        if (_heartbeatTimeout) {
+            clearTimeout(_heartbeatTimeout)
+            _heartbeatTimeout = null
+        }
     }
     
     var _setConnectionState = function(state){
