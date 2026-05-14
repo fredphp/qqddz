@@ -795,3 +795,51 @@ type TournamentRankEntry struct {
         MatchCoin  int64  `json:"match_coin"`  // 最终金币
         IsRobot    bool   `json:"is_robot"`    // 是否是机器人
 }
+
+// ============================================================
+// 【新增】竞技场等待阶段 Payloads（玩家点击进入后的等待界面）
+// ============================================================
+
+// ArenaWaitingStatusPayload 等待阶段状态推送
+// 玩家点击"进入"后，服务端推送此消息，客户端显示等待界面
+type ArenaWaitingStatusPayload struct {
+        PeriodNo       string                  `json:"period_no"`       // 期号
+        RoomID         uint64                  `json:"room_id"`         // 房间配置ID
+        RoomName       string                  `json:"room_name"`       // 房间名称
+        Phase          string                  `json:"phase"`           // 当前阶段: "waiting"-等待阶段, "assigning"-分配阶段, "entering"-进入游戏
+        Countdown      int                     `json:"countdown"`       // 倒计时秒数
+        StartTime      int64                   `json:"start_time"`      // 阶段开始时间（Unix毫秒时间戳）
+        TotalPlayers   int                     `json:"total_players"`   // 总报名人数
+        EnteredPlayers int                     `json:"entered_players"` // 已点击进入的人数
+        Players        []WaitingPlayerInfo     `json:"players"`         // 已进入玩家列表
+        Message        string                  `json:"message"`         // 提示消息
+}
+
+// WaitingPlayerInfo 等待玩家信息
+type WaitingPlayerInfo struct {
+        PlayerID   string `json:"player_id"`   // 玩家ID
+        PlayerName string `json:"player_name"` // 玩家昵称
+        Avatar     string `json:"avatar"`      // 头像URL
+        IsRobot    bool   `json:"is_robot"`    // 是否是机器人
+        EnteredAt  int64  `json:"entered_at"`  // 进入时间戳
+}
+
+// ArenaWaitingTickPayload 等待阶段倒计时更新
+// 服务端每秒推送一次
+type ArenaWaitingTickPayload struct {
+        PeriodNo       string `json:"period_no"`       // 期号
+        RoomID         uint64 `json:"room_id"`         // 房间配置ID
+        Countdown      int    `json:"countdown"`       // 剩余秒数
+        EnteredPlayers int    `json:"entered_players"` // 已点击进入的人数
+}
+
+// ArenaAssignStartPayload 分配阶段开始
+// 等待阶段结束后，服务端开始分配玩家到桌子，推送此消息
+type ArenaAssignStartPayload struct {
+        PeriodNo     string `json:"period_no"`     // 期号
+        RoomID       uint64 `json:"room_id"`       // 房间配置ID
+        TotalPlayers int    `json:"total_players"` // 总人数
+        TotalTables  int    `json:"total_tables"`  // 总桌数
+        Countdown    int    `json:"countdown"`     // 10秒倒计时
+        Message      string `json:"message"`       // 提示消息："正在分配玩家，10秒后进入游戏"
+}

@@ -172,6 +172,11 @@ const (
         MsgTournamentRoundAdvance MessageType = "tournament_round_advance" // 下一轮通知
         MsgTournamentFinalRank    MessageType = "tournament_final_rank"    // 最终榜单
 
+        // 🔧【新增】竞技场等待阶段（玩家点击进入后的等待界面）
+        MsgArenaWaitingStatus MessageType = "arena_waiting_status" // 等待阶段状态推送
+        MsgArenaWaitingTick   MessageType = "arena_waiting_tick"   // 等待阶段倒计时更新
+        MsgArenaAssignStart   MessageType = "arena_assign_start"   // 分配阶段开始（10秒倒计时）
+
         // 错误
         MsgError MessageType = "error" // 错误消息
 )

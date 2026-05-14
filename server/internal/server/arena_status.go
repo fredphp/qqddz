@@ -114,7 +114,23 @@ type EnterPhaseInfo struct {
         // 🔧【重构】多桌管理
         Tables         []*GameTable   // 所有游戏桌
         PlayerToTable  map[uint64]int // playerID -> 桌号（用于快速查找玩家在哪桌）
+        
+        // 🔧【新增】等待阶段管理
+        WaitingPhase    WaitingPhaseType // 当前等待阶段
+        WaitingTimer    *time.Ticker     // 等待阶段倒计时定时器（每秒触发）
+        AssigningTimer  *time.Timer      // 分配阶段倒计时定时器
+        WaitingCountdown int             // 等待阶段剩余倒计时
 }
+
+// 🔧【新增】等待阶段类型
+type WaitingPhaseType int
+
+const (
+        WaitingPhaseNone      WaitingPhaseType = iota // 无等待阶段
+        WaitingPhaseWaiting                             // 等待玩家进入阶段（60秒）
+        WaitingPhaseAssigning                           // 分配阶段（10秒）
+        WaitingPhaseEntering                            // 进入游戏阶段
+)
 
 // 🔧【新增】玩家进入状态
 type PlayerEnterStatus struct {
@@ -130,6 +146,14 @@ type PlayerEnterStatus struct {
 // 进入阶段应该与准备阶段一致（1分钟 = 60秒）
 // 弹窗在准备阶段显示，准备阶段结束后关闭
 const EnterPhaseCountdown = 60
+
+// 🔧【新增】等待阶段和分配阶段倒计时秒数
+const (
+        // 等待阶段：玩家点击"进入"后等待其他玩家进入（60秒）
+        WaitingPhaseCountdown = 60
+        // 分配阶段：等待阶段结束后，分配玩家到桌子（10秒）
+        AssigningPhaseCountdown = 10
+)
 
 // 🔧【新增】可序列化的进入阶段信息（用于 Redis 持久化）
 type EnterPhaseInfoForRedis struct {
@@ -1062,7 +1086,8 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
 }
 
 // 🔧【新增】处理玩家点击"进入"按钮
-// 玩家点击进入时，根据分组信息创建/加入对应的房间
+// 🔧【重构】玩家点击进入后进入等待阶段，等待其他玩家进入
+// 等待阶段60秒结束后，进入分配阶段（10秒），然后创建房间开始游戏
 func (b *ArenaStatusBroadcaster) HandlePlayerEnter(periodNo string, playerID uint64) error {
         b.enterPhasesMu.Lock()
         defer b.enterPhasesMu.Unlock()
@@ -1081,36 +1106,6 @@ func (b *ArenaStatusBroadcaster) HandlePlayerEnter(periodNo string, playerID uin
                 return fmt.Errorf("玩家已取消报名")
         }
 
-        if status.HasEntered {
-                // 玩家已经点击过进入，检查桌子房间是否已创建
-                tableID := status.TableID
-                if tableID > 0 && tableID <= len(enterPhase.Tables) {
-                        table := enterPhase.Tables[tableID-1]
-                        if table.RoomCreated && table.RoomCode != "" {
-                                // 房间已创建，重新发送 room_joined 给这个玩家
-                                b.sendRoomJoinedToTablePlayer(enterPhase, table, playerID)
-                        }
-                }
-                return nil // 不是错误，只是重复点击
-        }
-
-        // 标记玩家已进入
-        status.HasEntered = true
-        tableID := status.TableID
-
-        // 🔧【修改】更新 Redis 中的进入状态（而不是删除），这样玩家不会再收到弹窗
-        b.updatePlayerEnterPhaseEntered(playerID)
-
-        // 获取玩家所在的桌子
-        if tableID == 0 || tableID > len(enterPhase.Tables) {
-                return fmt.Errorf("玩家未分配到桌子")
-        }
-        
-        table := enterPhase.Tables[tableID-1]
-        
-        // 标记玩家进入状态
-        table.PlayerStatuses[playerID] = true
-
         // 获取客户端连接
         var client *Client
         b.server.clientsMu.RLock()
@@ -1126,61 +1121,544 @@ func (b *ArenaStatusBroadcaster) HandlePlayerEnter(periodNo string, playerID uin
                 return fmt.Errorf("玩家不在线")
         }
 
-        // 检查该桌房间是否已创建
-        if !table.RoomCreated {
-                // 房间未创建，由该玩家创建房间
-                err := b.createTableRoom(enterPhase, table, client)
-                if err != nil {
-                        log.Printf("[ArenaStatus] 创建桌子房间失败: %v", err)
-                        return err
-                }
-        } else {
-                // 房间已创建，加入房间
-                gameRoom := b.server.roomManager.GetRoom(table.RoomCode)
-                if gameRoom == nil {
-                        return fmt.Errorf("房间不存在: %s", table.RoomCode)
-                }
-                
-                // 加入房间
-                _, err := b.server.roomManager.JoinRoom(client, table.RoomCode)
-                if err != nil {
-                        return err
-                }
-                
-                // 设置玩家为准备状态
-                b.server.roomManager.SetPlayerReady(client, true)
+        // 如果已经在等待阶段或更后面的阶段，直接推送当前状态
+        if status.HasEntered {
+                // 推送当前等待状态给玩家
+                b.sendWaitingStatusToPlayer(enterPhase, playerID, client)
+                return nil
         }
 
-        // 发送 room_joined 消息
-        gameRoom := b.server.roomManager.GetRoom(table.RoomCode)
-        if gameRoom != nil {
-                b.sendRoomJoinedToTablePlayer(enterPhase, table, playerID)
+        // 标记玩家已进入
+        status.HasEntered = true
+        status.TableID = 0 // 等待阶段结束后再分配桌子
+
+        // 🔧【修改】更新 Redis 中的进入状态
+        b.updatePlayerEnterPhaseEntered(playerID)
+
+        log.Printf("[ArenaStatus] 玩家 %d 进入等待阶段: periodNo=%s", playerID, periodNo)
+
+        // 如果等待阶段还未启动，启动等待阶段
+        if enterPhase.WaitingPhase == WaitingPhaseNone {
+                b.startWaitingPhase(enterPhase)
         }
 
-        // 检查该桌是否所有玩家都已进入
-        allEntered := b.checkTableAllEntered(table)
-        if allEntered && !table.AllEntered {
-                table.AllEntered = true
-                if gameRoom != nil {
-                        b.startArenaGame(gameRoom)
-                }
-        }
-
-        // 🔧【新增】检查所有桌子是否都已开始游戏，如果是则停止定时器
-        allTablesStarted := true
-        for _, t := range enterPhase.Tables {
-                if !t.AllEntered {
-                        allTablesStarted = false
-                        break
-                }
-        }
-        if allTablesStarted && enterPhase.timer != nil {
-                enterPhase.timer.Stop()
-                // 清理进入阶段信息
-                delete(b.enterPhases, periodNo)
-        }
+        // 推送等待状态给所有已进入的玩家
+        b.broadcastWaitingStatus(enterPhase)
 
         return nil
+}
+
+// 🔧【新增】启动等待阶段（60秒倒计时）
+func (b *ArenaStatusBroadcaster) startWaitingPhase(enterPhase *EnterPhaseInfo) {
+        enterPhase.WaitingPhase = WaitingPhaseWaiting
+        enterPhase.WaitingCountdown = WaitingPhaseCountdown
+        enterPhase.StartTime = time.Now()
+
+        log.Printf("[ArenaStatus] 🚀 启动等待阶段: periodNo=%s, countdown=%d秒", enterPhase.PeriodNo, WaitingPhaseCountdown)
+
+        // 启动每秒推送倒计时的定时器
+        enterPhase.WaitingTimer = time.NewTicker(1 * time.Second)
+        
+        go func() {
+                for {
+                        select {
+                        case <-enterPhase.WaitingTimer.C:
+                                b.handleWaitingTick(enterPhase.PeriodNo)
+                        case <-b.done:
+                                return
+                        }
+                }
+        }()
+}
+
+// 🔧【新增】处理等待阶段每秒倒计时
+func (b *ArenaStatusBroadcaster) handleWaitingTick(periodNo string) {
+        b.enterPhasesMu.Lock()
+        enterPhase, exists := b.enterPhases[periodNo]
+        if !exists {
+                b.enterPhasesMu.Unlock()
+                return
+        }
+
+        // 检查是否还在等待阶段
+        if enterPhase.WaitingPhase != WaitingPhaseWaiting {
+                b.enterPhasesMu.Unlock()
+                return
+        }
+
+        enterPhase.WaitingCountdown--
+
+        // 推送倒计时更新给所有已进入的玩家
+        b.broadcastWaitingTick(enterPhase)
+
+        // 检查是否倒计时结束
+        if enterPhase.WaitingCountdown <= 0 {
+                log.Printf("[ArenaStatus] ⏰ 等待阶段结束，开始分配阶段: periodNo=%s", periodNo)
+                
+                // 停止等待阶段定时器
+                if enterPhase.WaitingTimer != nil {
+                        enterPhase.WaitingTimer.Stop()
+                }
+                
+                // 进入分配阶段
+                b.startAssigningPhaseLocked(enterPhase)
+        }
+
+        b.enterPhasesMu.Unlock()
+}
+
+// 🔧【新增】启动分配阶段（10秒倒计时）- 需要已持有锁
+func (b *ArenaStatusBroadcaster) startAssigningPhaseLocked(enterPhase *EnterPhaseInfo) {
+        enterPhase.WaitingPhase = WaitingPhaseAssigning
+        enterPhase.WaitingCountdown = AssigningPhaseCountdown
+
+        // 获取房间配置
+        roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
+        if err != nil {
+                log.Printf("[ArenaStatus] ⚠️ 获取房间配置失败: %v", err)
+                return
+        }
+
+        // 收集已进入的玩家
+        var enteredPlayers []uint64
+        for playerID, status := range enterPhase.PlayerStatuses {
+                if status.HasEntered && !status.HasCancelled {
+                        enteredPlayers = append(enteredPlayers, playerID)
+                }
+        }
+
+        // 如果人数不足3人，需要补机器人
+        if len(enteredPlayers) > 0 && len(enteredPlayers) < 3 {
+                needRobots := 3 - len(enteredPlayers)
+                robots := b.getIdleRobots(needRobots)
+                for _, robotID := range robots {
+                        enteredPlayers = append(enteredPlayers, robotID)
+                        // 更新玩家状态
+                        if status, ok := enterPhase.PlayerStatuses[robotID]; ok {
+                                status.HasEntered = true
+                        } else {
+                                enterPhase.PlayerStatuses[robotID] = &PlayerEnterStatus{
+                                        PlayerID:    robotID,
+                                        IsRobot:     true,
+                                        HasEntered:  true,
+                                        HasCancelled: false,
+                                        SignupFee:   0,
+                                        TableID:     0,
+                                }
+                        }
+                }
+        }
+
+        // 分配玩家到桌子
+        totalPlayers := len(enteredPlayers)
+        totalTables := (totalPlayers + 2) / 3 // 每3人一桌
+
+        // 随机打乱玩家顺序
+        rand.Shuffle(len(enteredPlayers), func(i, j int) {
+                enteredPlayers[i], enteredPlayers[j] = enteredPlayers[j], enteredPlayers[i]
+        })
+
+        // 创建新的桌子分配
+        enterPhase.Tables = make([]*GameTable, 0)
+        enterPhase.PlayerToTable = make(map[uint64]int)
+
+        for i := 0; i < len(enteredPlayers); i += 3 {
+                tableID := len(enterPhase.Tables) + 1
+                table := &GameTable{
+                        TableID:        tableID,
+                        Players:        make([]uint64, 0, 3),
+                        RobotPlayers:   make([]uint64, 0),
+                        PlayerStatuses: make(map[uint64]bool),
+                }
+
+                end := i + 3
+                if end > len(enteredPlayers) {
+                        end = len(enteredPlayers)
+                }
+
+                for j := i; j < end; j++ {
+                        playerID := enteredPlayers[j]
+                        table.Players = append(table.Players, playerID)
+                        table.PlayerStatuses[playerID] = true
+                        enterPhase.PlayerToTable[playerID] = tableID
+
+                        // 更新玩家的桌号
+                        if status, ok := enterPhase.PlayerStatuses[playerID]; ok {
+                                status.TableID = tableID
+                        }
+
+                        // 记录机器人
+                        if status, ok := enterPhase.PlayerStatuses[playerID]; ok && status.IsRobot {
+                                table.RobotPlayers = append(table.RobotPlayers, playerID)
+                        }
+                }
+
+                enterPhase.Tables = append(enterPhase.Tables, table)
+        }
+
+        log.Printf("[ArenaStatus] 📋 分配完成: 总人数=%d, 总桌数=%d", totalPlayers, totalTables)
+
+        // 推送分配阶段开始消息
+        b.broadcastAssigningStart(enterPhase, roomConfig, totalPlayers, totalTables)
+
+        // 启动分配阶段倒计时
+        enterPhase.AssigningTimer = time.AfterFunc(AssigningPhaseCountdown*time.Second, func() {
+                b.handleAssigningTimeout(enterPhase.PeriodNo)
+        })
+}
+
+// 🔧【新增】处理分配阶段超时
+func (b *ArenaStatusBroadcaster) handleAssigningTimeout(periodNo string) {
+        b.enterPhasesMu.Lock()
+        defer b.enterPhasesMu.Unlock()
+
+        enterPhase, exists := b.enterPhases[periodNo]
+        if !exists {
+                return
+        }
+
+        log.Printf("[ArenaStatus] ⏰ 分配阶段结束，开始创建房间: periodNo=%s", periodNo)
+
+        // 进入游戏阶段
+        enterPhase.WaitingPhase = WaitingPhaseEntering
+
+        // 为每桌创建房间并开始游戏
+        for _, table := range enterPhase.Tables {
+                b.createAndStartTableGameForWaiting(enterPhase, table)
+        }
+
+        // 清理进入阶段信息
+        delete(b.enterPhases, periodNo)
+}
+
+// 🔧【新增】为等待阶段的桌子创建房间并开始游戏
+func (b *ArenaStatusBroadcaster) createAndStartTableGameForWaiting(enterPhase *EnterPhaseInfo, table *GameTable) {
+        if b.server.roomManager == nil {
+                return
+        }
+
+        // 获取房间配置
+        roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
+        if err != nil {
+                log.Printf("[ArenaStatus] ⚠️ 获取房间配置失败: %v", err)
+                return
+        }
+
+        // 获取所有玩家信息
+        var players []database.Player
+        database.DB().Where("id IN ?", table.Players).Find(&players)
+        playerMap := make(map[uint64]*database.Player)
+        for i := range players {
+                playerMap[players[i].ID] = &players[i]
+        }
+
+        // 收集在线玩家客户端
+        onlineClients := make([]*Client, 0)
+        b.server.clientsMu.RLock()
+        for _, playerID := range table.Players {
+                if playerMap[playerID] != nil && playerMap[playerID].PlayerType == database.PlayerTypeRobot {
+                        continue
+                }
+                for _, client := range b.server.clients {
+                        if client.PlayerID == playerID && client.GetRoom() == "" {
+                                onlineClients = append(onlineClients, client)
+                                break
+                        }
+                }
+        }
+        b.server.clientsMu.RUnlock()
+
+        // 如果没有在线真人玩家，使用机器人作为房主
+        var hostClient types.ClientInterface
+        var hostRobotID uint64 = 0
+        var robotHostClient *RobotClient
+
+        if len(onlineClients) == 0 {
+                if len(table.RobotPlayers) > 0 {
+                        hostRobotID = table.RobotPlayers[0]
+                        robotHostClient = NewRobotClient(hostRobotID, b.server)
+                        hostClient = robotHostClient
+                }
+                if robotHostClient == nil {
+                        return
+                }
+        } else {
+                // 随机选择一个真人玩家作为房主
+                hostIdx := rand.Intn(len(onlineClients))
+                hostClient = onlineClients[hostIdx]
+                onlineClients = append(onlineClients[:hostIdx], onlineClients[hostIdx+1:]...)
+        }
+
+        // 创建房间
+        gameRoom, err := b.server.roomManager.CreateRoom(hostClient, enterPhase.RoomID)
+        if err != nil {
+                log.Printf("[ArenaStatus] ❌ 创建房间失败: %v", err)
+                return
+        }
+
+        // 设置竞技场期号
+        gameRoom.SetPeriodNo(enterPhase.PeriodNo)
+        table.RoomCreated = true
+        table.RoomCode = gameRoom.Code
+
+        // 将其他真人玩家加入房间
+        for _, client := range onlineClients {
+                b.server.roomManager.JoinRoom(client, gameRoom.Code)
+        }
+
+        // 将机器人加入房间
+        for _, robotID := range table.RobotPlayers {
+                if robotID == hostRobotID {
+                        continue
+                }
+                robotClient := NewRobotClient(robotID, b.server)
+                if robotClient != nil {
+                        b.server.roomManager.JoinRoom(robotClient, gameRoom.Code)
+                }
+        }
+
+        // 设置所有玩家为已准备状态
+        gameRoom.SetAllPlayersReady()
+
+        // 发送 room_joined 消息给所有真人玩家
+        players = gameRoom.GetAllPlayersInfo()
+        b.server.clientsMu.RLock()
+        for _, playerID := range table.Players {
+                if playerMap[playerID] != nil && playerMap[playerID].PlayerType == database.PlayerTypeRobot {
+                        continue
+                }
+                for _, client := range b.server.clients {
+                        if client.PlayerID == playerID {
+                                playerInfo := gameRoom.GetPlayerInfo(client.GetID())
+                                payload := &protocol.RoomJoinedPayload{
+                                        RoomCode:     gameRoom.Code,
+                                        Player:       playerInfo,
+                                        Players:      players,
+                                        CreatorID:    gameRoom.CreatorID,
+                                        RoomCategory: gameRoom.RoomCategory,
+                                        PeriodNo:     gameRoom.PeriodNo,
+                                }
+                                client.SendMessage(codec.MustNewMessage(protocol.MsgRoomJoined, payload))
+                                break
+                        }
+                }
+        }
+        b.server.clientsMu.RUnlock()
+
+        // 开始游戏
+        if err := gameRoom.StartGame(); err != nil {
+                log.Printf("[ArenaStatus] ⚠️ 开始游戏失败: %v", err)
+                return
+        }
+
+        // 触发游戏会话创建（发牌）
+        if b.server.roomManager != nil {
+                b.server.roomManager.TriggerOnGameStart(gameRoom)
+        }
+
+        log.Printf("[ArenaStatus] ✅ 桌号 %d 房间创建成功: roomCode=%s", table.TableID, gameRoom.Code)
+}
+
+// 🔧【新增】获取空闲机器人
+func (b *ArenaStatusBroadcaster) getIdleRobots(count int) []uint64 {
+        if count <= 0 {
+                return nil
+        }
+
+        var robots []database.Player
+        err := database.DB().Where("player_type = ? AND robot_status = ?",
+                database.PlayerTypeRobot, database.RobotStatusIdle).
+                Order("RAND()").
+                Limit(count).
+                Find(&robots).Error
+
+        if err != nil || len(robots) == 0 {
+                return nil
+        }
+
+        var robotIDs []uint64
+        for _, robot := range robots {
+                robotIDs = append(robotIDs, robot.ID)
+        }
+        return robotIDs
+}
+
+// 🔧【新增】推送等待状态给单个玩家
+func (b *ArenaStatusBroadcaster) sendWaitingStatusToPlayer(enterPhase *EnterPhaseInfo, playerID uint64, client *Client) {
+        // 获取房间配置
+        roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
+        if err != nil {
+                return
+        }
+
+        // 收集已进入玩家列表
+        var players []protocol.WaitingPlayerInfo
+        var enteredCount int
+        for pid, status := range enterPhase.PlayerStatuses {
+                if status.HasEntered && !status.HasCancelled {
+                        enteredCount++
+                        // 获取玩家信息
+                        var player database.Player
+                        if err := database.DB().Where("id = ?", pid).First(&player).Error; err == nil {
+                                players = append(players, protocol.WaitingPlayerInfo{
+                                        PlayerID:   fmt.Sprintf("%d", pid),
+                                        PlayerName: player.Nickname,
+                                        Avatar:     player.Avatar,
+                                        IsRobot:    status.IsRobot,
+                                        EnteredAt:  time.Now().UnixMilli(),
+                                })
+                        }
+                }
+        }
+
+        phaseStr := "waiting"
+        if enterPhase.WaitingPhase == WaitingPhaseAssigning {
+                phaseStr = "assigning"
+        } else if enterPhase.WaitingPhase == WaitingPhaseEntering {
+                phaseStr = "entering"
+        }
+
+        payload := &protocol.ArenaWaitingStatusPayload{
+                PeriodNo:       enterPhase.PeriodNo,
+                RoomID:         enterPhase.RoomID,
+                RoomName:       roomConfig.RoomName,
+                Phase:          phaseStr,
+                Countdown:      enterPhase.WaitingCountdown,
+                StartTime:      enterPhase.StartTime.UnixMilli(),
+                TotalPlayers:   len(enterPhase.PlayerStatuses),
+                EnteredPlayers: enteredCount,
+                Players:        players,
+                Message:        "等待其他玩家进入...",
+        }
+
+        msg := codec.MustNewMessage(protocol.MsgArenaWaitingStatus, payload)
+        client.SendMessage(msg)
+}
+
+// 🔧【新增】广播等待状态给所有已进入的玩家
+func (b *ArenaStatusBroadcaster) broadcastWaitingStatus(enterPhase *EnterPhaseInfo) {
+        // 获取房间配置
+        roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
+        if err != nil {
+                return
+        }
+
+        // 收集已进入玩家列表
+        var players []protocol.WaitingPlayerInfo
+        var enteredCount int
+        for playerID, status := range enterPhase.PlayerStatuses {
+                if status.HasEntered && !status.HasCancelled {
+                        enteredCount++
+                        var player database.Player
+                        if err := database.DB().Where("id = ?", playerID).First(&player).Error; err == nil {
+                                players = append(players, protocol.WaitingPlayerInfo{
+                                        PlayerID:   fmt.Sprintf("%d", playerID),
+                                        PlayerName: player.Nickname,
+                                        Avatar:     player.Avatar,
+                                        IsRobot:    status.IsRobot,
+                                        EnteredAt:  time.Now().UnixMilli(),
+                                })
+                        }
+                }
+        }
+
+        phaseStr := "waiting"
+        if enterPhase.WaitingPhase == WaitingPhaseAssigning {
+                phaseStr = "assigning"
+        }
+
+        payload := &protocol.ArenaWaitingStatusPayload{
+                PeriodNo:       enterPhase.PeriodNo,
+                RoomID:         enterPhase.RoomID,
+                RoomName:       roomConfig.RoomName,
+                Phase:          phaseStr,
+                Countdown:      enterPhase.WaitingCountdown,
+                StartTime:      enterPhase.StartTime.UnixMilli(),
+                TotalPlayers:   len(enterPhase.PlayerStatuses),
+                EnteredPlayers: enteredCount,
+                Players:        players,
+                Message:        "等待其他玩家进入...",
+        }
+
+        msg := codec.MustNewMessage(protocol.MsgArenaWaitingStatus, payload)
+
+        // 发送给所有已进入的在线玩家
+        b.server.clientsMu.RLock()
+        for playerID, status := range enterPhase.PlayerStatuses {
+                if !status.HasEntered || status.HasCancelled || status.IsRobot {
+                        continue
+                }
+                for _, client := range b.server.clients {
+                        if client.PlayerID == playerID && client.GetRoom() == "" {
+                                client.SendMessage(msg)
+                                break
+                        }
+                }
+        }
+        b.server.clientsMu.RUnlock()
+}
+
+// 🔧【新增】广播等待阶段倒计时更新
+func (b *ArenaStatusBroadcaster) broadcastWaitingTick(enterPhase *EnterPhaseInfo) {
+        var enteredCount int
+        for _, status := range enterPhase.PlayerStatuses {
+                if status.HasEntered && !status.HasCancelled {
+                        enteredCount++
+                }
+        }
+
+        payload := &protocol.ArenaWaitingTickPayload{
+                PeriodNo:       enterPhase.PeriodNo,
+                RoomID:         enterPhase.RoomID,
+                Countdown:      enterPhase.WaitingCountdown,
+                EnteredPlayers: enteredCount,
+        }
+
+        msg := codec.MustNewMessage(protocol.MsgArenaWaitingTick, payload)
+
+        // 发送给所有已进入的在线玩家
+        b.server.clientsMu.RLock()
+        for playerID, status := range enterPhase.PlayerStatuses {
+                if !status.HasEntered || status.HasCancelled || status.IsRobot {
+                        continue
+                }
+                for _, client := range b.server.clients {
+                        if client.PlayerID == playerID && client.GetRoom() == "" {
+                                client.SendMessage(msg)
+                                break
+                        }
+                }
+        }
+        b.server.clientsMu.RUnlock()
+}
+
+// 🔧【新增】广播分配阶段开始
+func (b *ArenaStatusBroadcaster) broadcastAssigningStart(enterPhase *EnterPhaseInfo, roomConfig *database.RoomConfig, totalPlayers, totalTables int) {
+        payload := &protocol.ArenaAssignStartPayload{
+                PeriodNo:     enterPhase.PeriodNo,
+                RoomID:       enterPhase.RoomID,
+                TotalPlayers: totalPlayers,
+                TotalTables:  totalTables,
+                Countdown:    AssigningPhaseCountdown,
+                Message:      fmt.Sprintf("正在分配玩家到 %d 桌，%d秒后进入游戏", totalTables, AssigningPhaseCountdown),
+        }
+
+        msg := codec.MustNewMessage(protocol.MsgArenaAssignStart, payload)
+
+        // 发送给所有已进入的在线玩家
+        b.server.clientsMu.RLock()
+        for playerID, status := range enterPhase.PlayerStatuses {
+                if !status.HasEntered || status.HasCancelled || status.IsRobot {
+                        continue
+                }
+                for _, client := range b.server.clients {
+                        if client.PlayerID == playerID && client.GetRoom() == "" {
+                                client.SendMessage(msg)
+                                break
+                        }
+                }
+        }
+        b.server.clientsMu.RUnlock()
 }
 
 // 🔧【新增】检查桌子是否所有玩家都已进入
