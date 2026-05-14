@@ -97,6 +97,7 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 }
 
 // authenticateClient 验证客户端 Token 并设置用户信息
+// 🔧【修复】如果同一玩家已有连接，关闭旧连接
 func (s *Server) authenticateClient(client *Client, token string) {
         log.Printf("🔐 [authenticateClient] 开始验证 Token: %s...", truncateString(token, 10))
         
@@ -129,12 +130,32 @@ func (s *Server) authenticateClient(client *Client, token string) {
                 return
         }
 
+        // 🔧【修复】检查是否已有该玩家的旧连接，如果有则关闭
+        s.kickOldConnection(player.ID, client.ID)
+
         // 设置客户端信息
         client.SetPlayerID(player.ID)
         client.SetName(player.Nickname)
         client.SetGold(player.Gold) // 🔧【新增】设置玩家金币数量
 
         log.Printf("✅ [authenticateClient] 认证成功 - PlayerID: %d, 昵称: %s, 金币: %d", player.ID, player.Nickname, player.Gold)
+}
+
+// kickOldConnection 踢掉该玩家的旧连接（确保一个玩家只有一个连接）
+func (s *Server) kickOldConnection(playerID uint64, newClientID string) {
+        s.clientsMu.Lock()
+        defer s.clientsMu.Unlock()
+
+        for id, c := range s.clients {
+                if c.PlayerID == playerID && id != newClientID {
+                        log.Printf("🔄 [kickOldConnection] 玩家 %d 有重复连接，关闭旧连接: %s", playerID, id)
+                        // 关闭旧连接
+                        go func(oldClient *Client) {
+                                oldClient.Close()
+                        }(c)
+                        delete(s.clients, id)
+                }
+        }
 }
 
 // truncateString 截断字符串用于日志显示
