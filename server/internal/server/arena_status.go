@@ -1666,6 +1666,30 @@ func (b *ArenaStatusBroadcaster) getPeriodCache(roomID uint64) *PeriodInfo {
         return b.periodCache[roomID]
 }
 
+// 🔧【新增】forceRefreshPeriodCache 强制刷新指定房间的期号缓存
+// 这确保报名时使用的期号与广播时一致
+func (b *ArenaStatusBroadcaster) forceRefreshPeriodCache(roomID uint64) {
+        // 获取房间配置
+        roomConfig, err := database.GetRoomConfigByID(roomID)
+        if err != nil {
+                log.Printf("[ArenaStatus] ⚠️ 强制刷新缓存失败，无法获取房间配置: roomID=%d, err=%v", roomID, err)
+                return
+        }
+
+        // 实时计算该房间的状态（会更新缓存）
+        status := b.calculateRoomArenaStatus(
+                roomID,
+                roomConfig.RoomName,
+                roomConfig.RoomType,
+                roomID,
+                roomConfig.MatchTimeRanges,
+                roomConfig.MatchDuration,
+        )
+
+        log.Printf("[ArenaStatus] 🔄 强制刷新期号缓存: roomID=%d, periodNoStr=%s, phase=%d, totalPlayers=%d",
+                roomID, status.PeriodNoStr, status.Phase, status.TotalPlayers)
+}
+
 // AddPlayerToSignupList 添加玩家到报名列表（Redis）
 func (b *ArenaStatusBroadcaster) AddPlayerToSignupList(periodNo string, playerID uint64) error {
         if b.server.redis == nil {
@@ -1905,7 +1929,12 @@ func (b *ArenaStatusBroadcaster) GetCurrentPeriodNo(roomID uint64) string {
 }
 
 // GetCurrentPeriodInfo 获取当前期号信息（实现 types.ArenaProvider 接口）
+// 🔧【修复】报名时先强制刷新缓存，确保期号与广播时一致
 func (b *ArenaStatusBroadcaster) GetCurrentPeriodInfo(roomID uint64) *types.PeriodInfo {
+        // 🔧【关键修复】先强制刷新该房间的期号缓存
+        // 这确保报名使用的期号与广播时一致，避免"报名人数变0"的问题
+        b.forceRefreshPeriodCache(roomID)
+
         info := b.getPeriodCache(roomID)
         if info == nil {
                 return nil
