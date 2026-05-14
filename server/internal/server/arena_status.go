@@ -1665,15 +1665,20 @@ func (b *ArenaStatusBroadcaster) ClearSignupList(periodNo string) error {
 // GetSignupList 获取报名列表
 func (b *ArenaStatusBroadcaster) GetSignupList(periodNo string) []uint64 {
         if b.server.redis == nil {
+                log.Printf("[ArenaStatus] ⚠️ Redis 不可用，无法获取报名列表: periodNo=%s", periodNo)
                 return nil
         }
 
         ctx := context.Background()
         key := getSignupListKey(periodNo)
 
+        // 🔧【调试】记录查询的 key
+        log.Printf("[ArenaStatus] 🔍 查询报名列表: key=%s", key)
+
         // 使用SMembers获取集合所有成员
         result, err := b.server.redis.SMembers(ctx, key).Result()
         if err != nil {
+                log.Printf("[ArenaStatus] ⚠️ 获取报名列表失败: periodNo=%s, err=%v", periodNo, err)
                 return nil
         }
 
@@ -1683,6 +1688,9 @@ func (b *ArenaStatusBroadcaster) GetSignupList(periodNo string) []uint64 {
                         players = append(players, id)
                 }
         }
+
+        // 🔧【调试】记录查询结果
+        log.Printf("[ArenaStatus] 📋 报名列表查询结果: periodNo=%s, count=%d, players=%v", periodNo, len(players), players)
 
         return players
 }

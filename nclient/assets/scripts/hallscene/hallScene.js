@@ -1749,6 +1749,9 @@ cc.Class({
     // 🔧【重构】客户端基于服务端推送的倒计时本地计算
     _startCountdownTimer: function() {
         var self = this;
+        
+        console.log("🏟️ [Arena] ========== 开始初始化竞技场监听器 ==========");
+        console.log("🏟️ [Arena] _startCountdownTimer 被调用");
 
         // 清理旧的定时器
         if (this._countdownTimer) {
@@ -1762,6 +1765,11 @@ cc.Class({
         // 监听服务端推送的竞技场状态
         // 🔧【修复】使用 myglobal.socket 实例，而不是 window.socketCtr 函数
         var socket = window.myglobal && window.myglobal.socket;
+        console.log("🏟️ [Arena] socket 对象:", socket ? "存在" : "不存在");
+        console.log("🏟️ [Arena] socket.onArenaStatus:", socket && socket.onArenaStatus ? "存在" : "不存在");
+        console.log("🏟️ [Arena] socket.onArenaMatchStart:", socket && socket.onArenaMatchStart ? "存在" : "不存在");
+        console.log("🏟️ [Arena] socket.onArenaCloseDialog:", socket && socket.onArenaCloseDialog ? "存在" : "不存在");
+        
         if (socket && socket.onArenaStatus) {
             socket.onArenaStatus(function(data) {
                 if (self.node && self.node.isValid && data && data.arenas) {
@@ -1769,6 +1777,7 @@ cc.Class({
                     self._onArenaStatusPush(data.arenas);
                 }
             });
+            console.log("🏟️ [Arena] ✅ onArenaStatus 监听器注册成功");
         } else {
             console.warn("🏟️ [Arena] socket 或 onArenaStatus 方法不可用，无法监听竞技场状态");
         }
@@ -1776,7 +1785,8 @@ cc.Class({
         // 🔧【新增】监听竞技场比赛开始通知
         if (socket && socket.onArenaMatchStart) {
             socket.onArenaMatchStart(function(data) {
-                console.log("🏆 [Arena] 收到 arena_match_start 消息:", JSON.stringify(data));
+                console.log("🏆 [Arena] ========== 收到 arena_match_start 消息 ==========");
+                console.log("🏆 [Arena] 数据:", JSON.stringify(data));
                 if (self.node && self.node.isValid) {
                     console.log("🏆 [Arena] 节点有效，准备显示弹窗");
                     self._onArenaMatchStart(data);
@@ -1784,19 +1794,25 @@ cc.Class({
                     console.warn("🏆 [Arena] 节点无效，无法显示弹窗");
                 }
             });
-            console.log("🏟️ [Arena] 已注册 onArenaMatchStart 监听器");
+            console.log("🏟️ [Arena] ✅ onArenaMatchStart 监听器注册成功");
         } else {
-            console.warn("🏟️ [Arena] socket 或 onArenaMatchStart 方法不可用");
+            console.warn("🏟️ [Arena] ⚠️ socket 或 onArenaMatchStart 方法不可用");
         }
 
         // 🔧【新增】监听竞技场关闭弹窗通知（新期号开始时关闭上一轮弹窗）
         if (socket && socket.onArenaCloseDialog) {
             socket.onArenaCloseDialog(function(data) {
+                console.log("🏟️ [Arena] 收到关闭弹窗通知:", JSON.stringify(data));
                 if (self.node && self.node.isValid) {
                     self._onArenaCloseDialog(data);
                 }
             });
+            console.log("🏟️ [Arena] ✅ onArenaCloseDialog 监听器注册成功");
+        } else {
+            console.warn("🏟️ [Arena] ⚠️ socket 或 onArenaCloseDialog 方法不可用");
         }
+        
+        console.log("🏟️ [Arena] ========== 竞技场监听器初始化完成 ==========");
 
         // 🔧【新增】立即初始化本地状态（使用本地计算作为初始值）
         this._initLocalArenaStatusFromConfig();
