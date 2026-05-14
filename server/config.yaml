@@ -9,7 +9,7 @@ server:
 
 redis:
   addr: "localhost:6379"
-  password: ""
+  password: "Redis@Hongxiu88"
   db: 0
 
 # HTTP API 配置
@@ -28,8 +28,8 @@ api:
 mysql:
   host: "127.0.0.1"
   port: 3306
-  user: "root"
-  password: "root"
+  user: "ddz"
+  password: "ddz2024game"
   database: "ddz_game"
 
 # CDN配置（用于图片等静态资源）
