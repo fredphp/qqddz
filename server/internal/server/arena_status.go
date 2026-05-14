@@ -1276,6 +1276,8 @@ func (b *ArenaStatusBroadcaster) handlePhaseChange(roomID uint64, status protoco
 // sendToNewClient 向新连接的客户端发送竞技场状态
 // 🔧【修复】同时检查是否有待发送的比赛弹窗
 func (b *ArenaStatusBroadcaster) sendToNewClient(playerID uint64) {
+        log.Printf("[ArenaStatus] 📤 sendToNewClient 被调用, playerID=%d", playerID)
+
         b.server.clientsMu.RLock()
         var client *Client
         for _, c := range b.server.clients {
@@ -1286,12 +1288,20 @@ func (b *ArenaStatusBroadcaster) sendToNewClient(playerID uint64) {
         }
         b.server.clientsMu.RUnlock()
 
-        if client == nil || client.GetRoom() != "" {
+        if client == nil {
+                log.Printf("[ArenaStatus] ⚠️ sendToNewClient: 找不到玩家客户端, playerID=%d", playerID)
+                return
+        }
+
+        currentRoom := client.GetRoom()
+        if currentRoom != "" {
+                log.Printf("[ArenaStatus] ⚠️ sendToNewClient: 玩家已在房间中, playerID=%d, room=%s", playerID, currentRoom)
                 return
         }
 
         // 1. 发送竞技场状态
         arenas := b.calculateArenaStatus()
+        log.Printf("[ArenaStatus] 📊 calculateArenaStatus 返回 %d 个竞技场", len(arenas))
         if len(arenas) > 0 {
                 payload := protocol.ArenaStatusPayload{
                         Arenas: arenas,
@@ -1299,6 +1309,9 @@ func (b *ArenaStatusBroadcaster) sendToNewClient(playerID uint64) {
                 }
                 msg := codec.MustNewMessage(protocol.MsgArenaStatus, payload)
                 client.SendMessage(msg)
+                log.Printf("[ArenaStatus] ✅ 已发送 arena_status 给玩家 %d, 共 %d 个竞技场", playerID, len(arenas))
+        } else {
+                log.Printf("[ArenaStatus] ⚠️ 没有竞技场数据，不发送 arena_status")
         }
 
         // 2. 🔧【新增】检查是否有待进入的比赛弹窗
@@ -1311,19 +1324,25 @@ func (b *ArenaStatusBroadcaster) sendPendingMatchStartPopup(playerID uint64, cli
         b.enterPhasesMu.RLock()
         defer b.enterPhasesMu.RUnlock()
 
+        log.Printf("[ArenaStatus] 🔍 sendPendingMatchStartPopup: 检查玩家 %d 是否有待进入的比赛, enterPhases 数量=%d", playerID, len(b.enterPhases))
+
         // 遍历所有进入阶段，查找该玩家
         for periodNo, enterPhase := range b.enterPhases {
+                log.Printf("[ArenaStatus] 🔍 检查期号 %s: 玩家列表=%v", periodNo, enterPhase.PlayerStatuses)
+
                 status, exists := enterPhase.PlayerStatuses[playerID]
                 if !exists {
+                        log.Printf("[ArenaStatus] 🔍 玩家 %d 不在期号 %s 的玩家列表中", playerID, periodNo)
                         continue
                 }
 
                 // 检查玩家是否已报名但还没进入
                 if status.HasCancelled {
+                        log.Printf("[ArenaStatus] 🔍 玩家 %d 已取消期号 %s 的报名", playerID, periodNo)
                         continue
                 }
 
-                log.Printf("[ArenaStatus] 🔄 玩家 %d 重连，发现待进入的比赛: periodNo=%s", playerID, periodNo)
+                log.Printf("[ArenaStatus] 🔄 玩家 %d 发现待进入的比赛: periodNo=%s, HasEntered=%v", playerID, periodNo, status.HasEntered)
 
                 // 获取房间配置
                 roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
