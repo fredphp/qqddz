@@ -1,4 +1,4 @@
 /*! 
  柴米油盐后台管理系统 
- Time : 1778798333000 */
+ Time : 1778801530000 */
 import e from"./087AC4D233B64EB0normalMode.CjTaoPT_.js";import o from"./087AC4D233B64EB0headMode.YJj1eex6.js";import m from"./087AC4D233B64EB0combinationMode.CxvigjVr.js";import i from"./087AC4D233B64EB0sidebarMode.CCo8IlBF.js";import{A as d,B as s,o as a,c as r,v as n,h as t,e as B}from"./087AC4D233B64EB0index.DIei8gv-.js";import"./087AC4D233B64EB0index.CKKa_87y.js";import"./087AC4D233B64EB0menuItem.CMewZ6o2.js";import"./087AC4D233B64EB0asyncSubmenu.Bw686v8a.js";const l={__name:"index",props:{mode:{type:String,default:"normal"}},setup(l){const b=d(),{config:p,device:c}=s(b);return(d,s)=>(a(),r("div",null,["normal"===n(p).side_mode||"mobile"===n(c)&&"head"==n(p).side_mode||"mobile"===n(c)&&"combination"==n(p).side_mode||"mobile"===n(c)&&"sidebar"==n(p).side_mode?(a(),t(e,{key:0})):B("",!0),"head"===n(p).side_mode&&"mobile"!==n(c)?(a(),t(o,{key:1})):B("",!0),"combination"===n(p).side_mode&&"mobile"!==n(c)?(a(),t(m,{key:2,mode:l.mode},null,8,["mode"])):B("",!0),"sidebar"===n(p).side_mode&&"mobile"!==n(c)?(a(),t(i,{key:3})):B("",!0)]))}};export{l as default};

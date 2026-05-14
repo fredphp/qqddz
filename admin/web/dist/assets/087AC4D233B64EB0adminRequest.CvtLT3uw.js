@@ -1,4 +1,4 @@
 /*! 
  柴米油盐后台管理系统 
- Time : 1778798333000 */
+ Time : 1778801530000 */
 import{D as e,l as o,E as t,aj as s,i as a}from"./087AC4D233B64EB0index.DIei8gv-.js";const r=e.create({baseURL:"https://houtais.hongxiu88.com"});let n=0,i=null,d=!1;const u=()=>{n--,n<=0&&(n=0,i&&(i.close(),i=null),d=!1)};r.interceptors.request.use(e=>{var t;void 0===e.timeout&&(e.timeout=6e5),e.donNotShowLoading||(n++,n>0&&!d&&(i=a.service({target:document.getElementById("gva-base-load-dom")}),d=!0));const s=o();return e.headers={"Content-Type":"application/json","x-token":s.token,"x-user-id":null==(t=s.userInfo)?void 0:t.ID,...e.headers},e},e=>(u(),Promise.reject(e))),r.interceptors.response.use(e=>(u(),void 0===e.data.code?e:(0===e.data.code||t({showClose:!0,message:e.data.msg||"请求失败",type:"error"}),e.data)),e=>{var t;if(u(),401===(null==(t=e.response)?void 0:t.status)){o().ClearStorage(),s.push({name:"Login",replace:!0})}return Promise.reject(e)});export{r as a};
