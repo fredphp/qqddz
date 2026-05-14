@@ -28,8 +28,8 @@ window.socketCtr = function(){
     // ========== 心跳机制 ==========
     var _heartbeatInterval = null      // 心跳定时器
     var _heartbeatTimeout = null       // 心跳超时定时器
-    var _heartbeatIntervalMs = 30000   // 心跳间隔（30秒）
-    var _heartbeatTimeoutMs = 20000    // 🔧【修复】心跳超时时间（20秒）- 避免过于敏感
+    var _heartbeatIntervalMs = 25000   // 🔧【修复】心跳间隔（25秒）- 更频繁的心跳检测
+    var _heartbeatTimeoutMs = 35000    // 🔧【修复】心跳超时时间（35秒）- 给后台切换更多容错时间
     var _lastHeartbeatTime = 0         // 上次心跳时间
     var _missedHeartbeats = 0          // 连续丢失的心跳次数
     var _maxMissedHeartbeats = 3       // 最大允许丢失的心跳次数
@@ -1496,6 +1496,13 @@ window.socketCtr = function(){
                 var backgroundTime = Date.now() - _lastVisibleTime
                 console.log("📱 [Visibility] 页面从后台恢复，后台时长:", Math.round(backgroundTime / 1000), "秒")
 
+                // 🔧【修复】增加后台时间阈值判断
+                // 如果后台时间超过心跳间隔，需要更谨慎地处理
+                if (backgroundTime > _heartbeatIntervalMs) {
+                    console.log("📱 [Visibility] 后台时间较长，重置心跳计数")
+                    _missedHeartbeats = 0
+                }
+
                 // 检查连接状态
                 if (!_socket || _socket.readyState !== WebSocket.OPEN) {
                     console.log("📱 [Visibility] 连接已断开，尝试自动重连...")
@@ -1504,6 +1511,8 @@ window.socketCtr = function(){
                     // 连接还在，发送一个心跳确认
                     console.log("📱 [Visibility] 连接正常，发送心跳确认")
                     _sendmsg(MessageType.PING, { timestamp: Date.now() }, null)
+                    // 🔧【修复】重置心跳计数，避免累积
+                    _missedHeartbeats = 0
                 }
             } else {
                 // 页面进入后台
@@ -1563,11 +1572,15 @@ window.socketCtr = function(){
             newSocket.onopen = function() {
                 _socket = newSocket
                 _isConnected = true
+                _missedHeartbeats = 0  // 🔧【修复】重置心跳计数
                 _setConnectionState("connected")
                 console.log("✅ [AutoReconnect] 重连成功!")
 
                 // 启动心跳
                 _startHeartbeat()
+
+                // 🔧【修复】立即发送心跳确认
+                _sendmsg(MessageType.PING, { timestamp: Date.now() }, null)
 
                 // 触发重连成功事件
                 var evt = _getEvent()
@@ -1576,6 +1589,8 @@ window.socketCtr = function(){
                         player_id: _playerId,
                         player_name: _playerName
                     })
+                    // 🔧【修复】触发心跳成功事件，通知 mygolbal 更新在线状态
+                    evt.fire("heartbeat_success", { timestamp: Date.now() })
                 }
             }
 

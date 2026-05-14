@@ -73,8 +73,10 @@ func (h *Handler) handleReconnect(client types.ClientInterface, msg *protocol.Me
         log.Printf("🔄 玩家 %s (%s) 重连成功", session.PlayerName, session.PlayerID)
 
         // 🔧【新增】恢复竞技场状态（如果有未处理的进入阶段）
-        if h.server.arenaBroadcaster != nil {
-                h.server.arenaBroadcaster.OnPlayerReconnect(session.PlayerID, client)
+        if arenaSrv, ok := h.server.(types.ArenaServer); ok {
+                if arena := arenaSrv.GetArenaBroadcaster(); arena != nil {
+                        arena.OnPlayerReconnect(session.PlayerID, client)
+                }
         }
 }
 
