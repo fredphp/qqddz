@@ -1438,5 +1438,166 @@ window.socketCtr = function(){
         if (evt) evt.on("tournament_final_rank_notify", callback)
     }
 
+    // ============================================================
+    // 【新增】页面可见性检测和自动重连
+    // 解决移动端锁屏/后台时 WebSocket 断开的问题
+    // ============================================================
+
+    var _pageVisibilityHandler = null
+    var _lastVisibleTime = Date.now()
+    var _backgroundCheckInterval = null
+
+    /**
+     * 初始化页面可见性监听
+     * 当页面从后台切换到前台时，检查连接状态并自动重连
+     */
+    var _initVisibilityListener = function() {
+        if (_pageVisibilityHandler) return // 避免重复注册
+
+        _pageVisibilityHandler = function() {
+            if (document.visibilityState === 'visible') {
+                // 页面变为可见
+                var backgroundTime = Date.now() - _lastVisibleTime
+                console.log("📱 [Visibility] 页面从后台恢复，后台时长:", Math.round(backgroundTime / 1000), "秒")
+
+                // 检查连接状态
+                if (!_socket || _socket.readyState !== WebSocket.OPEN) {
+                    console.log("📱 [Visibility] 连接已断开，尝试自动重连...")
+                    _autoReconnect()
+                } else {
+                    // 连接还在，发送一个心跳确认
+                    console.log("📱 [Visibility] 连接正常，发送心跳确认")
+                    _sendmsg(MessageType.PING, { timestamp: Date.now() }, null)
+                }
+            } else {
+                // 页面进入后台
+                _lastVisibleTime = Date.now()
+                console.log("📱 [Visibility] 页面进入后台")
+            }
+        }
+
+        document.addEventListener('visibilitychange', _pageVisibilityHandler)
+
+        // 定期检查连接状态（每30秒）
+        _backgroundCheckInterval = setInterval(function() {
+            if (document.visibilityState === 'visible') {
+                // 页面可见时检查连接
+                if (!_socket || _socket.readyState !== WebSocket.OPEN) {
+                    console.log("🔄 [BackgroundCheck] 检测到连接断开，尝试重连...")
+                    _autoReconnect()
+                }
+            }
+        }, 30000)
+    }
+
+    /**
+     * 自动重连
+     * 使用保存的 reconnect_token 尝试重连
+     */
+    var _autoReconnect = function() {
+        if (_connectionState === "connecting") {
+            console.log("🔄 [AutoReconnect] 正在重连中，跳过...")
+            return
+        }
+
+        if (!_reconnectToken) {
+            console.log("🔄 [AutoReconnect] 没有 reconnect_token，执行全新连接...")
+            that.initSocket()
+            return
+        }
+
+        console.log("🔄 [AutoReconnect] 使用 token 尝试重连...")
+
+        _setConnectionState("connecting")
+
+        var wsUrl = _serverUrl
+        if (wsUrl.indexOf("ws://") !== 0 && wsUrl.indexOf("wss://") !== 0) {
+            wsUrl = "ws://" + wsUrl + "/ws"
+        }
+
+        var separator = wsUrl.indexOf("?") > 0 ? "&" : "?"
+        wsUrl = wsUrl + separator + "token=" + encodeURIComponent(_reconnectToken)
+
+        try {
+            var newSocket = new WebSocket(wsUrl)
+
+            newSocket.onopen = function() {
+                _socket = newSocket
+                _isConnected = true
+                _setConnectionState("connected")
+                console.log("✅ [AutoReconnect] 重连成功!")
+
+                // 启动心跳
+                _startHeartbeat()
+
+                // 触发重连成功事件
+                var evt = _getEvent()
+                if (evt) {
+                    evt.fire("auto_reconnect_success", {
+                        player_id: _playerId,
+                        player_name: _playerName
+                    })
+                }
+            }
+
+            newSocket.onmessage = function(evt) {
+                try {
+                    if (evt.data instanceof Blob) {
+                        var reader = new FileReader()
+                        reader.onload = function(e) {
+                            try {
+                                var text = e.target.result
+                                if (text.trim().charAt(0) === '{') {
+                                    var msgData = JSON.parse(text)
+                                    _handleMessage(msgData)
+                                }
+                            } catch(e) {}
+                        }
+                        reader.readAsText(evt.data)
+                    } else {
+                        var msgData = JSON.parse(evt.data)
+                        _handleMessage(msgData)
+                    }
+                } catch(e) {
+                    console.error("解析消息失败:", e)
+                }
+            }
+
+            newSocket.onerror = function(error) {
+                console.error("🔄 [AutoReconnect] 重连失败:", error)
+                _setConnectionState("disconnected")
+            }
+
+            newSocket.onclose = function(event) {
+                _isConnected = false
+                _setConnectionState("disconnected")
+                _stopHeartbeat()
+            }
+
+        } catch(e) {
+            console.error("🔄 [AutoReconnect] 创建连接失败:", e)
+            _setConnectionState("disconnected")
+        }
+    }
+
+    /**
+     * 清理可见性监听
+     */
+    that.cleanupVisibilityListener = function() {
+        if (_pageVisibilityHandler) {
+            document.removeEventListener('visibilitychange', _pageVisibilityHandler)
+            _pageVisibilityHandler = null
+        }
+        if (_backgroundCheckInterval) {
+            clearInterval(_backgroundCheckInterval)
+            _backgroundCheckInterval = null
+        }
+    }
+
+    // 自动初始化可见性监听
+    if (typeof document !== 'undefined') {
+        _initVisibilityListener()
+    }
+
     return that
 }
