@@ -28,12 +28,13 @@ window.socketCtr = function(){
     // ========== 心跳机制 ==========
     var _heartbeatInterval = null      // 心跳定时器
     var _heartbeatTimeout = null       // 心跳超时定时器
-    var _heartbeatIntervalMs = 25000   // 🔧【修复】心跳间隔（25秒）- 更频繁的心跳检测
-    var _heartbeatTimeoutMs = 35000    // 🔧【修复】心跳超时时间（35秒）- 给后台切换更多容错时间
+    var _heartbeatIntervalMs = 30000   // 🔧【修复】心跳间隔（30秒）- 与服务端 60秒超时协调
+    var _heartbeatTimeoutMs = 50000    // 🔧【修复】心跳超时时间（50秒）- 给后台切换更多容错时间
     var _lastHeartbeatTime = 0         // 上次心跳时间
     var _missedHeartbeats = 0          // 连续丢失的心跳次数
     var _maxMissedHeartbeats = 3       // 最大允许丢失的心跳次数
     var _isHeartbeatRunning = false    // 心跳是否在运行
+    var _backgroundThresholdMs = 45000 // 🔧【新增】后台时间阈值（45秒），超过此时间才需要检查重连
     
     // ========== 状态监听 ==========
     var _stateListeners = []           // 状态变化监听器列表
@@ -1486,6 +1487,7 @@ window.socketCtr = function(){
     /**
      * 初始化页面可见性监听
      * 当页面从后台切换到前台时，检查连接状态并自动重连
+     * 🔧【修复】增加后台时间阈值，避免短时间切换触发不必要的重连
      */
     var _initVisibilityListener = function() {
         if (_pageVisibilityHandler) return // 避免重复注册
@@ -1496,12 +1498,18 @@ window.socketCtr = function(){
                 var backgroundTime = Date.now() - _lastVisibleTime
                 console.log("📱 [Visibility] 页面从后台恢复，后台时长:", Math.round(backgroundTime / 1000), "秒")
 
-                // 🔧【修复】增加后台时间阈值判断
-                // 如果后台时间超过心跳间隔，需要更谨慎地处理
-                if (backgroundTime > _heartbeatIntervalMs) {
-                    console.log("📱 [Visibility] 后台时间较长，重置心跳计数")
+                // 🔧【关键修复】只有后台时间超过阈值（45秒）才检查连接状态
+                // 短时间的标签页切换不应该触发重连检查
+                if (backgroundTime < _backgroundThresholdMs) {
+                    console.log("📱 [Visibility] 后台时间较短，跳过连接检查")
+                    // 只重置心跳计数，不触发重连
                     _missedHeartbeats = 0
+                    return
                 }
+
+                // 后台时间较长，重置心跳计数
+                console.log("📱 [Visibility] 后台时间较长，重置心跳计数")
+                _missedHeartbeats = 0
 
                 // 检查连接状态
                 if (!_socket || _socket.readyState !== WebSocket.OPEN) {
@@ -1511,8 +1519,6 @@ window.socketCtr = function(){
                     // 连接还在，发送一个心跳确认
                     console.log("📱 [Visibility] 连接正常，发送心跳确认")
                     _sendmsg(MessageType.PING, { timestamp: Date.now() }, null)
-                    // 🔧【修复】重置心跳计数，避免累积
-                    _missedHeartbeats = 0
                 }
             } else {
                 // 页面进入后台
@@ -1523,24 +1529,15 @@ window.socketCtr = function(){
 
         document.addEventListener('visibilitychange', _pageVisibilityHandler)
 
-        // 🔧【修复】定期检查连接状态（每60秒）
-        // 避免过于频繁的检查导致不必要的重连
-        _backgroundCheckInterval = setInterval(function() {
-            if (document.visibilityState === 'visible') {
-                // 页面可见时检查连接
-                if (!_socket || _socket.readyState !== WebSocket.OPEN) {
-                    // 🔧【修复】只在心跳机制检测到问题时才重连
-                    // 不要主动触发重连，让心跳机制处理
-                    // 这样可以避免过度敏感的重连
-                    console.log("🔄 [BackgroundCheck] 检测到连接断开，等待心跳机制处理...")
-                }
-            }
-        }, 60000)
+        // 🔧【修复】移除 BackgroundCheck 定时器
+        // 心跳机制已经足够处理连接问题，不需要额外的定时检查
+        // 这可以避免不必要的日志输出和资源消耗
     }
 
     /**
      * 自动重连
      * 使用保存的 reconnect_token 尝试重连
+     * 🔧【修复】重连成功后发送 reconnect 消息，触发服务端的 handleReconnect 流程
      */
     var _autoReconnect = function() {
         if (_connectionState === "connecting") {
@@ -1563,8 +1560,8 @@ window.socketCtr = function(){
             wsUrl = "ws://" + wsUrl + "/ws"
         }
 
-        var separator = wsUrl.indexOf("?") > 0 ? "&" : "?"
-        wsUrl = wsUrl + separator + "token=" + encodeURIComponent(_reconnectToken)
+        // 🔧【修复】不使用 URL 参数传递重连 token，而是连接后发送 reconnect 消息
+        // 这样服务端才能正确处理重连逻辑（包括竞技场状态恢复）
 
         try {
             var newSocket = new WebSocket(wsUrl)
@@ -1573,25 +1570,14 @@ window.socketCtr = function(){
                 _socket = newSocket
                 _isConnected = true
                 _missedHeartbeats = 0  // 🔧【修复】重置心跳计数
-                _setConnectionState("connected")
-                console.log("✅ [AutoReconnect] 重连成功!")
+                console.log("✅ [AutoReconnect] WebSocket 连接成功，发送 reconnect 消息...")
 
-                // 启动心跳
-                _startHeartbeat()
-
-                // 🔧【修复】立即发送心跳确认
-                _sendmsg(MessageType.PING, { timestamp: Date.now() }, null)
-
-                // 触发重连成功事件
-                var evt = _getEvent()
-                if (evt) {
-                    evt.fire("auto_reconnect_success", {
-                        player_id: _playerId,
-                        player_name: _playerName
-                    })
-                    // 🔧【修复】触发心跳成功事件，通知 mygolbal 更新在线状态
-                    evt.fire("heartbeat_success", { timestamp: Date.now() })
-                }
+                // 🔧【关键修复】发送 reconnect 消息，而不是 ping
+                // 这样服务端会调用 handleReconnect，进而恢复竞技场状态
+                _sendmsg("reconnect", {
+                    token: _reconnectToken,
+                    player_id: _playerId
+                }, null)
             }
 
             newSocket.onmessage = function(evt) {

@@ -49,9 +49,24 @@ func (h *Handler) handleReconnect(client types.ClientInterface, msg *protocol.Me
         // 这里我们假设client已经是正确的类型，可以进行类型断言
         oldID := client.GetID()
 
+        // 🔧【关键修复】从服务器获取旧客户端的数据库 PlayerID
+        // session.PlayerID 是 WebSocket ID，我们需要数据库 ID
+        var dbPlayerID uint64
+        oldClient := h.server.GetClientByID(session.PlayerID)
+        if oldClient != nil {
+                dbPlayerID = oldClient.GetPlayerID()
+                // 复制旧客户端的金币信息
+                client.SetGold(oldClient.GetGold())
+        }
+
         // 从旧 ID 注销，用新 ID 注册
         h.server.UnregisterClient(oldID)
         h.server.RegisterClient(session.PlayerID, client)
+
+        // 🔧【关键修复】设置数据库 PlayerID
+        if dbPlayerID > 0 {
+                client.SetPlayerID(dbPlayerID)
+        }
 
         // 标记会话上线
         h.sessionManager.SetOnline(session.PlayerID)
