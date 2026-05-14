@@ -110,6 +110,10 @@ func (c *Client) ReadPump() {
                         break
                 }
 
+                // 🔧【修复】收到任何消息都重置读取超时，保持连接活跃
+                // 这样客户端发送的应用层ping消息也能保活连接
+                _ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
+
                 // 【重要】先检测是否为 JSON 消息，在发送 connected 之前设置 useJSON
                 // 这样 connected 消息就会使用正确的格式（JSON）发送
                 if messageType == websocket.TextMessage {
