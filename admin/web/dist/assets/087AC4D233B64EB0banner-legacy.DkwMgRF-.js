@@ -1,4 +1,0 @@
-/*! 
- 柴米油盐后台管理系统 
- Time : 1778733385000 */
-System.register(["./087AC4D233B64EB0index-legacy.ZDxua-Gc.js"],function(n,e){"use strict";var t,r,l,u,i,s,c,a;return{setters:[function(n){t=n.f,r=n.o,l=n.h,u=n.w,i=n.c,s=n.F,c=n.y,a=n.d}],execute:function(){n("default",{__name:"banner",setup:function(n){var e=[{img:"/assets/087AC4D233B64EB0banner.BnKmBxXj.jpg",link:""},{img:"/assets/087AC4D233B64EB0banner2.CEIAvdoV.jpg",link:""}];return function(n,o){var f=t("el-image"),g=t("el-carousel-item"),m=t("el-carousel");return r(),l(m,{class:"-mt-2"},{default:u(function(){return[(r(),i(s,null,c(e,function(n,e){return a(g,{class:"cursor-pointer lg:h-40",key:e,onClick:function(e){var t;(t=n.link)&&window.open(t,"_blank")}},{default:u(function(){return[a(f,{class:"h-full w-full",src:n.img,fit:"fill"},null,8,["src"])]}),_:2},1032,["onClick"])}),64))]}),_:1})}}})}}});
