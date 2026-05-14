@@ -12,6 +12,73 @@ import (
 
 // --- Room 方法 ---
 
+// PreloadPlayerInfo 预加载玩家信息（在玩家进入房间时调用）
+// 一次性从数据库获取所有需要的信息，避免后续重复查询
+func (r *Room) PreloadPlayerInfo(playerID string) {
+        player := r.Players[playerID]
+        if player == nil || player.Client == nil {
+                return
+        }
+
+        playerDBID := player.Client.GetPlayerID()
+        playerName := player.Client.GetName()
+
+        // 从数据库获取玩家信息
+        db := database.DB()
+        if db == nil || playerDBID == 0 {
+                // 数据库不可用或 PlayerID 无效，尝试通过昵称查询
+                if db != nil && playerName != "" {
+                        var dbPlayer database.Player
+                        if err := db.Where("nickname = ?", playerName).First(&dbPlayer).Error; err == nil {
+                                player.Client.SetPlayerID(dbPlayer.ID)
+                                player.Client.SetGold(dbPlayer.Gold)
+                                player.Avatar = dbPlayer.Avatar
+                                playerDBID = dbPlayer.ID
+                                log.Printf("✅ [PreloadPlayerInfo] 通过昵称查询成功: %s -> PlayerID=%d", playerName, playerDBID)
+                        }
+                }
+                return
+        }
+
+        // 查询 ddz_players 表获取金币和头像
+        var dbPlayer database.Player
+        if err := db.First(&dbPlayer, playerDBID).Error; err != nil {
+                log.Printf("⚠️ [PreloadPlayerInfo] 查询玩家失败: PlayerID=%d, err=%v", playerDBID, err)
+                return
+        }
+
+        // 缓存玩家信息
+        player.Client.SetGold(dbPlayer.Gold)
+        player.Avatar = dbPlayer.Avatar
+        log.Printf("✅ [PreloadPlayerInfo] 预加载玩家信息: PlayerID=%d, Gold=%d, Avatar=%s", playerDBID, dbPlayer.Gold, dbPlayer.Avatar)
+}
+
+// PreloadArenaGold 预加载竞技场金币（在设置 PeriodNo 之后调用）
+// 竞技场模式下，房间创建后 PeriodNo 才被设置，需要单独预加载竞技金币
+func (r *Room) PreloadArenaGold() {
+        if r.RoomCategory != 2 || r.PeriodNo == "" {
+                return
+        }
+
+        for playerID, player := range r.Players {
+                if player == nil || player.Client == nil {
+                        continue
+                }
+                playerDBID := player.Client.GetPlayerID()
+                if playerDBID == 0 {
+                        continue
+                }
+
+                // 从参赛表获取竞技金币
+                if arenaGold, err := database.GetArenaGold(r.PeriodNo, playerDBID); err != nil {
+                        log.Printf("⚠️ [PreloadArenaGold] 获取赛事金币失败: period_no=%s, player_id=%d", r.PeriodNo, playerDBID)
+                } else {
+                        player.MatchCoin = arenaGold
+                        log.Printf("✅ [PreloadArenaGold] 预加载竞技币: PlayerID=%d, MatchCoin=%d", playerDBID, arenaGold)
+                }
+        }
+}
+
 // Broadcast 广播消息给房间内所有玩家
 func (r *Room) Broadcast(msg *protocol.Message) {
         for _, player := range r.Players {
@@ -58,6 +125,7 @@ func (r *Room) checkAllReady() bool {
 }
 
 // GetPlayerInfo 获取玩家信息
+// 🔧【性能优化】从缓存读取玩家信息，不再查询数据库
 func (r *Room) GetPlayerInfo(playerID string) protocol.PlayerInfo {
         player := r.Players[playerID]
         cardsCount := 0
@@ -93,69 +161,14 @@ func (r *Room) GetPlayerInfo(playerID string) protocol.PlayerInfo {
                 }
         }
 
-        // 获取玩家基本信息
+        // 🔧【性能优化】直接从缓存获取玩家信息，不再查询数据库
         goldCount := player.Client.GetGold()
         playerName := player.Client.GetName()
-        playerDBID := player.Client.GetPlayerID()
-        var avatar string
-        var matchCoin int64 = 0 // 🔧【新增】竞技币
-        
-        log.Printf("🔍 [GetPlayerInfo] 玩家UUID=%s, 昵称=%s, PlayerID=%d, 当前缓存金币=%d", playerID, playerName, playerDBID, goldCount)
-        
-        // 🔧【修复】从数据库获取最新玩家信息（金币、头像等）
-        db := database.DB()
-        if db != nil {
-                // 优先通过 PlayerID 查询
-                if playerDBID > 0 {
-                        var dbPlayer database.Player
-                        if err := db.First(&dbPlayer, playerDBID).Error; err != nil {
-                                log.Printf("⚠️ [GetPlayerInfo] 通过PlayerID查询失败: %v, PlayerID: %d", err, playerDBID)
-                        } else {
-                                goldCount = dbPlayer.Gold
-                                avatar = dbPlayer.Avatar
-                                player.Client.SetGold(goldCount)
-                                log.Printf("✅ [GetPlayerInfo] 通过PlayerID=%d 获取玩家信息: 金币=%d, 头像=%s", playerDBID, goldCount, avatar)
-                        }
-                } else if playerName != "" {
-                        // PlayerID 为 0 时，通过昵称查询
-                        var dbPlayer database.Player
-                        if err := db.Where("nickname = ?", playerName).First(&dbPlayer).Error; err != nil {
-                                log.Printf("⚠️ [GetPlayerInfo] 通过昵称查询失败: %v, 昵称: %s", err, playerName)
-                        } else {
-                                goldCount = dbPlayer.Gold
-                                avatar = dbPlayer.Avatar
-                                player.Client.SetPlayerID(dbPlayer.ID)
-                                player.Client.SetGold(goldCount)
-                                log.Printf("✅ [GetPlayerInfo] 通过昵称=%s 获取玩家信息: 金币=%d, 头像=%s, PlayerID: %d", playerName, goldCount, avatar, dbPlayer.ID)
-                        }
-                }
-                
-                // 🔧【新增】竞技场模式下获取玩家竞技币
-                // 🔧【重构】现在从 ddz_arena_participations.match_coin 获取赛事金币
-                log.Printf("🔍 [GetPlayerInfo] 检查竞技场模式: RoomCategory=%d, PeriodNo=%s, playerDBID=%d", r.RoomCategory, r.PeriodNo, playerDBID)
-                if r.RoomCategory == 2 && r.PeriodNo != "" && playerDBID > 0 {
-                        // 从参赛表获取 match_coin
-                        if arenaGold, err := database.GetArenaGold(r.PeriodNo, playerDBID); err != nil {
-                                log.Printf("⚠️ [GetPlayerInfo] 获取赛事金币失败: period_no=%s, player_id=%d, err=%v", r.PeriodNo, playerDBID, err)
-                        } else {
-                                matchCoin = arenaGold
-                                log.Printf("✅ [GetPlayerInfo] 竞技场模式: 玩家 %d 的赛事金币=%d (period_no=%s)", playerDBID, matchCoin, r.PeriodNo)
-                        }
-                } else if r.RoomCategory == 2 && r.ArenaSessionID > 0 && playerDBID > 0 {
-                        // 兼容：如果没有 PeriodNo，尝试从 ArenaParticipation 获取
-                        var participation database.ArenaParticipation
-                        if err := db.Where("session_id = ? AND player_id = ?", r.ArenaSessionID, playerDBID).First(&participation).Error; err != nil {
-                                log.Printf("⚠️ [GetPlayerInfo] 获取竞技币失败: session_id=%d, player_id=%d, err=%v", r.ArenaSessionID, playerDBID, err)
-                        } else {
-                                matchCoin = participation.MatchCoin
-                                log.Printf("✅ [GetPlayerInfo] 竞技场模式(兼容): 玩家 %d 的竞技币=%d", playerDBID, matchCoin)
-                        }
-                }
-        } else {
-                log.Printf("⚠️ [GetPlayerInfo] 数据库连接为空，使用缓存金币: %d", goldCount)
-        }
+        avatar := player.Avatar
+        matchCoin := player.MatchCoin
 
-        log.Printf("📤 [GetPlayerInfo] 返回玩家信息: UUID=%s, 昵称=%s, 头像=%s, 金币=%d, 竞技币=%d", playerID, playerName, avatar, goldCount, matchCoin)
+        log.Printf("📤 [GetPlayerInfo] 从缓存获取: UUID=%s, 昵称=%s, 头像=%s, 金币=%d, 竞技币=%d",
+                playerID, playerName, avatar, goldCount, matchCoin)
 
         // 🔧【修复】使用 CDN 补全头像 URL
         avatarUrl := cdnutil.CompleteAvatar(avatar)

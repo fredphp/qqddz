@@ -21,6 +21,10 @@ type RoomPlayer struct {
         Ready      bool        // 是否准备
         IsLandlord bool        // 是否是地主
         State      PlayerState // 玩家状态：online/offline/robot
+
+        // 🔧【性能优化】缓存玩家信息，避免重复查询数据库
+        Avatar    string // 头像
+        MatchCoin int64  // 竞技币（竞技场模式下使用）
 }
 
 // NewRoomPlayer 创建房间玩家
@@ -92,8 +96,12 @@ type Room struct {
 // SetPeriodNo 设置竞技场期号
 func (r *Room) SetPeriodNo(periodNo string) {
         r.mu.Lock()
-        defer r.mu.Unlock()
         r.PeriodNo = periodNo
+        r.mu.Unlock()
+
+        // 🔧【性能优化】设置期号后预加载竞技金币
+        // 因为房间创建时 PeriodNo 为空，所以需要在设置后单独加载
+        r.PreloadArenaGold()
 }
 
 // RoomManager 房间管理器

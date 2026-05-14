@@ -54,6 +54,9 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface, roomConfigID uin
         room.PlayerOrder = append(room.PlayerOrder, client.GetID())
         client.SetRoom(code)
 
+        // 🔧【性能优化】预加载玩家信息，避免后续重复查询数据库
+        room.PreloadPlayerInfo(client.GetID())
+
         rm.rooms[code] = room
 
         // 获取房间配置信息
@@ -185,6 +188,9 @@ func (rm *RoomManager) JoinRoom(client types.ClientInterface, code string) (*Roo
         room.Players[client.GetID()] = player
         room.PlayerOrder = append(room.PlayerOrder, client.GetID())
         client.SetRoom(code)
+
+        // 🔧【性能优化】预加载玩家信息，避免后续重复查询数据库
+        room.PreloadPlayerInfo(client.GetID())
 
         playerCount := len(room.Players)
 
