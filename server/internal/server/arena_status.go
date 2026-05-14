@@ -1274,6 +1274,7 @@ func (b *ArenaStatusBroadcaster) handlePhaseChange(roomID uint64, status protoco
 }
 
 // sendToNewClient 向新连接的客户端发送竞技场状态
+// 🔧【修复】同时检查是否有待发送的比赛弹窗
 func (b *ArenaStatusBroadcaster) sendToNewClient(playerID uint64) {
         b.server.clientsMu.RLock()
         var client *Client
@@ -1289,18 +1290,85 @@ func (b *ArenaStatusBroadcaster) sendToNewClient(playerID uint64) {
                 return
         }
 
+        // 1. 发送竞技场状态
         arenas := b.calculateArenaStatus()
-        if len(arenas) == 0 {
-                return
+        if len(arenas) > 0 {
+                payload := protocol.ArenaStatusPayload{
+                        Arenas: arenas,
+                        Time:   time.Now().UnixMilli(),
+                }
+                msg := codec.MustNewMessage(protocol.MsgArenaStatus, payload)
+                client.SendMessage(msg)
         }
 
-        payload := protocol.ArenaStatusPayload{
-                Arenas: arenas,
-                Time:   time.Now().UnixMilli(),
-        }
+        // 2. 🔧【新增】检查是否有待进入的比赛弹窗
+        b.sendPendingMatchStartPopup(playerID, client)
+}
 
-        msg := codec.MustNewMessage(protocol.MsgArenaStatus, payload)
-        client.SendMessage(msg)
+// 🔧【新增】检查并发送待处理的比赛开始弹窗
+// 当玩家重连时，检查是否有正在等待进入的比赛
+func (b *ArenaStatusBroadcaster) sendPendingMatchStartPopup(playerID uint64, client *Client) {
+        b.enterPhasesMu.RLock()
+        defer b.enterPhasesMu.RUnlock()
+
+        // 遍历所有进入阶段，查找该玩家
+        for periodNo, enterPhase := range b.enterPhases {
+                status, exists := enterPhase.PlayerStatuses[playerID]
+                if !exists {
+                        continue
+                }
+
+                // 检查玩家是否已报名但还没进入
+                if status.HasCancelled {
+                        continue
+                }
+
+                log.Printf("[ArenaStatus] 🔄 玩家 %d 重连，发现待进入的比赛: periodNo=%s", playerID, periodNo)
+
+                // 获取房间配置
+                roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
+                if err != nil {
+                        log.Printf("[ArenaStatus] ⚠️ 获取房间配置失败: %v", err)
+                        continue
+                }
+
+                // 动态计算总轮次
+                var rules tournament.EliminationRules
+                if roomConfig.EliminationRules != "" {
+                        if err := json.Unmarshal([]byte(roomConfig.EliminationRules), &rules); err != nil {
+                                rules = tournament.EliminationRules{60, 30, 18, 9, 3}
+                        }
+                } else {
+                        rules = tournament.EliminationRules{60, 30, 18, 9, 3}
+                }
+                totalRounds := rules.GetTotalRounds(len(enterPhase.PlayerStatuses))
+
+                // 计算剩余倒计时
+                elapsed := time.Since(enterPhase.StartTime)
+                remaining := enterPhase.Countdown - int(elapsed.Seconds())
+                if remaining <= 0 {
+                        remaining = 0
+                }
+
+                // 构建弹窗消息
+                payload := &protocol.ArenaMatchStartPayload{
+                        PeriodNo:      periodNo,
+                        RoomID:        enterPhase.RoomID,
+                        RoomName:      roomConfig.RoomName,
+                        RoomConfigID:  enterPhase.RoomID,
+                        SignupFee:     roomConfig.MinArenaCoin,
+                        TotalPlayers:  len(enterPhase.PlayerStatuses),
+                        MatchDuration: PeriodTotalMinutes,
+                        MatchRounds:   totalRounds,
+                        Countdown:     remaining,
+                        Message:       "比赛进行中，请点击进入！",
+                }
+
+                msg := codec.MustNewMessage(protocol.MsgArenaMatchStart, payload)
+                client.SendMessage(msg)
+                log.Printf("[ArenaStatus] ✅ 已向重连玩家 %d 重新发送比赛弹窗: periodNo=%s, remaining=%ds", playerID, periodNo, remaining)
+                return // 只发送一个弹窗
+        }
 }
 
 // calculateArenaStatus 计算所有竞技场的状态
