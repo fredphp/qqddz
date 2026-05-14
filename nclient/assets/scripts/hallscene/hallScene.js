@@ -1953,11 +1953,13 @@ cc.Class({
     // 🔧【新增】显示竞技场比赛开始弹窗
     _showArenaMatchStartDialog: function(data) {
         var self = this;
+        console.log("🏆 [Arena] _showArenaMatchStartDialog 开始创建弹窗...");
         
         // 获取画布尺寸
         var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
         var screenHeight = canvas ? canvas.designResolution.height : 720;
         var screenWidth = canvas ? canvas.designResolution.width : 1280;
+        console.log("🏆 [Arena] 屏幕尺寸:", screenWidth, "x", screenHeight);
         
         // 创建弹窗容器
         var dialogNode = new cc.Node("ArenaMatchStartDialog");
@@ -1968,6 +1970,7 @@ cc.Class({
         dialogNode.y = 0;
         dialogNode.zIndex = 5000;
         dialogNode.parent = this.node;
+        console.log("🏆 [Arena] 弹窗容器已创建，zIndex=", dialogNode.zIndex);
         
         // 🔧【修复】保存弹窗引用，用于后续关闭
         this._arenaMatchStartDialog = dialogNode;
@@ -2145,6 +2148,9 @@ cc.Class({
             self._arenaMatchStartDialogPeriodNo = null;
             dialogNode.destroy();
         });
+        
+        console.log("🏆 [Arena] ✅ 弹窗创建完成！dialogNode.parent =", dialogNode.parent ? "已挂载" : "未挂载");
+        console.log("🏆 [Arena] 弹窗子节点数量:", dialogNode.children.length);
     },
 
     // 🔧【新增】取消竞技场报名并退还竞技币
