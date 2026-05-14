@@ -14,23 +14,24 @@ try:
     client.connect(host, port, username, password, timeout=30)
     print("连接成功！")
     
-    # 检查所有监听端口
-    print("\n=== 所有监听端口 ===")
-    stdin, stdout, stderr = client.exec_command("netstat -tlnp 2>/dev/null || ss -tlnp")
-    out = stdout.read().decode('utf-8')
-    print(out)
+    # 同步代码
+    commands = [
+        "cd /root/qqddz && git pull origin main",
+        "cd /root/qqddz && git log --oneline -3",
+        "rsync -av --exclude='.git' /root/qqddz/nclient/ /opt/qqddz/nclient/"
+    ]
     
-    # 检查配置文件中的端口
-    print("\n=== 配置文件端口 ===")
-    stdin, stdout, stderr = client.exec_command("grep -E 'port|Port' /opt/qqddz/server/config.yaml | head -20")
-    out = stdout.read().decode('utf-8')
-    print(out)
+    for cmd in commands:
+        print(f"\n执行: {cmd}")
+        stdin, stdout, stderr = client.exec_command(cmd, timeout=120)
+        out = stdout.read().decode('utf-8')
+        err = stderr.read().decode('utf-8')
+        if out:
+            print(out)
+        if err:
+            print(f"stderr: {err}")
     
-    # 查看完整日志
-    print("\n=== 服务完整日志(最后100行) ===")
-    stdin, stdout, stderr = client.exec_command("tail -100 /opt/qqddz/server/logs/server.log 2>/dev/null | head -50")
-    out = stdout.read().decode('utf-8')
-    print(out)
+    print("\n✅ 客户端代码同步完成！")
     
 except Exception as e:
     print(f"连接失败: {e}")
