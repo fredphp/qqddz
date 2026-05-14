@@ -19,7 +19,14 @@ export default ({ mode }) => {
 
   const timestamp = Date.parse(new Date())
 
-  const optimizeDeps = {}
+  const optimizeDeps = {
+    // 🔧【修复】预构建 element-plus 的 CSS 文件
+    // 避免裸模块说明符在生产环境中无法解析
+    include: [
+      'element-plus/theme-chalk/dark/css-vars.css',
+      'element-plus/dist/index.css'
+    ]
+  }
 
   const alias = {
     '@': path.resolve(__dirname, './src'),
