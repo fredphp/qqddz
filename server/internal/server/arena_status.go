@@ -300,6 +300,103 @@ func (b *ArenaStatusBroadcaster) checkAndBroadcast() {
                 b.server.BroadcastArenaStatus(currentStatus)
                 b.lastBroadcastTime = time.Now()
         }
+
+        // 🔧【关键新增】每30秒检查并推送弹窗给需要但没收到的玩家
+        if needFallbackBroadcast {
+                b.checkAndPushPendingMatchStartPopups()
+        }
+}
+
+// 🔧【新增】checkAndPushPendingMatchStartPopups 检查并推送待处理的比赛开始弹窗
+// 这是解决弹窗不显示问题的关键：每30秒检查一次，确保所有报名玩家都能收到弹窗
+func (b *ArenaStatusBroadcaster) checkAndPushPendingMatchStartPopups() {
+        if b.server.redis == nil {
+                return
+        }
+
+        ctx := context.Background()
+        // 获取所有进入阶段的 key
+        keys, err := b.server.redis.Keys(ctx, "ddz:arena:enter_phase:*").Result()
+        if err != nil || len(keys) == 0 {
+                return
+        }
+
+        log.Printf("[ArenaStatus] 🔄 检查待推送弹窗: 发现 %d 个进入阶段记录", len(keys))
+
+        // 遍历每个玩家的进入阶段状态
+        for _, key := range keys {
+                // 提取 playerID
+                playerIDStr := strings.TrimPrefix(key, "ddz:arena:enter_phase:")
+                playerID, err := strconv.ParseUint(playerIDStr, 10, 64)
+                if err != nil {
+                        continue
+                }
+
+                // 获取玩家状态
+                data := b.getPlayerEnterPhaseFromRedis(playerID)
+                if data == nil {
+                        continue
+                }
+
+                // 检查是否已取消或已进入
+                if data.HasCancelled || data.HasEntered {
+                        continue
+                }
+
+                // 检查是否超时
+                elapsed := time.Now().Unix() - data.StartTime
+                remaining := data.Countdown - int(elapsed)
+                if remaining <= 0 {
+                        // 超时，清理数据
+                        b.removePlayerEnterPhaseFromRedis(playerID)
+                        continue
+                }
+
+                // 查找玩家客户端
+                b.server.clientsMu.RLock()
+                var client *Client
+                for _, c := range b.server.clients {
+                        if c.PlayerID == playerID && c.GetRoom() == "" {
+                                client = c
+                                break
+                        }
+                }
+                b.server.clientsMu.RUnlock()
+
+                if client == nil {
+                        continue // 玩家不在线
+                }
+
+                // 发送弹窗
+                b.sendMatchStartPopupToPlayer(playerID, client, data, remaining)
+        }
+}
+
+// 🔧【新增】sendMatchStartPopupToPlayer 发送比赛开始弹窗给指定玩家
+func (b *ArenaStatusBroadcaster) sendMatchStartPopupToPlayer(playerID uint64, client *Client, data *EnterPhaseRedisData, remaining int) {
+        // 获取房间配置
+        roomConfig, err := database.GetRoomConfigByID(data.RoomID)
+        if err != nil {
+                return
+        }
+
+        // 构建弹窗消息
+        payload := &protocol.ArenaMatchStartPayload{
+                PeriodNo:      data.PeriodNo,
+                RoomID:        data.RoomID,
+                RoomName:      roomConfig.RoomName,
+                RoomConfigID:  data.RoomID,
+                SignupFee:     data.SignupFee,
+                TotalPlayers:  0, // 无法从Redis获取，使用默认值
+                MatchDuration: PeriodTotalMinutes,
+                MatchRounds:   5, // 默认值
+                Countdown:     remaining,
+                Message:       "比赛进行中，请点击进入！",
+        }
+
+        msg := codec.MustNewMessage(protocol.MsgArenaMatchStart, payload)
+        client.SendMessage(msg)
+        log.Printf("[ArenaStatus] ✅ 定时推送弹窗: playerID=%d, periodNo=%s, remaining=%ds", playerID, data.PeriodNo, remaining)
 }
 
 // handlePeriodChange 处理期号变化
@@ -898,8 +995,8 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
                                 fmt.Sprintf("进入阶段超时返还，期号:%s", periodNo),
                         )
                 }
-                // 🔧【新增】清理 Redis 中的进入阶段状态
-                b.removePlayerEnterPhaseFromRedis(playerID)
+                // 🔧【修改】更新 Redis 中的取消状态（而不是删除），这样玩家不会再收到弹窗
+                b.updatePlayerEnterPhaseCancelled(playerID)
         }
 
         // 🔧【关键修复】对于已经进入的玩家，为他们的桌子开始游戏
@@ -966,9 +1063,9 @@ func (b *ArenaStatusBroadcaster) HandlePlayerEnter(periodNo string, playerID uin
         status.HasEntered = true
         tableID := status.TableID
 
-        // 🔧【新增】清理 Redis 中的进入阶段状态（玩家已成功进入）
-        b.removePlayerEnterPhaseFromRedis(playerID)
-        
+        // 🔧【修改】更新 Redis 中的进入状态（而不是删除），这样玩家不会再收到弹窗
+        b.updatePlayerEnterPhaseEntered(playerID)
+
         // 获取玩家所在的桌子
         if tableID == 0 || tableID > len(enterPhase.Tables) {
                 return fmt.Errorf("玩家未分配到桌子")
@@ -1172,8 +1269,8 @@ func (b *ArenaStatusBroadcaster) HandlePlayerCancelEnter(periodNo string, player
         // 标记为已取消
         status.HasCancelled = true
 
-        // 🔧【新增】清理 Redis 中的进入阶段状态（玩家已取消）
-        b.removePlayerEnterPhaseFromRedis(playerID)
+        // 🔧【修改】更新 Redis 中的取消状态（而不是删除），这样玩家不会再收到弹窗
+        b.updatePlayerEnterPhaseCancelled(playerID)
 
         // 返还报名费并记录流水
         var refundAmount int64
@@ -1713,12 +1810,14 @@ func getEnterPhaseKey(playerID uint64) string {
 
 // 🔧【新增】EnterPhaseRedisData 进入阶段 Redis 数据结构
 type EnterPhaseRedisData struct {
-        PeriodNo   string `json:"period_no"`
-        RoomID     uint64 `json:"room_id"`
-        SignupFee  int64  `json:"signup_fee"`
-        TableID    int    `json:"table_id"`
-        Countdown  int    `json:"countdown"`
-        StartTime  int64  `json:"start_time"` // Unix timestamp
+        PeriodNo     string `json:"period_no"`
+        RoomID       uint64 `json:"room_id"`
+        SignupFee    int64  `json:"signup_fee"`
+        TableID      int    `json:"table_id"`
+        Countdown    int    `json:"countdown"`
+        StartTime    int64  `json:"start_time"`    // Unix timestamp
+        HasCancelled bool   `json:"has_cancelled"` // 🔧【新增】玩家是否已取消
+        HasEntered   bool   `json:"has_entered"`   // 🔧【新增】玩家是否已进入
 }
 
 // 🔧【新增】savePlayerEnterPhaseToRedis 保存玩家进入阶段状态到 Redis
@@ -1778,6 +1877,28 @@ func (b *ArenaStatusBroadcaster) removePlayerEnterPhaseFromRedis(playerID uint64
         key := getEnterPhaseKey(playerID)
 
         return b.server.redis.Del(ctx, key).Err()
+}
+
+// 🔧【新增】updatePlayerEnterPhaseCancelled 更新玩家取消状态到 Redis
+func (b *ArenaStatusBroadcaster) updatePlayerEnterPhaseCancelled(playerID uint64) error {
+        data := b.getPlayerEnterPhaseFromRedis(playerID)
+        if data == nil {
+                return nil
+        }
+
+        data.HasCancelled = true
+        return b.savePlayerEnterPhaseToRedis(playerID, data)
+}
+
+// 🔧【新增】updatePlayerEnterPhaseEntered 更新玩家进入状态到 Redis
+func (b *ArenaStatusBroadcaster) updatePlayerEnterPhaseEntered(playerID uint64) error {
+        data := b.getPlayerEnterPhaseFromRedis(playerID)
+        if data == nil {
+                return nil
+        }
+
+        data.HasEntered = true
+        return b.savePlayerEnterPhaseToRedis(playerID, data)
 }
 
 // getTotalPlayers 获取报名人数
