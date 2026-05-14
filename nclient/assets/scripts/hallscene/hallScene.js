@@ -1923,6 +1923,11 @@ cc.Class({
     _closeArenaMatchStartDialog: function() {
         // 关闭并销毁之前显示的弹窗
         if (this._arenaMatchStartDialog && this._arenaMatchStartDialog.isValid) {
+        // 🔧【新增】清除倒计时定时器
+        if (this._matchStartCountdownTimer) {
+            clearInterval(this._matchStartCountdownTimer);
+            this._matchStartCountdownTimer = null;
+        }
             this._arenaMatchStartDialog.destroy();
             this._arenaMatchStartDialog = null;
         }
@@ -2044,6 +2049,66 @@ cc.Class({
         playersLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         playersNode.color = cc.color(100, 200, 100);
         playersNode.parent = cardNode;
+        
+        // 🔧【新增】倒计时显示 - 使用服务端返回的 start_time 计算剩余时间
+        var countdownNode = new cc.Node("Countdown");
+        countdownNode.y = cardHeight/2 - 200;
+        var countdownLabel = countdownNode.addComponent(cc.Label);
+        
+        // 计算剩余时间：优先使用 start_time，否则使用 countdown
+        var remainingSeconds = data.countdown || 60;
+        if (data.start_time) {
+            var nowMs = Date.now();
+            var elapsedMs = nowMs - data.start_time;
+            var elapsedSec = Math.floor(elapsedMs / 1000);
+            remainingSeconds = Math.max(0, (data.countdown || 60) - elapsedSec);
+            console.log("🏆 [Arena] 使用 start_time 计算剩余时间: start_time=" + data.start_time + ", now=" + nowMs + ", elapsed=" + elapsedSec + "s, remaining=" + remainingSeconds + "s");
+        }
+        
+        countdownLabel.string = "倒计时: " + remainingSeconds + " 秒";
+        countdownLabel.fontSize = 24;
+        countdownLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        countdownNode.color = cc.color(255, 100, 100);
+        countdownNode.parent = cardNode;
+        
+        // 🔧【新增】启动倒计时定时器
+        if (self._matchStartCountdownTimer) {
+            clearInterval(self._matchStartCountdownTimer);
+        }
+        self._matchStartCountdownTimer = setInterval(function() {
+            if (!dialogNode || !dialogNode.isValid) {
+                clearInterval(self._matchStartCountdownTimer);
+                self._matchStartCountdownTimer = null;
+                return;
+            }
+            
+            // 重新计算剩余时间
+            var newRemaining = data.countdown || 60;
+            if (data.start_time) {
+                var nowMs = Date.now();
+                var elapsedMs = nowMs - data.start_time;
+                var elapsedSec = Math.floor(elapsedMs / 1000);
+                newRemaining = Math.max(0, (data.countdown || 60) - elapsedSec);
+            } else {
+                newRemaining = remainingSeconds - 1;
+            }
+            remainingSeconds = newRemaining;
+            
+            if (newRemaining <= 0) {
+                clearInterval(self._matchStartCountdownTimer);
+                self._matchStartCountdownTimer = null;
+                countdownLabel.string = "已超时";
+                countdownLabel.color = cc.color(150, 150, 150);
+                return;
+            }
+            
+            countdownLabel.string = "倒计时: " + newRemaining + " 秒";
+            
+            // 最后10秒变红闪烁
+            if (newRemaining <= 10) {
+                countdownLabel.color = newRemaining % 2 === 0 ? cc.color(255, 50, 50) : cc.color(255, 150, 150);
+            }
+        }, 1000);
         
         // 提示消息
         var msgNode = new cc.Node("Message");

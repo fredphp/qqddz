@@ -682,6 +682,7 @@ type ArenaMatchStartPayload struct {
         MatchDuration int    `json:"match_duration"`  // 每轮时长（分钟）
         MatchRounds   int    `json:"match_rounds"`    // 需要打的轮次数
         Countdown     int    `json:"countdown"`       // 进入比赛倒计时（秒）
+        StartTime     int64  `json:"start_time"`      // 准备阶段开始时间（Unix毫秒时间戳）
         Message       string `json:"message"`         // 提示消息
 }
 

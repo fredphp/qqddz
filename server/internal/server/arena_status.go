@@ -418,6 +418,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartPopupToPlayer(playerID uint64, cl
                 MatchDuration: PeriodTotalMinutes,
                 MatchRounds:   5, // 默认值
                 Countdown:     remaining,
+                StartTime:     data.StartTime,
                 Message:       "比赛进行中，请点击进入！",
         }
 
@@ -730,7 +731,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
         })
 
         // 🔧【关键新增】保存真人玩家的进入阶段状态到 Redis（持久化，确保刷新页面后也能恢复弹窗）
-        startTimeUnix := time.Now().Unix()
+        startTimeUnix := time.Now().UnixMilli()
         for _, playerID := range realPlayers {
                 tableID := playerToTable[playerID]
                 b.savePlayerEnterPhaseToRedis(playerID, &EnterPhaseRedisData{
@@ -787,6 +788,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartPopup(roomID uint64, periodNo str
                 MatchDuration: PeriodTotalMinutes,
                 MatchRounds:   totalRounds, // 🔧【修复】动态计算的总轮次
                 Countdown:     EnterPhaseCountdown,
+                StartTime:     time.Now().UnixMilli(),
                 Message:       "比赛即将开始，请点击进入！",
         }
 
@@ -1528,6 +1530,7 @@ func (b *ArenaStatusBroadcaster) sendPendingMatchStartPopup(playerID uint64, cli
                 MatchDuration: PeriodTotalMinutes,
                 MatchRounds:   totalRounds,
                 Countdown:     remaining,
+                StartTime:     enterPhase.StartTime.UnixMilli(),
                 Message:       "比赛进行中，请点击进入！",
         }
 
@@ -2386,6 +2389,7 @@ func (b *ArenaStatusBroadcaster) OnPlayerReconnect(playerID uint64, client types
                                 MatchDuration: PeriodTotalMinutes,
                                 MatchRounds:   totalRounds,
                                 Countdown:     remaining,
+                StartTime:     enterPhase.StartTime.UnixMilli(),
                                 Message:       "比赛正在进行中，请点击进入！",
                         }
 
