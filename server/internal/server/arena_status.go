@@ -131,6 +131,33 @@ type PlayerEnterStatus struct {
 // 弹窗在准备阶段显示，准备阶段结束后关闭
 const EnterPhaseCountdown = 60
 
+// 🔧【新增】可序列化的进入阶段信息（用于 Redis 持久化）
+type EnterPhaseInfoForRedis struct {
+        PeriodNo       string                              `json:"period_no"`
+        RoomID         uint64                              `json:"room_id"`
+        SignupFee      int64                               `json:"signup_fee"`
+        PlayerStatuses map[uint64]*PlayerEnterStatus       `json:"player_statuses"`
+        StartTime      time.Time                           `json:"start_time"`
+        Countdown      int                                 `json:"countdown"`
+        Tables         []*GameTableForRedis                `json:"tables"`
+        PlayerToTable  map[uint64]int                      `json:"player_to_table"`
+}
+
+// 🔧【新增】可序列化的游戏桌信息（用于 Redis 持久化）
+type GameTableForRedis struct {
+        TableID       int              `json:"table_id"`
+        RoomCode      string           `json:"room_code"`
+        HostPlayerID  uint64           `json:"host_player_id"`
+        Players       []uint64         `json:"players"`
+        RobotPlayers  []uint64         `json:"robot_players"`
+        RoomCreated   bool             `json:"room_created"`
+        AllEntered    bool             `json:"all_entered"`
+        PlayerStatuses map[uint64]bool `json:"player_statuses"`
+}
+
+// Redis key 前缀
+const EnterPhaseRedisKeyPrefix = "ddz:arena:enter_phase:"
+
 // PeriodInfo 期号信息
 type PeriodInfo struct {
         PeriodNo       string    // 期号，如 "C2605050001"
@@ -597,6 +624,9 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
         b.enterPhases[periodNo] = enterPhase
         b.enterPhasesMu.Unlock()
 
+        // 🔧【新增】持久化进入阶段信息到 Redis（用于断线重连恢复）
+        b.saveEnterPhaseToRedis(enterPhase)
+
         // 🔧【关键修复】启动倒计时定时器，倒计时结束后处理超时
         enterPhase.timer = time.AfterFunc(time.Duration(EnterPhaseCountdown)*time.Second, func() {
                 b.handleEnterPhaseTimeout(periodNo)
@@ -860,6 +890,9 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
         // 清理进入阶段信息
         delete(b.enterPhases, periodNo)
         b.enterPhasesMu.Unlock()
+
+        // 🔧【新增】从 Redis 删除进入阶段信息
+        b.deleteEnterPhaseFromRedis(periodNo)
 
         // 统计玩家状态
         var timeoutPlayers []uint64
@@ -1308,67 +1341,61 @@ func (b *ArenaStatusBroadcaster) sendToNewClient(playerID uint64) {
 // 🔧【新增】检查并发送待处理的比赛开始弹窗
 // 当玩家重连时，检查是否有正在等待进入的比赛
 func (b *ArenaStatusBroadcaster) sendPendingMatchStartPopup(playerID uint64, client *Client) {
-        b.enterPhasesMu.RLock()
-        defer b.enterPhasesMu.RUnlock()
+        // 🔧【修复】先尝试从 Redis 恢复进入阶段状态
+        enterPhase := b.getActiveEnterPhaseForPlayer(playerID)
+        if enterPhase == nil {
+                return
+        }
 
-        // 遍历所有进入阶段，查找该玩家
-        for periodNo, enterPhase := range b.enterPhases {
-                status, exists := enterPhase.PlayerStatuses[playerID]
-                if !exists {
-                        continue
-                }
+        status, exists := enterPhase.PlayerStatuses[playerID]
+        if !exists || status.HasCancelled {
+                return
+        }
 
-                // 检查玩家是否已报名但还没进入
-                if status.HasCancelled {
-                        continue
-                }
+        log.Printf("[ArenaStatus] 🔄 玩家 %d 重连，发现待进入的比赛: periodNo=%s", playerID, enterPhase.PeriodNo)
 
-                log.Printf("[ArenaStatus] 🔄 玩家 %d 重连，发现待进入的比赛: periodNo=%s", playerID, periodNo)
+        // 获取房间配置
+        roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
+        if err != nil {
+                log.Printf("[ArenaStatus] ⚠️ 获取房间配置失败: %v", err)
+                return
+        }
 
-                // 获取房间配置
-                roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
-                if err != nil {
-                        log.Printf("[ArenaStatus] ⚠️ 获取房间配置失败: %v", err)
-                        continue
-                }
-
-                // 动态计算总轮次
-                var rules tournament.EliminationRules
-                if roomConfig.EliminationRules != "" {
-                        if err := json.Unmarshal([]byte(roomConfig.EliminationRules), &rules); err != nil {
-                                rules = tournament.EliminationRules{60, 30, 18, 9, 3}
-                        }
-                } else {
+        // 动态计算总轮次
+        var rules tournament.EliminationRules
+        if roomConfig.EliminationRules != "" {
+                if err := json.Unmarshal([]byte(roomConfig.EliminationRules), &rules); err != nil {
                         rules = tournament.EliminationRules{60, 30, 18, 9, 3}
                 }
-                totalRounds := rules.GetTotalRounds(len(enterPhase.PlayerStatuses))
-
-                // 计算剩余倒计时
-                elapsed := time.Since(enterPhase.StartTime)
-                remaining := enterPhase.Countdown - int(elapsed.Seconds())
-                if remaining <= 0 {
-                        remaining = 0
-                }
-
-                // 构建弹窗消息
-                payload := &protocol.ArenaMatchStartPayload{
-                        PeriodNo:      periodNo,
-                        RoomID:        enterPhase.RoomID,
-                        RoomName:      roomConfig.RoomName,
-                        RoomConfigID:  enterPhase.RoomID,
-                        SignupFee:     roomConfig.MinArenaCoin,
-                        TotalPlayers:  len(enterPhase.PlayerStatuses),
-                        MatchDuration: PeriodTotalMinutes,
-                        MatchRounds:   totalRounds,
-                        Countdown:     remaining,
-                        Message:       "比赛进行中，请点击进入！",
-                }
-
-                msg := codec.MustNewMessage(protocol.MsgArenaMatchStart, payload)
-                client.SendMessage(msg)
-                log.Printf("[ArenaStatus] ✅ 已向重连玩家 %d 重新发送比赛弹窗: periodNo=%s, remaining=%ds", playerID, periodNo, remaining)
-                return // 只发送一个弹窗
+        } else {
+                rules = tournament.EliminationRules{60, 30, 18, 9, 3}
         }
+        totalRounds := rules.GetTotalRounds(len(enterPhase.PlayerStatuses))
+
+        // 计算剩余倒计时
+        elapsed := time.Since(enterPhase.StartTime)
+        remaining := enterPhase.Countdown - int(elapsed.Seconds())
+        if remaining <= 0 {
+                remaining = 0
+        }
+
+        // 构建弹窗消息
+        payload := &protocol.ArenaMatchStartPayload{
+                PeriodNo:      enterPhase.PeriodNo,
+                RoomID:        enterPhase.RoomID,
+                RoomName:      roomConfig.RoomName,
+                RoomConfigID:  enterPhase.RoomID,
+                SignupFee:     enterPhase.SignupFee,
+                TotalPlayers:  len(enterPhase.PlayerStatuses),
+                MatchDuration: PeriodTotalMinutes,
+                MatchRounds:   totalRounds,
+                Countdown:     remaining,
+                Message:       "比赛进行中，请点击进入！",
+        }
+
+        msg := codec.MustNewMessage(protocol.MsgArenaMatchStart, payload)
+        client.SendMessage(msg)
+        log.Printf("[ArenaStatus] ✅ 已向重连玩家 %d 重新发送比赛弹窗: periodNo=%s, remaining=%ds", playerID, enterPhase.PeriodNo, remaining)
 }
 
 // calculateArenaStatus 计算所有竞技场的状态
@@ -2102,4 +2129,185 @@ func (b *ArenaStatusBroadcaster) OnPlayerReconnect(playerID uint64, client types
                         return // 只处理第一个找到的进入阶段
                 }
         }
+}
+
+// ============================================================
+// 🔧【新增】Redis 持久化相关函数
+// ============================================================
+
+// saveEnterPhaseToRedis 保存进入阶段信息到 Redis
+func (b *ArenaStatusBroadcaster) saveEnterPhaseToRedis(enterPhase *EnterPhaseInfo) {
+        if b.server.redis == nil {
+                log.Printf("[ArenaStatus] ⚠️ Redis 未初始化，跳过持久化进入阶段信息")
+                return
+        }
+
+        // 转换为可序列化的格式
+        data := b.enterPhaseToRedisFormat(enterPhase)
+
+        jsonData, err := json.Marshal(data)
+        if err != nil {
+                log.Printf("[ArenaStatus] ⚠️ 序列化进入阶段信息失败: %v", err)
+                return
+        }
+
+        key := EnterPhaseRedisKeyPrefix + enterPhase.PeriodNo
+        // 设置过期时间为倒计时 + 5分钟（确保不会过早过期）
+        expireTime := time.Duration(enterPhase.Countdown+300) * time.Second
+
+        ctx := context.Background()
+        if err := b.server.redis.Set(ctx, key, jsonData, expireTime).Err(); err != nil {
+                log.Printf("[ArenaStatus] ⚠️ 保存进入阶段信息到 Redis 失败: %v", err)
+        } else {
+                log.Printf("[ArenaStatus] ✅ 已保存进入阶段信息到 Redis: periodNo=%s", enterPhase.PeriodNo)
+        }
+}
+
+// getEnterPhaseFromRedis 从 Redis 获取进入阶段信息
+func (b *ArenaStatusBroadcaster) getEnterPhaseFromRedis(periodNo string) *EnterPhaseInfo {
+        if b.server.redis == nil {
+                return nil
+        }
+
+        key := EnterPhaseRedisKeyPrefix + periodNo
+        ctx := context.Background()
+
+        jsonData, err := b.server.redis.Get(ctx, key).Bytes()
+        if err != nil {
+                return nil
+        }
+
+        var data EnterPhaseInfoForRedis
+        if err := json.Unmarshal(jsonData, &data); err != nil {
+                log.Printf("[ArenaStatus] ⚠️ 反序列化进入阶段信息失败: %v", err)
+                return nil
+        }
+
+        return b.redisFormatToEnterPhase(&data)
+}
+
+// deleteEnterPhaseFromRedis 从 Redis 删除进入阶段信息
+func (b *ArenaStatusBroadcaster) deleteEnterPhaseFromRedis(periodNo string) {
+        if b.server.redis == nil {
+                return
+        }
+
+        key := EnterPhaseRedisKeyPrefix + periodNo
+        ctx := context.Background()
+
+        if err := b.server.redis.Del(ctx, key).Err(); err != nil {
+                log.Printf("[ArenaStatus] ⚠️ 删除 Redis 进入阶段信息失败: %v", err)
+        } else {
+                log.Printf("[ArenaStatus] ✅ 已删除 Redis 进入阶段信息: periodNo=%s", periodNo)
+        }
+}
+
+// enterPhaseToRedisFormat 将 EnterPhaseInfo 转换为可序列化的格式
+func (b *ArenaStatusBroadcaster) enterPhaseToRedisFormat(enterPhase *EnterPhaseInfo) *EnterPhaseInfoForRedis {
+        data := &EnterPhaseInfoForRedis{
+                PeriodNo:       enterPhase.PeriodNo,
+                RoomID:         enterPhase.RoomID,
+                SignupFee:      enterPhase.SignupFee,
+                PlayerStatuses: enterPhase.PlayerStatuses,
+                StartTime:      enterPhase.StartTime,
+                Countdown:      enterPhase.Countdown,
+                Tables:         make([]*GameTableForRedis, 0, len(enterPhase.Tables)),
+                PlayerToTable:  enterPhase.PlayerToTable,
+        }
+
+        for _, table := range enterPhase.Tables {
+                data.Tables = append(data.Tables, &GameTableForRedis{
+                        TableID:        table.TableID,
+                        RoomCode:       table.RoomCode,
+                        HostPlayerID:   table.HostPlayerID,
+                        Players:        table.Players,
+                        RobotPlayers:   table.RobotPlayers,
+                        RoomCreated:    table.RoomCreated,
+                        AllEntered:     table.AllEntered,
+                        PlayerStatuses: table.PlayerStatuses,
+                })
+        }
+
+        return data
+}
+
+// redisFormatToEnterPhase 将 Redis 格式转换为 EnterPhaseInfo
+func (b *ArenaStatusBroadcaster) redisFormatToEnterPhase(data *EnterPhaseInfoForRedis) *EnterPhaseInfo {
+        enterPhase := &EnterPhaseInfo{
+                PeriodNo:       data.PeriodNo,
+                RoomID:         data.RoomID,
+                SignupFee:      data.SignupFee,
+                PlayerStatuses: data.PlayerStatuses,
+                StartTime:      data.StartTime,
+                Countdown:      data.Countdown,
+                Tables:         make([]*GameTable, 0, len(data.Tables)),
+                PlayerToTable:  data.PlayerToTable,
+        }
+
+        for _, table := range data.Tables {
+                enterPhase.Tables = append(enterPhase.Tables, &GameTable{
+                        TableID:        table.TableID,
+                        RoomCode:       table.RoomCode,
+                        HostPlayerID:   table.HostPlayerID,
+                        Players:        table.Players,
+                        RobotPlayers:   table.RobotPlayers,
+                        RoomCreated:    table.RoomCreated,
+                        AllEntered:     table.AllEntered,
+                        PlayerStatuses: table.PlayerStatuses,
+                })
+        }
+
+        return enterPhase
+}
+
+// getActiveEnterPhaseForPlayer 从 Redis 获取玩家的活跃进入阶段
+func (b *ArenaStatusBroadcaster) getActiveEnterPhaseForPlayer(playerID uint64) *EnterPhaseInfo {
+        // 先检查内存中的进入阶段
+        b.enterPhasesMu.RLock()
+        for _, enterPhase := range b.enterPhases {
+                if status, exists := enterPhase.PlayerStatuses[playerID]; exists {
+                        if !status.HasEntered && !status.HasCancelled && !status.IsRobot {
+                                b.enterPhasesMu.RUnlock()
+                                return enterPhase
+                        }
+                }
+        }
+        b.enterPhasesMu.RUnlock()
+
+        // 如果内存中没有，尝试从 Redis 恢复
+        // 这里需要扫描所有可能的进入阶段（通过 Redis SCAN 命令）
+        if b.server.redis != nil {
+                ctx := context.Background()
+                iter := b.server.redis.Scan(ctx, 0, EnterPhaseRedisKeyPrefix+"*", 0).Iterator()
+                for iter.Next(ctx) {
+                        key := iter.Val()
+                        periodNo := strings.TrimPrefix(key, EnterPhaseRedisKeyPrefix)
+
+                        enterPhase := b.getEnterPhaseFromRedis(periodNo)
+                        if enterPhase != nil {
+                                if status, exists := enterPhase.PlayerStatuses[playerID]; exists {
+                                        if !status.HasEntered && !status.HasCancelled && !status.IsRobot {
+                                                // 检查是否过期
+                                                elapsed := time.Since(enterPhase.StartTime)
+                                                remaining := enterPhase.Countdown - int(elapsed.Seconds())
+                                                if remaining > 0 {
+                                                        // 恢复到内存中
+                                                        b.enterPhasesMu.Lock()
+                                                        if _, exists := b.enterPhases[periodNo]; !exists {
+                                                                b.enterPhases[periodNo] = enterPhase
+                                                                // 重新启动定时器
+                                                                enterPhase.timer = time.AfterFunc(time.Duration(remaining)*time.Second, func() {
+                                                                        b.handleEnterPhaseTimeout(periodNo)
+                                                                })
+                                                        }
+                                                        b.enterPhasesMu.Unlock()
+                                                        return enterPhase
+                                                }
+                                        }
+                                }
+                        }
+                }
+        }
+
+        return nil
 }
