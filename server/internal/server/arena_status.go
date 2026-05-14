@@ -1951,10 +1951,10 @@ func (b *ArenaStatusBroadcaster) forceRefreshPeriodCache(roomID uint64) {
         status := b.calculateRoomArenaStatus(
                 roomID,
                 roomConfig.RoomName,
-                roomConfig.RoomType,
+                int(roomConfig.RoomType),
                 roomID,
                 roomConfig.MatchTimeRanges,
-                roomConfig.MatchDuration,
+                roomConfig.MatchRoundDuration,
         )
 
         log.Printf("[ArenaStatus] 🔄 强制刷新期号缓存: roomID=%d, periodNoStr=%s, phase=%d, totalPlayers=%d",
