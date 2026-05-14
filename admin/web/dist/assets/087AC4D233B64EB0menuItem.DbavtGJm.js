@@ -1,4 +1,0 @@
-/*! 
- 柴米油盐后台管理系统 
- Time : 1778684774000 */
-import{A as e,B as t,M as a,f as n,o as s,h as o,w as u,_ as r,c as i,F as l,g as f,t as m,v as c,X as d,C as p}from"./087AC4D233B64EB0index.ZA8g6vE5.js";const I=Object.assign({name:"MenuItem"},{__name:"menuItem",props:{routerInfo:{default:function(){return null},type:Object}},setup(I){const _=e(),{config:y}=t(_),g=a("isCollapse",{default:!1}),h=p(()=>y.value.layout_side_item_height+"px");return(e,t)=>{const a=n("el-icon"),p=n("el-menu-item");return s(),o(p,{index:I.routerInfo.name,style:d({height:h.value})},{title:u(()=>[f(m(I.routerInfo.meta.title),1)]),default:u(()=>[I.routerInfo.meta.icon?(s(),o(a,{key:0},{default:u(()=>[(s(),o(r(I.routerInfo.meta.icon)))]),_:1})):(s(),i(l,{key:1},[f(m(c(g)?I.routerInfo.meta.title[0]:""),1)],64))]),_:1},8,["index","style"])}}});export{I as default};

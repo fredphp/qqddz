@@ -46,6 +46,7 @@ const (
         MsgArenaCancelSignup MessageType = "arena_cancel_signup" // 取消报名
         MsgArenaEnter        MessageType = "arena_enter"         // 进入游戏
         MsgArenaCancelEnter  MessageType = "arena_cancel_enter"  // 取消进入
+        MsgGetArenaStatus    MessageType = "get_arena_status"    // 🔧【新增】请求竞技场状态
 )
 
 // 服务端 → 客户端 消息类型

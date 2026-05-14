@@ -1244,6 +1244,107 @@ window.socketCtr = function(){
         _sendmsg("arena_enter", data, null)
     }
 
+    /**
+     * 🔧【关键修复】主动请求竞技场状态
+     * 这是解决竞技场弹窗不显示问题的关键修复
+     * 当客户端进入大厅时，主动请求一次竞技场状态
+     * 
+     * 🔧【重要改进】如果 WebSocket 未连接，会自动初始化连接后再请求
+     */
+    that.requestArenaStatus = function(){
+        console.log("🏟️ [Arena] requestArenaStatus 被调用");
+        
+        // 🔧【关键】检查 WebSocket 是否已连接
+        if (!_socket || _socket.readyState !== WebSocket.OPEN) {
+            console.log("🏟️ [Arena] WebSocket 未连接，先初始化连接...");
+            
+            // 如果 WebSocket 不存在或已关闭，初始化连接
+            if (!_socket || _socket.readyState === WebSocket.CLOSED || _socket.readyState === WebSocket.CLOSING) {
+                console.log("🏟️ [Arena] 🔌 主动初始化 WebSocket 连接...");
+                that.initSocket();
+            }
+            
+            // 监听连接成功后请求
+            var evt = _getEvent();
+            if (evt) {
+                var handler = function(data) {
+                    console.log("🏟️ [Arena] ✅ 连接成功后请求竞技场状态");
+                    evt.off("connection_success", handler);
+                    setTimeout(function() {
+                        _sendmsg("get_arena_status", {}, null);
+                    }, 100);
+                };
+                evt.on("connection_success", handler);
+                
+                // 超时保护
+                setTimeout(function() {
+                    evt.off("connection_success", handler);
+                }, 5000);
+            }
+            return;
+        }
+        
+        // WebSocket 已连接，直接发送请求
+        _sendmsg("get_arena_status", {}, null)
+    }
+
+    /**
+     * 🔧【关键修复】确保连接后请求竞技场状态
+     * 如果 WebSocket 已连接，立即请求；否则主动初始化连接后请求
+     * 这是解决弹窗不显示问题的核心修复！
+     */
+    that.requestArenaStatusWhenConnected = function(){
+        console.log("🏟️ [Arena] requestArenaStatusWhenConnected 被调用");
+        
+        // 检查 WebSocket 是否已连接
+        if (_socket && _socket.readyState === WebSocket.OPEN) {
+            console.log("🏟️ [Arena] WebSocket 已连接，立即请求竞技场状态");
+            that.requestArenaStatus();
+            return;
+        }
+        
+        // 🔧【关键改进】WebSocket 未连接，主动初始化连接
+        console.log("🏟️ [Arena] WebSocket 未连接，准备主动连接...");
+        
+        var evt = _getEvent();
+        if (!evt) {
+            console.warn("🏟️ [Arena] eventLister 未初始化，延迟重试");
+            setTimeout(function() {
+                that.requestArenaStatusWhenConnected();
+            }, 500);
+            return;
+        }
+        
+        // 🔧【关键】如果 WebSocket 不存在或已关闭，主动初始化连接
+        if (!_socket || _socket.readyState === WebSocket.CLOSED || _socket.readyState === WebSocket.CLOSING) {
+            console.log("🏟️ [Arena] 🔌 主动初始化 WebSocket 连接...");
+            that.initSocket();
+        }
+        
+        // 监听连接成功事件（一次性）
+        var handler = function(data) {
+            console.log("🏟️ [Arena] ✅ WebSocket 连接成功，现在请求竞技场状态");
+            evt.off("connection_success", handler);
+            // 延迟一点确保连接完全稳定
+            setTimeout(function() {
+                that.requestArenaStatus();
+            }, 100);
+        };
+        evt.on("connection_success", handler);
+        
+        // 设置超时保护，避免永久等待
+        setTimeout(function() {
+            evt.off("connection_success", handler);
+            // 如果还没连接，再次尝试
+            if (_socket && _socket.readyState === WebSocket.OPEN) {
+                console.log("🏟️ [Arena] 超时后检查到已连接，请求竞技场状态");
+                that.requestArenaStatus();
+            } else {
+                console.warn("🏟️ [Arena] 连接超时，WebSocket 仍未连接");
+            }
+        }, 5000);
+    }
+
     // ========== 房间状态相关 ==========
     
     that.onShowBottomCard = function(callback){

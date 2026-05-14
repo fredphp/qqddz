@@ -1814,8 +1814,34 @@ cc.Class({
         
         console.log("🏟️ [Arena] ========== 竞技场监听器初始化完成 ==========");
 
+        // 🔧【关键修复】确保连接后请求竞技场状态
+        // 这是解决弹窗不显示问题的核心修复！
+        // 如果 WebSocket 已连接，立即请求；否则主动初始化连接后请求
+        if (socket) {
+            console.log("🏟️ [Arena] 🔄 请求竞技场状态（智能连接）...");
+            // 🔧【改进】直接调用 requestArenaStatusWhenConnected，它会自动处理连接逻辑
+            if (socket.requestArenaStatusWhenConnected) {
+                socket.requestArenaStatusWhenConnected();
+            } else {
+                // 🔧【兜底】如果新方法不存在，先尝试初始化连接再请求
+                console.log("🏟️ [Arena] ⚠️ requestArenaStatusWhenConnected 不存在，尝试初始化连接...");
+                if (socket.initSocket && !socket.isConnected()) {
+                    socket.initSocket();
+                }
+                // 延迟请求，等待连接
+                setTimeout(function() {
+                    if (socket.requestArenaStatus) {
+                        socket.requestArenaStatus();
+                    }
+                }, 1000);
+            }
+        }
+
         // 🔧【新增】立即初始化本地状态（使用本地计算作为初始值）
         this._initLocalArenaStatusFromConfig();
+        
+        // 🔧【关键新增】监听页面可见性变化，恢复时重新请求竞技场状态
+        this._setupVisibilityChangeListener();
 
         // 🔧【修改】每秒更新本地倒计时（减1）
         this._countdownTimer = setInterval(function() {
@@ -1823,6 +1849,58 @@ cc.Class({
                 self._updateLocalCountdown();
             }
         }, 1000);
+    },
+
+    // 🔧【关键新增】监听页面可见性变化
+    // 当页面从后台恢复时，重新请求竞技场状态，确保不会错过弹窗
+    _setupVisibilityChangeListener: function() {
+        var self = this;
+        
+        // 避免重复注册
+        if (this._visibilityChangeListenerAdded) {
+            return;
+        }
+        this._visibilityChangeListenerAdded = true;
+        
+        // 记录上次请求时间，避免频繁请求
+        this._lastArenaStatusRequestTime = 0;
+        
+        var handleVisibilityChange = function() {
+            if (document.visibilityState === 'visible') {
+                console.log("📱 [Visibility] 页面从后台恢复，重新请求竞技场状态");
+                
+                // 检查是否需要重新请求（避免频繁请求）
+                var now = Date.now();
+                var timeSinceLastRequest = now - self._lastArenaStatusRequestTime;
+                
+                // 如果距离上次请求超过 5 秒，才重新请求
+                if (timeSinceLastRequest > 5000) {
+                    self._lastArenaStatusRequestTime = now;
+                    
+                    // 延迟一点时间，确保 WebSocket 连接恢复
+                    setTimeout(function() {
+                        if (self.node && self.node.isValid) {
+                            var socket = window.myglobal && window.myglobal.socket;
+                            if (socket && socket.requestArenaStatusWhenConnected) {
+                                console.log("🏟️ [Arena] 页面恢复后重新请求竞技场状态");
+                                socket.requestArenaStatusWhenConnected();
+                            }
+                        }
+                    }, 500);
+                } else {
+                    console.log("📱 [Visibility] 距离上次请求时间较短，跳过重新请求");
+                }
+            }
+        };
+        
+        // 注册监听器
+        if (typeof document !== 'undefined' && document.addEventListener) {
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+            console.log("📱 [Visibility] 已注册页面可见性监听器");
+            
+            // 保存引用，以便在销毁时移除
+            this._visibilityChangeHandler = handleVisibilityChange;
+        }
     },
 
     // 🔧【新增】处理竞技场比赛开始通知
@@ -1875,11 +1953,13 @@ cc.Class({
     // 🔧【新增】显示竞技场比赛开始弹窗
     _showArenaMatchStartDialog: function(data) {
         var self = this;
+        console.log("🏆 [Arena] _showArenaMatchStartDialog 开始创建弹窗...");
         
         // 获取画布尺寸
         var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
         var screenHeight = canvas ? canvas.designResolution.height : 720;
         var screenWidth = canvas ? canvas.designResolution.width : 1280;
+        console.log("🏆 [Arena] 屏幕尺寸:", screenWidth, "x", screenHeight);
         
         // 创建弹窗容器
         var dialogNode = new cc.Node("ArenaMatchStartDialog");
@@ -1890,6 +1970,7 @@ cc.Class({
         dialogNode.y = 0;
         dialogNode.zIndex = 5000;
         dialogNode.parent = this.node;
+        console.log("🏆 [Arena] 弹窗容器已创建，zIndex=", dialogNode.zIndex);
         
         // 🔧【修复】保存弹窗引用，用于后续关闭
         this._arenaMatchStartDialog = dialogNode;
@@ -2067,6 +2148,9 @@ cc.Class({
             self._arenaMatchStartDialogPeriodNo = null;
             dialogNode.destroy();
         });
+        
+        console.log("🏆 [Arena] ✅ 弹窗创建完成！dialogNode.parent =", dialogNode.parent ? "已挂载" : "未挂载");
+        console.log("🏆 [Arena] 弹窗子节点数量:", dialogNode.children.length);
     },
 
     // 🔧【新增】取消竞技场报名并退还竞技币
@@ -8319,6 +8403,12 @@ cc.Class({
         // 清理竞技场倒计时
         if (window.arenaData && window.arenaData.clearAllCountdowns) {
             window.arenaData.clearAllCountdowns();
+        }
+        
+        // 🔧【新增】移除页面可见性监听器
+        if (this._visibilityChangeHandler && document.removeEventListener) {
+            document.removeEventListener('visibilitychange', this._visibilityChangeHandler);
+            this._visibilityChangeHandler = null;
         }
         
         // 停止在线状态监测（大厅场景需要持续监测，所以只有场景销毁时才停止）

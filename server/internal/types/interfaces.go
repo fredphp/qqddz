@@ -78,6 +78,8 @@ type ArenaProvider interface {
         HandlePlayerCancelEnter(periodNo string, playerID uint64) (int64, error)
         // 🔧【新增】OnPlayerReconnect 处理玩家重连时恢复竞技场状态
         OnPlayerReconnect(playerID uint64, client ClientInterface)
+        // 🔧【新增】OnNewClient 处理新客户端连接或主动请求竞技场状态
+        OnNewClient(playerID uint64)
 }
 
 // ArenaQueueProvider 竞技场队列提供者接口
