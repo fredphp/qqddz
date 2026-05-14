@@ -118,6 +118,8 @@ func (h *Handler) initHandlers() {
                 // 🔧【新增】进入阶段按钮操作
                 MsgArenaEnter:       h.handleArenaEnter,
                 MsgArenaCancelEnter: h.handleArenaCancelEnter,
+                // 🔧【新增】竞技场状态请求
+                protocol.MsgGetArenaStatus: h.handleGetArenaStatus,
         }
 }
 

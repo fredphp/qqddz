@@ -418,3 +418,34 @@ func (h *Handler) handleArenaCancelEnter(client types.ClientInterface, msg *prot
 
         log.Printf("[ArenaCancelEnter] 玩家 %d 取消进入游戏，期号=%s，返还竞技币=%d", playerID, payload.PeriodNo, refundAmount)
 }
+
+// =============================================
+// 🔧【新增】竞技场状态请求处理器
+// =============================================
+
+// handleGetArenaStatus 处理客户端主动请求竞技场状态
+// 这是解决竞技场弹窗不显示问题的关键修复
+func (h *Handler) handleGetArenaStatus(client types.ClientInterface, msg *protocol.Message) {
+        playerID := client.GetPlayerID()
+        if playerID == 0 {
+                return // 未登录用户不处理
+        }
+
+        // 获取服务器实例
+        arenaSrv, ok := h.server.(types.ArenaServer)
+        if !ok {
+                return
+        }
+
+        // 获取竞技场广播器
+        arena := arenaSrv.GetArenaBroadcaster()
+        if arena == nil {
+                return
+        }
+
+        // 触发向该玩家推送竞技场状态
+        // 这会调用 sendToNewClient 逻辑
+        arena.OnNewClient(playerID)
+
+        log.Printf("[GetArenaStatus] 玩家 %d 主动请求竞技场状态", playerID)
+}

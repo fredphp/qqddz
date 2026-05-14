@@ -1244,6 +1244,16 @@ window.socketCtr = function(){
         _sendmsg("arena_enter", data, null)
     }
 
+    /**
+     * 🔧【新增】主动请求竞技场状态
+     * 这是解决竞技场弹窗不显示问题的关键修复
+     * 当客户端进入大厅时，主动请求一次竞技场状态
+     */
+    that.requestArenaStatus = function(){
+        console.log("🏟️ [Arena] 主动请求竞技场状态");
+        _sendmsg("get_arena_status", {}, null)
+    }
+
     // ========== 房间状态相关 ==========
     
     that.onShowBottomCard = function(callback){

@@ -1814,6 +1814,14 @@ cc.Class({
         
         console.log("🏟️ [Arena] ========== 竞技场监听器初始化完成 ==========");
 
+        // 🔧【关键修复】主动请求竞技场状态
+        // 这是解决弹窗不显示问题的核心修复！
+        // 客户端进入大厅时，主动请求一次竞技场状态，而不是被动等待服务端推送
+        if (socket && socket.requestArenaStatus) {
+            console.log("🏟️ [Arena] 🔄 主动请求竞技场状态...");
+            socket.requestArenaStatus();
+        }
+
         // 🔧【新增】立即初始化本地状态（使用本地计算作为初始值）
         this._initLocalArenaStatusFromConfig();
 

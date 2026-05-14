@@ -354,6 +354,9 @@ func (j *JSONMode) handleJSONMessage(msg *JSONMessage) {
                 j.handleArenaEnter(msg)
         case "arena_cancel_enter":
                 j.handleArenaCancelEnter(msg)
+        case "get_arena_status":
+                // 🔧【新增】处理竞技场状态请求
+                j.handleGetArenaStatus(msg)
         default:
                 // 未知消息类型，忽略
         }
@@ -981,6 +984,17 @@ func (j *JSONMode) handleArenaCancelEnter(msg *JSONMessage) {
                 PeriodNo: data.PeriodNo,
                 RoomID:   data.RoomID,
         })
+        if err != nil {
+                log.Printf("[JSON] 创建消息失败: %v", err)
+                return
+        }
+        j.client.server.handler.Handle(j.client, protoMsg)
+}
+
+// handleGetArenaStatus 处理请求竞技场状态
+// 🔧【关键修复】客户端主动请求竞技场状态，解决弹窗不显示的问题
+func (j *JSONMode) handleGetArenaStatus(msg *JSONMessage) {
+        protoMsg, err := codec.NewMessage(protocol.MsgGetArenaStatus, nil)
         if err != nil {
                 log.Printf("[JSON] 创建消息失败: %v", err)
                 return
