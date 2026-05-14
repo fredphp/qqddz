@@ -389,3 +389,21 @@ func (s *Server) TriggerArenaBroadcast(roomID uint64) {
         log.Printf("🔔 [TriggerArenaBroadcast] 开始触发广播 roomID=%d", roomID)
         s.arenaBroadcaster.ForceBroadcastRoomNow(roomID)
 }
+
+// BroadcastChampion 广播冠军跑马灯消息
+// 比赛结束时向所有在线玩家广播冠军信息，用于大厅跑马灯显示
+func (s *Server) BroadcastChampion(payload *protocol.ArenaChampionBroadcastPayload) {
+        msg := codec.MustNewMessage(protocol.MsgArenaChampionBroadcast, payload)
+        
+        log.Printf("[BroadcastChampion] 冠军跑马灯广播: periodNo=%s, champion=%s, roomName=%s", 
+                payload.PeriodNo, payload.ChampionName, payload.RoomName)
+        
+        // 广播给所有在线客户端
+        s.clientsMu.RLock()
+        for _, client := range s.clients {
+                client.SendMessage(msg)
+        }
+        s.clientsMu.RUnlock()
+}
+
+

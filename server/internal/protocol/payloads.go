@@ -843,3 +843,25 @@ type ArenaAssignStartPayload struct {
         Countdown    int    `json:"countdown"`     // 10秒倒计时
         Message      string `json:"message"`       // 提示消息："正在分配玩家，10秒后进入游戏"
 }
+
+
+// ============================================================
+// 【新增】冠军跑马灯广播 Payload
+// ============================================================
+
+// ArenaChampionBroadcastPayload 冠军跑马灯广播
+// 比赛结束时向所有在线玩家广播冠军信息，用于大厅跑马灯显示
+type ArenaChampionBroadcastPayload struct {
+        PeriodNo     string `json:"period_no"`      // 期号
+        RoomID       uint64 `json:"room_id"`        // 房间配置ID
+        RoomName     string `json:"room_name"`      // 房间名称（如"初级竞技场"）
+        ChampionID   uint64 `json:"champion_id"`    // 冠军玩家ID
+        ChampionName string `json:"champion_name"`  // 冠军昵称
+        ChampionAvatar string `json:"champion_avatar"` // 冠军头像URL
+        RunnerUpName   string `json:"runner_up_name"`   // 亚军昵称
+        ThirdName      string `json:"third_name"`       // 季军昵称
+        TotalPlayers   int    `json:"total_players"`    // 总参赛人数
+        MatchCoin      int64  `json:"match_coin"`       // 冠军最终金币
+        Message        string `json:"message"`          // 格式化消息："恭喜 玩家昵称 在期号 XXXXXX 夺得初级竞技场冠军！"
+        Timestamp      int64  `json:"timestamp"`        // 时间戳（毫秒）
+}

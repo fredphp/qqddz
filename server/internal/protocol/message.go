@@ -166,6 +166,7 @@ const (
         MsgArenaAutoReady      MessageType = "arena_auto_ready"      // 竞技场自动准备通知
         MsgArenaReconnectState MessageType = "arena_reconnect_state" // 竞技场断线重连状态恢复
         MsgArenaMatchEnd       MessageType = "arena_match_end"       // 竞技场比赛结束通知
+        MsgArenaChampionBroadcast MessageType = "arena_champion_broadcast" // 冠军跑马灯广播
 
         // 🔧【新增】竞技场多桌等待和决赛排行榜
         MsgTournamentWaitProgress MessageType = "tournament_wait_progress" // 等待进度广播

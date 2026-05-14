@@ -2,11 +2,14 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"sort"
+	"time"
 
 	"github.com/palemoky/fight-the-landlord/internal/game/database"
 	"github.com/palemoky/fight-the-landlord/internal/game/robot"
+	"github.com/palemoky/fight-the-landlord/internal/protocol"
 )
 
 // =============================================
@@ -229,9 +232,82 @@ func (s *ArenaSettlement) ProcessSettlement(periodNo string, roomID uint64, play
 	// 6. 记录结算结果
 	s.logSettlement(rankings, allocations)
 
+	// 7. 🏆 冠军跑马灯广播
+	s.broadcastChampion(periodNo, roomID, rankings, len(players))
+
 	log.Printf("[ArenaSettlement] ===== 竞技场结算完成 =====")
 
 	return allocations
+}
+
+// broadcastChampion 广播冠军跑马灯消息
+// 在大厅显示："恭喜 XXX 在期号 XXXXXX 夺得XX竞技场冠军！"
+func (s *ArenaSettlement) broadcastChampion(periodNo string, roomID uint64, rankings []*PlayerRankInfo, totalPlayers int) {
+	if len(rankings) == 0 {
+		return
+	}
+
+	// 获取冠军（排名第一且不是机器人）
+	var champion *PlayerRankInfo
+	for _, r := range rankings {
+		if r.Rank == 1 && !r.IsRobot {
+			champion = r
+			break
+		}
+	}
+
+	// 如果没有真人冠军，跳过广播
+	if champion == nil {
+		log.Printf("[ArenaSettlement] 🏆 无真人冠军，跳过跑马灯广播")
+		return
+	}
+
+	// 获取房间配置
+	roomConfig, err := database.GetRoomConfigByID(roomID)
+	roomName := "竞技场"
+	if err == nil && roomConfig != nil {
+		roomName = roomConfig.RoomName
+	}
+
+	// 获取亚军和季军名称
+	runnerUpName := ""
+	thirdName := ""
+	for _, r := range rankings {
+		if r.Rank == 2 && !r.IsRobot {
+			runnerUpName = r.PlayerName
+		}
+		if r.Rank == 3 && !r.IsRobot {
+			thirdName = r.PlayerName
+		}
+	}
+
+	// 获取冠军头像
+	championPlayer, _ := database.GetPlayerByID(champion.PlayerID)
+	championAvatar := ""
+	if championPlayer != nil {
+		championAvatar = championPlayer.Avatar
+	}
+
+	// 构建广播消息
+	payload := &protocol.ArenaChampionBroadcastPayload{
+		PeriodNo:        periodNo,
+		RoomID:          roomID,
+		RoomName:        roomName,
+		ChampionID:      champion.PlayerID,
+		ChampionName:    champion.PlayerName,
+		ChampionAvatar:  championAvatar,
+		RunnerUpName:    runnerUpName,
+		ThirdName:       thirdName,
+		TotalPlayers:    totalPlayers,
+		MatchCoin:       champion.Score,
+		Message:         fmt.Sprintf("恭喜 %s 在期号 %s 夺得%s冠军！", champion.PlayerName, periodNo, roomName),
+		Timestamp:       time.Now().UnixMilli(),
+	}
+
+	// 广播给所有在线玩家
+	s.server.BroadcastChampion(payload)
+
+	log.Printf("[ArenaSettlement] 🏆 冠军跑马灯广播: %s", payload.Message)
 }
 
 // logSettlement 记录结算结果
