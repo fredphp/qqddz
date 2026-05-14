@@ -1338,7 +1338,7 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGameForWaiting(enterPhase *E
         }
 
         // 获取房间配置
-        roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
+        _, err := database.GetRoomConfigByID(enterPhase.RoomID)
         if err != nil {
                 log.Printf("[ArenaStatus] ⚠️ 获取房间配置失败: %v", err)
                 return
@@ -1421,7 +1421,7 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGameForWaiting(enterPhase *E
         gameRoom.SetAllPlayersReady()
 
         // 发送 room_joined 消息给所有真人玩家
-        players = gameRoom.GetAllPlayersInfo()
+        playerInfos := gameRoom.GetAllPlayersInfo()
         b.server.clientsMu.RLock()
         for _, playerID := range table.Players {
                 if playerMap[playerID] != nil && playerMap[playerID].PlayerType == database.PlayerTypeRobot {
@@ -1433,7 +1433,7 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGameForWaiting(enterPhase *E
                                 payload := &protocol.RoomJoinedPayload{
                                         RoomCode:     gameRoom.Code,
                                         Player:       playerInfo,
-                                        Players:      players,
+                                        Players:      playerInfos,
                                         CreatorID:    gameRoom.CreatorID,
                                         RoomCategory: gameRoom.RoomCategory,
                                         PeriodNo:     gameRoom.PeriodNo,
