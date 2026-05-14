@@ -75,7 +75,8 @@ func (h *Handler) handleReconnect(client types.ClientInterface, msg *protocol.Me
         // 🔧【新增】恢复竞技场状态（如果有未处理的进入阶段）
         if arenaSrv, ok := h.server.(types.ArenaServer); ok {
                 if arena := arenaSrv.GetArenaBroadcaster(); arena != nil {
-                        arena.OnPlayerReconnect(session.PlayerID, client)
+                        // 使用 client.GetPlayerID() 获取数据库ID (uint64)
+                        arena.OnPlayerReconnect(client.GetPlayerID(), client)
                 }
         }
 }
