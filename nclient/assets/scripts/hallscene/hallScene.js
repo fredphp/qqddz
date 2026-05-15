@@ -3350,22 +3350,45 @@ cc.Class({
     
     /**
      * 🔧【新增】从 room_joined 消息进入游戏场景
+     * 🔧【修复】正确转换 players 数组为 playerdata 格式，确保头像、金币等显示正常
      */
     _enterArenaGameSceneFromRoomJoined: function(roomData) {
-        console.log("🏟️ [Arena] 从 room_joined 进入游戏场景");
+        console.log("🏟️ [Arena] 从 room_joined 进入游戏场景, roomData=" + JSON.stringify(roomData));
         
         var myglobal = window.myglobal;
+        
+        // 🔧【关键修复】转换 players 数组为 playerdata 格式
+        var players = roomData.players || [];
+        var playerdata = players.map(function(p, idx) {
+            return {
+                accountid: p.id,
+                nick_name: p.name,
+                avatarUrl: p.avatar || "avatar_1",
+                gold_count: p.gold_count || 0,
+                goldcount: p.gold_count || 0,   // 兼容旧客户端
+                seatindex: (p.seat !== undefined ? p.seat : idx) + 1,
+                isready: p.ready || true,  // 竞技场玩家默认已准备
+                match_coin: p.match_coin || 0  // 🔧【新增】竞技币
+            };
+        });
+        
+        console.log("🏟️ [Arena] 转换后的 playerdata 数量: " + playerdata.length);
         
         // 保存房间数据
         if (myglobal) {
             myglobal.roomData = {
+                roomid: roomData.room_code,
                 room_code: roomData.room_code,
                 room_id: roomData.room_id,
                 room_name: roomData.room_name || "竞技场",
                 room_category: roomData.room_category || 2,
                 period_no: roomData.period_no,
                 base_score: roomData.base_score || 1,
-                multiplier: roomData.multiplier || 1
+                multiplier: roomData.multiplier || 1,
+                seatindex: roomData.player ? roomData.player.seat + 1 : 1,
+                playerdata: playerdata,  // 🔧【关键修复】添加玩家数据
+                housemanageid: roomData.creator_id || "",
+                creator_id: roomData.creator_id || ""
             };
             
             myglobal.playerData = myglobal.playerData || {};
