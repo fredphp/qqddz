@@ -3359,20 +3359,27 @@ cc.Class({
         
         // 🔧【关键修复】转换 players 数组为 playerdata 格式
         var players = roomData.players || [];
+        var roomCategory = roomData.room_category || 2;  // 竞技场默认为2
+        var periodNo = roomData.period_no || "";
+        
         var playerdata = players.map(function(p, idx) {
             return {
                 accountid: p.id,
                 nick_name: p.name,
-                avatarUrl: p.avatar || "avatar_1",
+                avatar: p.avatar || "avatar_1",           // 🔧【修复】使用 avatar 字段
+                avatarUrl: p.avatar || "avatar_1",        // 兼容两种写法
                 gold_count: p.gold_count || 0,
-                goldcount: p.gold_count || 0,   // 兼容旧客户端
+                goldcount: p.gold_count || 0,             // 兼容旧客户端
                 seatindex: (p.seat !== undefined ? p.seat : idx) + 1,
-                isready: p.ready || true,  // 竞技场玩家默认已准备
-                match_coin: p.match_coin || 0  // 🔧【新增】竞技币
+                isready: p.ready || true,                 // 竞技场玩家默认已准备
+                match_coin: p.match_coin || 0,            // 竞技币
+                arena_gold: p.arena_gold || 0,            // 🔧【新增】竞技场金币
+                room_category: roomCategory,              // 🔧【关键修复】传递房间类型
+                period_no: periodNo                       // 🔧【关键修复】传递期号
             };
         });
         
-        console.log("🏟️ [Arena] 转换后的 playerdata 数量: " + playerdata.length);
+        console.log("🏟️ [Arena] 转换后的 playerdata 数量: " + playerdata.length + ", room_category=" + roomCategory);
         
         // 保存房间数据
         if (myglobal) {
@@ -3381,12 +3388,12 @@ cc.Class({
                 room_code: roomData.room_code,
                 room_id: roomData.room_id,
                 room_name: roomData.room_name || "竞技场",
-                room_category: roomData.room_category || 2,
-                period_no: roomData.period_no,
+                room_category: roomCategory,
+                period_no: periodNo,
                 base_score: roomData.base_score || 1,
                 multiplier: roomData.multiplier || 1,
                 seatindex: roomData.player ? roomData.player.seat + 1 : 1,
-                playerdata: playerdata,  // 🔧【关键修复】添加玩家数据
+                playerdata: playerdata,                   // 🔧【关键修复】添加玩家数据
                 housemanageid: roomData.creator_id || "",
                 creator_id: roomData.creator_id || ""
             };
@@ -3399,6 +3406,8 @@ cc.Class({
             if (roomData.player) {
                 myglobal.playerData.seatIndex = roomData.player.seat + 1;
             }
+            
+            console.log("🏟️ [Arena] myglobal.roomData 已保存, playerdata=" + playerdata.length + "人");
         }
         
         // 直接进入游戏场景
@@ -6486,11 +6495,25 @@ cc.Class({
     _enterGameScene: function(roomData) {
         var startTime = Date.now();
         
-        // 隐藏加载提示
-        this._hideMessageCenter();
+        // 🔧【修复】添加安全检查，防止节点已销毁时报错
+        if (this.node && this.node.isValid) {
+            // 隐藏加载提示
+            this._hideMessageCenter();
+            
+            // 🔧【优化】显示快速进入动画
+            this._showQuickEnterAnimation();
+        }
         
-        // 🔧【优化】显示快速进入动画
-        this._showQuickEnterAnimation();
+        // 🔧【关键修复】确保 roomData 已保存到 myglobal
+        var myglobal = window.myglobal;
+        if (myglobal && roomData) {
+            // 如果 roomData 没有正确设置，使用传入的 roomData
+            if (!myglobal.roomData || !myglobal.roomData.playerdata || myglobal.roomData.playerdata.length === 0) {
+                myglobal.roomData = roomData;
+                console.log("🚀 [进入场景] 保存 roomData 到 myglobal, playerdata 数量:", 
+                    (roomData.playerdata ? roomData.playerdata.length : 0));
+            }
+        }
         
         // 🔧【优化】使用预加载的场景，切换更快
         if (this._gameScenePreloaded) {
@@ -6694,9 +6717,12 @@ cc.Class({
             this._centerTipNode = null;
         }
         
-        var tipNode = this.node.getChildByName("center_tip");
-        if (tipNode && tipNode.isValid) {
-            tipNode.destroy();
+        // 🔧【修复】添加空指针检查，防止节点已销毁时出错
+        if (this.node && this.node.isValid) {
+            var tipNode = this.node.getChildByName("center_tip");
+            if (tipNode && tipNode.isValid) {
+                tipNode.destroy();
+            }
         }
     },
     
