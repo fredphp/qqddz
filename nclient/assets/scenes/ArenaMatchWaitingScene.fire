@@ -34,9 +34,6 @@
     "_children": [
       {
         "__id__": 3
-      },
-      {
-        "__id__": 4
       }
     ],
     "_active": true,
@@ -88,7 +85,7 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 8
+        "__id__": 4
       }
     ],
     "_prefab": null,
@@ -116,98 +113,6 @@
       "array": [0, 0, 0, 0, 0, 0, 1, 1, 1, 1]
     },
     "_id": "d4e5f6a7-b8c9-0123-def0-456789012345"
-  },
-  {
-    "__type__": "cc.Node",
-    "_name": "Main",
-    "_objFlags": 0,
-    "_parent": {
-      "__id__": 2
-    },
-    "_children": [],
-    "_active": true,
-    "_components": [
-      {
-        "__id__": 9
-      }
-    ],
-    "_prefab": null,
-    "_opacity": 255,
-    "_color": {
-      "__type__": "cc.Color",
-      "r": 255,
-      "g": 255,
-      "b": 255,
-      "a": 255
-    },
-    "_contentSize": {
-      "__type__": "cc.Size",
-      "width": 1280,
-      "height": 720
-    },
-    "_anchorPoint": {
-      "__type__": "cc.Vec2",
-      "x": 0.5,
-      "y": 0.5
-    },
-    "_trs": {
-      "__type__": "TypedArray",
-      "ctor": "Float64Array",
-      "array": [0, 0, 0, 0, 0, 0, 1, 1, 1, 1]
-    },
-    "_id": "e5f6a7b8-c9d0-1234-ef01-567890123456"
-  },
-  {
-    "__type__": "cc.Canvas",
-    "_name": "",
-    "_objFlags": 0,
-    "node": {
-      "__id__": 2
-    },
-    "_enabled": true,
-    "_designResolution": {
-      "__type__": "cc.Size",
-      "width": 1280,
-      "height": 720
-    },
-    "_fitWidth": false,
-    "_fitHeight": true,
-    "_id": "f6a7b8c9-d0e1-2345-f012-678901234567"
-  },
-  {
-    "__type__": "cc.Widget",
-    "_name": "",
-    "_objFlags": 0,
-    "node": {
-      "__id__": 2
-    },
-    "_enabled": true,
-    "alignMode": 1,
-    "_target": null,
-    "_alignFlags": 45,
-    "_left": 0,
-    "_right": 0,
-    "_top": 0,
-    "_bottom": 0,
-    "_horizontalCenter": 0,
-    "_verticalCenter": 0,
-    "_isAbsLeft": true,
-    "_isAbsRight": true,
-    "_isAbsTop": true,
-    "_isAbsBottom": true,
-    "_originalWidth": 0,
-    "_originalHeight": 0,
-    "_id": "a7b8c9d0-e1f2-3456-0123-789012345678"
-  },
-  {
-    "__type__": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "_name": "",
-    "_objFlags": 0,
-    "node": {
-      "__id__": 4
-    },
-    "_enabled": true,
-    "_id": "b8c9d0e1-f2a3-4567-1234-890123456789"
   },
   {
     "__type__": "cc.Camera",
@@ -259,39 +164,55 @@
     "_id": "c9d0e1f2-a3b4-5678-2345-901234567890"
   },
   {
-    "__type__": "cc.Node",
-    "_name": "Background",
+    "__type__": "cc.Canvas",
+    "_name": "",
     "_objFlags": 0,
-    "_parent": {
+    "node": {
       "__id__": 2
     },
-    "_children": [],
-    "_active": true,
-    "_components": [],
-    "_prefab": null,
-    "_opacity": 255,
-    "_color": {
-      "__type__": "cc.Color",
-      "r": 255,
-      "g": 255,
-      "b": 255,
-      "a": 255
-    },
-    "_contentSize": {
+    "_enabled": true,
+    "_designResolution": {
       "__type__": "cc.Size",
       "width": 1280,
       "height": 720
     },
-    "_anchorPoint": {
-      "__type__": "cc.Vec2",
-      "x": 0.5,
-      "y": 0.5
+    "_fitWidth": false,
+    "_fitHeight": true,
+    "_id": "f6a7b8c9-d0e1-2345-f012-678901234567"
+  },
+  {
+    "__type__": "cc.Widget",
+    "_name": "",
+    "_objFlags": 0,
+    "node": {
+      "__id__": 2
     },
-    "_trs": {
-      "__type__": "TypedArray",
-      "ctor": "Float64Array",
-      "array": [0, 0, 0, 0, 0, 0, 1, 1, 1, 1]
+    "_enabled": true,
+    "alignMode": 1,
+    "_target": null,
+    "_alignFlags": 45,
+    "_left": 0,
+    "_right": 0,
+    "_top": 0,
+    "_bottom": 0,
+    "_horizontalCenter": 0,
+    "_verticalCenter": 0,
+    "_isAbsLeft": true,
+    "_isAbsRight": true,
+    "_isAbsTop": true,
+    "_isAbsBottom": true,
+    "_originalWidth": 0,
+    "_originalHeight": 0,
+    "_id": "a7b8c9d0-e1f2-3456-0123-789012345678"
+  },
+  {
+    "__type__": "38a3d0afaecf439abdfa63",
+    "_name": "",
+    "_objFlags": 0,
+    "node": {
+      "__id__": 2
     },
-    "_id": "d0e1f2a3-b4c5-6789-3456-012345678901"
+    "_enabled": true,
+    "_id": "b8c9d0e1-f2a3-4567-1234-890123456789"
   }
 ]
