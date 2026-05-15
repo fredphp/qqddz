@@ -724,7 +724,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
                 PlayerToTable:  playerToTable,
         }
 
-        // 初始化玩家状态（机器人标记为已进入，真人需要点击进入）
+        // 初始化玩家状态（所有玩家初始都是"等待中"状态，包括机器人和真人）
         for _, playerID := range playerIDs {
                 player, exists := playerMap[playerID]
                 isRobot := exists && player.PlayerType == database.PlayerTypeRobot
@@ -737,7 +737,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
                 enterPhase.PlayerStatuses[playerID] = &PlayerEnterStatus{
                         PlayerID:     playerID,
                         IsRobot:      isRobot,
-                        HasEntered:   isRobot, // 只有机器人标记为已进入，真人需要点击
+                        HasEntered:   false, // 所有玩家初始都是"等待中"状态
                         HasCancelled: false,
                         SignupFee:    signupFee,
                         TableID:      tableID,
@@ -1490,6 +1490,7 @@ func (b *ArenaStatusBroadcaster) getIdleRobots(count int) []uint64 {
 }
 
 // 🔧【新增】推送等待状态给单个玩家
+// 修改：推送所有报名玩家（包括未进入的），让客户端显示完整列表
 func (b *ArenaStatusBroadcaster) sendWaitingStatusToPlayer(enterPhase *EnterPhaseInfo, playerID uint64, client *Client) {
         // 获取房间配置
         roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
@@ -1497,23 +1498,36 @@ func (b *ArenaStatusBroadcaster) sendWaitingStatusToPlayer(enterPhase *EnterPhas
                 return
         }
 
-        // 收集已进入玩家列表
+        // 收集所有报名玩家列表（不只是已进入的）
         var players []protocol.WaitingPlayerInfo
         var enteredCount int
         for pid, status := range enterPhase.PlayerStatuses {
-                if status.HasEntered && !status.HasCancelled {
+                if status.HasCancelled {
+                        continue // 跳过已取消的玩家
+                }
+                
+                if status.HasEntered {
                         enteredCount++
-                        // 获取玩家信息
-                        var player database.Player
-                        if err := database.DB().Where("id = ?", pid).First(&player).Error; err == nil {
-                                players = append(players, protocol.WaitingPlayerInfo{
-                                        PlayerID:   fmt.Sprintf("%d", pid),
-                                        PlayerName: player.Nickname,
-                                        Avatar:     player.Avatar,
-                                        IsRobot:    status.IsRobot,
-                                        EnteredAt:  time.Now().UnixMilli(),
-                                })
+                }
+                
+                // 获取玩家信息
+                var player database.Player
+                if err := database.DB().Where("id = ?", pid).First(&player).Error; err == nil {
+                        // 只有已进入的玩家才有 entered_at 时间戳
+                        var enteredAt int64
+                        if status.HasEntered {
+                                enteredAt = time.Now().UnixMilli()
+                        } else {
+                                enteredAt = 0 // 未进入的玩家 entered_at 为 0
                         }
+                        
+                        players = append(players, protocol.WaitingPlayerInfo{
+                                PlayerID:   fmt.Sprintf("%d", pid),
+                                PlayerName: player.Nickname,
+                                Avatar:     player.Avatar,
+                                IsRobot:    status.IsRobot,
+                                EnteredAt:  enteredAt,
+                        })
                 }
         }
 
@@ -1542,6 +1556,7 @@ func (b *ArenaStatusBroadcaster) sendWaitingStatusToPlayer(enterPhase *EnterPhas
 }
 
 // 🔧【新增】广播等待状态给所有已进入的玩家
+// 修改：推送所有报名玩家（包括未进入的），让客户端显示完整列表
 func (b *ArenaStatusBroadcaster) broadcastWaitingStatus(enterPhase *EnterPhaseInfo) {
         // 获取房间配置
         roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
@@ -1549,22 +1564,35 @@ func (b *ArenaStatusBroadcaster) broadcastWaitingStatus(enterPhase *EnterPhaseIn
                 return
         }
 
-        // 收集已进入玩家列表
+        // 收集所有报名玩家列表（不只是已进入的）
         var players []protocol.WaitingPlayerInfo
         var enteredCount int
         for playerID, status := range enterPhase.PlayerStatuses {
-                if status.HasEntered && !status.HasCancelled {
+                if status.HasCancelled {
+                        continue // 跳过已取消的玩家
+                }
+                
+                if status.HasEntered {
                         enteredCount++
-                        var player database.Player
-                        if err := database.DB().Where("id = ?", playerID).First(&player).Error; err == nil {
-                                players = append(players, protocol.WaitingPlayerInfo{
-                                        PlayerID:   fmt.Sprintf("%d", playerID),
-                                        PlayerName: player.Nickname,
-                                        Avatar:     player.Avatar,
-                                        IsRobot:    status.IsRobot,
-                                        EnteredAt:  time.Now().UnixMilli(),
-                                })
+                }
+                
+                var player database.Player
+                if err := database.DB().Where("id = ?", playerID).First(&player).Error; err == nil {
+                        // 只有已进入的玩家才有 entered_at 时间戳
+                        var enteredAt int64
+                        if status.HasEntered {
+                                enteredAt = time.Now().UnixMilli()
+                        } else {
+                                enteredAt = 0 // 未进入的玩家 entered_at 为 0
                         }
+                        
+                        players = append(players, protocol.WaitingPlayerInfo{
+                                PlayerID:   fmt.Sprintf("%d", playerID),
+                                PlayerName: player.Nickname,
+                                Avatar:     player.Avatar,
+                                IsRobot:    status.IsRobot,
+                                EnteredAt:  enteredAt,
+                        })
                 }
         }
 
@@ -1588,10 +1616,14 @@ func (b *ArenaStatusBroadcaster) broadcastWaitingStatus(enterPhase *EnterPhaseIn
 
         msg := codec.MustNewMessage(protocol.MsgArenaWaitingStatus, payload)
 
-        // 发送给所有已进入的在线玩家
+        // 发送给所有已进入的在线玩家（不包括机器人）
         b.server.clientsMu.RLock()
         for playerID, status := range enterPhase.PlayerStatuses {
-                if !status.HasEntered || status.HasCancelled || status.IsRobot {
+                if status.HasCancelled || status.IsRobot {
+                        continue
+                }
+                // 只发送给已点击进入的真人玩家
+                if !status.HasEntered {
                         continue
                 }
                 for _, client := range b.server.clients {
