@@ -2487,8 +2487,9 @@ cc.Class({
         
         // 🔧【关键修复】直接使用服务端推送的倒计时
         // 服务端已经根据 StartTime 计算了正确的剩余时间
-        var actualCountdownForLabel = data.countdown || 60;
-        console.log("🏟️ [Arena] 等待界面初始倒计时: countdown=" + actualCountdownForLabel);
+        // 注意：不能使用 || 运算符，因为 0 会被当作假值
+        var actualCountdownForLabel = (data.countdown !== undefined && data.countdown !== null) ? data.countdown : 60;
+        console.log("🏟️ [Arena] 等待界面初始倒计时: data.countdown=" + data.countdown + ", 使用值=" + actualCountdownForLabel);
         
         // 倒计时
         var countdownNode = new cc.Node("Countdown");
@@ -2548,8 +2549,9 @@ cc.Class({
         
         // 🔧【关键修复】直接使用服务端推送的倒计时
         // 服务端已经根据 StartTime 计算了正确的剩余时间
-        var actualCountdown = data.countdown || 60;
-        console.log("🏟️ [Arena] 等待界面保存数据: countdown=" + actualCountdown);
+        // 注意：不能使用 || 运算符，因为 0 会被当作假值
+        var actualCountdown = (data.countdown !== undefined && data.countdown !== null) ? data.countdown : 60;
+        console.log("🏟️ [Arena] 等待界面保存数据: data.countdown=" + data.countdown + ", 使用值=" + actualCountdown);
         
         // 保存引用
         this._arenaWaitingNode = waitingNode;
