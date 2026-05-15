@@ -533,11 +533,20 @@ cc.Class({
             })
         }
         
+        // 🔧【关键修复】竞技场模式下直接隐藏 gamebeforeUI
+        // 竞技场模式下所有玩家已经准备好，游戏会自动开始，不需要显示等待界面
         var gamebefore_node = this.node.getChildByName("gamebeforeUI")
         if (gamebefore_node) {
-            gamebefore_node.active = true
-            gamebefore_node.zIndex = 1000
-            gamebefore_node.emit("init")
+            if (isArenaMode) {
+                // 竞技场模式：直接隐藏等待界面
+                gamebefore_node.active = false
+                console.log("🏟️ [_processRoomData] 竞技场模式：隐藏 gamebeforeUI")
+            } else {
+                // 普通模式：显示等待界面
+                gamebefore_node.active = true
+                gamebefore_node.zIndex = 1000
+                gamebefore_node.emit("init")
+            }
         }
         
         // 🔧【修复】竞技场模式下不显示等待玩家UI（所有玩家已分配好）
