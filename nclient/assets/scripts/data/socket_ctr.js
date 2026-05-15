@@ -153,6 +153,9 @@ window.socketCtr = function(){
         ARENA_WAITING_TICK: "arena_waiting_tick",        // 等待阶段倒计时更新
         ARENA_ASSIGN_START: "arena_assign_start",       // 分配阶段开始
         ARENA_CHAMPION_BROADCAST: "arena_champion_broadcast", // 🏆 冠军跑马灯广播
+
+        // 🔧【新增】竞技场玩家加入广播（玩家点击进入后广播给所有本期玩家）
+        ARENA_PLAYER_JOINED: "arena_player_joined",     // 玩家加入等待场景广播
     }
 
     // 发送消息
@@ -699,7 +702,7 @@ window.socketCtr = function(){
 
             // 等待阶段状态推送
             case MessageType.ARENA_WAITING_STATUS:
-                evt.fire("arena_waiting_status_notify", {
+                var waitingStatusData = {
                     period_no: data.period_no || "",
                     room_id: data.room_id || 0,
                     room_name: data.room_name || "",
@@ -710,7 +713,15 @@ window.socketCtr = function(){
                     entered_players: data.entered_players || 0,
                     players: data.players || [],
                     message: data.message || ""
-                })
+                }
+                
+                // 🔧【修复】缓存数据到全局变量，确保场景切换后数据不丢失
+                if (window.myglobal) {
+                    window.myglobal.arenaWaitingStatusCache = waitingStatusData
+                    console.log("🏟️ [Arena] 缓存等待状态数据，玩家数量:", data.players ? data.players.length : 0)
+                }
+                
+                evt.fire("arena_waiting_status_notify", waitingStatusData)
                 break
 
             // 等待阶段倒计时更新
@@ -751,6 +762,20 @@ window.socketCtr = function(){
                     match_coin: data.match_coin || 0,
                     message: data.message || "",
                     timestamp: data.timestamp || 0
+                })
+                break
+
+            // 🔧【新增】玩家加入等待场景广播
+            case MessageType.ARENA_PLAYER_JOINED:
+                console.log("🏟️ [Arena] 收到玩家加入广播:", JSON.stringify(data));
+                evt.fire("arena_player_joined_notify", {
+                    period_no: data.period_no || "",
+                    room_id: data.room_id || 0,
+                    player: data.player || {},
+                    entered_players: data.entered_players || 0,
+                    total_players: data.total_players || 0,
+                    players: data.players || [],
+                    message: data.message || ""
                 })
                 break
             

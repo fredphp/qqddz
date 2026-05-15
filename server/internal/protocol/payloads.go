@@ -853,6 +853,31 @@ type ArenaAssignStartPayload struct {
         Message      string `json:"message"`       // 提示消息："正在分配玩家，10秒后进入游戏"
 }
 
+// ============================================================
+// 【新增】玩家加入等待场景广播 Payload
+// ============================================================
+
+// ArenaPlayerJoinedPayload 玩家加入等待场景广播
+// 当玩家点击"进入"按钮后，服务端广播此消息给本期所有玩家
+type ArenaPlayerJoinedPayload struct {
+        PeriodNo       string                `json:"period_no"`       // 期号
+        RoomID         uint64                `json:"room_id"`         // 房间配置ID
+        Player         ArenaWaitingPlayer    `json:"player"`          // 加入的玩家信息
+        EnteredPlayers int                   `json:"entered_players"` // 已进入玩家数量
+        TotalPlayers   int                   `json:"total_players"`   // 总玩家数量
+        Players        []ArenaWaitingPlayer  `json:"players"`         // 当前所有已进入玩家列表
+        Message        string                `json:"message"`         // 提示消息
+}
+
+// ArenaWaitingPlayer 等待场景中的玩家信息
+type ArenaWaitingPlayer struct {
+        PlayerID   string `json:"player_id"`   // 玩家ID
+        PlayerName string `json:"player_name"` // 玩家昵称
+        Avatar     string `json:"avatar"`      // 玩家头像URL
+        IsRobot    bool   `json:"is_robot"`    // 是否是机器人
+        EnteredAt  int64  `json:"entered_at"`  // 进入时间戳
+}
+
 
 // ============================================================
 // 【新增】冠军跑马灯广播 Payload

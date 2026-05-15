@@ -178,6 +178,9 @@ const (
         MsgArenaWaitingTick   MessageType = "arena_waiting_tick"   // 等待阶段倒计时更新
         MsgArenaAssignStart   MessageType = "arena_assign_start"   // 分配阶段开始（10秒倒计时）
 
+        // 🔧【新增】竞技场玩家加入广播（玩家点击进入后广播给所有本期玩家）
+        MsgArenaPlayerJoined MessageType = "arena_player_joined" // 玩家加入等待场景广播
+
         // 错误
         MsgError MessageType = "error" // 错误消息
 )

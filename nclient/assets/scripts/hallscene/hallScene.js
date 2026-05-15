@@ -2344,89 +2344,34 @@ cc.Class({
             window.arenaData.saveToLocal && window.arenaData.saveToLocal();
         }
         
-        // 🔧【关键修复】发送 arena_enter 请求，等待 room_joined 消息后再进入游戏场景
+        // 🔧【修改】发送 arena_enter 请求，然后跳转到等待场景
         var socket = myglobal && myglobal.socket;
         if (socket && socket.sendArenaEnter) {
-            // 显示加载提示
-            this._showMessageCenter("正在进入竞技场...");
-            
-            // 注册一次性 room_joined 监听器
-            var roomJoinedHandler = function(roomData) {
-                console.log("🏟️ [Arena] 收到 room_joined，准备进入游戏场景:", JSON.stringify(roomData));
-                
-                // 取消超时定时器
-                if (self._arenaEnterTimeout) {
-                    clearTimeout(self._arenaEnterTimeout);
-                    self._arenaEnterTimeout = null;
-                }
-                
-                // 🔧【关键修复】转换数据格式：players → playerdata
-                // 游戏场景期望的数据格式与普通场一致
-                var players = roomData.players || [];
-                var convertedRoomData = {
-                    roomid: roomData.room_code || "ARENA",
-                    room_code: roomData.room_code || "ARENA",
-                    seatindex: roomData.player ? roomData.player.seat + 1 : 1,
-                    playerdata: players.map(function(p, idx) {
-                        return {
-                            accountid: p.id,
-                            nick_name: p.name,
-                            avatarUrl: p.avatar || "avatar_1",  // 🔧【修复】使用实际头像URL
-                            gold_count: p.gold_count || 0,
-                            goldcount: p.gold_count || 0,
-                            seatindex: (p.seat !== undefined ? p.seat : idx) + 1,
-                            isready: p.ready || false,
-                            arena_gold: p.arena_gold || 0,  // 🔧【修复】添加竞技场金币
-                            match_coin: p.match_coin || 0,  // 兼容字段
-                            period_no: p.period_no || ""    // 期号
-                        };
-                    }),
-                    housemanageid: roomData.creator_id || "",
-                    creator_id: roomData.creator_id || "",
-                    room_category: 2,  // 竞技场
-                    period_no: data.period_no
-                };
-                
-                console.log("🏟️ [Arena] 转换后的房间数据:", JSON.stringify(convertedRoomData));
-                
-                // 保存转换后的房间数据
-                if (myglobal) {
-                    myglobal.roomData = convertedRoomData;
-                }
-                
-                // 进入游戏场景
-                self._enterGameScene(convertedRoomData);
-            };
-            
-            // 注册监听器
-            socket.onRoomJoined(roomJoinedHandler);
-            
-            // 设置超时（10秒后如果没收到 room_joined，也进入场景）
-            this._arenaEnterTimeout = setTimeout(function() {
-                console.log("🏟️ [Arena] 等待 room_joined 超时，直接进入游戏场景");
-                self._arenaEnterTimeout = null;
-                
-                // 构造临时房间数据
-                var tempRoomData = {
-                    room_code: "arena_" + data.period_no,
-                    room_id: data.room_id,
-                    room_name: data.room_name,
-                    room_category: 2,
-                    period_no: data.period_no
-                };
-                
-                if (myglobal) {
-                    myglobal.roomData = tempRoomData;
-                }
-                
-                self._enterGameScene(tempRoomData);
-            }, 10000);
-            
             // 发送 arena_enter 请求
             socket.sendArenaEnter({
                 period_no: data.period_no,
                 room_id: data.room_id
             });
+            
+            console.log("🏟️ [Arena] 已发送 arena_enter 请求，准备跳转到等待场景");
+            
+            // 🔧【新增】保存等待场景需要的数据，然后跳转
+            if (myglobal) {
+                myglobal.arenaWaitingData = {
+                    period_no: data.period_no || "",
+                    room_id: data.room_id || 0,
+                    room_name: data.room_name || "竞技场",
+                    countdown: data.countdown || 60,
+                    total_players: data.total_players || 0,
+                    entered_players: 1, // 自己已进入
+                    players: [], // 等待服务端推送
+                    start_time: data.start_time || Date.now(),
+                    message: data.message || "比赛即将开始！"
+                };
+            }
+            
+            // 跳转到新的等待场景
+            cc.director.loadScene("ArenaMatchWaitingScene");
         } else {
             console.warn("🏟️ [Arena] socket 或 sendArenaEnter 方法不可用");
             // 降级处理：直接进入游戏场景

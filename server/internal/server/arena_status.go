@@ -1145,6 +1145,9 @@ func (b *ArenaStatusBroadcaster) HandlePlayerEnter(periodNo string, playerID uin
                 b.startWaitingPhase(enterPhase)
         }
 
+        // 🔧【新增】广播玩家加入消息给所有本期玩家
+        b.broadcastPlayerJoined(enterPhase, playerID, status.IsRobot)
+
         // 推送等待状态给所有已进入的玩家
         b.broadcastWaitingStatus(enterPhase)
 
@@ -1618,6 +1621,76 @@ func (b *ArenaStatusBroadcaster) broadcastWaitingTick(enterPhase *EnterPhaseInfo
         }
 
         msg := codec.MustNewMessage(protocol.MsgArenaWaitingTick, payload)
+
+        // 发送给所有已进入的在线玩家
+        b.server.clientsMu.RLock()
+        for playerID, status := range enterPhase.PlayerStatuses {
+                if !status.HasEntered || status.HasCancelled || status.IsRobot {
+                        continue
+                }
+                for _, client := range b.server.clients {
+                        if client.PlayerID == playerID && client.GetRoom() == "" {
+                                client.SendMessage(msg)
+                                break
+                        }
+                }
+        }
+        b.server.clientsMu.RUnlock()
+}
+
+// 🔧【新增】广播玩家加入消息给所有本期玩家
+// 当玩家点击"进入"按钮后，广播此消息通知所有已进入的玩家
+func (b *ArenaStatusBroadcaster) broadcastPlayerJoined(enterPhase *EnterPhaseInfo, newPlayerID uint64, isRobot bool) {
+        // 获取新加入玩家的信息
+        var newPlayer database.Player
+        if err := database.DB().Where("id = ?", newPlayerID).First(&newPlayer).Error; err != nil {
+                log.Printf("[ArenaStatus] 获取玩家信息失败: %v", err)
+                return
+        }
+
+        // 收集所有已进入玩家列表
+        var players []protocol.ArenaWaitingPlayer
+        var enteredCount int
+        for playerID, status := range enterPhase.PlayerStatuses {
+                if status.HasEntered && !status.HasCancelled {
+                        enteredCount++
+                        var player database.Player
+                        if err := database.DB().Where("id = ?", playerID).First(&player).Error; err == nil {
+                                players = append(players, protocol.ArenaWaitingPlayer{
+                                        PlayerID:   fmt.Sprintf("%d", playerID),
+                                        PlayerName: player.Nickname,
+                                        Avatar:     player.Avatar,
+                                        IsRobot:    status.IsRobot,
+                                        EnteredAt:  time.Now().UnixMilli(),
+                                })
+                        }
+                }
+        }
+
+        // 构建新加入玩家信息
+        newPlayerInfo := protocol.ArenaWaitingPlayer{
+                PlayerID:   fmt.Sprintf("%d", newPlayerID),
+                PlayerName: newPlayer.Nickname,
+                Avatar:     newPlayer.Avatar,
+                IsRobot:    isRobot,
+                EnteredAt:  time.Now().UnixMilli(),
+        }
+
+        // 构建广播消息
+        payload := &protocol.ArenaPlayerJoinedPayload{
+                PeriodNo:       enterPhase.PeriodNo,
+                RoomID:         enterPhase.RoomID,
+                Player:         newPlayerInfo,
+                EnteredPlayers: enteredCount,
+                TotalPlayers:   len(enterPhase.PlayerStatuses),
+                Players:        players,
+                Message:        fmt.Sprintf("%s 进入了比赛", newPlayer.Nickname),
+        }
+
+        msg := codec.MustNewMessage(protocol.MsgArenaPlayerJoined, payload)
+
+        log.Printf("[ArenaStatus] 📢 广播玩家加入: periodNo=%s, playerID=%d, playerName=%s, enteredCount=%d/%d",
+                enterPhase.PeriodNo, newPlayerID, newPlayer.Nickname, enteredCount, len(enterPhase.PlayerStatuses))
 
         // 发送给所有已进入的在线玩家
         b.server.clientsMu.RLock()
