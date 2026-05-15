@@ -2603,15 +2603,23 @@ cc.Class({
         // 注册事件监听
         this._registerArenaWaitingEvents();
         
-        // 先检查缓存数据（服务端返回的真实数据）
+        // 检查是否有缓存数据
+        console.log("🏟️ [Arena] 检查缓存数据...");
+        var myglobal = window.myglobal;
+        if (myglobal && myglobal.arenaWaitingStatusCache) {
+            console.log("🏟️ [Arena] 发现缓存数据:", JSON.stringify(myglobal.arenaWaitingStatusCache));
+        }
+        
         var hasCacheData = this._checkArenaWaitingCache();
+        console.log("🏟️ [Arena] 缓存数据检查结果:", hasCacheData);
         
         // 如果没有缓存数据，先显示自己占位
         if (!hasCacheData) {
+            console.log("🏟️ [Arena] 没有缓存数据，显示占位");
             this._showArenaWaitingPlaceholder(data);
         }
         
-        console.log("🏟️ [Arena] 等待界面已创建");
+        console.log("🏟️ [Arena] 等待界面已创建，当前玩家列表:", this._arenaWaitingData.players.length);
     },
     
     /**
@@ -2669,11 +2677,17 @@ cc.Class({
         var myglobal = window.myglobal;
         var evt = myglobal && myglobal.eventlister;
         
-        if (!evt) return;
+        console.log("🏟️ [ArenaWaiting] 注册事件监听, evt:", evt ? "存在" : "不存在");
+        
+        if (!evt) {
+            console.warn("🏟️ [ArenaWaiting] eventlister 不存在，无法注册事件");
+            return;
+        }
         
         // 等待状态推送
         this._arenaWaitingStatusHandler = function(data) {
-            console.log("🏟️ [ArenaWaiting] 收到等待状态:", JSON.stringify(data));
+            console.log("🏟️ [ArenaWaiting] ✅ 收到等待状态通知，玩家数:", data.players ? data.players.length : 0);
+            console.log("🏟️ [ArenaWaiting] 等待状态数据:", JSON.stringify(data));
             self._onArenaWaitingStatus(data);
         };
         evt.on("arena_waiting_status_notify", this._arenaWaitingStatusHandler);
@@ -2686,14 +2700,15 @@ cc.Class({
         
         // 玩家加入广播
         this._arenaPlayerJoinedHandler = function(data) {
-            console.log("🏟️ [ArenaWaiting] 玩家加入:", JSON.stringify(data));
+            console.log("🏟️ [ArenaWaiting] ✅ 收到玩家加入通知，玩家数:", data.players ? data.players.length : 0);
+            console.log("🏟️ [ArenaWaiting] 玩家加入数据:", JSON.stringify(data));
             self._onArenaPlayerJoined(data);
         };
         evt.on("arena_player_joined_notify", this._arenaPlayerJoinedHandler);
         
         // 分配阶段开始
         this._arenaAssignStartHandler = function(data) {
-            console.log("🏟️ [ArenaWaiting] 分配阶段开始:", JSON.stringify(data));
+            console.log("🏟️ [ArenaWaiting] ✅ 收到分配阶段开始通知:", JSON.stringify(data));
             self._onArenaAssignStart(data);
         };
         evt.on("arena_assign_start_notify", this._arenaAssignStartHandler);
@@ -2892,7 +2907,7 @@ cc.Class({
     },
     
     /**
-     * 更新玩家列表UI（一排3个）
+     * 更新玩家列表UI（重新设计：紧凑卡片布局）
      */
     _updateArenaPlayerListUI: function() {
         if (!this._arenaWaitingContent) return;
@@ -2901,23 +2916,30 @@ cc.Class({
         this._arenaWaitingContent.removeAllChildren();
         
         var players = this._arenaWaitingData.players || [];
-        console.log("🏟️ [ArenaWaiting] 更新玩家列表，玩家数量:", players.length);
+        console.log("🏟️ [ArenaWaiting] 更新玩家列表，玩家数据:", JSON.stringify(players));
         
-        // 布局参数：一排3个
-        var itemWidth = 360;
-        var itemHeight = 160;
-        var spacingX = 20;
-        var spacingY = 20;
-        var cols = 3;
-        var startX = -480 + itemWidth / 2;  // 起始X位置
-        var startY = 140;  // 起始Y位置（顶部）
+        if (players.length === 0) {
+            console.log("🏟️ [ArenaWaiting] 没有玩家数据，跳过渲染");
+            return;
+        }
+        
+        // 布局参数：一排最多5个，紧凑布局
+        var itemWidth = 200;  // 卡片宽度
+        var itemHeight = 220; // 卡片高度
+        var spacingX = 20;    // 水平间距
+        var spacingY = 20;    // 垂直间距
+        var cols = 5;         // 一排5个
+        var totalWidth = cols * itemWidth + (cols - 1) * spacingX;
+        var startX = -totalWidth / 2 + itemWidth / 2;
+        var startY = 100;     // 起始Y位置
         
         // 添加玩家项
         for (var i = 0; i < players.length; i++) {
             var player = players[i];
-            var itemNode = this._createArenaPlayerItem(player, i);
+            console.log("🏟️ [ArenaWaiting] 创建玩家卡片:", i, player.player_name, "is_robot:", player.is_robot);
+            var itemNode = this._createArenaPlayerItemNew(player, i);
             
-            // 计算位置：一排3个
+            // 计算位置
             var col = i % cols;
             var row = Math.floor(i / cols);
             var x = startX + col * (itemWidth + spacingX);
@@ -2929,58 +2951,85 @@ cc.Class({
     },
     
     /**
-     * 创建玩家项（头像 + 昵称在头像下方）
+     * 创建玩家卡片（新设计）
      */
-    _createArenaPlayerItem: function(player, index) {
-        var itemNode = new cc.Node("PlayerItem_" + index);
-        itemNode.setContentSize(cc.size(360, 160));
+    _createArenaPlayerItemNew: function(player, index) {
+        var itemNode = new cc.Node("PlayerCard_" + index);
+        itemNode.setContentSize(cc.size(200, 220));
         
-        // 卡片背景
+        // 卡片背景（圆角矩形）
         var bgNode = new cc.Node("Bg");
-        bgNode.setContentSize(cc.size(340, 140));
+        bgNode.setContentSize(cc.size(180, 200));
         var bgGraphics = bgNode.addComponent(cc.Graphics);
-        bgGraphics.fillColor = cc.color(40, 45, 70, 220);
-        bgGraphics.roundRect(-170, -70, 340, 140, 10);
+        
+        // 根据是否是机器人设置不同背景色
+        if (player.is_robot) {
+            bgGraphics.fillColor = cc.color(60, 50, 80, 230);  // 紫色调 - 机器人
+        } else {
+            bgGraphics.fillColor = cc.color(40, 60, 80, 230);  // 蓝色调 - 真人
+        }
+        bgGraphics.roundRect(-90, -100, 180, 200, 15);
         bgGraphics.fill();
         bgNode.parent = itemNode;
         
+        // 头像容器
+        var avatarContainer = new cc.Node("AvatarContainer");
+        avatarContainer.setPosition(0, 40);
+        avatarContainer.setContentSize(cc.size(100, 100));
+        
+        // 头像背景圆圈
+        var avatarBg = new cc.Node("AvatarBg");
+        var avatarBgGraphics = avatarBg.addComponent(cc.Graphics);
+        avatarBgGraphics.fillColor = cc.color(80, 80, 100, 255);
+        avatarBgGraphics.circle(0, 0, 52);
+        avatarBgGraphics.fill();
+        avatarBg.parent = avatarContainer;
+        
         // 头像节点
         var avatarNode = new cc.Node("Avatar");
-        avatarNode.setPosition(0, 20);
-        avatarNode.setContentSize(cc.size(70, 70));
-        
+        avatarNode.setContentSize(cc.size(90, 90));
         var avatarSprite = avatarNode.addComponent(cc.Sprite);
         avatarSprite.type = cc.Sprite.Type.SIMPLE;
         avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         
         // 加载头像
         this._loadArenaPlayerAvatar(player.avatar, avatarSprite);
-        avatarNode.parent = itemNode;
+        avatarNode.parent = avatarContainer;
         
-        // 昵称节点（在头像下方）
-        var nameNode = new cc.Node("NameLabel");
-        nameNode.setPosition(0, -40);
+        avatarContainer.parent = itemNode;
         
+        // 昵称
+        var nameNode = new cc.Node("Name");
+        nameNode.setPosition(0, -45);
         var nameLabel = nameNode.addComponent(cc.Label);
-        var playerName = player.player_name || player.name || ("玩家" + (player.player_id || index));
-        nameLabel.string = playerName;
+        nameLabel.string = player.player_name || player.name || ("玩家" + (index + 1));
         nameLabel.fontSize = 18;
         nameLabel.lineHeight = 24;
-        nameNode.setContentSize(cc.size(300, 24));
+        nameNode.setContentSize(cc.size(160, 24));
         
-        // 机器人用灰色，真人用白色
+        // 真人白色，机器人金色
         if (player.is_robot) {
-            nameNode.color = cc.color(150, 150, 150);
+            nameNode.color = cc.color(255, 215, 100);  // 金色
         } else {
-            nameNode.color = cc.color(255, 255, 255);
+            nameNode.color = cc.color(255, 255, 255);  // 白色
         }
-        
-        // 描边效果
-        var outline = nameNode.addComponent(cc.LabelOutline);
-        outline.color = cc.color(0, 0, 0);
-        outline.width = 2;
-        
         nameNode.parent = itemNode;
+        
+        // 状态标签
+        var statusNode = new cc.Node("Status");
+        statusNode.setPosition(0, -75);
+        var statusLabel = statusNode.addComponent(cc.Label);
+        statusLabel.fontSize = 14;
+        statusLabel.lineHeight = 18;
+        
+        if (player.is_robot) {
+            statusLabel.string = "等待中...";
+            statusNode.color = cc.color(180, 180, 180);
+        } else {
+            statusLabel.string = "已进入";
+            statusNode.color = cc.color(100, 255, 150);
+        }
+        statusNode.parent = itemNode;
         
         return itemNode;
     },

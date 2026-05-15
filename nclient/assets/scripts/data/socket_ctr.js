@@ -50,14 +50,22 @@ window.socketCtr = function(){
         _serverUrl = window.defines.serverUrl
     }
     
-    // 确保 event 初始化
+    // 确保 event 初始化（使用全局共享的事件实例）
     var _getEvent = function() {
-        if (!event) {
-            if (typeof window.eventLister === 'undefined') {
+        // 🔧【修复】每次都检查 myglobal.eventlister，确保使用共享实例
+        if (window.myglobal && window.myglobal.eventlister) {
+            if (event !== window.myglobal.eventlister) {
+                event = window.myglobal.eventlister
+                console.log("🔧 [socket_ctr] 使用 myglobal.eventlister 共享实例")
+            }
+        } else if (!event) {
+            if (typeof window.eventLister !== 'undefined') {
+                event = window.eventLister({})
+                console.log("🔧 [socket_ctr] 创建新的事件实例（myglobal 未初始化）")
+            } else {
                 console.error("eventLister 未定义，请确保 event_lister.js 已作为插件脚本加载")
                 return null
             }
-            event = window.eventLister({})
         }
         return event
     }
