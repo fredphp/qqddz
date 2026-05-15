@@ -2311,6 +2311,14 @@ func (b *ArenaStatusBroadcaster) sendPendingMatchStartPopup(playerID uint64, cli
                         return
                 }
 
+                // 🔧【关键修复】验证期号是否是当前活动期号
+                // 防止旧期号的弹窗数据被错误发送给玩家
+                if !b.isPeriodNoValidForPlayer(data.RoomID, data.PeriodNo) {
+                        log.Printf("[ArenaStatus] ⚠️ 玩家 %d 的期号 %s 已过期，清理Redis数据", playerID, data.PeriodNo)
+                        b.removePlayerEnterPhaseFromRedis(playerID)
+                        return
+                }
+
                 // 🔧【关键修复】检查是否已进入（进入阶段结束时标记）
                 // 如果已进入，说明游戏已经开始，需要通知玩家进入房间
                 if data.HasEntered {
@@ -2855,6 +2863,31 @@ func (b *ArenaStatusBroadcaster) getPeriodCache(roomID uint64) *PeriodInfo {
         defer b.periodCacheMu.RUnlock()
         return b.periodCache[roomID]
 }
+// 🔧【关键修复】isPeriodNoValidForPlayer 检查期号是否是当前活动期号
+// 用于防止旧期号的弹窗数据被错误发送给玩家
+func (b *ArenaStatusBroadcaster) isPeriodNoValidForPlayer(roomID uint64, periodNo string) bool {
+        if periodNo == "" {
+                return false
+        }
+        
+        // 获取当前活动的期号信息
+        periodInfo := b.getPeriodCache(roomID)
+        if periodInfo == nil {
+                // 缓存中没有，说明竞技场可能已关闭，期号无效
+                log.Printf("[ArenaStatus] ⚠️ isPeriodNoValidForPlayer: 无法获取期号缓存, roomID=%d", roomID)
+                return false
+        }
+        
+        // 检查期号是否匹配
+        isValid := periodInfo.PeriodNo == periodNo
+        if !isValid {
+                log.Printf("[ArenaStatus] ⚠️ 期号不匹配: roomID=%d, 当前期号=%s, 请求期号=%s", 
+                        roomID, periodInfo.PeriodNo, periodNo)
+        }
+        return isValid
+}
+
+
 
 // 🔧【新增】forceRefreshPeriodCache 强制刷新指定房间的期号缓存
 // 这确保报名时使用的期号与广播时一致
