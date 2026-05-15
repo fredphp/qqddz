@@ -2618,36 +2618,36 @@ cc.Class({
     _registerArenaWaitingEvents: function() {
         var self = this;
         var myglobal = window.myglobal;
-        var socket = myglobal && myglobal.socket;
+        var evt = myglobal && myglobal.eventlister;
         
-        if (!socket) return;
+        if (!evt) return;
         
         // 等待状态推送
         this._arenaWaitingStatusHandler = function(data) {
             console.log("🏟️ [ArenaWaiting] 收到等待状态:", JSON.stringify(data));
             self._onArenaWaitingStatus(data);
         };
-        socket.on("arena_waiting_status_notify", this._arenaWaitingStatusHandler);
+        evt.on("arena_waiting_status_notify", this._arenaWaitingStatusHandler);
         
         // 倒计时更新
         this._arenaWaitingTickHandler = function(data) {
             self._onArenaWaitingTick(data);
         };
-        socket.on("arena_waiting_tick_notify", this._arenaWaitingTickHandler);
+        evt.on("arena_waiting_tick_notify", this._arenaWaitingTickHandler);
         
         // 玩家加入广播
         this._arenaPlayerJoinedHandler = function(data) {
             console.log("🏟️ [ArenaWaiting] 玩家加入:", JSON.stringify(data));
             self._onArenaPlayerJoined(data);
         };
-        socket.on("arena_player_joined_notify", this._arenaPlayerJoinedHandler);
+        evt.on("arena_player_joined_notify", this._arenaPlayerJoinedHandler);
         
         // 分配阶段开始
         this._arenaAssignStartHandler = function(data) {
             console.log("🏟️ [ArenaWaiting] 分配阶段开始:", JSON.stringify(data));
             self._onArenaAssignStart(data);
         };
-        socket.on("arena_assign_start_notify", this._arenaAssignStartHandler);
+        evt.on("arena_assign_start_notify", this._arenaAssignStartHandler);
     },
     
     /**
@@ -2655,21 +2655,21 @@ cc.Class({
      */
     _unregisterArenaWaitingEvents: function() {
         var myglobal = window.myglobal;
-        var socket = myglobal && myglobal.socket;
+        var evt = myglobal && myglobal.eventlister;
         
-        if (!socket) return;
+        if (!evt) return;
         
         if (this._arenaWaitingStatusHandler) {
-            socket.off("arena_waiting_status_notify", this._arenaWaitingStatusHandler);
+            evt.off("arena_waiting_status_notify", this._arenaWaitingStatusHandler);
         }
         if (this._arenaWaitingTickHandler) {
-            socket.off("arena_waiting_tick_notify", this._arenaWaitingTickHandler);
+            evt.off("arena_waiting_tick_notify", this._arenaWaitingTickHandler);
         }
         if (this._arenaPlayerJoinedHandler) {
-            socket.off("arena_player_joined_notify", this._arenaPlayerJoinedHandler);
+            evt.off("arena_player_joined_notify", this._arenaPlayerJoinedHandler);
         }
         if (this._arenaAssignStartHandler) {
-            socket.off("arena_assign_start_notify", this._arenaAssignStartHandler);
+            evt.off("arena_assign_start_notify", this._arenaAssignStartHandler);
         }
     },
     
