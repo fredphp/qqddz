@@ -1171,6 +1171,10 @@ func (b *ArenaStatusBroadcaster) HandlePlayerEnter(periodNo string, playerID uin
                 return fmt.Errorf("进入阶段不存在或已结束")
         }
 
+        // 🔧【调试日志】输出进入阶段的关键信息
+        log.Printf("[ArenaStatus] 🔍 HandlePlayerEnter: periodNo=%s, playerID=%d, StartTime=%v, WaitingPhase=%d, WaitingCountdown=%d",
+                periodNo, playerID, enterPhase.StartTime, enterPhase.WaitingPhase, enterPhase.WaitingCountdown)
+
         status, exists := enterPhase.PlayerStatuses[playerID]
         if !exists {
                 return fmt.Errorf("玩家未报名此期号")
@@ -1243,7 +1247,9 @@ func (b *ArenaStatusBroadcaster) startWaitingPhase(enterPhase *EnterPhaseInfo) {
         // 🔧【修复】StartTime 已经在报名结束时设置，不需要重新设置
         // enterPhase.StartTime = time.Now()  // 删除这行，不重置开始时间
 
-        log.Printf("[ArenaStatus] 🚀 启动等待阶段: periodNo=%s, 已过时间=%d秒, 剩余倒计时=%d秒", enterPhase.PeriodNo, elapsedSeconds, remainingCountdown)
+        // 🔧【调试日志】输出详细的计算过程
+        log.Printf("[ArenaStatus] 🚀 启动等待阶段: periodNo=%s, StartTime=%v, 当前时间=%v, 已过时间=%d秒, 剩余倒计时=%d秒",
+                enterPhase.PeriodNo, enterPhase.StartTime, time.Now(), elapsedSeconds, remainingCountdown)
 
         // 启动每秒推送倒计时的定时器
         enterPhase.WaitingTimer = time.NewTicker(1 * time.Second)
@@ -1722,6 +1728,10 @@ func (b *ArenaStatusBroadcaster) sendWaitingStatusToPlayer(enterPhase *EnterPhas
 // 🔧【新增】广播等待状态给所有已进入的玩家
 // 修改：推送所有报名玩家（包括未进入的），让客户端显示完整列表
 func (b *ArenaStatusBroadcaster) broadcastWaitingStatus(enterPhase *EnterPhaseInfo) {
+        // 🔧【调试日志】输出推送的倒计时值
+        log.Printf("[ArenaStatus] 📢 broadcastWaitingStatus: periodNo=%s, WaitingPhase=%d, Countdown=%d, StartTime=%d",
+                enterPhase.PeriodNo, enterPhase.WaitingPhase, enterPhase.WaitingCountdown, enterPhase.StartTime.UnixMilli())
+
         // 获取房间配置
         roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
         if err != nil {

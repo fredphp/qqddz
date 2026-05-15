@@ -2315,16 +2315,8 @@ cc.Class({
         
         console.log("🏟️ [Arena] 进入竞技场比赛，data:", JSON.stringify(data));
         
-        // 🔧【关键修复】基于 start_time 计算当前的实际剩余倒计时
-        // data.countdown 是弹窗创建时的初始值，不是用户点击时的实时值
-        var actualCountdown = data.countdown || 60;
-        if (data.start_time) {
-            var nowMs = Date.now();
-            var elapsedMs = nowMs - data.start_time;
-            var elapsedSec = Math.floor(elapsedMs / 1000);
-            actualCountdown = Math.max(0, (data.countdown || 60) - elapsedSec);
-            console.log("🏟️ [Arena] 计算实时剩余时间: start_time=" + data.start_time + ", now=" + nowMs + ", elapsed=" + elapsedSec + "s, remaining=" + actualCountdown + "s");
-        }
+        // 🔧【关键修复】不在本地计算倒计时，完全依赖服务端推送
+        // 所有倒计时由服务端计算并推送
         
         // 保存比赛信息
         if (myglobal) {
@@ -2337,7 +2329,7 @@ cc.Class({
             window.arenaData.saveToLocal && window.arenaData.saveToLocal();
         }
         
-        // 🔧【修改】发送 arena_enter 请求，然后在当前场景显示等待界面
+        // 🔧【修改】发送 arena_enter 请求，等待服务端推送 arena_waiting_status
         var socket = myglobal && myglobal.socket;
         if (socket && socket.sendArenaEnter) {
             // 发送 arena_enter 请求
@@ -2346,36 +2338,21 @@ cc.Class({
                 room_id: data.room_id
             });
             
-            console.log("🏟️ [Arena] 已发送 arena_enter 请求，准备显示等待界面");
+            console.log("🏟️ [Arena] 已发送 arena_enter 请求，等待服务端推送等待状态...");
             
-            // 🔧【新增】保存等待场景需要的数据
-            if (myglobal) {
-                myglobal.arenaWaitingData = {
-                    period_no: data.period_no || "",
-                    room_id: data.room_id || 0,
-                    room_name: data.room_name || "竞技场",
-                    countdown: actualCountdown,  // 🔧【关键修复】使用计算的实时剩余时间
-                    total_players: data.total_players || 0,
-                    entered_players: 1, // 自己已进入
-                    players: [], // 等待服务端推送
-                    start_time: data.start_time || Date.now(),
-                    message: data.message || "比赛即将开始！"
-                };
-            }
-            
-            // 🔧【关键修复】构建包含实时倒计时的数据对象
-            var waitingData = {
+            // 🔧【关键修复】保存弹窗数据，供 _onArenaWaitingStatus 使用
+            // 不在本地计算倒计时，等服务端推送
+            this._pendingArenaEnterData = {
                 period_no: data.period_no || "",
                 room_id: data.room_id || 0,
                 room_name: data.room_name || "竞技场",
-                countdown: actualCountdown,  // 🔧【关键修复】使用计算的实时剩余时间
                 total_players: data.total_players || 0,
-                start_time: data.start_time || Date.now(),
+                start_time: data.start_time,
                 message: data.message || "比赛即将开始！"
             };
             
-            // 🔧【修改】在当前场景显示等待界面，而不是跳转场景
-            this._showArenaWaitingUI(waitingData);
+            // 🔧【关键修复】不立即显示等待界面，等服务端推送 arena_waiting_status
+            // 服务端会推送正确的倒计时
         } else {
             console.warn("🏟️ [Arena] socket 或 sendArenaEnter 方法不可用");
             // 降级处理：直接进入游戏场景
@@ -2764,9 +2741,53 @@ cc.Class({
     
     /**
      * 处理等待状态更新
+     * 🔧【关键修复】完全依赖服务端推送的倒计时，不做本地计算
      */
     _onArenaWaitingStatus: function(data) {
-        if (!this._arenaWaitingNode) return;
+        console.log("🏟️ [ArenaWaiting] 收到等待状态，countdown=" + data.countdown + ", players=" + (data.players ? data.players.length : 0));
+        
+        // 🔧【关键修复】如果等待界面不存在，创建它（使用服务端推送的倒计时）
+        if (!this._arenaWaitingNode) {
+            // 检查是否有保存的弹窗数据
+            if (this._pendingArenaEnterData) {
+                // 合并服务端推送的数据和保存的弹窗数据
+                var waitingData = {
+                    period_no: data.period_no || this._pendingArenaEnterData.period_no,
+                    room_id: data.room_id || this._pendingArenaEnterData.room_id,
+                    room_name: data.room_name || this._pendingArenaEnterData.room_name,
+                    countdown: data.countdown,  // 🔧【关键】直接使用服务端推送的倒计时
+                    total_players: data.total_players || this._pendingArenaEnterData.total_players,
+                    start_time: data.start_time,
+                    entered_players: data.entered_players || 0,
+                    players: data.players || [],
+                    message: data.message || this._pendingArenaEnterData.message
+                };
+                console.log("🏟️ [ArenaWaiting] 创建等待界面，服务端倒计时=" + data.countdown);
+                this._showArenaWaitingUI(waitingData);
+                this._pendingArenaEnterData = null;  // 清除保存的数据
+                return;
+            }
+            
+            // 如果没有保存的数据，直接用服务端数据创建
+            if (data.period_no && data.countdown !== undefined) {
+                console.log("🏟️ [ArenaWaiting] 直接创建等待界面，服务端倒计时=" + data.countdown);
+                this._showArenaWaitingUI({
+                    period_no: data.period_no,
+                    room_id: data.room_id,
+                    room_name: data.room_name,
+                    countdown: data.countdown,  // 🔧【关键】直接使用服务端推送的倒计时
+                    total_players: data.total_players,
+                    start_time: data.start_time,
+                    entered_players: data.entered_players || 0,
+                    players: data.players || [],
+                    message: data.message
+                });
+                return;
+            }
+            
+            console.warn("🏟️ [ArenaWaiting] 没有足够数据创建等待界面");
+            return;
+        }
         
         // 检查期号是否匹配
         if (this._arenaWaitingData.periodNo && data.period_no !== this._arenaWaitingData.periodNo) {
@@ -2777,12 +2798,12 @@ cc.Class({
         this._arenaWaitingData.periodNo = data.period_no || "";
         this._arenaWaitingData.roomId = data.room_id || 0;
         this._arenaWaitingData.roomName = data.room_name || "竞技场";
-        this._arenaWaitingData.countdown = data.countdown || 60;
+        this._arenaWaitingData.countdown = data.countdown;  // 🔧【关键】直接使用服务端推送的倒计时
         this._arenaWaitingData.totalPlayers = data.total_players || 0;
         this._arenaWaitingData.enteredPlayers = data.entered_players || 0;
         this._arenaWaitingData.players = data.players || [];
         
-        console.log("🏟️ [ArenaWaiting] 更新等待状态，玩家数量:", this._arenaWaitingData.players.length);
+        console.log("🏟️ [ArenaWaiting] 更新等待状态，倒计时=" + data.countdown + "，玩家数量:", this._arenaWaitingData.players.length);
         
         // 更新UI
         this._updateArenaWaitingUI();

@@ -710,12 +710,16 @@ window.socketCtr = function(){
 
             // 等待阶段状态推送
             case MessageType.ARENA_WAITING_STATUS:
+                // 🔧【关键修复】countdown 可能是 0，不能使用 || 运算符
+                var countdownValue = (data.countdown !== undefined && data.countdown !== null) ? data.countdown : 60;
+                console.log("🏟️ [Arena] 收到等待状态推送，服务端倒计时=" + data.countdown + "，使用值=" + countdownValue);
+                
                 var waitingStatusData = {
                     period_no: data.period_no || "",
                     room_id: data.room_id || 0,
                     room_name: data.room_name || "",
                     phase: data.phase || "waiting",
-                    countdown: data.countdown || 60,
+                    countdown: countdownValue,  // 🔧【关键修复】使用正确的值
                     start_time: data.start_time || 0,
                     total_players: data.total_players || 0,
                     entered_players: data.entered_players || 0,
@@ -734,10 +738,13 @@ window.socketCtr = function(){
 
             // 等待阶段倒计时更新
             case MessageType.ARENA_WAITING_TICK:
+                // 🔧【关键修复】countdown 可能是 0，不能使用 || 运算符
+                var tickCountdown = (data.countdown !== undefined && data.countdown !== null) ? data.countdown : 0;
+                console.log("🏟️ [Arena] 收到倒计时更新，服务端倒计时=" + tickCountdown);
                 evt.fire("arena_waiting_tick_notify", {
                     period_no: data.period_no || "",
                     room_id: data.room_id || 0,
-                    countdown: data.countdown || 0,
+                    countdown: tickCountdown,
                     entered_players: data.entered_players || 0
                 })
                 break
