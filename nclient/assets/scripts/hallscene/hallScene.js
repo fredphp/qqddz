@@ -2344,7 +2344,7 @@ cc.Class({
             window.arenaData.saveToLocal && window.arenaData.saveToLocal();
         }
         
-        // 🔧【修改】发送 arena_enter 请求，然后跳转到等待场景
+        // 🔧【修改】发送 arena_enter 请求，然后在当前场景显示等待界面
         var socket = myglobal && myglobal.socket;
         if (socket && socket.sendArenaEnter) {
             // 发送 arena_enter 请求
@@ -2353,9 +2353,9 @@ cc.Class({
                 room_id: data.room_id
             });
             
-            console.log("🏟️ [Arena] 已发送 arena_enter 请求，准备跳转到等待场景");
+            console.log("🏟️ [Arena] 已发送 arena_enter 请求，准备显示等待界面");
             
-            // 🔧【新增】保存等待场景需要的数据，然后跳转
+            // 🔧【新增】保存等待场景需要的数据
             if (myglobal) {
                 myglobal.arenaWaitingData = {
                     period_no: data.period_no || "",
@@ -2370,8 +2370,8 @@ cc.Class({
                 };
             }
             
-            // 跳转到新的等待场景
-            cc.director.loadScene("ArenaMatchWaitingScene");
+            // 🔧【修改】在当前场景显示等待界面，而不是跳转场景
+            this._showArenaWaitingUI(data);
         } else {
             console.warn("🏟️ [Arena] socket 或 sendArenaEnter 方法不可用");
             // 降级处理：直接进入游戏场景
@@ -2393,6 +2393,662 @@ cc.Class({
             
             this._enterArenaGameScene(data, roomConfig);
         }
+    },
+    
+    // ============================================================
+    // 🔧【新增】竞技场等待界面（在当前场景显示，不跳转场景）
+    // ============================================================
+    
+    /**
+     * 显示竞技场等待界面
+     */
+    _showArenaWaitingUI: function(data) {
+        var self = this;
+        
+        console.log("🏟️ [Arena] 显示等待界面");
+        
+        // 如果已存在等待界面，先移除
+        this._hideArenaWaitingUI();
+        
+        // 创建遮罩层
+        var canvas = cc.find('Canvas');
+        if (!canvas) {
+            console.error("🏟️ [Arena] 找不到 Canvas 节点");
+            return;
+        }
+        
+        // 创建等待界面容器
+        var waitingNode = new cc.Node("ArenaWaitingUI");
+        waitingNode.setContentSize(cc.size(1280, 720));
+        waitingNode.setPosition(0, 0);
+        waitingNode.setLocalZOrder(1000);  // 确保在最上层
+        
+        // 1. 创建半透明遮罩
+        var maskNode = new cc.Node("Mask");
+        maskNode.setContentSize(cc.size(1280, 720));
+        maskNode.setPosition(0, 0);
+        var maskGraphics = maskNode.addComponent(cc.Graphics);
+        maskGraphics.fillColor = cc.color(0, 0, 0, 180);
+        maskGraphics.rect(-640, -360, 1280, 720);
+        maskGraphics.fill();
+        maskNode.parent = waitingNode;
+        
+        // 2. 创建背景图
+        var bgNode = new cc.Node("Background");
+        bgNode.setContentSize(cc.size(1280, 720));
+        bgNode.setPosition(0, 0);
+        var bgSprite = bgNode.addComponent(cc.Sprite);
+        bgSprite.type = cc.Sprite.Type.SIMPLE;
+        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        
+        // 加载背景图
+        cc.resources.load('join_bk', cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.warn("🏟️ [Arena] 无法加载背景图 join_bk.png");
+                // 使用纯色背景作为后备
+                var bgGraphics = bgNode.addComponent(cc.Graphics);
+                bgGraphics.fillColor = cc.color(25, 30, 50, 255);
+                bgGraphics.rect(-640, -360, 1280, 720);
+                bgGraphics.fill();
+                return;
+            }
+            if (bgSprite && bgSprite.node && bgSprite.node.isValid) {
+                bgSprite.spriteFrame = spriteFrame;
+            }
+        });
+        bgNode.parent = waitingNode;
+        
+        // 3. 创建顶部信息栏
+        var topBar = new cc.Node("TopBar");
+        topBar.setContentSize(cc.size(1180, 100));
+        topBar.setPosition(0, 280);
+        
+        // 顶部栏背景
+        var topBarBg = new cc.Node("Bg");
+        topBarBg.setContentSize(cc.size(1180, 100));
+        var topBarGraphics = topBarBg.addComponent(cc.Graphics);
+        topBarGraphics.fillColor = cc.color(0, 0, 0, 150);
+        topBarGraphics.roundRect(-590, -50, 1180, 100, 10);
+        topBarGraphics.fill();
+        topBarBg.parent = topBar;
+        
+        // 期号
+        var periodNode = new cc.Node("PeriodNo");
+        periodNode.setPosition(-480, 20);
+        var periodLabel = periodNode.addComponent(cc.Label);
+        periodLabel.string = "期号: " + (data.period_no || "--");
+        periodLabel.fontSize = 22;
+        periodLabel.lineHeight = 28;
+        periodNode.color = cc.color(255, 215, 0);
+        var periodOutline = periodNode.addComponent(cc.LabelOutline);
+        periodOutline.color = cc.color(0, 0, 0);
+        periodOutline.width = 2;
+        periodNode.parent = topBar;
+        
+        // 房间名称
+        var roomNode = new cc.Node("RoomName");
+        roomNode.setPosition(0, 20);
+        var roomLabel = roomNode.addComponent(cc.Label);
+        roomLabel.string = data.room_name || "竞技场";
+        roomLabel.fontSize = 28;
+        roomLabel.lineHeight = 36;
+        roomNode.color = cc.color(255, 255, 255);
+        var roomOutline = roomNode.addComponent(cc.LabelOutline);
+        roomOutline.color = cc.color(0, 0, 0);
+        roomOutline.width = 2;
+        roomNode.parent = topBar;
+        
+        // 倒计时
+        var countdownNode = new cc.Node("Countdown");
+        countdownNode.setPosition(480, 20);
+        var countdownLabel = countdownNode.addComponent(cc.Label);
+        countdownLabel.string = (data.countdown || 60) + "秒";
+        countdownLabel.fontSize = 24;
+        countdownLabel.lineHeight = 32;
+        countdownNode.color = cc.color(100, 255, 100);
+        var countdownOutline = countdownNode.addComponent(cc.LabelOutline);
+        countdownOutline.color = cc.color(0, 0, 0);
+        countdownOutline.width = 2;
+        countdownNode.parent = topBar;
+        
+        // 玩家数量
+        var playerCountNode = new cc.Node("PlayerCount");
+        playerCountNode.setPosition(0, -20);
+        var playerCountLabel = playerCountNode.addComponent(cc.Label);
+        playerCountLabel.string = "已进入: 0 / " + (data.total_players || 0);
+        playerCountLabel.fontSize = 20;
+        playerCountLabel.lineHeight = 28;
+        playerCountNode.color = cc.color(200, 200, 220);
+        playerCountNode.parent = topBar;
+        
+        topBar.parent = waitingNode;
+        
+        // 4. 创建玩家列表容器（ScrollView，一排3个）
+        var scrollViewNode = new cc.Node("ScrollView");
+        scrollViewNode.setContentSize(cc.size(1180, 400));
+        scrollViewNode.setPosition(0, -40);
+        
+        var scrollView = scrollViewNode.addComponent(cc.ScrollView);
+        scrollView.horizontal = false;
+        scrollView.vertical = true;
+        scrollView.inertia = true;
+        scrollView.elastic = true;
+        
+        // Content 节点
+        var contentNode = new cc.Node("Content");
+        contentNode.setContentSize(cc.size(1160, 400));
+        contentNode.anchorY = 1;
+        contentNode.setPosition(0, 200);
+        
+        // Layout 组件（网格布局，一排3个）
+        var layout = contentNode.addComponent(cc.Layout);
+        layout.type = cc.Layout.Type.GRID;
+        layout.horizontalDirection = cc.Layout.HorizontalDirection.LEFT_TO_RIGHT;
+        layout.verticalDirection = cc.Layout.VerticalDirection.TOP_TO_BOTTOM;
+        layout.cellSize = cc.size(360, 180);
+        layout.startAxis = cc.Layout.Axis.HORIZONTAL;
+        layout.constraint = cc.Layout.Constraint.FIXED_ROW;
+        layout.constraintNum = 3;  // 一排3个
+        layout.spacingX = 20;
+        layout.spacingY = 20;
+        layout.paddingTop = 20;
+        layout.paddingBottom = 20;
+        layout.paddingLeft = 20;
+        layout.paddingRight = 20;
+        
+        contentNode.parent = scrollViewNode;
+        scrollView.content = contentNode;
+        
+        scrollViewNode.parent = waitingNode;
+        
+        // 5. 创建底部按钮区
+        var bottomBar = new cc.Node("BottomBar");
+        bottomBar.setPosition(0, -300);
+        
+        // 取消按钮
+        var cancelBtn = new cc.Node("CancelButton");
+        cancelBtn.setContentSize(cc.size(160, 50));
+        cancelBtn.setPosition(0, 0);
+        
+        var cancelBg = cancelBtn.addComponent(cc.Graphics);
+        cancelBg.fillColor = cc.color(180, 80, 80);
+        cancelBg.roundRect(-80, -25, 160, 50, 8);
+        cancelBg.fill();
+        
+        var cancelLabelNode = new cc.Node("Label");
+        var cancelLabel = cancelLabelNode.addComponent(cc.Label);
+        cancelLabel.string = "取消进入";
+        cancelLabel.fontSize = 20;
+        cancelLabel.lineHeight = 28;
+        cancelLabelNode.color = cc.color(255, 255, 255);
+        cancelLabelNode.parent = cancelBtn;
+        
+        var cancelBtnComp = cancelBtn.addComponent(cc.Button);
+        cancelBtnComp.transition = cc.Button.Transition.SCALE;
+        cancelBtnComp.duration = 0.1;
+        cancelBtnComp.zoomScale = 1.1;
+        
+        cancelBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            self._onArenaWaitingCancel();
+        }, this);
+        
+        cancelBtn.parent = bottomBar;
+        bottomBar.parent = waitingNode;
+        
+        // 添加到 Canvas
+        waitingNode.parent = canvas;
+        
+        // 保存引用
+        this._arenaWaitingNode = waitingNode;
+        this._arenaWaitingData = {
+            periodNo: data.period_no || "",
+            roomId: data.room_id || 0,
+            roomName: data.room_name || "竞技场",
+            countdown: data.countdown || 60,
+            totalPlayers: data.total_players || 0,
+            enteredPlayers: 0,
+            players: []
+        };
+        this._arenaWaitingLabels = {
+            period: periodLabel,
+            room: roomLabel,
+            countdown: countdownLabel,
+            playerCount: playerCountLabel
+        };
+        this._arenaWaitingContent = contentNode;
+        
+        // 注册事件监听
+        this._registerArenaWaitingEvents();
+        
+        // 检查缓存数据
+        this._checkArenaWaitingCache();
+        
+        console.log("🏟️ [Arena] 等待界面已创建");
+    },
+    
+    /**
+     * 隐藏竞技场等待界面
+     */
+    _hideArenaWaitingUI: function() {
+        if (this._arenaWaitingNode) {
+            this._arenaWaitingNode.destroy();
+            this._arenaWaitingNode = null;
+        }
+        this._arenaWaitingLabels = null;
+        this._arenaWaitingContent = null;
+        
+        // 取消事件监听
+        this._unregisterArenaWaitingEvents();
+    },
+    
+    /**
+     * 注册竞技场等待界面事件监听
+     */
+    _registerArenaWaitingEvents: function() {
+        var self = this;
+        var myglobal = window.myglobal;
+        var socket = myglobal && myglobal.socket;
+        
+        if (!socket) return;
+        
+        // 等待状态推送
+        this._arenaWaitingStatusHandler = function(data) {
+            console.log("🏟️ [ArenaWaiting] 收到等待状态:", JSON.stringify(data));
+            self._onArenaWaitingStatus(data);
+        };
+        socket.on("arena_waiting_status_notify", this._arenaWaitingStatusHandler);
+        
+        // 倒计时更新
+        this._arenaWaitingTickHandler = function(data) {
+            self._onArenaWaitingTick(data);
+        };
+        socket.on("arena_waiting_tick_notify", this._arenaWaitingTickHandler);
+        
+        // 玩家加入广播
+        this._arenaPlayerJoinedHandler = function(data) {
+            console.log("🏟️ [ArenaWaiting] 玩家加入:", JSON.stringify(data));
+            self._onArenaPlayerJoined(data);
+        };
+        socket.on("arena_player_joined_notify", this._arenaPlayerJoinedHandler);
+        
+        // 分配阶段开始
+        this._arenaAssignStartHandler = function(data) {
+            console.log("🏟️ [ArenaWaiting] 分配阶段开始:", JSON.stringify(data));
+            self._onArenaAssignStart(data);
+        };
+        socket.on("arena_assign_start_notify", this._arenaAssignStartHandler);
+    },
+    
+    /**
+     * 取消竞技场等待界面事件监听
+     */
+    _unregisterArenaWaitingEvents: function() {
+        var myglobal = window.myglobal;
+        var socket = myglobal && myglobal.socket;
+        
+        if (!socket) return;
+        
+        if (this._arenaWaitingStatusHandler) {
+            socket.off("arena_waiting_status_notify", this._arenaWaitingStatusHandler);
+        }
+        if (this._arenaWaitingTickHandler) {
+            socket.off("arena_waiting_tick_notify", this._arenaWaitingTickHandler);
+        }
+        if (this._arenaPlayerJoinedHandler) {
+            socket.off("arena_player_joined_notify", this._arenaPlayerJoinedHandler);
+        }
+        if (this._arenaAssignStartHandler) {
+            socket.off("arena_assign_start_notify", this._arenaAssignStartHandler);
+        }
+    },
+    
+    /**
+     * 检查缓存数据
+     */
+    _checkArenaWaitingCache: function() {
+        var myglobal = window.myglobal;
+        
+        if (myglobal && myglobal.arenaWaitingStatusCache) {
+            var cachedData = myglobal.arenaWaitingStatusCache;
+            console.log("🏟️ [ArenaWaiting] 发现缓存数据，玩家数量:", cachedData.players ? cachedData.players.length : 0);
+            
+            // 检查期号是否匹配
+            if (!this._arenaWaitingData.periodNo || cachedData.period_no === this._arenaWaitingData.periodNo) {
+                this._onArenaWaitingStatus(cachedData);
+                
+                // 清除缓存
+                myglobal.arenaWaitingStatusCache = null;
+            }
+        }
+    },
+    
+    /**
+     * 处理等待状态更新
+     */
+    _onArenaWaitingStatus: function(data) {
+        if (!this._arenaWaitingNode) return;
+        
+        // 检查期号是否匹配
+        if (this._arenaWaitingData.periodNo && data.period_no !== this._arenaWaitingData.periodNo) {
+            return;
+        }
+        
+        // 更新数据
+        this._arenaWaitingData.periodNo = data.period_no || "";
+        this._arenaWaitingData.roomId = data.room_id || 0;
+        this._arenaWaitingData.roomName = data.room_name || "竞技场";
+        this._arenaWaitingData.countdown = data.countdown || 60;
+        this._arenaWaitingData.totalPlayers = data.total_players || 0;
+        this._arenaWaitingData.enteredPlayers = data.entered_players || 0;
+        this._arenaWaitingData.players = data.players || [];
+        
+        // 更新UI
+        this._updateArenaWaitingUI();
+    },
+    
+    /**
+     * 处理倒计时更新
+     */
+    _onArenaWaitingTick: function(data) {
+        if (!this._arenaWaitingNode) return;
+        
+        // 检查期号是否匹配
+        if (this._arenaWaitingData.periodNo && data.period_no !== this._arenaWaitingData.periodNo) {
+            return;
+        }
+        
+        this._arenaWaitingData.countdown = data.countdown;
+        this._arenaWaitingData.enteredPlayers = data.entered_players;
+        
+        // 更新倒计时显示
+        if (this._arenaWaitingLabels && this._arenaWaitingLabels.countdown) {
+            this._arenaWaitingLabels.countdown.string = data.countdown + "秒";
+            
+            // 最后10秒变红
+            if (data.countdown <= 10 && data.countdown > 0) {
+                this._arenaWaitingLabels.countdown.node.color = cc.color(255, 100, 100);
+            } else {
+                this._arenaWaitingLabels.countdown.node.color = cc.color(100, 255, 100);
+            }
+        }
+        
+        // 更新玩家数量
+        if (this._arenaWaitingLabels && this._arenaWaitingLabels.playerCount) {
+            this._arenaWaitingLabels.playerCount.string = "已进入: " + data.entered_players + " / " + this._arenaWaitingData.totalPlayers;
+        }
+    },
+    
+    /**
+     * 处理玩家加入
+     */
+    _onArenaPlayerJoined: function(data) {
+        if (!this._arenaWaitingNode) return;
+        
+        // 检查期号是否匹配
+        if (this._arenaWaitingData.periodNo && data.period_no !== this._arenaWaitingData.periodNo) {
+            return;
+        }
+        
+        // 更新玩家列表
+        this._arenaWaitingData.players = data.players || [];
+        this._arenaWaitingData.enteredPlayers = data.entered_players;
+        this._arenaWaitingData.totalPlayers = data.total_players;
+        
+        // 更新玩家列表UI
+        this._updateArenaPlayerListUI();
+        
+        // 更新玩家数量
+        if (this._arenaWaitingLabels && this._arenaWaitingLabels.playerCount) {
+            this._arenaWaitingLabels.playerCount.string = "已进入: " + data.entered_players + " / " + data.total_players;
+        }
+    },
+    
+    /**
+     * 处理分配阶段开始
+     */
+    _onArenaAssignStart: function(data) {
+        if (!this._arenaWaitingNode) return;
+        
+        console.log("🏟️ [ArenaWaiting] 分配阶段开始，准备进入游戏");
+        
+        // 隐藏等待界面
+        this._hideArenaWaitingUI();
+        
+        // 直接进入游戏场景
+        var myglobal = window.myglobal;
+        if (myglobal && myglobal.currentArenaMatch) {
+            var matchData = myglobal.currentArenaMatch;
+            var roomConfig = {
+                id: matchData.room_id,
+                room_name: matchData.room_name,
+                room_category: 2
+            };
+            this._enterArenaGameScene(matchData, roomConfig);
+        }
+    },
+    
+    /**
+     * 更新等待界面UI
+     */
+    _updateArenaWaitingUI: function() {
+        if (!this._arenaWaitingNode) return;
+        
+        var labels = this._arenaWaitingLabels;
+        if (!labels) return;
+        
+        // 更新期号
+        if (labels.period) {
+            labels.period.string = "期号: " + this._arenaWaitingData.periodNo;
+        }
+        
+        // 更新房间名称
+        if (labels.room) {
+            labels.room.string = this._arenaWaitingData.roomName;
+        }
+        
+        // 更新倒计时
+        if (labels.countdown) {
+            labels.countdown.string = this._arenaWaitingData.countdown + "秒";
+        }
+        
+        // 更新玩家数量
+        if (labels.playerCount) {
+            labels.playerCount.string = "已进入: " + this._arenaWaitingData.enteredPlayers + " / " + this._arenaWaitingData.totalPlayers;
+        }
+        
+        // 更新玩家列表
+        this._updateArenaPlayerListUI();
+    },
+    
+    /**
+     * 更新玩家列表UI（一排3个）
+     */
+    _updateArenaPlayerListUI: function() {
+        if (!this._arenaWaitingContent) return;
+        
+        // 清空现有列表
+        this._arenaWaitingContent.removeAllChildren();
+        
+        var players = this._arenaWaitingData.players || [];
+        console.log("🏟️ [ArenaWaiting] 更新玩家列表，玩家数量:", players.length);
+        
+        // 添加玩家项
+        for (var i = 0; i < players.length; i++) {
+            var player = players[i];
+            var itemNode = this._createArenaPlayerItem(player, i);
+            itemNode.parent = this._arenaWaitingContent;
+        }
+        
+        // 更新容器高度
+        var rows = Math.ceil(players.length / 3);
+        var contentHeight = rows * 200 + 40;
+        this._arenaWaitingContent.setContentSize(1160, Math.max(contentHeight, 400));
+    },
+    
+    /**
+     * 创建玩家项（头像 + 昵称在头像下方）
+     */
+    _createArenaPlayerItem: function(player, index) {
+        var itemNode = new cc.Node("PlayerItem_" + index);
+        itemNode.setContentSize(cc.size(360, 180));
+        
+        // 卡片背景
+        var bgNode = new cc.Node("Bg");
+        bgNode.setContentSize(cc.size(340, 160));
+        var bgGraphics = bgNode.addComponent(cc.Graphics);
+        bgGraphics.fillColor = cc.color(40, 45, 70, 200);
+        bgGraphics.roundRect(-170, -80, 340, 160, 10);
+        bgGraphics.fill();
+        bgGraphics.strokeColor = cc.color(100, 120, 180);
+        bgGraphics.lineWidth = 2;
+        bgGraphics.stroke();
+        bgNode.parent = itemNode;
+        
+        // 头像节点
+        var avatarNode = new cc.Node("Avatar");
+        avatarNode.setPosition(0, 20);
+        avatarNode.setContentSize(cc.size(80, 80));
+        
+        var avatarSprite = avatarNode.addComponent(cc.Sprite);
+        avatarSprite.type = cc.Sprite.Type.SIMPLE;
+        avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        
+        // 加载头像
+        this._loadArenaPlayerAvatar(player.avatar, avatarSprite);
+        
+        // 圆形遮罩
+        var maskNode = new cc.Node("AvatarMask");
+        maskNode.setPosition(0, 20);
+        maskNode.setContentSize(cc.size(80, 80));
+        var mask = maskNode.addComponent(cc.Mask);
+        mask.type = cc.Mask.Type.ELLIPSE;
+        mask.segements = 64;
+        
+        avatarNode.parent = maskNode;
+        maskNode.parent = itemNode;
+        
+        // 昵称节点（在头像下方）
+        var nameNode = new cc.Node("NameLabel");
+        nameNode.setPosition(0, -50);
+        
+        var nameLabel = nameNode.addComponent(cc.Label);
+        var playerName = player.player_name || player.name || ("玩家" + (player.player_id || index));
+        nameLabel.string = playerName;
+        nameLabel.fontSize = 18;
+        nameLabel.lineHeight = 24;
+        nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        nameNode.setContentSize(cc.size(320, 24));
+        
+        // 机器人用灰色，真人用白色
+        if (player.is_robot) {
+            nameNode.color = cc.color(150, 150, 150);
+        } else {
+            nameNode.color = cc.color(255, 255, 255);
+        }
+        
+        // 描边效果
+        var outline = nameNode.addComponent(cc.LabelOutline);
+        outline.color = cc.color(0, 0, 0);
+        outline.width = 2;
+        
+        nameNode.parent = itemNode;
+        
+        // 机器人标识
+        if (player.is_robot) {
+            var robotTag = new cc.Node("RobotTag");
+            robotTag.setPosition(130, 60);
+            var tagLabel = robotTag.addComponent(cc.Label);
+            tagLabel.string = "AI";
+            tagLabel.fontSize = 14;
+            tagLabel.lineHeight = 18;
+            robotTag.color = cc.color(255, 200, 100);
+            
+            var tagOutline = robotTag.addComponent(cc.LabelOutline);
+            tagOutline.color = cc.color(0, 0, 0);
+            tagOutline.width = 1;
+            
+            robotTag.parent = itemNode;
+        }
+        
+        return itemNode;
+    },
+    
+    /**
+     * 加载玩家头像
+     */
+    _loadArenaPlayerAvatar: function(avatarUrl, sprite) {
+        if (!sprite) return;
+        
+        var self = this;
+        
+        // 如果没有头像URL，使用默认头像
+        if (!avatarUrl) {
+            cc.resources.load('UI/headimage/avatar_1', cc.SpriteFrame, function(err, spriteFrame) {
+                if (!err && spriteFrame && sprite && sprite.node && sprite.node.isValid) {
+                    sprite.spriteFrame = spriteFrame;
+                }
+            });
+            return;
+        }
+        
+        // 如果是网络URL
+        if (avatarUrl.indexOf('http://') === 0 || avatarUrl.indexOf('https://') === 0) {
+            cc.assetManager.loadRemote(avatarUrl, { ext: '.png' }, function(err, texture) {
+                if (!err && texture && sprite && sprite.node && sprite.node.isValid) {
+                    try {
+                        var sf = new cc.SpriteFrame(texture);
+                        sprite.spriteFrame = sf;
+                    } catch (e) {}
+                }
+            });
+            return;
+        }
+        
+        // 本地资源路径
+        var localPath = avatarUrl;
+        if (avatarUrl.indexOf('/uploads/') === 0) {
+            // 服务端上传的头像，使用 CDN 域名
+            var myglobal = window.myglobal;
+            var cdnUrl = myglobal && myglobal.cdnUrl ? myglobal.cdnUrl : "https://houtais.hongxiu88.com";
+            localPath = cdnUrl + avatarUrl;
+            
+            cc.assetManager.loadRemote(localPath, { ext: '.png' }, function(err, texture) {
+                if (!err && texture && sprite && sprite.node && sprite.node.isValid) {
+                    try {
+                        var sf = new cc.SpriteFrame(texture);
+                        sprite.spriteFrame = sf;
+                    } catch (e) {}
+                }
+            });
+            return;
+        }
+        
+        // 默认本地资源
+        cc.resources.load('UI/headimage/' + avatarUrl.replace(/\.png$|\.jpg$|\.jpeg$/gi, ''), cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err && spriteFrame && sprite && sprite.node && sprite.node.isValid) {
+                sprite.spriteFrame = spriteFrame;
+            }
+        });
+    },
+    
+    /**
+     * 取消进入竞技场
+     */
+    _onArenaWaitingCancel: function() {
+        console.log("🏟️ [ArenaWaiting] 玩家点击取消");
+        
+        // 发送取消进入请求
+        var myglobal = window.myglobal;
+        if (myglobal && myglobal.socket) {
+            myglobal.socket.emit("arena_cancel_enter", {
+                period_no: this._arenaWaitingData.periodNo,
+                room_id: this._arenaWaitingData.roomId
+            });
+        }
+        
+        // 隐藏等待界面
+        this._hideArenaWaitingUI();
     },
     
     // 🔧【新增】竞技场直接进入游戏场景（最多等待2秒）
