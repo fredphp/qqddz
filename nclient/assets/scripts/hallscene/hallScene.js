@@ -2507,10 +2507,9 @@ cc.Class({
         
         topBar.parent = waitingNode;
         
-        // 4. 创建玩家列表容器（一排10个，支持滚动）
+        // 4. 创建玩家列表容器（一排10个，从左上角开始排列）
         // 玩家卡片尺寸：每个卡片100x120，间距10px
         // 一排10个：10 * 100 + 9 * 10 = 1090px 宽度
-        // 玩家展示区域：居中显示
         
         // 创建容器背景
         var containerNode = new cc.Node("PlayerArea");
@@ -2526,10 +2525,12 @@ cc.Class({
         bgGraphics.fill();
         bgNode.parent = containerNode;
         
-        // 内容容器（直接放置玩家卡片）
+        // 内容容器（锚点设在左上角，从左上角开始排列）
         var contentNode = new cc.Node("Content");
         contentNode.setContentSize(cc.size(1150, 420));
-        contentNode.setPosition(0, 0);
+        contentNode.anchorX = 0;  // 左锚点
+        contentNode.anchorY = 1;  // 上锚点
+        contentNode.setPosition(-575, 210);  // 对应左上角位置
         contentNode.parent = containerNode;
         
         containerNode.parent = waitingNode;
@@ -2863,7 +2864,8 @@ cc.Class({
     },
     
     /**
-     * 更新玩家列表UI（一排10个，紧凑布局）
+     * 更新玩家列表UI（一排10个，从左上角开始排列）
+     * 排序规则：真人玩家排在第一个位置，机器人排在后面
      */
     _updateArenaPlayerListUI: function() {
         if (!this._arenaWaitingContent) return;
@@ -2879,34 +2881,39 @@ cc.Class({
             return;
         }
         
-        // 布局参数：一排10个，紧凑布局
+        // 排序：真人玩家排在前面，机器人排在后面
+        var sortedPlayers = players.slice().sort(function(a, b) {
+            // is_robot 为 false 的排在前面
+            if (a.is_robot === false && b.is_robot === true) return -1;
+            if (a.is_robot === true && b.is_robot === false) return 1;
+            // 同类型按进入时间排序
+            return (a.entered_at || 0) - (b.entered_at || 0);
+        });
+        
+        console.log("🏟️ [ArenaWaiting] 排序后玩家:", sortedPlayers.map(function(p) { return p.player_name + (p.is_robot ? '(机器人)' : '(真人)'); }).join(', '));
+        
+        // 布局参数：一排10个，从左上角开始排列
         var itemWidth = 100;   // 卡片宽度
         var itemHeight = 120;  // 卡片高度
         var spacingX = 10;     // 水平间距
         var spacingY = 10;     // 垂直间距
         var cols = 10;         // 一排10个
-        
-        // 计算总行数
-        var totalRows = Math.ceil(players.length / cols);
-        
-        // 计算起始位置（居中排列，从容器中心开始）
-        var totalWidth = cols * itemWidth + (cols - 1) * spacingX;
-        var totalHeight = totalRows * itemHeight + (totalRows - 1) * spacingY;
-        
-        var startX = -totalWidth / 2 + itemWidth / 2;
-        var startY = totalHeight / 2 - itemHeight / 2;  // 从顶部中心开始
+        var marginX = 10;      // 左边距
+        var marginY = 10;      // 上边距
         
         // 添加玩家项
-        for (var i = 0; i < players.length; i++) {
-            var player = players[i];
-            console.log("🏟️ [ArenaWaiting] 创建玩家卡片:", i, player.player_name);
+        for (var i = 0; i < sortedPlayers.length; i++) {
+            var player = sortedPlayers[i];
+            console.log("🏟️ [ArenaWaiting] 创建玩家卡片:", i, player.player_name, player.is_robot ? '(机器人)' : '(真人)');
             var itemNode = this._createArenaPlayerItemNew(player, i);
             
-            // 计算位置
+            // 计算位置（从左上角开始，锚点为左上角）
+            // contentNode 的锚点是 (0, 1)，即左上角
+            // (0, 0) 是左上角，x 向右增加，y 向下减少
             var col = i % cols;
             var row = Math.floor(i / cols);
-            var x = startX + col * (itemWidth + spacingX);
-            var y = startY - row * (itemHeight + spacingY);
+            var x = marginX + col * (itemWidth + spacingX) + itemWidth / 2;  // 卡片中心位置
+            var y = -marginY - row * (itemHeight + spacingY) - itemHeight / 2;  // Y向下为负
             
             itemNode.setPosition(x, y);
             itemNode.parent = this._arenaWaitingContent;
