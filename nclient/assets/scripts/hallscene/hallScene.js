@@ -2603,19 +2603,21 @@ cc.Class({
         // 注册事件监听
         this._registerArenaWaitingEvents();
         
-        // 🔧【新增】先添加当前玩家和两个机器人占位显示
-        this._addArenaInitialPlayers(data);
+        // 先检查缓存数据（服务端返回的真实数据）
+        var hasCacheData = this._checkArenaWaitingCache();
         
-        // 检查缓存数据
-        this._checkArenaWaitingCache();
+        // 如果没有缓存数据，先显示自己占位
+        if (!hasCacheData) {
+            this._showArenaWaitingPlaceholder(data);
+        }
         
         console.log("🏟️ [Arena] 等待界面已创建");
     },
     
     /**
-     * 添加初始玩家显示（自己 + 两个机器人）
+     * 显示占位玩家（仅在没有真实数据时）
      */
-    _addArenaInitialPlayers: function(data) {
+    _showArenaWaitingPlaceholder: function(data) {
         // 获取当前玩家信息
         var myglobal = window.myglobal;
         var currentPlayer = myglobal && myglobal.playerData ? myglobal.playerData : null;
@@ -2623,41 +2625,25 @@ cc.Class({
         var currentName = currentPlayer && currentPlayer.player_name ? currentPlayer.player_name : "我";
         var currentId = currentPlayer && currentPlayer.player_id ? currentPlayer.player_id : "me";
         
-        // 先添加自己
-        var players = [{
+        // 只添加自己作为占位
+        this._arenaWaitingData.players = [{
             player_id: currentId,
             player_name: currentName,
             avatar: currentAvatar,
             is_robot: false,
             entered_at: Date.now()
         }];
-        
-        // 添加两个机器人
-        var robotNames = ["机器人A", "机器人B"];
-        var robotAvatars = ["/uploads/file/avatar/avatar_1.jpeg", "/uploads/file/avatar/avatar_2.jpeg"];
-        
-        for (var i = 0; i < 2; i++) {
-            players.push({
-                player_id: "robot_" + (i + 1),
-                player_name: robotNames[i],
-                avatar: robotAvatars[i],
-                is_robot: true,
-                entered_at: Date.now() + (i + 1) * 100
-            });
-        }
-        
-        this._arenaWaitingData.players = players;
-        this._arenaWaitingData.enteredPlayers = players.length;
+        this._arenaWaitingData.enteredPlayers = 1;
         
         // 更新UI
         this._updateArenaPlayerListUI();
         
         // 更新玩家数量显示
         if (this._arenaWaitingLabels && this._arenaWaitingLabels.playerCount) {
-            this._arenaWaitingLabels.playerCount.string = "已进入: " + players.length + " / " + (data.total_players || players.length);
+            this._arenaWaitingLabels.playerCount.string = "已进入: 1 / " + (data.total_players || 1);
         }
         
-        console.log("🏟️ [Arena] 已添加初始玩家显示，当前玩家数:", players.length);
+        console.log("🏟️ [Arena] 显示占位玩家");
     },
     
     /**
@@ -2738,6 +2724,7 @@ cc.Class({
     
     /**
      * 检查缓存数据
+     * @returns {boolean} 是否有有效的缓存数据
      */
     _checkArenaWaitingCache: function() {
         var myglobal = window.myglobal;
@@ -2748,12 +2735,18 @@ cc.Class({
             
             // 检查期号是否匹配
             if (!this._arenaWaitingData.periodNo || cachedData.period_no === this._arenaWaitingData.periodNo) {
-                this._onArenaWaitingStatus(cachedData);
-                
-                // 清除缓存
-                myglobal.arenaWaitingStatusCache = null;
+                // 检查是否有有效的玩家数据
+                var players = cachedData.players || [];
+                if (players.length > 0) {
+                    this._onArenaWaitingStatus(cachedData);
+                    
+                    // 清除缓存
+                    myglobal.arenaWaitingStatusCache = null;
+                    return true;
+                }
             }
         }
+        return false;
     },
     
     /**
@@ -2767,30 +2760,16 @@ cc.Class({
             return;
         }
         
-        // 更新数据
+        // 更新数据（直接使用服务端返回的真实数据）
         this._arenaWaitingData.periodNo = data.period_no || "";
         this._arenaWaitingData.roomId = data.room_id || 0;
         this._arenaWaitingData.roomName = data.room_name || "竞技场";
         this._arenaWaitingData.countdown = data.countdown || 60;
         this._arenaWaitingData.totalPlayers = data.total_players || 0;
         this._arenaWaitingData.enteredPlayers = data.entered_players || 0;
+        this._arenaWaitingData.players = data.players || [];
         
-        // 🔧【修复】如果服务端返回的玩家列表为空或只有自己，补充机器人
-        var players = data.players || [];
-        if (players.length < 3) {
-            // 计算需要补充的机器人数量
-            var needRobots = 3 - players.length;
-            for (var i = 0; i < needRobots; i++) {
-                players.push({
-                    player_id: "robot_" + (i + 1),
-                    player_name: "机器人" + String.fromCharCode(65 + i),
-                    avatar: "/uploads/file/avatar/avatar_" + (i + 1) + ".jpeg",
-                    is_robot: true,
-                    entered_at: Date.now() + (i + 1) * 100
-                });
-            }
-        }
-        this._arenaWaitingData.players = players;
+        console.log("🏟️ [ArenaWaiting] 更新等待状态，玩家数量:", this._arenaWaitingData.players.length);
         
         // 更新UI
         this._updateArenaWaitingUI();
@@ -2839,26 +2818,12 @@ cc.Class({
             return;
         }
         
-        // 更新玩家列表
-        var players = data.players || [];
-        
-        // 🔧【修复】如果玩家数量不足3人，补充机器人
-        if (players.length < 3) {
-            var needRobots = 3 - players.length;
-            for (var i = 0; i < needRobots; i++) {
-                players.push({
-                    player_id: "robot_" + (i + 1),
-                    player_name: "机器人" + String.fromCharCode(65 + i),
-                    avatar: "/uploads/file/avatar/avatar_" + (i + 1) + ".jpeg",
-                    is_robot: true,
-                    entered_at: Date.now() + (i + 1) * 100
-                });
-            }
-        }
-        
-        this._arenaWaitingData.players = players;
+        // 更新玩家列表（直接使用服务端返回的真实数据）
+        this._arenaWaitingData.players = data.players || [];
         this._arenaWaitingData.enteredPlayers = data.entered_players;
         this._arenaWaitingData.totalPlayers = data.total_players;
+        
+        console.log("🏟️ [ArenaWaiting] 玩家加入，更新列表，玩家数量:", this._arenaWaitingData.players.length);
         
         // 更新玩家列表UI
         this._updateArenaPlayerListUI();
