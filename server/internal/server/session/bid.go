@@ -63,11 +63,21 @@ func (gs *GameSession) handleCallLandlordInternal(playerID string, action string
                 }
         }
 
-        // 停止当前计时器
-        gs.stopTimerInternal()
-
         // 获取当前玩家索引
         currentPlayer := gs.players[gs.callIndex]
+
+        // 🔧【托管】玩家主动操作，取消托管状态
+        if currentPlayer.IsTrustee && !immediate {
+                log.Printf("[TRUSTEE] 玩家 %s 主动抢地主操作，取消托管状态", currentPlayer.Name)
+                currentPlayer.DisableTrustee()
+                // 停止机器人计时器
+                gs.stopRobotTimer()
+                // 广播取消托管状态
+                gs.broadcastTrusteeState(playerID, currentPlayer.Name, false, "player_action")
+        }
+
+        // 停止当前计时器
+        gs.stopTimerInternal()
 
         // 记录操作
         record := CallRecord{

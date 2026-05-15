@@ -30,6 +30,7 @@ type ClientInterface interface {
         GetGold() int64      // 🔧【新增】获取玩家金币数量
         SetGold(gold int64)  // 🔧【新增】设置玩家金币数量
         IsRobot() bool       // 🔧【新增】判断是否是机器人客户端
+        GetAvatar() string   // 🔧【新增】获取玩家头像URL
 }
 
 // ChatLimiter 聊天速率限制器接口

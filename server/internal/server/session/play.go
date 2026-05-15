@@ -28,6 +28,16 @@ func (gs *GameSession) HandlePlayCards(playerID string, cardInfos []protocol.Car
                 return apperrors.ErrNotYourTurn
         }
 
+        // 🔧【托管】玩家主动出牌，取消托管状态
+        if currentPlayer.IsTrustee {
+                log.Printf("[TRUSTEE] 玩家 %s 主动出牌，取消托管状态", currentPlayer.Name)
+                currentPlayer.DisableTrustee()
+                // 停止机器人计时器
+                gs.stopRobotTimer()
+                // 广播取消托管状态
+                gs.broadcastTrusteeState(playerID, currentPlayer.Name, false, "player_action")
+        }
+
         // 🔧【调试日志】打印原始请求数据
         log.Printf("🃏 [HandlePlayCards] ========== 开始处理出牌 ==========")
         log.Printf("🃏 [HandlePlayCards] 玩家: %s (ID: %s)", currentPlayer.Name, playerID)
@@ -175,6 +185,16 @@ func (gs *GameSession) HandlePass(playerID string) error {
         currentPlayer := gs.players[gs.currentPlayer]
         if currentPlayer.ID != playerID {
                 return apperrors.ErrNotYourTurn
+        }
+
+        // 🔧【托管】玩家主动过牌，取消托管状态
+        if currentPlayer.IsTrustee {
+                log.Printf("[TRUSTEE] 玩家 %s 主动过牌，取消托管状态", currentPlayer.Name)
+                currentPlayer.DisableTrustee()
+                // 停止机器人计时器
+                gs.stopRobotTimer()
+                // 广播取消托管状态
+                gs.broadcastTrusteeState(playerID, currentPlayer.Name, false, "player_action")
         }
 
         // 检查是否必须出牌

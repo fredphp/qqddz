@@ -469,6 +469,11 @@ cc.Class({
                     }
                     
                     var seat_node = this.players_seat_pos.children[node_script.seat_index]
+                    // 🔧【修复】检查 seat_node 是否存在
+                    if (!seat_node) {
+                        console.error("seat_node 为空，seat_index:", node_script.seat_index);
+                        return null;
+                    }
                     var index_name = "cardsoutzone" + node_script.seat_index
                     var out_card_node = seat_node.getChildByName(index_name)
                     return out_card_node

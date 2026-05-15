@@ -1922,6 +1922,11 @@ cc.Class({
     },
     
     _getOutCardNode: function(accountid) {
+        // 🔧【修复】检查 node.parent 是否存在
+        if (!this.node || !this.node.parent) {
+            console.warn("🃏 [_getOutCardNode] node 或 node.parent 未定义")
+            return null
+        }
         var gameScene_script = this.node.parent.getComponent("gameScene")
         return gameScene_script ? gameScene_script.getUserOutCardPosByAccount(accountid) : null
     },
@@ -2539,6 +2544,11 @@ cc.Class({
             return
         }
         
+        // 🔧【修复】检查 bottom_card 数组是否存在
+        if (!this.bottom_card || !Array.isArray(this.bottom_card)) {
+            console.warn("🃏 [_showBottomCardsToAll] bottom_card 未初始化")
+            return
+        }
         
         // 更新底牌显示
         for (var i = 0; i < cards.length && i < this.bottom_card.length; i++) {
@@ -3068,6 +3078,12 @@ cc.Class({
      * @param {String} accountid - 玩家ID
      */
     _showPassEffect: function(accountid) {
+        
+        // 🔧【修复】检查 node.parent 是否存在
+        if (!this.node || !this.node.parent) {
+            console.warn("🃏 [_showPassEffect] node 或 node.parent 未定义")
+            return
+        }
         
         // 获取对应玩家的出牌区域
         var gameScene_script = this.node.parent.getComponent("gameScene")
