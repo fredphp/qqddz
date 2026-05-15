@@ -2315,6 +2315,17 @@ cc.Class({
         
         console.log("🏟️ [Arena] 进入竞技场比赛，data:", JSON.stringify(data));
         
+        // 🔧【关键修复】基于 start_time 计算当前的实际剩余倒计时
+        // data.countdown 是弹窗创建时的初始值，不是用户点击时的实时值
+        var actualCountdown = data.countdown || 60;
+        if (data.start_time) {
+            var nowMs = Date.now();
+            var elapsedMs = nowMs - data.start_time;
+            var elapsedSec = Math.floor(elapsedMs / 1000);
+            actualCountdown = Math.max(0, (data.countdown || 60) - elapsedSec);
+            console.log("🏟️ [Arena] 计算实时剩余时间: start_time=" + data.start_time + ", now=" + nowMs + ", elapsed=" + elapsedSec + "s, remaining=" + actualCountdown + "s");
+        }
+        
         // 保存比赛信息
         if (myglobal) {
             myglobal.currentArenaMatch = data;
@@ -2343,7 +2354,7 @@ cc.Class({
                     period_no: data.period_no || "",
                     room_id: data.room_id || 0,
                     room_name: data.room_name || "竞技场",
-                    countdown: data.countdown || 60,
+                    countdown: actualCountdown,  // 🔧【关键修复】使用计算的实时剩余时间
                     total_players: data.total_players || 0,
                     entered_players: 1, // 自己已进入
                     players: [], // 等待服务端推送
@@ -2352,8 +2363,19 @@ cc.Class({
                 };
             }
             
+            // 🔧【关键修复】构建包含实时倒计时的数据对象
+            var waitingData = {
+                period_no: data.period_no || "",
+                room_id: data.room_id || 0,
+                room_name: data.room_name || "竞技场",
+                countdown: actualCountdown,  // 🔧【关键修复】使用计算的实时剩余时间
+                total_players: data.total_players || 0,
+                start_time: data.start_time || Date.now(),
+                message: data.message || "比赛即将开始！"
+            };
+            
             // 🔧【修改】在当前场景显示等待界面，而不是跳转场景
-            this._showArenaWaitingUI(data);
+            this._showArenaWaitingUI(waitingData);
         } else {
             console.warn("🏟️ [Arena] socket 或 sendArenaEnter 方法不可用");
             // 降级处理：直接进入游戏场景
