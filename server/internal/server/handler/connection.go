@@ -151,5 +151,6 @@ func (c *disconnectedClientWrapper) SetGold(gold int64)     {}
 func (c *disconnectedClientWrapper) GetCallIndex() int64    { return 0 }
 func (c *disconnectedClientWrapper) SetCallIndex(index int64) {}
 func (c *disconnectedClientWrapper) IsRobot() bool          { return false }
+func (c *disconnectedClientWrapper) GetAvatar() string      { return "" }
 func (c *disconnectedClientWrapper) SendMessage(msg *protocol.Message) {}
 func (c *disconnectedClientWrapper) Close()                 {}
