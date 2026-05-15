@@ -294,8 +294,8 @@ func (h *ArenaHandler) Signup(w http.ResponseWriter, r *http.Request) {
                 if err := h.redis.SAdd(ctx, key, player.ID); err != nil {
                         log.Printf("⚠️ [报名] 添加到Redis报名列表失败: %v", err)
                 } else {
-                        // 设置过期时间（10分钟后过期，每期只有5分钟，预留缓冲）
-                        h.redis.Set(ctx, key+":expire", "1", 10*time.Minute)
+                        // 🔧【修复】给主 key 设置过期时间（10分钟后过期，每期只有5分钟，预留缓冲）
+                        h.redis.Expire(ctx, key, 10*time.Minute)
                         log.Printf("✅ [报名] 已添加到Redis报名列表 - key: %s, playerID: %d", key, player.ID)
                         
                         // 验证是否添加成功

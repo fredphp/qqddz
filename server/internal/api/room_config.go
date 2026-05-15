@@ -56,6 +56,7 @@ type RedisClient interface {
         Get(ctx context.Context, key string) (string, error)
         Set(ctx context.Context, key string, value string, expiration time.Duration) error
         Del(ctx context.Context, keys ...string) error
+        Expire(ctx context.Context, key string, expiration time.Duration) error
         // Set 操作
         SAdd(ctx context.Context, key string, members ...interface{}) error
         SRem(ctx context.Context, key string, members ...interface{}) error
@@ -86,6 +87,11 @@ func (w *RedisClientWrapper) Set(ctx context.Context, key string, value string, 
 // Del 删除键
 func (w *RedisClientWrapper) Del(ctx context.Context, keys ...string) error {
         return w.client.Del(ctx, keys...).Err()
+}
+
+// Expire 设置键的过期时间
+func (w *RedisClientWrapper) Expire(ctx context.Context, key string, expiration time.Duration) error {
+        return w.client.Expire(ctx, key, expiration).Err()
 }
 
 // SAdd 添加集合成员
