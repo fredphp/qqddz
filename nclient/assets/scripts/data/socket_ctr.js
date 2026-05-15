@@ -305,7 +305,7 @@ window.socketCtr = function(){
                 var playerData = {
                     accountid: data.player ? data.player.id : "",
                     nick_name: data.player ? data.player.name : "",
-                    avatarUrl: "avatar_1",
+                    avatarUrl: data.player ? (data.player.avatar || "avatar_1") : "avatar_1",  // 🔧【修复】使用服务端发送的头像
                     gold_count: data.player ? data.player.gold_count : 0,  // 🔧【修复】使用服务端发送的金币数量
                     goldcount: data.player ? data.player.gold_count || 0 : 0,  // 兼容旧客户端
                     match_coin: data.player ? (data.player.match_coin || 0) : 0, // 🔧【新增】竞技币
@@ -1008,11 +1008,11 @@ window.socketCtr = function(){
             // 转换数据格式
             var players = data.players || []
             var playerdata = players.map(function(p, idx) {
-                console.log("🪙 [request_enter_room] 转换玩家数据:", p.name, "gold_count=", p.gold_count, "match_coin=", p.match_coin, "arena_gold=", p.arena_gold)
+                console.log("🪙 [request_enter_room] 转换玩家数据:", p.name, "gold_count=", p.gold_count, "match_coin=", p.match_coin, "arena_gold=", p.arena_gold, "avatar=", p.avatar)
                 return {
                     accountid: p.id,
                     nick_name: p.name,
-                    avatarUrl: "avatar_1",
+                    avatarUrl: p.avatar || "avatar_1",  // 🔧【修复】使用服务端发送的头像
                     gold_count: p.gold_count || 0,
                     goldcount: p.gold_count || 0,
                     match_coin: p.match_coin || 0, // 🔧【新增】竞技币
