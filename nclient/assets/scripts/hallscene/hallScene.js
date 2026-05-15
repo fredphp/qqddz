@@ -2538,18 +2538,29 @@ cc.Class({
         // 添加到 Canvas
         waitingNode.parent = canvas;
         
+        // 🔧【关键修复】根据 start_time 计算实际剩余倒计时
+        var actualCountdown = data.countdown || 60;
+        if (data.start_time) {
+            var nowMs = Date.now();
+            var elapsedMs = nowMs - data.start_time;
+            var elapsedSec = Math.floor(elapsedMs / 1000);
+            actualCountdown = Math.max(0, (data.countdown || 60) - elapsedSec);
+            console.log("🏟️ [Arena] 根据start_time计算剩余时间: start_time=" + data.start_time + ", now=" + nowMs + ", elapsed=" + elapsedSec + "s, remaining=" + actualCountdown + "s");
+        }
+        
         // 保存引用
         this._arenaWaitingNode = waitingNode;
         this._arenaWaitingData = {
             periodNo: data.period_no || "",
             roomId: data.room_id || 0,
             roomName: data.room_name || "竞技场",
-            countdown: data.countdown || 60,
+            countdown: actualCountdown,  // 🔧【修复】使用计算后的剩余时间
             totalPlayers: data.total_players || 0,
             enteredPlayers: 0,
             players: [],
-            serverCountdown: data.countdown || 60,  // 服务端推送的倒计时
-            lastServerUpdateTime: Date.now()  // 最后收到服务端更新的时间
+            serverCountdown: actualCountdown,  // 🔧【修复】使用计算后的剩余时间
+            lastServerUpdateTime: Date.now(),  // 最后收到服务端更新的时间
+            startTime: data.start_time || Date.now()  // 🔧【新增】保存开始时间
         };
         this._arenaWaitingLabels = {
             period: periodLabel,

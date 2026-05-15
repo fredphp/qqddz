@@ -772,7 +772,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
         }
 
         // 🔧【修复】发送弹窗消息给所有真人玩家
-        b.sendMatchStartPopup(roomID, periodNo, roomConfig, realPlayers, playerMap)
+        b.sendMatchStartPopup(roomID, periodNo, roomConfig, realPlayers, playerMap, enterPhase)
 
         // 🔧【修改】机器人不自动进入，保持"等待中"状态
         // 机器人显示为"等待中"，只有真人玩家点击进入后才显示"已进入"
@@ -782,7 +782,8 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
 
 // 🔧【新增】发送比赛开始弹窗通知给真人玩家
 // 🔧【修复】动态计算总轮次，根据报名人数和淘汰规则
-func (b *ArenaStatusBroadcaster) sendMatchStartPopup(roomID uint64, periodNo string, roomConfig *database.RoomConfig, realPlayers []uint64, playerMap map[uint64]*database.Player) {
+// 🔧【关键修复】使用 enterPhase.StartTime 计算正确的剩余倒计时
+func (b *ArenaStatusBroadcaster) sendMatchStartPopup(roomID uint64, periodNo string, roomConfig *database.RoomConfig, realPlayers []uint64, playerMap map[uint64]*database.Player, enterPhase *EnterPhaseInfo) {
         // 🔧【修复】动态计算总轮次
         // 解析淘汰规则
         var rules tournament.EliminationRules
@@ -804,6 +805,13 @@ func (b *ArenaStatusBroadcaster) sendMatchStartPopup(roomID uint64, periodNo str
         // 🔧【日志】输出计算结果
         log.Printf("[TOURNAMENT] 计算总轮次: players=%d, rules=%v, totalRounds=%d", totalPlayers, rules, totalRounds)
 
+        // 🔧【关键修复】计算剩余倒计时
+        elapsed := time.Since(enterPhase.StartTime)
+        remaining := enterPhase.Countdown - int(elapsed.Seconds())
+        if remaining < 0 {
+                remaining = 0
+        }
+
         // 构建弹窗消息
         payload := &protocol.ArenaMatchStartPayload{
                 PeriodNo:      periodNo,
@@ -814,15 +822,16 @@ func (b *ArenaStatusBroadcaster) sendMatchStartPopup(roomID uint64, periodNo str
                 TotalPlayers:  totalPlayers,
                 MatchDuration: PeriodTotalMinutes,
                 MatchRounds:   totalRounds, // 🔧【修复】动态计算的总轮次
-                Countdown:     EnterPhaseCountdown,
-                StartTime:     time.Now().UnixMilli(),
+                Countdown:     remaining,   // 🔧【关键修复】使用实际剩余时间
+                StartTime:     enterPhase.StartTime.UnixMilli(), // 🔧【关键修复】使用进入阶段的开始时间
                 Message:       "比赛即将开始，请点击进入！",
         }
 
         msg := codec.MustNewMessage(protocol.MsgArenaMatchStart, payload)
 
         // 🔧【调试】添加日志
-        log.Printf("[ArenaStatus] 📢 发送比赛开始弹窗: periodNo=%s, roomID=%d, realPlayers=%v", periodNo, roomID, realPlayers)
+        log.Printf("[ArenaStatus] 📢 发送比赛开始弹窗: periodNo=%s, roomID=%d, realPlayers=%v, countdown=%d, startTime=%d", 
+                periodNo, roomID, realPlayers, remaining, enterPhase.StartTime.UnixMilli())
 
         // 发送给所有在线的真人玩家
         b.server.clientsMu.RLock()
@@ -1014,8 +1023,8 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
 }
 
 // 🔧【新增】处理进入阶段超时
-// 倒计时结束后，检查哪些玩家没有响应，自动取消并返还竞技币
-// 对于已进入的玩家，开始游戏
+// 倒计时结束后，所有未取消的玩家自动进入游戏
+// 🔧【重构】倒计时结束时，所有报名玩家自动进入游戏（无论是否点击进入按钮）
 func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
         b.enterPhasesMu.Lock()
         enterPhase, exists := b.enterPhases[periodNo]
@@ -1042,77 +1051,30 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
         // 🔧【新增】从 Redis 删除进入阶段信息
         b.deleteEnterPhaseFromRedis(periodNo)
 
-        // 统计玩家状态
-        var timeoutPlayers []uint64
-        var enteredPlayers []uint64
+        // 🔧【重构】收集所有未取消的玩家（无论是否点击进入）
+        // 倒计时结束时，所有报名玩家自动进入游戏
+        var activePlayers []uint64
+        var cancelledPlayers []uint64
 
         for playerID, status := range enterPhase.PlayerStatuses {
-                if !status.HasEntered && !status.HasCancelled {
-                        // 未进入也未取消的玩家 = 超时未响应
-                        timeoutPlayers = append(timeoutPlayers, playerID)
-                } else if status.HasEntered && !status.HasCancelled {
-                        // 已进入的玩家
-                        enteredPlayers = append(enteredPlayers, playerID)
-                }
-        }
-
-        log.Printf("[ArenaStatus] ⏰ 进入阶段超时: periodNo=%s, 超时玩家=%d, 已进入玩家=%d", 
-                periodNo, len(timeoutPlayers), len(enteredPlayers))
-
-        // 对于超时未响应的玩家，自动取消并返还竞技币
-        for _, playerID := range timeoutPlayers {
-                status := enterPhase.PlayerStatuses[playerID]
-                if status.SignupFee > 0 {
-                        // 返还竞技币并记录流水
-                        database.UpdatePlayerArenaCoinWithLog(
-                                playerID,
-                                status.SignupFee,
-                                database.ArenaCoinChangeRefund,
-                                periodNo,
-                                fmt.Sprintf("进入阶段超时返还，期号:%s", periodNo),
-                        )
-                }
-                // 🔧【修改】更新 Redis 中的取消状态（而不是删除），这样玩家不会再收到弹窗
-                b.updatePlayerEnterPhaseCancelled(playerID)
-        }
-
-        // 🔧【关键修复】对于已经进入的玩家，为他们创建房间并开始游戏
-        if len(enteredPlayers) > 0 {
-                // 检查是否已有房间创建
-                hasCreatedRoom := false
-                for _, table := range enterPhase.Tables {
-                        if table.RoomCreated && table.RoomCode != "" {
-                                hasCreatedRoom = true
-                                break
-                        }
-                }
-
-                if hasCreatedRoom {
-                        // 已有房间，检查并开始游戏
-                        for _, table := range enterPhase.Tables {
-                                if !table.RoomCreated || table.RoomCode == "" {
-                                        continue
-                                }
-                                hasEnteredPlayer := false
-                                for _, playerID := range table.Players {
-                                        if status, ok := enterPhase.PlayerStatuses[playerID]; ok && status.HasEntered {
-                                                hasEnteredPlayer = true
-                                                break
-                                        }
-                                }
-                                if hasEnteredPlayer && !table.AllEntered {
-                                        gameRoom := b.server.roomManager.GetRoom(table.RoomCode)
-                                        if gameRoom != nil {
-                                                table.AllEntered = true
-                                                b.startArenaGame(gameRoom)
-                                        }
-                                }
-                        }
+                if status.HasCancelled {
+                        // 已取消的玩家
+                        cancelledPlayers = append(cancelledPlayers, playerID)
                 } else {
-                        // 没有房间创建，需要为已进入的玩家创建房间
-                        log.Printf("[ArenaStatus] 🚀 为已进入玩家创建房间: periodNo=%s, 玩家数=%d", periodNo, len(enteredPlayers))
-                        b.createRoomsForEnteredPlayers(enterPhase, enteredPlayers)
+                        // 未取消的玩家 → 自动进入游戏
+                        activePlayers = append(activePlayers, playerID)
+                        // 标记为已进入
+                        status.HasEntered = true
                 }
+        }
+
+        log.Printf("[ArenaStatus] ⏰ 进入阶段结束: periodNo=%s, 参与玩家=%d, 已取消=%d", 
+                periodNo, len(activePlayers), len(cancelledPlayers))
+
+        // 🔧【关键】为所有参与玩家创建房间并开始游戏
+        if len(activePlayers) > 0 {
+                log.Printf("[ArenaStatus] 🚀 为参与玩家创建房间: periodNo=%s, 玩家数=%d", periodNo, len(activePlayers))
+                b.createRoomsForEnteredPlayers(enterPhase, activePlayers)
         }
 
         // 发送关闭弹窗消息
