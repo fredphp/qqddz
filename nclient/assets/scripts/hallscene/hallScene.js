@@ -2507,13 +2507,24 @@ cc.Class({
         
         topBar.parent = waitingNode;
         
-        // 4. 创建玩家列表容器（带滚动支持：一排10个，最多3排，超出滚动）
+        // 4. 创建玩家列表容器（带滚动和裁剪支持：一排10个，超出滚动）
         // 玩家卡片尺寸：每个卡片100x120，间距10px
         // 一排10个：10 * 100 + 9 * 10 = 1090px 宽度
-        // 3排高度：3 * 120 + 2 * 10 = 380px
+        // 玩家展示区域：居中显示，位置调整到背景图中间偏上位置
+        
+        // 创建裁剪容器（确保内容只在可视区域内显示）
+        var clipNode = new cc.Node("PlayerClipArea");
+        clipNode.setContentSize(cc.size(1150, 420));  // 可视区域大小
+        clipNode.setPosition(0, -30);  // 调整位置
+        
+        // 添加 Mask 组件实现裁剪效果
+        var clipMask = clipNode.addComponent(cc.Mask);
+        clipMask.type = cc.Mask.Type.RECT;  // 矩形裁剪
+        
+        // 创建 ScrollView 节点
         var scrollViewNode = new cc.Node("ScrollView");
-        scrollViewNode.setContentSize(cc.size(1150, 400));  // 可视区域
-        scrollViewNode.setPosition(0, -20);
+        scrollViewNode.setContentSize(cc.size(1150, 420));  // 可视区域
+        scrollViewNode.setPosition(0, 0);
         
         // 添加 ScrollView 组件
         var scrollView = scrollViewNode.addComponent(cc.ScrollView);
@@ -2524,16 +2535,17 @@ cc.Class({
         
         // 内容容器
         var contentNode = new cc.Node("Content");
-        contentNode.setContentSize(cc.size(1150, 400));  // 初始高度，后续根据玩家数量调整
+        contentNode.setContentSize(cc.size(1150, 420));  // 初始高度，后续根据玩家数量调整
         contentNode.anchorX = 0.5;
         contentNode.anchorY = 1;  // 锚点在顶部，内容从上往下排列
-        contentNode.setPosition(0, 200);  // 相对于 ScrollView 中心的位置
+        contentNode.setPosition(0, 210);  // 相对于 ScrollView 中心的位置
         contentNode.parent = scrollViewNode;
         
         // 设置 ScrollView 的 content
         scrollView.content = contentNode;
         
-        scrollViewNode.parent = waitingNode;
+        scrollViewNode.parent = clipNode;
+        clipNode.parent = waitingNode;
         
         // 添加到 Canvas
         waitingNode.parent = canvas;
@@ -2887,12 +2899,14 @@ cc.Class({
         var spacingY = 10;     // 垂直间距
         var cols = 10;         // 一排10个
         
+        // 可视区域高度
+        var viewHeight = 420;
+        
         // 计算总行数
         var totalRows = Math.ceil(players.length / cols);
         
-        // 计算内容高度（至少显示3排的空间）
-        var minContentHeight = 3 * itemHeight + 2 * spacingY + 20;
-        var contentHeight = Math.max(minContentHeight, totalRows * itemHeight + (totalRows - 1) * spacingY + 20);
+        // 计算内容高度（内容高度可以超过可视区域，实现滚动）
+        var contentHeight = Math.max(viewHeight, totalRows * itemHeight + (totalRows - 1) * spacingY + 20);
         
         // 更新 Content 高度
         this._arenaWaitingContent.setContentSize(cc.size(1150, contentHeight));
