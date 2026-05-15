@@ -139,6 +139,11 @@ func (s *Server) authenticateClient(client *Client, token string) {
         client.SetGold(player.Gold) // 🔧【新增】设置玩家金币数量
 
         log.Printf("✅ [authenticateClient] 认证成功 - PlayerID: %d, 昵称: %s, 金币: %d", player.ID, player.Nickname, player.Gold)
+        
+        // 🔧【关键修复】认证成功后通知竞技场广播器，确保弹窗能发送
+        if s.arenaBroadcaster != nil {
+                s.arenaBroadcaster.OnNewClient(player.ID)
+        }
 }
 
 // kickOldConnection 踢掉该玩家的旧连接（确保一个玩家只有一个连接）
