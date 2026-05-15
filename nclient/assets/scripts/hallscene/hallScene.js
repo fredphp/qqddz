@@ -2865,7 +2865,7 @@ cc.Class({
     
     /**
      * 更新玩家列表UI（一排10个，从左上角开始排列）
-     * 排序规则：真人玩家排在第一个位置，机器人排在后面
+     * 排序规则：已进入的玩家排在前面，等待中的玩家排在后面
      */
     _updateArenaPlayerListUI: function() {
         if (!this._arenaWaitingContent) return;
@@ -2881,16 +2881,22 @@ cc.Class({
             return;
         }
         
-        // 排序：真人玩家排在前面，机器人排在后面
+        // 排序：已进入的玩家（entered_at > 0）排在前面，等待中的排在后面
         var sortedPlayers = players.slice().sort(function(a, b) {
-            // is_robot 为 false 的排在前面
-            if (a.is_robot === false && b.is_robot === true) return -1;
-            if (a.is_robot === true && b.is_robot === false) return 1;
-            // 同类型按进入时间排序
+            var aEntered = a.entered_at && a.entered_at > 0;
+            var bEntered = b.entered_at && b.entered_at > 0;
+            
+            // 已进入的排在前面
+            if (aEntered && !bEntered) return -1;
+            if (!aEntered && bEntered) return 1;
+            
+            // 同状态按进入时间排序
             return (a.entered_at || 0) - (b.entered_at || 0);
         });
         
-        console.log("🏟️ [ArenaWaiting] 排序后玩家:", sortedPlayers.map(function(p) { return p.player_name + (p.is_robot ? '(机器人)' : '(真人)'); }).join(', '));
+        console.log("🏟️ [ArenaWaiting] 排序后玩家:", sortedPlayers.map(function(p) { 
+            return p.player_name + (p.entered_at > 0 ? '(已进入)' : '(等待中)'); 
+        }).join(', '));
         
         // 布局参数：一排10个，从左上角开始排列
         var itemWidth = 100;   // 卡片宽度
@@ -2904,7 +2910,8 @@ cc.Class({
         // 添加玩家项
         for (var i = 0; i < sortedPlayers.length; i++) {
             var player = sortedPlayers[i];
-            console.log("🏟️ [ArenaWaiting] 创建玩家卡片:", i, player.player_name, player.is_robot ? '(机器人)' : '(真人)');
+            var statusText = (player.entered_at && player.entered_at > 0) ? '(已进入)' : '(等待中)';
+            console.log("🏟️ [ArenaWaiting] 创建玩家卡片:", i, player.player_name, statusText);
             var itemNode = this._createArenaPlayerItemNew(player, i);
             
             // 计算位置（从左上角开始，锚点为左上角）
@@ -2993,7 +3000,9 @@ cc.Class({
         nameNode.parent = itemNode;
         
         // 状态标签
-        // 规则：机器人全部显示"已进入"，真人玩家根据 entered_at 判断
+        // 规则：根据 entered_at 判断是否已进入
+        // - 已进入的玩家（包括机器人和真人）显示"已进入"
+        // - 未进入的玩家显示"等待中"
         var statusNode = new cc.Node("Status");
         statusNode.setPosition(0, -45);
         var statusLabel = statusNode.addComponent(cc.Label);
@@ -3001,19 +3010,13 @@ cc.Class({
         statusLabel.lineHeight = 14;
         statusLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         
-        if (player.is_robot) {
-            // 机器人全部显示"已进入"
+        // 判断是否已进入：有 entered_at 且值大于0表示已进入
+        if (player.entered_at && player.entered_at > 0) {
             statusLabel.string = "已进入";
             statusNode.color = cc.color(100, 255, 150);  // 绿色
         } else {
-            // 真人玩家：根据 entered_at 判断是否已进入
-            if (player.entered_at && player.entered_at > 0) {
-                statusLabel.string = "已进入";
-                statusNode.color = cc.color(100, 255, 150);  // 绿色
-            } else {
-                statusLabel.string = "等待中";
-                statusNode.color = cc.color(255, 200, 100);  // 橙色（等待中更醒目）
-            }
+            statusLabel.string = "等待中";
+            statusNode.color = cc.color(255, 200, 100);  // 橙色
         }
         statusNode.parent = itemNode;
         
