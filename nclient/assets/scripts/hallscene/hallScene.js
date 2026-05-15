@@ -2547,7 +2547,9 @@ cc.Class({
             countdown: data.countdown || 60,
             totalPlayers: data.total_players || 0,
             enteredPlayers: 0,
-            players: []
+            players: [],
+            serverCountdown: data.countdown || 60,  // 服务端推送的倒计时
+            lastServerUpdateTime: Date.now()  // 最后收到服务端更新的时间
         };
         this._arenaWaitingLabels = {
             period: periodLabel,
@@ -2556,6 +2558,9 @@ cc.Class({
             playerCount: playerCountLabel
         };
         this._arenaWaitingContent = contentNode;
+        
+        // 🔧【新增】启动本地备用计时器（服务端断线时使用）
+        this._startArenaLocalCountdownTimer();
         
         // 注册事件监听
         this._registerArenaWaitingEvents();
@@ -2615,6 +2620,9 @@ cc.Class({
      * 隐藏竞技场等待界面
      */
     _hideArenaWaitingUI: function() {
+        // 🔧【新增】停止本地计时器
+        this._stopArenaLocalCountdownTimer();
+        
         if (this._arenaWaitingNode) {
             this._arenaWaitingNode.destroy();
             this._arenaWaitingNode = null;
@@ -2748,7 +2756,7 @@ cc.Class({
     },
     
     /**
-     * 处理倒计时更新
+     * 处理倒计时更新（服务端推送）
      */
     _onArenaWaitingTick: function(data) {
         if (!this._arenaWaitingNode) return;
@@ -2758,7 +2766,10 @@ cc.Class({
             return;
         }
         
+        // 🔧【修改】使用服务端推送的倒计时
+        this._arenaWaitingData.serverCountdown = data.countdown;
         this._arenaWaitingData.countdown = data.countdown;
+        this._arenaWaitingData.lastServerUpdateTime = Date.now();  // 记录服务端更新时间
         this._arenaWaitingData.enteredPlayers = data.entered_players;
         
         // 更新倒计时显示
@@ -2776,6 +2787,70 @@ cc.Class({
         // 更新玩家数量
         if (this._arenaWaitingLabels && this._arenaWaitingLabels.playerCount) {
             this._arenaWaitingLabels.playerCount.string = "已进入: " + data.entered_players + " / " + this._arenaWaitingData.totalPlayers;
+        }
+    },
+    
+    /**
+     * 🔧【新增】启动本地备用计时器（服务端断线时使用）
+     */
+    _startArenaLocalCountdownTimer: function() {
+        var self = this;
+        
+        // 清理已有的计时器
+        if (this._arenaLocalCountdownTimer) {
+            clearInterval(this._arenaLocalCountdownTimer);
+            this._arenaLocalCountdownTimer = null;
+        }
+        
+        // 每秒检查一次
+        this._arenaLocalCountdownTimer = setInterval(function() {
+            if (!self._arenaWaitingNode || !self._arenaWaitingData) {
+                return;
+            }
+            
+            // 检查连接状态
+            var myglobal = window.myglobal;
+            var socket = myglobal && myglobal.socket;
+            var isConnected = socket && socket.isConnected && socket.isConnected();
+            
+            // 计算距离上次服务端更新的时间
+            var timeSinceLastUpdate = Date.now() - (self._arenaWaitingData.lastServerUpdateTime || 0);
+            
+            // 如果连接断开超过2秒，使用本地计时器
+            if (!isConnected || timeSinceLastUpdate > 2000) {
+                // 本地倒计时
+                if (self._arenaWaitingData.countdown > 0) {
+                    self._arenaWaitingData.countdown--;
+                    
+                    // 更新倒计时显示
+                    if (self._arenaWaitingLabels && self._arenaWaitingLabels.countdown) {
+                        self._arenaWaitingLabels.countdown.string = self._arenaWaitingData.countdown + "秒";
+                        
+                        // 最后10秒变红
+                        if (self._arenaWaitingData.countdown <= 10 && self._arenaWaitingData.countdown > 0) {
+                            self._arenaWaitingLabels.countdown.node.color = cc.color(255, 100, 100);
+                        } else {
+                            self._arenaWaitingLabels.countdown.node.color = cc.color(100, 255, 100);
+                        }
+                    }
+                    
+                    console.log("🏟️ [ArenaWaiting] 本地倒计时:", self._arenaWaitingData.countdown, "(连接断开)");
+                }
+            }
+            // 如果连接恢复，同步服务端倒计时
+            else if (isConnected && self._arenaWaitingData.serverCountdown !== undefined) {
+                self._arenaWaitingData.countdown = self._arenaWaitingData.serverCountdown;
+            }
+        }, 1000);
+    },
+    
+    /**
+     * 🔧【新增】停止本地备用计时器
+     */
+    _stopArenaLocalCountdownTimer: function() {
+        if (this._arenaLocalCountdownTimer) {
+            clearInterval(this._arenaLocalCountdownTimer);
+            this._arenaLocalCountdownTimer = null;
         }
     },
     

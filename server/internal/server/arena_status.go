@@ -1225,34 +1225,115 @@ func (b *ArenaStatusBroadcaster) startAssigningPhaseLocked(enterPhase *EnterPhas
                 return
         }
 
-        // 收集已进入的玩家
-        var enteredPlayers []uint64
+        // 🔧【重构】收集已进入的真人玩家和报名的机器人
+        var enteredRealPlayers []uint64  // 已进入的真人玩家
+        var signedRobots []uint64        // 报名的机器人（无论是否进入）
+        var enteredRobots []uint64       // 已进入的机器人
+        
         for playerID, status := range enterPhase.PlayerStatuses {
-                if status.HasEntered && !status.HasCancelled {
-                        enteredPlayers = append(enteredPlayers, playerID)
+                if status.HasCancelled {
+                        continue // 跳过已取消的玩家
+                }
+                
+                if status.IsRobot {
+                        signedRobots = append(signedRobots, playerID)
+                        if status.HasEntered {
+                                enteredRobots = append(enteredRobots, playerID)
+                        }
+                } else if status.HasEntered {
+                        enteredRealPlayers = append(enteredRealPlayers, playerID)
                 }
         }
+        
+        // 已进入的玩家总数（真人 + 已进入的机器人）
+        var enteredPlayers []uint64
+        enteredPlayers = append(enteredPlayers, enteredRealPlayers...)
+        enteredPlayers = append(enteredPlayers, enteredRobots...)
+        
+        log.Printf("[ArenaStatus] 📊 玩家统计: 已进入真人=%d, 报名机器人=%d, 已进入机器人=%d", 
+                len(enteredRealPlayers), len(signedRobots), len(enteredRobots))
 
-        // 如果人数不足3人，需要补机器人
-        if len(enteredPlayers) > 0 && len(enteredPlayers) < 3 {
-                needRobots := 3 - len(enteredPlayers)
-                robots := b.getIdleRobots(needRobots)
-                for _, robotID := range robots {
-                        enteredPlayers = append(enteredPlayers, robotID)
-                        // 更新玩家状态
-                        if status, ok := enterPhase.PlayerStatuses[robotID]; ok {
-                                status.HasEntered = true
-                        } else {
+        // 🔧【核心逻辑】计算需要补位的机器人数量
+        // 人数必须是3的倍数才能分桌
+        totalEntered := len(enteredRealPlayers) + len(enteredRobots)
+        remainder := totalEntered % 3
+        
+        var needRobotCount int  // 需要的机器人数量
+        var releaseRobots []uint64  // 需要释放的机器人
+        
+        if remainder == 0 {
+                // 已经是3的倍数，不需要补位
+                needRobotCount = 0
+                // 如果有多余的报名机器人（未进入的），释放它们
+                for _, robotID := range signedRobots {
+                        if !contains(enteredRobots, robotID) {
+                                releaseRobots = append(releaseRobots, robotID)
+                        }
+                }
+        } else {
+                // 需要补位 (3 - remainder) 个机器人
+                needRobotCount = 3 - remainder
+                
+                // 检查已报名但未进入的机器人是否足够
+                availableRobots := 0
+                for _, robotID := range signedRobots {
+                        if !contains(enteredRobots, robotID) {
+                                availableRobots++
+                        }
+                }
+                
+                if availableRobots >= needRobotCount {
+                        // 已有足够的报名机器人可以补位
+                        // 从未进入的报名机器人中选择需要的数量
+                        selectedCount := 0
+                        for _, robotID := range signedRobots {
+                                if !contains(enteredRobots, robotID) {
+                                        if selectedCount < needRobotCount {
+                                                // 标记为已进入
+                                                enterPhase.PlayerStatuses[robotID].HasEntered = true
+                                                enteredPlayers = append(enteredPlayers, robotID)
+                                                selectedCount++
+                                        } else {
+                                                // 多余的机器人释放
+                                                releaseRobots = append(releaseRobots, robotID)
+                                        }
+                                }
+                        }
+                } else {
+                        // 报名机器人不够，需要从空闲机器人池获取
+                        needFromPool := needRobotCount - availableRobots
+                        
+                        // 先使用所有可用的报名机器人
+                        for _, robotID := range signedRobots {
+                                if !contains(enteredRobots, robotID) {
+                                        enterPhase.PlayerStatuses[robotID].HasEntered = true
+                                        enteredPlayers = append(enteredPlayers, robotID)
+                                }
+                        }
+                        
+                        // 从空闲机器人池获取
+                        idleRobots := b.getIdleRobots(needFromPool)
+                        for _, robotID := range idleRobots {
+                                enteredPlayers = append(enteredPlayers, robotID)
+                                // 添加到玩家状态
                                 enterPhase.PlayerStatuses[robotID] = &PlayerEnterStatus{
-                                        PlayerID:    robotID,
-                                        IsRobot:     true,
-                                        HasEntered:  true,
+                                        PlayerID:     robotID,
+                                        IsRobot:      true,
+                                        HasEntered:   true,
                                         HasCancelled: false,
-                                        SignupFee:   0,
-                                        TableID:     0,
+                                        SignupFee:    0,
+                                        TableID:      0,
                                 }
                         }
                 }
+        }
+        
+        // 释放多余的机器人
+        for _, robotID := range releaseRobots {
+                if status, ok := enterPhase.PlayerStatuses[robotID]; ok {
+                        status.HasCancelled = true // 标记为取消，不参与分配
+                }
+                log.Printf("[ArenaStatus] 🔄 释放多余机器人: %d", robotID)
         }
 
         // 分配玩家到桌子
@@ -3526,4 +3607,14 @@ func (b *ArenaStatusBroadcaster) SendArenaReconnectState(playerID uint64, client
         
         // Check if player recently finished a tournament
         // (Check database for recent participations)
+}
+
+// 🔧【新增】辅助函数：检查切片中是否包含某个元素
+func contains(slice []uint64, item uint64) bool {
+        for _, v := range slice {
+                if v == item {
+                        return true
+                }
+        }
+        return false
 }
