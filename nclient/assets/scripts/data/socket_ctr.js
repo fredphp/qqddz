@@ -168,8 +168,9 @@ window.socketCtr = function(){
 
     // 发送消息
     var _sendmsg = function(type, data, callindex){
+        console.log("📤 [_sendmsg] 准备发送消息, type=" + type + ", readyState=" + (_socket ? _socket.readyState : "null"));
         if (!_socket || _socket.readyState !== WebSocket.OPEN) {
-            console.error("WebSocket 未连接")
+            console.error("❌ [_sendmsg] WebSocket 未连接，无法发送消息: " + type)
             return
         }
         var msg = {
@@ -177,7 +178,7 @@ window.socketCtr = function(){
             payload: data || {},
             callIndex: callindex || null
         }
-        // console.log("发送消息:", JSON.stringify(msg))  // 已禁用调试日志
+        console.log("📤 [_sendmsg] 发送消息: " + JSON.stringify(msg))
         _socket.send(JSON.stringify(msg))
     }
 
@@ -551,11 +552,13 @@ window.socketCtr = function(){
 
             // 竞技场大厅状态推送（期号、倒计时）
             case MessageType.ARENA_STATUS:
+                console.log("🏟️ [Arena] 收到 arena_status 消息, arenas 数量:", data.arenas ? data.arenas.length : 0)
                 evt.fire("arena_status_notify", data)
                 break
 
             // 🔧【新增】竞技场比赛开始通知
             case MessageType.ARENA_MATCH_START:
+                console.log("🏆 [Arena] 收到 arena_match_start 消息:", JSON.stringify(data))
                 evt.fire("arena_match_start_notify", {
                     period_no: data.period_no || "",
                     room_id: data.room_id || 0,

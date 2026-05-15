@@ -250,9 +250,12 @@ func (b *ArenaStatusBroadcaster) Stop() {
 
 // OnNewClient 通知有新客户端连接
 func (b *ArenaStatusBroadcaster) OnNewClient(playerID uint64) {
+        log.Printf("[ArenaStatus] 📨 OnNewClient 被调用，playerID=%d", playerID)
         select {
         case b.newClientChan <- playerID:
+                log.Printf("[ArenaStatus] ✅ playerID=%d 已放入 newClientChan", playerID)
         default:
+                log.Printf("[ArenaStatus] ⚠️ newClientChan 通道满，playerID=%d 被丢弃", playerID)
                 // 通道满，跳过（不阻塞）
         }
 }

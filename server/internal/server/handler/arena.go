@@ -428,18 +428,23 @@ func (h *Handler) handleArenaCancelEnter(client types.ClientInterface, msg *prot
 func (h *Handler) handleGetArenaStatus(client types.ClientInterface, msg *protocol.Message) {
         playerID := client.GetPlayerID()
         if playerID == 0 {
+                log.Printf("[GetArenaStatus] ⚠️ 未登录用户请求竞技场状态，跳过")
                 return // 未登录用户不处理
         }
+
+        log.Printf("[GetArenaStatus] 📥 玩家 %d 请求竞技场状态", playerID)
 
         // 获取服务器实例
         arenaSrv, ok := h.server.(types.ArenaServer)
         if !ok {
+                log.Printf("[GetArenaStatus] ❌ 服务器不支持 ArenaServer 接口")
                 return
         }
 
         // 获取竞技场广播器
         arena := arenaSrv.GetArenaBroadcaster()
         if arena == nil {
+                log.Printf("[GetArenaStatus] ❌ 竞技场广播器为 nil")
                 return
         }
 
@@ -447,5 +452,5 @@ func (h *Handler) handleGetArenaStatus(client types.ClientInterface, msg *protoc
         // 这会调用 sendToNewClient 逻辑
         arena.OnNewClient(playerID)
 
-        log.Printf("[GetArenaStatus] 玩家 %d 主动请求竞技场状态", playerID)
+        log.Printf("[GetArenaStatus] ✅ 已触发竞技场状态推送，playerID=%d", playerID)
 }
