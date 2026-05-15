@@ -2537,46 +2537,33 @@ cc.Class({
         
         topBar.parent = waitingNode;
         
-        // 4. 创建玩家列表容器（一排3个，手动定位布局）
+        // 4. 创建玩家列表容器（带滚动支持：一排10个，最多3排，超出滚动）
+        // 玩家卡片尺寸：每个卡片100x120，间距10px
+        // 一排10个：10 * 100 + 9 * 10 = 1090px 宽度
+        // 3排高度：3 * 120 + 2 * 10 = 380px
+        var scrollViewNode = new cc.Node("ScrollView");
+        scrollViewNode.setContentSize(cc.size(1150, 400));  // 可视区域
+        scrollViewNode.setPosition(0, -20);
+        
+        // 添加 ScrollView 组件
+        var scrollView = scrollViewNode.addComponent(cc.ScrollView);
+        scrollView.horizontal = false;  // 禁用水平滚动
+        scrollView.vertical = true;      // 启用垂直滚动
+        scrollView.inertia = true;       // 惯性滚动
+        scrollView.elastic = true;       // 弹性效果
+        
+        // 内容容器
         var contentNode = new cc.Node("Content");
-        contentNode.setContentSize(cc.size(1160, 400));
-        contentNode.setPosition(0, -40);
-        contentNode.parent = waitingNode;
+        contentNode.setContentSize(cc.size(1150, 400));  // 初始高度，后续根据玩家数量调整
+        contentNode.anchorX = 0.5;
+        contentNode.anchorY = 1;  // 锚点在顶部，内容从上往下排列
+        contentNode.setPosition(0, 200);  // 相对于 ScrollView 中心的位置
+        contentNode.parent = scrollViewNode;
         
-        // 5. 创建底部按钮区
-        var bottomBar = new cc.Node("BottomBar");
-        bottomBar.setPosition(0, -300);
+        // 设置 ScrollView 的 content
+        scrollView.content = contentNode;
         
-        // 取消按钮
-        var cancelBtn = new cc.Node("CancelButton");
-        cancelBtn.setContentSize(cc.size(160, 50));
-        cancelBtn.setPosition(0, 0);
-        
-        var cancelBg = cancelBtn.addComponent(cc.Graphics);
-        cancelBg.fillColor = cc.color(180, 80, 80);
-        cancelBg.roundRect(-80, -25, 160, 50, 8);
-        cancelBg.fill();
-        
-        var cancelLabelNode = new cc.Node("Label");
-        var cancelLabel = cancelLabelNode.addComponent(cc.Label);
-        cancelLabel.string = "取消进入";
-        cancelLabel.fontSize = 20;
-        cancelLabel.lineHeight = 28;
-        cancelLabelNode.color = cc.color(255, 255, 255);
-        cancelLabelNode.parent = cancelBtn;
-        
-        var cancelBtnComp = cancelBtn.addComponent(cc.Button);
-        cancelBtnComp.transition = cc.Button.Transition.SCALE;
-        cancelBtnComp.duration = 0.1;
-        cancelBtnComp.zoomScale = 1.1;
-        
-        cancelBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
-            event.stopPropagation();
-            self._onArenaWaitingCancel();
-        }, this);
-        
-        cancelBtn.parent = bottomBar;
-        bottomBar.parent = waitingNode;
+        scrollViewNode.parent = waitingNode;
         
         // 添加到 Canvas
         waitingNode.parent = canvas;
@@ -2907,7 +2894,7 @@ cc.Class({
     },
     
     /**
-     * 更新玩家列表UI（重新设计：紧凑卡片布局）
+     * 更新玩家列表UI（重新设计：一排10个，紧凑布局，支持滚动）
      */
     _updateArenaPlayerListUI: function() {
         if (!this._arenaWaitingContent) return;
@@ -2923,15 +2910,27 @@ cc.Class({
             return;
         }
         
-        // 布局参数：一排最多5个，紧凑布局
-        var itemWidth = 200;  // 卡片宽度
-        var itemHeight = 220; // 卡片高度
-        var spacingX = 20;    // 水平间距
-        var spacingY = 20;    // 垂直间距
-        var cols = 5;         // 一排5个
+        // 布局参数：一排10个，紧凑布局
+        var itemWidth = 100;   // 卡片宽度
+        var itemHeight = 120;  // 卡片高度
+        var spacingX = 10;     // 水平间距
+        var spacingY = 10;     // 垂直间距
+        var cols = 10;         // 一排10个
+        
+        // 计算总行数
+        var totalRows = Math.ceil(players.length / cols);
+        
+        // 计算内容高度（至少显示3排的空间）
+        var minContentHeight = 3 * itemHeight + 2 * spacingY + 20;
+        var contentHeight = Math.max(minContentHeight, totalRows * itemHeight + (totalRows - 1) * spacingY + 20);
+        
+        // 更新 Content 高度
+        this._arenaWaitingContent.setContentSize(cc.size(1150, contentHeight));
+        
+        // 计算起始位置（从左上角开始排列）
         var totalWidth = cols * itemWidth + (cols - 1) * spacingX;
         var startX = -totalWidth / 2 + itemWidth / 2;
-        var startY = 100;     // 起始Y位置
+        var startY = contentHeight / 2 - itemHeight / 2 - 10;  // 从顶部开始，留10px边距
         
         // 添加玩家项
         for (var i = 0; i < players.length; i++) {
@@ -2951,15 +2950,15 @@ cc.Class({
     },
     
     /**
-     * 创建玩家卡片（新设计）
+     * 创建玩家卡片（新设计：紧凑卡片，圆形头像）
      */
     _createArenaPlayerItemNew: function(player, index) {
         var itemNode = new cc.Node("PlayerCard_" + index);
-        itemNode.setContentSize(cc.size(200, 220));
+        itemNode.setContentSize(cc.size(100, 120));
         
         // 卡片背景（圆角矩形）
         var bgNode = new cc.Node("Bg");
-        bgNode.setContentSize(cc.size(180, 200));
+        bgNode.setContentSize(cc.size(95, 115));
         var bgGraphics = bgNode.addComponent(cc.Graphics);
         
         // 根据是否是机器人设置不同背景色
@@ -2968,44 +2967,51 @@ cc.Class({
         } else {
             bgGraphics.fillColor = cc.color(40, 60, 80, 230);  // 蓝色调 - 真人
         }
-        bgGraphics.roundRect(-90, -100, 180, 200, 15);
+        bgGraphics.roundRect(-47.5, -57.5, 95, 115, 8);
         bgGraphics.fill();
         bgNode.parent = itemNode;
         
-        // 头像容器
-        var avatarContainer = new cc.Node("AvatarContainer");
-        avatarContainer.setPosition(0, 40);
-        avatarContainer.setContentSize(cc.size(100, 100));
+        // ========== 圆形头像（使用 Mask 实现圆形裁剪）==========
+        // 创建遮罩节点
+        var maskNode = new cc.Node("AvatarMask");
+        maskNode.setPosition(0, 25);
+        maskNode.setContentSize(cc.size(60, 60));
+        
+        // 添加 Mask 组件
+        var mask = maskNode.addComponent(cc.Mask);
+        mask.type = cc.Mask.Type.ELLIPSE;  // 椭圆形遮罩（圆形）
+        mask.segements = 64;  // 圆滑度
         
         // 头像背景圆圈
         var avatarBg = new cc.Node("AvatarBg");
         var avatarBgGraphics = avatarBg.addComponent(cc.Graphics);
         avatarBgGraphics.fillColor = cc.color(80, 80, 100, 255);
-        avatarBgGraphics.circle(0, 0, 52);
+        avatarBgGraphics.circle(0, 0, 32);
         avatarBgGraphics.fill();
-        avatarBg.parent = avatarContainer;
+        avatarBg.parent = maskNode;
         
-        // 头像节点
+        // 头像节点（在遮罩内部，会被裁剪成圆形）
         var avatarNode = new cc.Node("Avatar");
-        avatarNode.setContentSize(cc.size(90, 90));
+        avatarNode.setContentSize(cc.size(60, 60));
         var avatarSprite = avatarNode.addComponent(cc.Sprite);
         avatarSprite.type = cc.Sprite.Type.SIMPLE;
         avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         
         // 加载头像
         this._loadArenaPlayerAvatar(player.avatar, avatarSprite);
-        avatarNode.parent = avatarContainer;
+        avatarNode.parent = maskNode;
         
-        avatarContainer.parent = itemNode;
+        maskNode.parent = itemNode;
         
         // 昵称
         var nameNode = new cc.Node("Name");
-        nameNode.setPosition(0, -45);
+        nameNode.setPosition(0, -25);
         var nameLabel = nameNode.addComponent(cc.Label);
         nameLabel.string = player.player_name || player.name || ("玩家" + (index + 1));
-        nameLabel.fontSize = 18;
-        nameLabel.lineHeight = 24;
-        nameNode.setContentSize(cc.size(160, 24));
+        nameLabel.fontSize = 14;
+        nameLabel.lineHeight = 18;
+        nameNode.setContentSize(cc.size(90, 18));
+        nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         
         // 真人白色，机器人金色
         if (player.is_robot) {
@@ -3017,13 +3023,14 @@ cc.Class({
         
         // 状态标签
         var statusNode = new cc.Node("Status");
-        statusNode.setPosition(0, -75);
+        statusNode.setPosition(0, -45);
         var statusLabel = statusNode.addComponent(cc.Label);
-        statusLabel.fontSize = 14;
-        statusLabel.lineHeight = 18;
+        statusLabel.fontSize = 12;
+        statusLabel.lineHeight = 14;
+        statusLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         
         if (player.is_robot) {
-            statusLabel.string = "等待中...";
+            statusLabel.string = "等待中";
             statusNode.color = cc.color(180, 180, 180);
         } else {
             statusLabel.string = "已进入";
@@ -3065,20 +3072,44 @@ cc.Class({
             return;
         }
         
-        // 本地资源路径
-        var localPath = avatarUrl;
+        // 服务端上传的头像路径处理
+        // 支持两种格式: "/uploads/file/..." 和 "uploads/file/..."
+        var myglobal = window.myglobal;
+        var cdnUrl = myglobal && myglobal.cdnUrl ? myglobal.cdnUrl : "https://houtais.hongxiu88.com";
+        
         if (avatarUrl.indexOf('/uploads/') === 0) {
-            // 服务端上传的头像，使用 CDN 域名
-            var myglobal = window.myglobal;
-            var cdnUrl = myglobal && myglobal.cdnUrl ? myglobal.cdnUrl : "https://houtais.hongxiu88.com";
-            localPath = cdnUrl + avatarUrl;
-            
-            cc.assetManager.loadRemote(localPath, { ext: '.png' }, function(err, texture) {
+            // 格式: /uploads/file/...
+            var fullUrl = cdnUrl + avatarUrl;
+            console.log("🏟️ [Avatar] 加载头像(格式1):", fullUrl);
+            cc.assetManager.loadRemote(fullUrl, { ext: '.png' }, function(err, texture) {
                 if (!err && texture && sprite && sprite.node && sprite.node.isValid) {
                     try {
                         var sf = new cc.SpriteFrame(texture);
                         sprite.spriteFrame = sf;
-                    } catch (e) {}
+                    } catch (e) {
+                        console.warn("🏟️ [Avatar] 头像加载失败:", fullUrl);
+                    }
+                } else if (err) {
+                    console.warn("🏟️ [Avatar] 头像加载错误:", err);
+                }
+            });
+            return;
+        }
+        
+        if (avatarUrl.indexOf('uploads/') === 0) {
+            // 格式: uploads/file/... (没有前导斜杠)
+            var fullUrl = cdnUrl + '/' + avatarUrl;
+            console.log("🏟️ [Avatar] 加载头像(格式2):", fullUrl);
+            cc.assetManager.loadRemote(fullUrl, { ext: '.png' }, function(err, texture) {
+                if (!err && texture && sprite && sprite.node && sprite.node.isValid) {
+                    try {
+                        var sf = new cc.SpriteFrame(texture);
+                        sprite.spriteFrame = sf;
+                    } catch (e) {
+                        console.warn("🏟️ [Avatar] 头像加载失败:", fullUrl);
+                    }
+                } else if (err) {
+                    console.warn("🏟️ [Avatar] 头像加载错误:", err);
                 }
             });
             return;
