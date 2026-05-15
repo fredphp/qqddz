@@ -1921,6 +1921,18 @@ cc.Class({
         var self = this;
         console.log("🏆 [Arena] _onArenaMatchStart 开始处理，data:", JSON.stringify(data));
         
+        // 🔧【修复】如果已经在等待界面，不显示弹窗
+        if (this._arenaWaitingNode && this._arenaWaitingNode.isValid) {
+            console.log("🏆 [Arena] 已在等待界面，跳过弹窗显示");
+            // 更新等待界面数据
+            if (this._arenaWaitingData) {
+                this._arenaWaitingData.periodNo = data.period_no || this._arenaWaitingData.periodNo;
+                this._arenaWaitingData.totalPlayers = data.total_players || this._arenaWaitingData.totalPlayers;
+                this._arenaWaitingData.countdown = data.countdown || this._arenaWaitingData.countdown;
+            }
+            return;
+        }
+        
         // 🔧【修复】先关闭之前可能存在的弹窗
         this._closeArenaMatchStartDialog();
         
@@ -2591,10 +2603,61 @@ cc.Class({
         // 注册事件监听
         this._registerArenaWaitingEvents();
         
+        // 🔧【新增】先添加当前玩家和两个机器人占位显示
+        this._addArenaInitialPlayers(data);
+        
         // 检查缓存数据
         this._checkArenaWaitingCache();
         
         console.log("🏟️ [Arena] 等待界面已创建");
+    },
+    
+    /**
+     * 添加初始玩家显示（自己 + 两个机器人）
+     */
+    _addArenaInitialPlayers: function(data) {
+        // 获取当前玩家信息
+        var myglobal = window.myglobal;
+        var currentPlayer = myglobal && myglobal.playerData ? myglobal.playerData : null;
+        var currentAvatar = currentPlayer && currentPlayer.avatar ? currentPlayer.avatar : "";
+        var currentName = currentPlayer && currentPlayer.player_name ? currentPlayer.player_name : "我";
+        var currentId = currentPlayer && currentPlayer.player_id ? currentPlayer.player_id : "me";
+        
+        // 先添加自己
+        var players = [{
+            player_id: currentId,
+            player_name: currentName,
+            avatar: currentAvatar,
+            is_robot: false,
+            entered_at: Date.now()
+        }];
+        
+        // 添加两个机器人
+        var robotNames = ["机器人A", "机器人B"];
+        var robotAvatars = ["/uploads/file/avatar/avatar_1.jpeg", "/uploads/file/avatar/avatar_2.jpeg"];
+        
+        for (var i = 0; i < 2; i++) {
+            players.push({
+                player_id: "robot_" + (i + 1),
+                player_name: robotNames[i],
+                avatar: robotAvatars[i],
+                is_robot: true,
+                entered_at: Date.now() + (i + 1) * 100
+            });
+        }
+        
+        this._arenaWaitingData.players = players;
+        this._arenaWaitingData.enteredPlayers = players.length;
+        
+        // 更新UI
+        this._updateArenaPlayerListUI();
+        
+        // 更新玩家数量显示
+        if (this._arenaWaitingLabels && this._arenaWaitingLabels.playerCount) {
+            this._arenaWaitingLabels.playerCount.string = "已进入: " + players.length + " / " + (data.total_players || players.length);
+        }
+        
+        console.log("🏟️ [Arena] 已添加初始玩家显示，当前玩家数:", players.length);
     },
     
     /**
@@ -2711,7 +2774,23 @@ cc.Class({
         this._arenaWaitingData.countdown = data.countdown || 60;
         this._arenaWaitingData.totalPlayers = data.total_players || 0;
         this._arenaWaitingData.enteredPlayers = data.entered_players || 0;
-        this._arenaWaitingData.players = data.players || [];
+        
+        // 🔧【修复】如果服务端返回的玩家列表为空或只有自己，补充机器人
+        var players = data.players || [];
+        if (players.length < 3) {
+            // 计算需要补充的机器人数量
+            var needRobots = 3 - players.length;
+            for (var i = 0; i < needRobots; i++) {
+                players.push({
+                    player_id: "robot_" + (i + 1),
+                    player_name: "机器人" + String.fromCharCode(65 + i),
+                    avatar: "/uploads/file/avatar/avatar_" + (i + 1) + ".jpeg",
+                    is_robot: true,
+                    entered_at: Date.now() + (i + 1) * 100
+                });
+            }
+        }
+        this._arenaWaitingData.players = players;
         
         // 更新UI
         this._updateArenaWaitingUI();
@@ -2761,7 +2840,23 @@ cc.Class({
         }
         
         // 更新玩家列表
-        this._arenaWaitingData.players = data.players || [];
+        var players = data.players || [];
+        
+        // 🔧【修复】如果玩家数量不足3人，补充机器人
+        if (players.length < 3) {
+            var needRobots = 3 - players.length;
+            for (var i = 0; i < needRobots; i++) {
+                players.push({
+                    player_id: "robot_" + (i + 1),
+                    player_name: "机器人" + String.fromCharCode(65 + i),
+                    avatar: "/uploads/file/avatar/avatar_" + (i + 1) + ".jpeg",
+                    is_robot: true,
+                    entered_at: Date.now() + (i + 1) * 100
+                });
+            }
+        }
+        
+        this._arenaWaitingData.players = players;
         this._arenaWaitingData.enteredPlayers = data.entered_players;
         this._arenaWaitingData.totalPlayers = data.total_players;
         
