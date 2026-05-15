@@ -1737,70 +1737,77 @@ cc.Class({
         // 格式: { roomId: { periodNo, countdown, canSignup, lastUpdate } }
         this._localArenaStatus = {};
 
-        // 监听服务端推送的竞技场状态
-        // 🔧【修复】使用 myglobal.socket 实例，而不是 window.socketCtr 函数
+        // 🔧【修复】将 socket 变量定义移到外面，确保整个函数可用
         var socket = window.myglobal && window.myglobal.socket;
         console.log("🏟️ [Arena] socket 对象:", socket ? "存在" : "不存在");
         console.log("🏟️ [Arena] socket.onArenaStatus:", socket && socket.onArenaStatus ? "存在" : "不存在");
         console.log("🏟️ [Arena] socket.onArenaMatchStart:", socket && socket.onArenaMatchStart ? "存在" : "不存在");
         console.log("🏟️ [Arena] socket.onArenaCloseDialog:", socket && socket.onArenaCloseDialog ? "存在" : "不存在");
-        
-        if (socket && socket.onArenaStatus) {
-            socket.onArenaStatus(function(data) {
-                if (self.node && self.node.isValid && data && data.arenas) {
-                    // 🔧【修改】收到服务端推送时，保存到本地状态
-                    self._onArenaStatusPush(data.arenas);
-                }
-            });
-            console.log("🏟️ [Arena] ✅ onArenaStatus 监听器注册成功");
-        } else {
-            console.warn("🏟️ [Arena] socket 或 onArenaStatus 方法不可用，无法监听竞技场状态");
-        }
 
-        // 🔧【新增】监听竞技场比赛开始通知
-        if (socket && socket.onArenaMatchStart) {
-            socket.onArenaMatchStart(function(data) {
-                console.log("🏆 [Arena] ========== 收到 arena_match_start 消息 ==========");
-                console.log("🏆 [Arena] 数据:", JSON.stringify(data));
-                if (self.node && self.node.isValid) {
-                    console.log("🏆 [Arena] 节点有效，准备显示弹窗");
-                    self._onArenaMatchStart(data);
-                } else {
-                    console.warn("🏆 [Arena] 节点无效，无法显示弹窗");
-                }
-            });
-            console.log("🏟️ [Arena] ✅ onArenaMatchStart 监听器注册成功");
+        // 🔧【关键修复】防止重复注册监听器
+        // 如果已经注册过监听器，跳过注册
+        if (this._arenaSocketListenersRegistered) {
+            console.log("🏟️ [Arena] ⚠️ 监听器已注册，跳过重复注册");
         } else {
-            console.warn("🏟️ [Arena] ⚠️ socket 或 onArenaMatchStart 方法不可用");
-        }
+            if (socket && socket.onArenaStatus) {
+                socket.onArenaStatus(function(data) {
+                    if (self.node && self.node.isValid && data && data.arenas) {
+                        // 🔧【修改】收到服务端推送时，保存到本地状态
+                        self._onArenaStatusPush(data.arenas);
+                    }
+                });
+                console.log("🏟️ [Arena] ✅ onArenaStatus 监听器注册成功");
+            } else {
+                console.warn("🏟️ [Arena] socket 或 onArenaStatus 方法不可用，无法监听竞技场状态");
+            }
 
-        // 🔧【新增】监听竞技场关闭弹窗通知（新期号开始时关闭上一轮弹窗）
-        if (socket && socket.onArenaCloseDialog) {
-            socket.onArenaCloseDialog(function(data) {
-                console.log("🏟️ [Arena] 收到关闭弹窗通知:", JSON.stringify(data));
-                if (self.node && self.node.isValid) {
-                    self._onArenaCloseDialog(data);
-                }
-            });
-            console.log("🏟️ [Arena] ✅ onArenaCloseDialog 监听器注册成功");
-        } else {
-            console.warn("🏟️ [Arena] ⚠️ socket 或 onArenaCloseDialog 方法不可用");
-        }
+            // 🔧【新增】监听竞技场比赛开始通知
+            if (socket && socket.onArenaMatchStart) {
+                socket.onArenaMatchStart(function(data) {
+                    console.log("🏆 [Arena] ========== 收到 arena_match_start 消息 ==========");
+                    console.log("🏆 [Arena] 数据:", JSON.stringify(data));
+                    if (self.node && self.node.isValid) {
+                        console.log("🏆 [Arena] 节点有效，准备显示弹窗");
+                        self._onArenaMatchStart(data);
+                    } else {
+                        console.warn("🏆 [Arena] 节点无效，无法显示弹窗");
+                    }
+                });
+                console.log("🏟️ [Arena] ✅ onArenaMatchStart 监听器注册成功");
+            } else {
+                console.warn("🏟️ [Arena] ⚠️ socket 或 onArenaMatchStart 方法不可用");
+            }
 
-        // 🏆 监听冠军跑马灯广播
-        if (socket && socket.onArenaChampionBroadcast) {
-            socket.onArenaChampionBroadcast(function(data) {
-                console.log("🏆 [Arena] 收到冠军跑马灯广播:", JSON.stringify(data));
-                if (self.node && self.node.isValid) {
-                    self._showChampionBroadcast(data);
-                }
-            });
-            console.log("🏆 [Arena] ✅ onArenaChampionBroadcast 监听器注册成功");
-        } else {
-            console.warn("🏆 [Arena] ⚠️ socket 或 onArenaChampionBroadcast 方法不可用");
+            // 🔧【新增】监听竞技场关闭弹窗通知（新期号开始时关闭上一轮弹窗）
+            if (socket && socket.onArenaCloseDialog) {
+                socket.onArenaCloseDialog(function(data) {
+                    console.log("🏟️ [Arena] 收到关闭弹窗通知:", JSON.stringify(data));
+                    if (self.node && self.node.isValid) {
+                        self._onArenaCloseDialog(data);
+                    }
+                });
+                console.log("🏟️ [Arena] ✅ onArenaCloseDialog 监听器注册成功");
+            } else {
+                console.warn("🏟️ [Arena] ⚠️ socket 或 onArenaCloseDialog 方法不可用");
+            }
+
+            // 🏆 监听冠军跑马灯广播
+            if (socket && socket.onArenaChampionBroadcast) {
+                socket.onArenaChampionBroadcast(function(data) {
+                    console.log("🏆 [Arena] 收到冠军跑马灯广播:", JSON.stringify(data));
+                    if (self.node && self.node.isValid) {
+                        self._showChampionBroadcast(data);
+                    }
+                });
+                console.log("🏆 [Arena] ✅ onArenaChampionBroadcast 监听器注册成功");
+            } else {
+                console.warn("🏆 [Arena] ⚠️ socket 或 onArenaChampionBroadcast 方法不可用");
+            }
+            
+            // 标记已注册
+            this._arenaSocketListenersRegistered = true;
+            console.log("🏟️ [Arena] ========== 竞技场监听器注册完成 ==========");
         }
-        
-        console.log("🏟️ [Arena] ========== 竞技场监听器初始化完成 ==========");
 
         // 🔧【关键修复】确保连接后请求竞技场状态
         // 这是解决弹窗不显示问题的核心修复！

@@ -255,6 +255,13 @@ window.socketCtr = function(){
                 } else {
                     evt.fire("connection_success", data)
                 }
+                // 🔧【关键修复】重连成功后请求竞技场状态，确保不会错过弹窗
+                console.log("🏟️ [Reconnect] 重连成功，延迟请求竞技场状态...")
+                setTimeout(function() {
+                    if (that.requestArenaStatus) {
+                        that.requestArenaStatus()
+                    }
+                }, 500)
                 break
                 
             case MessageType.ROOM_CREATED:

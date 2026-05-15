@@ -688,6 +688,13 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
                                 playerToTable[robot.ID] = tableID
                                 playerMap[robot.ID] = robot
                                 log.Printf("[ArenaStatus] 机器人 %d (%s) 补位到桌号 %d", robot.ID, robot.Nickname, tableID)
+                                
+                                // 🔧【关键修复】为补位机器人初始化竞技金币
+                                if err := database.InitArenaGold(periodNo, robot.ID, initialGold); err != nil {
+                                        log.Printf("⚠️ [ArenaStatus] 初始化机器人竞技金币失败: robotID=%d, err=%v", robot.ID, err)
+                                } else {
+                                        log.Printf("✅ [ArenaStatus] 初始化机器人竞技金币: robotID=%d, initialGold=%d", robot.ID, initialGold)
+                                }
                         }
                         
                         // 🔧【新增】如果仍然不足3人，记录警告但继续游戏
@@ -1088,10 +1095,16 @@ func (b *ArenaStatusBroadcaster) createRoomsForEnteredPlayers(enterPhase *EnterP
         }
 
         // 验证房间配置存在
-        _, err := database.GetRoomConfigByID(enterPhase.RoomID)
+        roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
         if err != nil {
                 log.Printf("[ArenaStatus] ⚠️ 获取房间配置失败: %v", err)
                 return
+        }
+        
+        // 🔧【新增】获取初始金币，用于机器人初始化
+        initialGold := roomConfig.MinGold
+        if initialGold <= 0 {
+                initialGold = 10000
         }
 
         // 获取所有玩家信息
@@ -1149,6 +1162,13 @@ func (b *ArenaStatusBroadcaster) createRoomsForEnteredPlayers(enterPhase *EnterP
                                 table.RobotPlayers = append(table.RobotPlayers, robot.ID)
                                 table.PlayerStatuses[robot.ID] = true
                                 playerMap[robot.ID] = robot
+                                
+                                // 🔧【关键修复】为补位机器人初始化竞技金币
+                                if err := database.InitArenaGold(enterPhase.PeriodNo, robot.ID, initialGold); err != nil {
+                                        log.Printf("⚠️ [ArenaStatus] 初始化机器人竞技金币失败: robotID=%d, err=%v", robot.ID, err)
+                                } else {
+                                        log.Printf("✅ [ArenaStatus] 初始化机器人竞技金币: robotID=%d, initialGold=%d", robot.ID, initialGold)
+                                }
                         }
                 }
 

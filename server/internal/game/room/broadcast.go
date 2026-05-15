@@ -51,6 +51,16 @@ func (r *Room) PreloadPlayerInfo(playerID string) {
         player.Client.SetGold(dbPlayer.Gold)
         player.Avatar = dbPlayer.Avatar
         log.Printf("✅ [PreloadPlayerInfo] 预加载玩家信息: PlayerID=%d, Gold=%d, Avatar=%s", playerDBID, dbPlayer.Gold, dbPlayer.Avatar)
+
+        // 🔧【关键修复】如果是竞技场模式且已设置期号，同时加载竞技金币
+        if r.RoomCategory == 2 && r.PeriodNo != "" {
+                if arenaGold, err := database.GetArenaGold(r.PeriodNo, playerDBID); err != nil {
+                        log.Printf("⚠️ [PreloadPlayerInfo] 获取赛事金币失败: period_no=%s, player_id=%d", r.PeriodNo, playerDBID)
+                } else {
+                        player.MatchCoin = arenaGold
+                        log.Printf("✅ [PreloadPlayerInfo] 预加载竞技币: PlayerID=%d, MatchCoin=%d", playerDBID, arenaGold)
+                }
+        }
 }
 
 // PreloadArenaGold 预加载竞技场金币（在设置 PeriodNo 之后调用）
