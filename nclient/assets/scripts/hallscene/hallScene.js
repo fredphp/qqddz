@@ -1809,6 +1809,42 @@ cc.Class({
                 console.warn("🏆 [Arena] ⚠️ socket 或 onArenaChampionBroadcast 方法不可用");
             }
             
+            // 🔧【关键修复】在大厅场景也监听 room_joined 消息
+            // 这样即使玩家没有点击"进入"按钮，弹窗倒计时结束后也能进入游戏
+            if (socket && socket.onRoomJoined) {
+                this._hallSceneRoomJoinedHandler = function(roomData) {
+                    console.log("🏟️ [HallScene] ✅ 收到 room_joined 消息:", JSON.stringify(roomData));
+                    
+                    // 检查是否是竞技场房间
+                    var roomCategory = roomData.room_category || 1;
+                    if (roomCategory !== 2) {
+                        console.log("🏟️ [HallScene] 不是竞技场房间，忽略");
+                        return;
+                    }
+                    
+                    // 🔧【关键】防止重复处理
+                    if (self._arenaRoomJoinedProcessed) {
+                        console.log("🏟️ [HallScene] room_joined 已处理过，跳过");
+                        return;
+                    }
+                    self._arenaRoomJoinedProcessed = true;
+                    
+                    // 关闭弹窗（如果存在）
+                    if (self._arenaMatchStartDialog && self._arenaMatchStartDialog.isValid) {
+                        self._arenaMatchStartDialog.destroy();
+                        self._arenaMatchStartDialog = null;
+                    }
+                    
+                    // 进入游戏场景
+                    console.log("🏟️ [HallScene] 从 room_joined 进入游戏场景");
+                    self._enterArenaGameSceneFromRoomJoined(roomData);
+                };
+                socket.onRoomJoined(this._hallSceneRoomJoinedHandler);
+                console.log("🏟️ [Arena] ✅ room_joined 监听器已注册（大厅场景）");
+            } else {
+                console.warn("🏟️ [Arena] ⚠️ socket 或 onRoomJoined 方法不可用");
+            }
+            
             // 标记已注册
             this._arenaSocketListenersRegistered = true;
             console.log("🏟️ [Arena] ========== 竞技场监听器注册完成 ==========");
@@ -2179,8 +2215,11 @@ cc.Class({
             if (newRemaining <= 0) {
                 clearInterval(self._matchStartCountdownTimer);
                 self._matchStartCountdownTimer = null;
-                countdownLabel.string = "已超时";
-                countdownLabel.color = cc.color(150, 150, 150);
+                countdownLabel.string = "正在进入比赛...";
+                countdownLabel.color = cc.color(100, 200, 100);
+                // 🔧【修复】不返回，等待服务端发送 room_joined 消息
+                // 服务端会在 handleEnterPhaseTimeout 中为所有未取消的玩家创建房间
+                console.log("🏟️ [Arena] 弹窗倒计时结束，等待服务端 room_joined 消息");
                 return;
             }
             
