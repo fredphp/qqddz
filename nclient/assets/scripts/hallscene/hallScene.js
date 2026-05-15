@@ -403,8 +403,8 @@ cc.Class({
         var self = this;
         if (!this.headimage) return;
 
-        // 【新增】为头像添加圆形遮罩实现圆角效果
-        this._addCircleMaskToAvatar();
+        // 不再添加圆形遮罩，让头像正常显示
+        // this._addCircleMaskToAvatar();
 
         if (!avatarUrl) {
             this._loadDefaultAvatar();
@@ -439,38 +439,8 @@ cc.Class({
         }
     },
 
-    // 【新增】为头像添加圆形遮罩实现圆角效果
-    _addCircleMaskToAvatar: function() {
-        if (!this.headimage || !this.headimage.node) return;
-        
-        var headNode = this.headimage.node;
-        var parentNode = headNode.parent;
-        if (!parentNode) return;
-
-        // 检查是否已经有遮罩节点
-        var existingMask = parentNode.getChildByName("avatar_mask");
-        if (existingMask) return;
-
-        // 创建遮罩节点
-        var maskNode = new cc.Node("avatar_mask");
-        maskNode.setPosition(headNode.x, headNode.y);
-        maskNode.setContentSize(headNode.width, headNode.height);
-        maskNode.anchorX = 0.5;
-        maskNode.anchorY = 0.5;
-
-        // 添加 Mask 组件 - 使用圆形遮罩
-        var mask = maskNode.addComponent(cc.Mask);
-        mask.type = cc.Mask.Type.ELLIPSE;  // 椭圆形遮罩（圆形）
-        mask.segements = 64;  // 圆滑度
-
-        // 将头像节点移动到遮罩节点下
-        headNode.parent = maskNode;
-        headNode.x = 0;
-        headNode.y = 0;
-
-        // 将遮罩节点添加到原父节点
-        maskNode.parent = parentNode;
-    },
+    // 圆形遮罩方法已禁用，保留代码以备后用
+    // _addCircleMaskToAvatar: function() { ... },
 
     _loadDefaultAvatar: function() {
         var self = this;
