@@ -2993,6 +2993,7 @@ cc.Class({
         nameNode.parent = itemNode;
         
         // 状态标签
+        // 规则：机器人全部显示"已进入"，真人玩家根据 entered_at 判断
         var statusNode = new cc.Node("Status");
         statusNode.setPosition(0, -45);
         var statusLabel = statusNode.addComponent(cc.Label);
@@ -3001,11 +3002,18 @@ cc.Class({
         statusLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         
         if (player.is_robot) {
-            statusLabel.string = "等待中";
-            statusNode.color = cc.color(180, 180, 180);
-        } else {
+            // 机器人全部显示"已进入"
             statusLabel.string = "已进入";
-            statusNode.color = cc.color(100, 255, 150);
+            statusNode.color = cc.color(100, 255, 150);  // 绿色
+        } else {
+            // 真人玩家：根据 entered_at 判断是否已进入
+            if (player.entered_at && player.entered_at > 0) {
+                statusLabel.string = "已进入";
+                statusNode.color = cc.color(100, 255, 150);  // 绿色
+            } else {
+                statusLabel.string = "等待中";
+                statusNode.color = cc.color(255, 200, 100);  // 橙色（等待中更醒目）
+            }
         }
         statusNode.parent = itemNode;
         
