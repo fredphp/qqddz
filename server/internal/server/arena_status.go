@@ -1054,6 +1054,15 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
                 b.enterPhasesMu.Unlock()
                 return
         }
+        
+        // 🔧【关键修复】检查是否已经在等待阶段或分配阶段
+        // 如果玩家已经点击"进入"，则不应该执行超时逻辑
+        if enterPhase.WaitingPhase != WaitingPhaseNone {
+                log.Printf("[ArenaStatus] ⚠️ 已在等待阶段(%d)，跳过进入阶段超时处理: periodNo=%s", enterPhase.WaitingPhase, periodNo)
+                b.enterPhasesMu.Unlock()
+                return
+        }
+        
         // 停止定时器（如果还在运行）
         if enterPhase.timer != nil {
                 enterPhase.timer.Stop()
