@@ -2691,6 +2691,28 @@ cc.Class({
             self._onArenaAssignStart(data);
         };
         evt.on("arena_assign_start_notify", this._arenaAssignStartHandler);
+        
+        // 🔧【新增】监听 room_joined 消息以进入游戏场景
+        var socket = myglobal && myglobal.socket;
+        if (socket && socket.onRoomJoined) {
+            this._arenaRoomJoinedHandler = function(roomData) {
+                console.log("🏟️ [ArenaWaiting] ✅ 收到 room_joined，准备进入游戏场景:", JSON.stringify(roomData));
+                
+                // 检查是否是竞技场房间
+                var roomCategory = roomData.room_category || 1;
+                if (roomCategory !== 2) {
+                    console.log("🏟️ [ArenaWaiting] 不是竞技场房间，忽略");
+                    return;
+                }
+                
+                // 隐藏等待界面
+                self._hideArenaWaitingUI();
+                
+                // 进入游戏场景
+                self._enterArenaGameSceneFromRoomJoined(roomData);
+            };
+            socket.onRoomJoined(this._arenaRoomJoinedHandler);
+        }
     },
     
     /**
@@ -3322,6 +3344,40 @@ cc.Class({
             console.log("🏟️ [Arena] 进入游戏场景");
             self._enterGameScene(roomData);
         }, enterDelay);
+    },
+    
+    /**
+     * 🔧【新增】从 room_joined 消息进入游戏场景
+     */
+    _enterArenaGameSceneFromRoomJoined: function(roomData) {
+        console.log("🏟️ [Arena] 从 room_joined 进入游戏场景");
+        
+        var myglobal = window.myglobal;
+        
+        // 保存房间数据
+        if (myglobal) {
+            myglobal.roomData = {
+                room_code: roomData.room_code,
+                room_id: roomData.room_id,
+                room_name: roomData.room_name || "竞技场",
+                room_category: roomData.room_category || 2,
+                period_no: roomData.period_no,
+                base_score: roomData.base_score || 1,
+                multiplier: roomData.multiplier || 1
+            };
+            
+            myglobal.playerData = myglobal.playerData || {};
+            myglobal.playerData.bottom = roomData.base_score || 1;
+            myglobal.playerData.rate = roomData.multiplier || 1;
+            
+            // 保存玩家座位信息
+            if (roomData.player) {
+                myglobal.playerData.seatIndex = roomData.player.seat + 1;
+            }
+        }
+        
+        // 直接进入游戏场景
+        this._enterGameScene(myglobal.roomData);
     },
 
     // 🔧【新增】从配置初始化本地状态（作为备用）

@@ -1234,6 +1234,14 @@ func (b *ArenaStatusBroadcaster) HandlePlayerEnter(periodNo string, playerID uin
 func (b *ArenaStatusBroadcaster) startWaitingPhase(enterPhase *EnterPhaseInfo) {
         enterPhase.WaitingPhase = WaitingPhaseWaiting
         
+        // 🔧【关键修复】停止进入阶段超时定时器
+        // 当玩家点击"进入"后，不再使用 handleEnterPhaseTimeout，而是使用等待阶段的流程
+        if enterPhase.timer != nil {
+                enterPhase.timer.Stop()
+                enterPhase.timer = nil
+                log.Printf("[ArenaStatus] 🛑 停止进入阶段超时定时器: periodNo=%s", enterPhase.PeriodNo)
+        }
+        
         // 🔧【关键修复】计算剩余倒计时，而不是重置为60秒
         // StartTime 是报名结束时设置的，从这里开始计算已经过去的时间
         elapsed := time.Since(enterPhase.StartTime)
