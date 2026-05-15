@@ -84,11 +84,12 @@ export default ({ mode }) => {
             })
           }
         },
-        '/plugin': {
-          target: 'https://plugin.gin-vue-admin.com/api/',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/plugin/, '')
-        }
+        // /plugin 代理已禁用 - 不再连接到 plugin.gin-vue-admin.com
+        // '/plugin': {
+        //   target: 'https://plugin.gin-vue-admin.com/api/',
+        //   changeOrigin: true,
+        //   rewrite: (path) => path.replace(/^\/plugin/, '')
+        // }
       }
     },
     build: {
