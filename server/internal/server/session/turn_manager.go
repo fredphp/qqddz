@@ -424,7 +424,7 @@ func (tm *TurnManager) handleTurnTimeout(expectedTurnID int64) {
         // 开启托管状态
         if !currentPlayer.IsRobot() && !currentPlayer.IsTrustee {
                 currentPlayer.EnableTrustee()
-                gs.broadcastTrusteeState(currentPlayer.ID, currentPlayer.Name, true, "timeout")
+                gs.BroadcastTrusteeState(currentPlayer.ID, currentPlayer.Name, true, "timeout")
         }
 
         // 停止计时器

@@ -341,6 +341,9 @@ func (j *JSONMode) handleJSONMessage(msg *JSONMessage) {
                 j.handlePass(msg)
         case "hint_request":
                 j.handleHintRequest(msg)
+        case "cancel_trustee":
+                // 🔧【新增】处理取消托管（用户活动时触发）
+                j.handleCancelTrustee(msg)
         case "chat":
                 j.handleChat(msg)
         case "get_room_list":
@@ -1000,4 +1003,39 @@ func (j *JSONMode) handleGetArenaStatus(msg *JSONMessage) {
                 return
         }
         j.client.server.handler.Handle(j.client, protoMsg)
+}
+
+// handleCancelTrustee 处理取消托管请求
+// 🔧【新增】用户有鼠标/触摸活动时，立即取消机器人托管，让玩家可以继续操作
+func (j *JSONMode) handleCancelTrustee(msg *JSONMessage) {
+        playerID := j.client.GetID()
+        roomCode := j.client.GetRoom()
+        
+        if roomCode == "" {
+                // 玩家不在房间中，无需处理
+                return
+        }
+        
+        // 获取游戏会话
+        gameSession := j.client.server.handler.GetGameSession(roomCode)
+        if gameSession == nil {
+                // 游戏未开始，无需处理
+                return
+        }
+        
+        // 检查玩家是否处于托管状态
+        if !gameSession.IsPlayerTrustee(playerID) {
+                // 玩家未托管，无需处理
+                return
+        }
+        
+        // 取消托管状态
+        log.Printf("[TRUSTEE] 玩家 %s 有活动，取消托管状态", j.client.GetName())
+        gameSession.DisablePlayerTrustee(playerID)
+        
+        // 停止机器人计时器
+        gameSession.StopRobotTimer()
+        
+        // 广播取消托管状态
+        gameSession.BroadcastTrusteeState(playerID, j.client.GetName(), false, "user_activity")
 }

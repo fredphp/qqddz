@@ -71,9 +71,9 @@ func (gs *GameSession) handleCallLandlordInternal(playerID string, action string
                 log.Printf("[TRUSTEE] 玩家 %s 主动抢地主操作，取消托管状态", currentPlayer.Name)
                 currentPlayer.DisableTrustee()
                 // 停止机器人计时器
-                gs.stopRobotTimer()
+                gs.StopRobotTimer()
                 // 广播取消托管状态
-                gs.broadcastTrusteeState(playerID, currentPlayer.Name, false, "player_action")
+                gs.BroadcastTrusteeState(playerID, currentPlayer.Name, false, "player_action")
         }
 
         // 停止当前计时器
@@ -372,7 +372,7 @@ func (gs *GameSession) processCallTimeout() {
         // 🔧【托管】超时后开启托管状态
         currentPlayer.EnableTrustee()
         // 广播托管状态变化
-        gs.broadcastTrusteeState(playerID, currentPlayer.Name, true, "timeout")
+        gs.BroadcastTrusteeState(playerID, currentPlayer.Name, true, "timeout")
 
         // 记录操作
         record := CallRecord{

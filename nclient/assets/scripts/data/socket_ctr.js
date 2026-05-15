@@ -1297,6 +1297,13 @@ window.socketCtr = function(){
         if (evt) evt.on("trustee_state_notify", callback)
     }
 
+    // 🔧【新增】发送取消托管请求
+    // 用户活动时调用，让服务端停止机器人自动操作，让玩家恢复控制
+    that.cancelTrustee = function(){
+        console.log("📤 [cancelTrustee] 发送取消托管请求")
+        _sendmsg("cancel_trustee", {})
+    }
+
     // ============================================================
     // 【竞技场】事件监听
     // ============================================================

@@ -96,7 +96,7 @@ func (gs *GameSession) doHandlePlayTimeout() {
                 log.Printf("[TRUSTEE] 玩家 %s 超时 -> 托管已开启", currentPlayer.Name)
                 currentPlayer.EnableTrustee()
                 // 广播托管状态变化
-                gs.broadcastTrusteeState(currentPlayer.ID, currentPlayer.Name, true, "timeout")
+                gs.BroadcastTrusteeState(currentPlayer.ID, currentPlayer.Name, true, "timeout")
         }
 
         // 🔧【调试】打印上家出牌信息
@@ -373,7 +373,8 @@ func (gs *GameSession) scheduleRobotAction(action func()) {
 }
 
 // 🔧【托管】stopRobotTimer 停止机器人计时器
-func (gs *GameSession) stopRobotTimer() {
+// 🔧【新增】导出方法，供外部调用（用户活动取消托管）
+func (gs *GameSession) StopRobotTimer() {
         gs.timerMu.Lock()
         defer gs.timerMu.Unlock()
 
@@ -411,7 +412,7 @@ func (gs *GameSession) PlayerOffline(playerID string) {
         log.Printf("[TRUSTEE] 玩家 %s 断开连接 -> 托管已开启", player.Name)
 
         // 🔧【托管】广播托管状态变化
-        gs.broadcastTrusteeState(player.ID, player.Name, true, "disconnect")
+        gs.BroadcastTrusteeState(player.ID, player.Name, true, "disconnect")
 
         // 检查是否是当前回合玩家
         isCalling := gs.state == GameStateCallLandlord && gs.callIndex == playerIdx
@@ -460,7 +461,7 @@ func (gs *GameSession) PlayerOnline(playerID string) {
                         playerIdx = i
                         // 🔧【托管】广播托管状态变化（仅在之前是托管状态时）
                         if wasTrustee {
-                                gs.broadcastTrusteeState(p.ID, p.Name, false, "reconnect")
+                                gs.BroadcastTrusteeState(p.ID, p.Name, false, "reconnect")
                         }
                         break
                 }
@@ -474,7 +475,7 @@ func (gs *GameSession) PlayerOnline(playerID string) {
         log.Printf("[TRUSTEE] 玩家 %s 重连 -> 托管已取消", player.Name)
 
         // 🔧【托管】停止所有机器人计时器
-        gs.stopRobotTimer()
+        gs.StopRobotTimer()
 
         // 检查是否是当前回合玩家
         isCalling := gs.state == GameStateCallLandlord && gs.callIndex == playerIdx
@@ -562,8 +563,9 @@ func (gs *GameSession) notifyPlayTurnWithRobotCheck() {
         gs.startPlayTimer()
 }
 
-// 🔧【托管】broadcastTrusteeState 广播托管状态变化
-func (gs *GameSession) broadcastTrusteeState(playerID, playerName string, isTrustee bool, reason string) {
+// 🔧【托管】BroadcastTrusteeState 广播托管状态变化
+// 🔧【新增】导出方法，供外部调用（用户活动取消托管）
+func (gs *GameSession) BroadcastTrusteeState(playerID, playerName string, isTrustee bool, reason string) {
         gs.room.Broadcast(codec.MustNewMessage(protocol.MsgTrusteeState, &protocol.TrusteeStatePayload{
                 PlayerID:   playerID,
                 PlayerName: playerName,

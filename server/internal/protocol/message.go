@@ -32,6 +32,7 @@ const (
         MsgPlayCards    MessageType = "play_cards"    // 出牌
         MsgPass         MessageType = "pass"          // 不出
         MsgHintRequest  MessageType = "hint_request"  // 提示请求
+        MsgCancelTrustee MessageType = "cancel_trustee" // 🔧【新增】取消托管（用户活动时触发）
 
         // 排行榜
         MsgGetStats             MessageType = "get_stats"              // 获取个人统计

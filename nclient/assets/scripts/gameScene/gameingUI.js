@@ -426,6 +426,17 @@ cc.Class({
         }.bind(this))
 
         // ============================================================
+        // 🔧【新增】用户活动监听 - 取消机器人托管
+        // 核心逻辑：只要用户有鼠标移动或点击事件，就发送取消托管请求
+        // ============================================================
+        this._isLocalTrustee = false  // 本地托管状态
+        this._lastActivityTime = 0    // 上次活动时间（用于防抖）
+        this._activityThrottleMs = 500 // 防抖间隔（毫秒）
+        
+        // 注册全局用户活动监听
+        this._setupUserActivityListener()
+
+        // ============================================================
         // 【竞技场】消息监听
         // ============================================================
         
@@ -2000,10 +2011,108 @@ cc.Class({
      *   - reason: 原因 (timeout/disconnect/reconnect)
      */
     _onTrusteeStateNotify: function(data) {
+        var myglobal = window.myglobal
+        if (!myglobal) return
+        
+        // 获取当前玩家ID
+        var myPlayerId = myglobal.socket.getPlayerInfo().id || myglobal.playerData.serverPlayerId || myglobal.playerData.accountID
+        
+        // 更新本地托管状态（仅当是自己时）
+        if (String(data.player_id) === String(myPlayerId)) {
+            this._isLocalTrustee = data.is_trustee
+            console.log("🎮 [托管] 本地托管状态更新:", data.is_trustee, "原因:", data.reason)
+        }
+        
         // 通知所有玩家节点更新托管状态
         if (this.node && this.node.parent) {
             this.node.parent.emit("trustee_state_update", data)
         }
+    },
+
+    // ============================================================
+    // 🔧【新增】用户活动监听 - 取消机器人托管
+    // ============================================================
+
+    /**
+     * 设置用户活动监听器
+     * 当检测到用户活动（鼠标移动/点击/触摸）时，发送取消托管请求
+     */
+    _setupUserActivityListener: function() {
+        var self = this
+        
+        // 监听鼠标移动事件（全局）
+        cc.systemEvent.on(cc.SystemEvent.EventType.MOUSE_MOVE, function(event) {
+            self._onUserActivity("mouse_move")
+        })
+        
+        // 监听鼠标点击事件（全局）
+        cc.systemEvent.on(cc.SystemEvent.EventType.MOUSE_DOWN, function(event) {
+            self._onUserActivity("mouse_down")
+        })
+        
+        // 监听触摸开始事件（移动端）
+        cc.systemEvent.on(cc.SystemEvent.EventType.TOUCH_START, function(event) {
+            self._onUserActivity("touch_start")
+        })
+        
+        // 监听触摸移动事件（移动端）
+        cc.systemEvent.on(cc.SystemEvent.EventType.TOUCH_MOVE, function(event) {
+            self._onUserActivity("touch_move")
+        })
+        
+        console.log("🎮 [用户活动] 已注册全局活动监听器")
+    },
+
+    /**
+     * 处理用户活动
+     * 如果玩家处于托管状态，发送取消托管请求
+     * @param {string} activityType - 活动类型
+     */
+    _onUserActivity: function(activityType) {
+        // 只在托管状态下处理
+        if (!this._isLocalTrustee) {
+            return
+        }
+        
+        // 防抖：限制发送频率
+        var now = Date.now()
+        if (now - this._lastActivityTime < this._activityThrottleMs) {
+            return
+        }
+        this._lastActivityTime = now
+        
+        console.log("🎮 [用户活动] 检测到用户活动:", activityType, "发送取消托管请求")
+        
+        // 发送取消托管请求
+        this._sendCancelTrustee()
+    },
+
+    /**
+     * 发送取消托管请求到服务端
+     */
+    _sendCancelTrustee: function() {
+        var myglobal = window.myglobal
+        if (!myglobal || !myglobal.socket) {
+            console.warn("🎮 [取消托管] socket 未初始化")
+            return
+        }
+        
+        // 检查是否有对应的发送方法
+        if (myglobal.socket.cancelTrustee) {
+            myglobal.socket.cancelTrustee()
+        } else if (myglobal.socket.send) {
+            // 直接发送消息
+            var msg = {
+                type: "cancel_trustee",
+                payload: {}
+            }
+            myglobal.socket.send(JSON.stringify(msg))
+        } else {
+            console.warn("🎮 [取消托管] 无法发送取消托管请求")
+        }
+        
+        // 立即更新本地状态，避免重复发送
+        this._isLocalTrustee = false
     },
 
     /**
