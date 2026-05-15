@@ -774,10 +774,10 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
         // 🔧【修复】发送弹窗消息给所有真人玩家
         b.sendMatchStartPopup(roomID, periodNo, roomConfig, realPlayers, playerMap)
 
-        // 🔧【关键】机器人自动进入房间
-        for _, robotID := range robotPlayers {
-                b.HandlePlayerEnter(periodNo, robotID)
-        }
+        // 🔧【修改】机器人不自动进入，保持"等待中"状态
+        // 机器人显示为"等待中"，只有真人玩家点击进入后才显示"已进入"
+        // 原逻辑：机器人自动调用 HandlePlayerEnter，导致 HasEntered = true
+        // 新逻辑：机器人保持 HasEntered = false，显示"等待中"状态
 }
 
 // 🔧【新增】发送比赛开始弹窗通知给真人玩家
