@@ -7,62 +7,14 @@
  * 3. 显示倒计时
  * 4. 等待阶段结束后自动进入游戏
  * 
- * 消息监听：
- * - arena_waiting_status: 等待阶段状态推送
- * - arena_waiting_tick: 倒计时每秒更新
- * - arena_player_joined_notify: 玩家加入广播
- * - arena_assign_start: 分配阶段开始
+ * 🔧【重要】此脚本完全动态创建 UI，不依赖场景文件中的组件引用
  */
 
 cc.Class({
     extends: cc.Component,
 
     properties: {
-        // 期号标签
-        periodNoLabel: {
-            type: cc.Label,
-            default: null
-        },
-        // 房间名称标签
-        roomNameLabel: {
-            type: cc.Label,
-            default: null
-        },
-        // 倒计时标签
-        countdownLabel: {
-            type: cc.Label,
-            default: null
-        },
-        // 提示消息标签
-        messageLabel: {
-            type: cc.Label,
-            default: null
-        },
-        // 玩家数量标签
-        playerCountLabel: {
-            type: cc.Label,
-            default: null
-        },
-        // 玩家列表容器（ScrollView的content节点）
-        playerListContainer: {
-            type: cc.Node,
-            default: null
-        },
-        // loading动画节点
-        loadingNode: {
-            type: cc.Node,
-            default: null
-        },
-        // 阶段标签
-        phaseLabel: {
-            type: cc.Label,
-            default: null
-        },
-        // 进度条
-        progressBar: {
-            type: cc.ProgressBar,
-            default: null
-        }
+        // 无属性定义，所有 UI 动态创建
     },
 
     // LIFE-CYCLE CALLBACKS:
@@ -78,30 +30,278 @@ cc.Class({
         this._players = []
         this._startTime = 0
         
+        // 创建整个 UI
+        this._createUI()
+        
         // 注册事件监听
         this._registerEvents()
+        
+        // 从全局变量获取初始数据
+        this._initFromGlobalData()
+        
+        // 监听 room_joined 消息以进入游戏场景
+        this._registerRoomJoinedHandler()
         
         console.log("🏟️ [ArenaMatchWaiting] 等待界面加载完成")
     },
 
-    start () {
-        // 启动loading动画
-        this._startLoadingAnimation()
+    /**
+     * 创建完整 UI
+     */
+    _createUI: function() {
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas)
+        var screenHeight = canvas ? canvas.designResolution.height : 720
+        var screenWidth = canvas ? canvas.designResolution.width : 1280
         
-        // 🔧【新增】从全局变量获取初始数据
-        this._initFromGlobalData()
+        // 1. 创建背景（使用 join_bk.png）
+        this._createBackground(screenWidth, screenHeight)
         
-        // 🔧【新增】监听 room_joined 消息以进入游戏场景
-        this._registerRoomJoinedHandler()
+        // 2. 创建顶部信息栏
+        this._createTopBar(screenWidth, screenHeight)
+        
+        // 3. 创建玩家列表容器
+        this._createPlayerListContainer(screenWidth, screenHeight)
+        
+        // 4. 创建底部按钮区
+        this._createBottomButtons(screenWidth, screenHeight)
     },
-    
+
+    /**
+     * 创建背景（使用 join_bk.png）
+     */
+    _createBackground: function(width, height) {
+        // 创建背景节点
+        var bgNode = new cc.Node("Background")
+        bgNode.setContentSize(cc.size(width, height))
+        bgNode.setPosition(0, 0)
+        bgNode.setLocalZOrder(-100)
+        
+        var sprite = bgNode.addComponent(cc.Sprite)
+        sprite.type = cc.Sprite.Type.SIMPLE
+        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
+        
+        // 加载背景图片
+        cc.resources.load('join_bk', cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.warn("🏟️ [ArenaMatchWaiting] 无法加载背景图 join_bk.png，使用纯色背景")
+                // 使用深色背景作为后备
+                var graphics = bgNode.addComponent(cc.Graphics)
+                graphics.fillColor = cc.color(25, 30, 50, 255)
+                graphics.rect(-width/2, -height/2, width, height)
+                graphics.fill()
+                return
+            }
+            if (sprite && sprite.node && sprite.node.isValid) {
+                sprite.spriteFrame = spriteFrame
+            }
+        })
+        
+        bgNode.parent = this.node
+        this._bgNode = bgNode
+    },
+
+    /**
+     * 创建顶部信息栏
+     */
+    _createTopBar: function(width, height) {
+        // 顶部信息栏容器
+        var topBar = new cc.Node("TopBar")
+        topBar.setContentSize(cc.size(width - 100, 100))
+        topBar.setPosition(0, height/2 - 80)
+        
+        // 半透明背景
+        var bg = new cc.Node("Bg")
+        bg.setContentSize(cc.size(width - 100, 100))
+        var graphics = bg.addComponent(cc.Graphics)
+        graphics.fillColor = cc.color(0, 0, 0, 150)
+        graphics.roundRect(-(width-100)/2, -50, width-100, 100, 10)
+        graphics.fill()
+        bg.parent = topBar
+        
+        // 期号
+        var periodNode = new cc.Node("PeriodNo")
+        periodNode.setPosition(-width/2 + 150, 25)
+        var periodLabel = periodNode.addComponent(cc.Label)
+        periodLabel.string = "期号: --"
+        periodLabel.fontSize = 22
+        periodLabel.lineHeight = 28
+        periodNode.color = cc.color(255, 215, 0)
+        var periodOutline = periodNode.addComponent(cc.LabelOutline)
+        periodOutline.color = cc.color(0, 0, 0)
+        periodOutline.width = 2
+        periodNode.parent = topBar
+        this._periodNoLabel = periodLabel
+        
+        // 房间名称
+        var roomNode = new cc.Node("RoomName")
+        roomNode.setPosition(0, 25)
+        var roomLabel = roomNode.addComponent(cc.Label)
+        roomLabel.string = "竞技场"
+        roomLabel.fontSize = 28
+        roomLabel.lineHeight = 36
+        roomNode.color = cc.color(255, 255, 255)
+        var roomOutline = roomNode.addComponent(cc.LabelOutline)
+        roomOutline.color = cc.color(0, 0, 0)
+        roomOutline.width = 2
+        roomNode.parent = topBar
+        this._roomNameLabel = roomLabel
+        
+        // 倒计时
+        var countdownNode = new cc.Node("Countdown")
+        countdownNode.setPosition(width/2 - 150, 25)
+        var countdownLabel = countdownNode.addComponent(cc.Label)
+        countdownLabel.string = "60秒"
+        countdownLabel.fontSize = 24
+        countdownLabel.lineHeight = 32
+        countdownNode.color = cc.color(100, 255, 100)
+        var countdownOutline = countdownNode.addComponent(cc.LabelOutline)
+        countdownOutline.color = cc.color(0, 0, 0)
+        countdownOutline.width = 2
+        countdownNode.parent = topBar
+        this._countdownLabel = countdownLabel
+        
+        // 玩家数量
+        var playerCountNode = new cc.Node("PlayerCount")
+        playerCountNode.setPosition(0, -15)
+        var playerCountLabel = playerCountNode.addComponent(cc.Label)
+        playerCountLabel.string = "已进入: 0 / 0"
+        playerCountLabel.fontSize = 20
+        playerCountLabel.lineHeight = 28
+        playerCountNode.color = cc.color(200, 200, 220)
+        playerCountNode.parent = topBar
+        this._playerCountLabel = playerCountLabel
+        
+        // 提示消息
+        var msgNode = new cc.Node("Message")
+        msgNode.setPosition(0, -45)
+        var msgLabel = msgNode.addComponent(cc.Label)
+        msgLabel.string = "等待其他玩家进入..."
+        msgLabel.fontSize = 16
+        msgLabel.lineHeight = 24
+        msgNode.color = cc.color(255, 200, 100)
+        msgNode.parent = topBar
+        this._messageLabel = msgLabel
+        
+        topBar.parent = this.node
+        this._topBar = topBar
+    },
+
+    /**
+     * 创建玩家列表容器
+     */
+    _createPlayerListContainer: function(width, height) {
+        // 主容器
+        var container = new cc.Node("PlayerListContainer")
+        container.setContentSize(cc.size(width - 100, height - 280))
+        container.setPosition(0, -20)
+        
+        // 标题
+        var titleNode = new cc.Node("Title")
+        titleNode.setPosition(0, height/2 - 200)
+        var titleLabel = titleNode.addComponent(cc.Label)
+        titleLabel.string = "参赛玩家"
+        titleLabel.fontSize = 26
+        titleLabel.lineHeight = 36
+        titleNode.color = cc.color(255, 215, 0)
+        var titleOutline = titleNode.addComponent(cc.LabelOutline)
+        titleOutline.color = cc.color(0, 0, 0)
+        titleOutline.width = 2
+        titleNode.parent = this.node
+        this._titleLabel = titleLabel
+        
+        // ScrollView
+        var scrollViewNode = new cc.Node("ScrollView")
+        scrollViewNode.setContentSize(cc.size(width - 100, height - 340))
+        scrollViewNode.setPosition(0, -30)
+        
+        var scrollView = scrollViewNode.addComponent(cc.ScrollView)
+        scrollView.horizontal = false
+        scrollView.vertical = true
+        scrollView.inertia = true
+        scrollView.elastic = true
+        
+        // Content 节点
+        var contentNode = new cc.Node("Content")
+        contentNode.setContentSize(cc.size(width - 120, 200))
+        contentNode.anchorY = 1
+        contentNode.setPosition(0, 0)
+        
+        // 添加 Layout 组件（用于网格布局）
+        var layout = contentNode.addComponent(cc.Layout)
+        layout.type = cc.Layout.Type.GRID
+        layout.horizontalDirection = cc.Layout.HorizontalDirection.LEFT_TO_RIGHT
+        layout.verticalDirection = cc.Layout.VerticalDirection.TOP_TO_BOTTOM
+        layout.cellSize = cc.size(180, 200)
+        layout.startAxis = cc.Layout.Axis.HORIZONTAL
+        layout.constraint = cc.Layout.Constraint.FIXED_ROW
+        layout.constraintNum = 3  // 一排3个
+        layout.spacingX = 20
+        layout.spacingY = 20
+        layout.paddingTop = 20
+        layout.paddingBottom = 20
+        layout.paddingLeft = 20
+        layout.paddingRight = 20
+        
+        contentNode.parent = scrollViewNode
+        scrollView.content = contentNode
+        
+        scrollViewNode.parent = this.node
+        this._scrollView = scrollView
+        this._playerListContent = contentNode
+        
+        container.parent = this.node
+        this._playerListContainer = container
+    },
+
+    /**
+     * 创建底部按钮区
+     */
+    _createBottomButtons: function(width, height) {
+        var bottomBar = new cc.Node("BottomBar")
+        bottomBar.setPosition(0, -height/2 + 60)
+        
+        // 取消按钮
+        var cancelBtn = new cc.Node("CancelButton")
+        cancelBtn.setContentSize(cc.size(160, 50))
+        cancelBtn.setPosition(-100, 0)
+        
+        var cancelBg = cancelBtn.addComponent(cc.Graphics)
+        cancelBg.fillColor = cc.color(180, 80, 80)
+        cancelBg.roundRect(-80, -25, 160, 50, 8)
+        cancelBg.fill()
+        
+        var cancelLabelNode = new cc.Node("Label")
+        var cancelLabel = cancelLabelNode.addComponent(cc.Label)
+        cancelLabel.string = "取消进入"
+        cancelLabel.fontSize = 20
+        cancelLabel.lineHeight = 28
+        cancelLabelNode.color = cc.color(255, 255, 255)
+        cancelLabelNode.parent = cancelBtn
+        
+        var cancelBtnComp = cancelBtn.addComponent(cc.Button)
+        cancelBtnComp.transition = cc.Button.Transition.SCALE
+        cancelBtnComp.duration = 0.1
+        cancelBtnComp.zoomScale = 1.1
+        
+        cancelBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation()
+            this.onCancelClick()
+        }, this)
+        
+        cancelBtn.parent = bottomBar
+        this._cancelBtn = cancelBtn
+        
+        bottomBar.parent = this.node
+        this._bottomBar = bottomBar
+    },
+
     /**
      * 从全局变量初始化数据
      */
     _initFromGlobalData: function() {
         var myglobal = window.myglobal
         
-        // 🔧【修复】优先检查缓存的状态数据（服务端推送的最新数据）
+        // 优先检查缓存的状态数据（服务端推送的最新数据）
         if (myglobal && myglobal.arenaWaitingStatusCache) {
             var cachedData = myglobal.arenaWaitingStatusCache
             console.log("🏟️ [ArenaMatchWaiting] 发现缓存的等待状态数据，玩家数量:", cachedData.players ? cachedData.players.length : 0)
@@ -144,16 +344,16 @@ cc.Class({
             
             console.log("🏟️ [ArenaMatchWaiting] 从全局变量初始化数据完成")
             
-            // 🔧【修复】如果玩家列表为空，请求服务端推送状态
+            // 如果玩家列表为空，请求服务端推送状态
             if (this._players.length === 0) {
                 console.log("🏟️ [ArenaMatchWaiting] 玩家列表为空，请求服务端推送状态")
                 this._requestWaitingStatus()
             }
         }
     },
-    
+
     /**
-     * 🔧【新增】请求服务端推送等待状态
+     * 请求服务端推送等待状态
      */
     _requestWaitingStatus: function() {
         var myglobal = window.myglobal
@@ -168,7 +368,7 @@ cc.Class({
             console.log("🏟️ [ArenaMatchWaiting] 已请求服务端推送等待状态")
         }
     },
-    
+
     /**
      * 监听 room_joined 消息以进入游戏场景
      */
@@ -228,9 +428,6 @@ cc.Class({
     onDestroy () {
         // 取消事件监听
         this._unregisterEvents()
-        
-        // 停止动画
-        this._stopLoadingAnimation()
     },
 
     // ============================================================
@@ -350,7 +547,6 @@ cc.Class({
         // 更新UI
         this._updatePlayerListUI()
         this._updatePlayerCountUI()
-        this._updateProgressBar()
     },
 
     _onAssignStart: function(data) {
@@ -366,9 +562,9 @@ cc.Class({
         this._updateUI()
         
         // 显示分配消息
-        if (this.messageLabel) {
-            this.messageLabel.string = data.message || "正在分配玩家，即将进入游戏..."
-            this.messageLabel.node.color = new cc.Color(255, 220, 100)
+        if (this._messageLabel) {
+            this._messageLabel.string = data.message || "正在分配玩家，即将进入游戏..."
+            this._messageLabel.node.color = cc.color(255, 220, 100)
         }
     },
 
@@ -378,13 +574,13 @@ cc.Class({
 
     _updateUI: function() {
         // 更新期号
-        if (this.periodNoLabel) {
-            this.periodNoLabel.string = "期号: " + this._periodNo
+        if (this._periodNoLabel) {
+            this._periodNoLabel.string = "期号: " + this._periodNo
         }
         
         // 更新房间名称
-        if (this.roomNameLabel) {
-            this.roomNameLabel.string = this._roomName || "竞技场"
+        if (this._roomNameLabel) {
+            this._roomNameLabel.string = this._roomName || "竞技场"
         }
         
         // 更新倒计时
@@ -393,113 +589,78 @@ cc.Class({
         // 更新玩家数量
         this._updatePlayerCountUI()
         
-        // 更新阶段显示
-        this._updatePhaseUI()
-        
         // 更新玩家列表
         this._updatePlayerListUI()
-        
-        // 更新进度条
-        this._updateProgressBar()
     },
 
     _updateCountdownUI: function() {
-        if (this.countdownLabel) {
-            this.countdownLabel.string = this._countdown + "秒"
+        if (this._countdownLabel) {
+            this._countdownLabel.string = this._countdown + "秒"
             
-            // 最后10秒变红闪烁
+            // 最后10秒变红
             if (this._countdown <= 10 && this._countdown > 0) {
-                this.countdownLabel.node.color = new cc.Color(255, 100, 100)
-                this._startCountdownFlash()
+                this._countdownLabel.node.color = cc.color(255, 100, 100)
             } else {
-                this.countdownLabel.node.color = new cc.Color(255, 255, 255)
-                this._stopCountdownFlash()
+                this._countdownLabel.node.color = cc.color(100, 255, 100)
             }
         }
     },
 
     _updatePlayerCountUI: function() {
-        if (this.playerCountLabel) {
-            this.playerCountLabel.string = "已进入: " + this._enteredPlayers + " / " + this._totalPlayers
-        }
-    },
-
-    _updatePhaseUI: function() {
-        if (this.phaseLabel) {
-            this.phaseLabel.string = "等待玩家进入"
-            this.phaseLabel.node.color = new cc.Color(100, 200, 255)
-        }
-        
-        // 更新提示消息
-        if (this.messageLabel) {
-            this.messageLabel.string = "等待其他玩家进入..."
-            this.messageLabel.node.color = new cc.Color(200, 200, 220)
+        if (this._playerCountLabel) {
+            this._playerCountLabel.string = "已进入: " + this._enteredPlayers + " / " + this._totalPlayers
         }
     },
 
     // ============================================================
-    // 玩家列表渲染
+    // 玩家列表渲染（ul > li 形式，一排3个）
     // ============================================================
 
     _updatePlayerListUI: function() {
-        if (!this.playerListContainer) return
+        if (!this._playerListContent) return
         
         // 清空现有列表
-        this.playerListContainer.removeAllChildren()
+        this._playerListContent.removeAllChildren()
         
-        // 计算布局参数
-        var itemWidth = 120
-        var itemHeight = 140
-        var gapX = 20
-        var gapY = 20
-        var cols = 5 // 每行5个玩家
-        
-        // 计算容器宽度
-        var containerWidth = this.playerListContainer.width || 700
-        if (containerWidth < 100) {
-            containerWidth = 700
-        }
-        
-        // 重新计算每行可以放多少个
-        cols = Math.floor((containerWidth + gapX) / (itemWidth + gapX))
-        if (cols < 1) cols = 5
+        console.log("🏟️ [ArenaMatchWaiting] 更新玩家列表，玩家数量:", this._players.length)
         
         // 添加玩家项
         for (var i = 0; i < this._players.length; i++) {
             var player = this._players[i]
-            var row = Math.floor(i / cols)
-            var col = i % cols
-            
             var itemNode = this._createPlayerItem(player, i)
-            
-            // 计算位置（从左上角开始排列）
-            var startX = -containerWidth / 2 + itemWidth / 2 + 10
-            var startY = -itemHeight / 2 - 10
-            
-            var x = startX + col * (itemWidth + gapX)
-            var y = startY - row * (itemHeight + gapY)
-            
-            itemNode.setPosition(x, y)
-            itemNode.parent = this.playerListContainer
+            itemNode.parent = this._playerListContent
         }
         
         // 更新容器高度
-        var rows = Math.ceil(this._players.length / cols)
-        var contentHeight = rows * (itemHeight + gapY) + 20
-        this.playerListContainer.setContentSize(containerWidth, Math.max(contentHeight, 200))
+        var rows = Math.ceil(this._players.length / 3)
+        var contentHeight = rows * 220 + 40  // 每行高度 220，加上边距
+        this._playerListContent.setContentSize(this._playerListContent.width, Math.max(contentHeight, 200))
     },
 
     /**
      * 创建玩家项节点（头像 + 昵称在头像下面）
      */
     _createPlayerItem: function(player, index) {
+        // 创建 li 节点（单个玩家卡片）
         var itemNode = new cc.Node("PlayerItem_" + index)
-        itemNode.setContentSize(cc.size(120, 140))
+        itemNode.setContentSize(cc.size(180, 200))
+        
+        // 卡片背景
+        var bgNode = new cc.Node("Bg")
+        bgNode.setContentSize(cc.size(170, 190))
+        var bgGraphics = bgNode.addComponent(cc.Graphics)
+        bgGraphics.fillColor = cc.color(40, 45, 70, 200)
+        bgGraphics.roundRect(-85, -95, 170, 190, 10)
+        bgGraphics.fill()
+        bgGraphics.strokeColor = cc.color(100, 120, 180)
+        bgGraphics.lineWidth = 2
+        bgGraphics.stroke()
+        bgNode.parent = itemNode
         
         // 创建头像节点
         var avatarNode = new cc.Node("Avatar")
-        avatarNode.setContentSize(cc.size(80, 80))
-        avatarNode.setPosition(0, 20) // 头像在上方
+        avatarNode.setPosition(0, 30)
+        avatarNode.setContentSize(cc.size(100, 100))
         
         var avatarSprite = avatarNode.addComponent(cc.Sprite)
         avatarSprite.type = cc.Sprite.Type.SIMPLE
@@ -510,39 +671,38 @@ cc.Class({
         
         // 创建圆形遮罩
         var maskNode = new cc.Node("AvatarMask")
-        maskNode.setContentSize(cc.size(80, 80))
-        maskNode.setPosition(0, 20)
+        maskNode.setPosition(0, 30)
+        maskNode.setContentSize(cc.size(100, 100))
         
         var mask = maskNode.addComponent(cc.Mask)
         mask.type = cc.Mask.Type.ELLIPSE
         mask.segements = 64
         
-        // 将头像移到遮罩下
         avatarNode.parent = maskNode
         maskNode.parent = itemNode
         
         // 创建昵称节点（在头像下面）
         var nameNode = new cc.Node("NameLabel")
-        nameNode.setPosition(0, -50)
+        nameNode.setPosition(0, -55)
         
         var nameLabel = nameNode.addComponent(cc.Label)
-        nameLabel.string = player.player_name || ("玩家" + player.player_id)
+        var playerName = player.player_name || player.name || ("玩家" + (player.player_id || index))
+        nameLabel.string = playerName
         nameLabel.fontSize = 18
         nameLabel.lineHeight = 24
         nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-        nameLabel.overflow = cc.Label.Overflow.CLAMP
-        nameNode.setContentSize(cc.size(110, 24))
+        nameNode.setContentSize(cc.size(160, 24))
         
         // 机器人用灰色，真人用白色
         if (player.is_robot) {
-            nameNode.color = new cc.Color(150, 150, 150)
+            nameNode.color = cc.color(150, 150, 150)
         } else {
-            nameNode.color = new cc.Color(255, 255, 255)
+            nameNode.color = cc.color(255, 255, 255)
         }
         
         // 添加描边效果
         var outline = nameNode.addComponent(cc.LabelOutline)
-        outline.color = new cc.Color(0, 0, 0)
+        outline.color = cc.color(0, 0, 0)
         outline.width = 2
         
         nameNode.parent = itemNode
@@ -550,15 +710,15 @@ cc.Class({
         // 机器人标识
         if (player.is_robot) {
             var robotTag = new cc.Node("RobotTag")
-            robotTag.setPosition(35, 55)
+            robotTag.setPosition(60, 70)
             var tagLabel = robotTag.addComponent(cc.Label)
             tagLabel.string = "AI"
             tagLabel.fontSize = 14
             tagLabel.lineHeight = 18
-            robotTag.color = new cc.Color(255, 200, 100)
+            robotTag.color = cc.color(255, 200, 100)
             
             var tagOutline = robotTag.addComponent(cc.LabelOutline)
-            tagOutline.color = new cc.Color(0, 0, 0)
+            tagOutline.color = cc.color(0, 0, 0)
             tagOutline.width = 1
             
             robotTag.parent = itemNode
@@ -576,7 +736,7 @@ cc.Class({
         // 如果没有头像URL，使用默认头像
         if (!avatarUrl) {
             cc.resources.load('UI/headimage/avatar_1', cc.SpriteFrame, function(err, spriteFrame) {
-                if (!err && spriteFrame) {
+                if (!err && spriteFrame && sprite && sprite.node && sprite.node.isValid) {
                     sprite.spriteFrame = spriteFrame
                 }
             })
@@ -604,13 +764,6 @@ cc.Class({
         })
     },
 
-    _updateProgressBar: function() {
-        if (this.progressBar && this._totalPlayers > 0) {
-            var progress = this._enteredPlayers / this._totalPlayers
-            this.progressBar.progress = Math.min(progress, 1.0)
-        }
-    },
-
     // ============================================================
     // 提示消息
     // ============================================================
@@ -618,17 +771,17 @@ cc.Class({
     _showJoinMessage: function(message) {
         // 创建浮动提示
         var tipNode = new cc.Node("JoinTip")
-        tipNode.setPosition(0, 0)
+        tipNode.setPosition(0, 100)
         
         var label = tipNode.addComponent(cc.Label)
         label.string = message
         label.fontSize = 24
         label.lineHeight = 32
         label.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-        tipNode.color = new cc.Color(100, 255, 100)
+        tipNode.color = cc.color(100, 255, 100)
         
         var outline = tipNode.addComponent(cc.LabelOutline)
-        outline.color = new cc.Color(0, 0, 0)
+        outline.color = cc.color(0, 0, 0)
         outline.width = 2
         
         tipNode.parent = this.node
@@ -639,43 +792,6 @@ cc.Class({
             cc.fadeOut(0.5),
             cc.removeSelf()
         ))
-    },
-
-    // ============================================================
-    // 动画
-    // ============================================================
-
-    _startLoadingAnimation: function() {
-        if (!this.loadingNode) return
-        
-        var rotateAction = cc.rotateBy(2, 360)
-        var repeatAction = cc.repeatForever(rotateAction)
-        this.loadingNode.runAction(repeatAction)
-    },
-
-    _stopLoadingAnimation: function() {
-        if (this.loadingNode) {
-            this.loadingNode.stopAllActions()
-        }
-    },
-
-    _startCountdownFlash: function() {
-        if (!this.countdownLabel) return
-        
-        // 闪烁效果
-        this._flashAction = cc.sequence(
-            cc.fadeTo(0.3, 128),
-            cc.fadeTo(0.3, 255)
-        )
-        this._flashAction = cc.repeatForever(this._flashAction)
-        this.countdownLabel.node.runAction(this._flashAction)
-    },
-
-    _stopCountdownFlash: function() {
-        if (this.countdownLabel && this._flashAction) {
-            this.countdownLabel.node.stopAction(this._flashAction)
-            this.countdownLabel.node.opacity = 255
-        }
     },
 
     // ============================================================
