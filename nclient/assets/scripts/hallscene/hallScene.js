@@ -2507,45 +2507,32 @@ cc.Class({
         
         topBar.parent = waitingNode;
         
-        // 4. 创建玩家列表容器（带滚动和裁剪支持：一排10个，超出滚动）
+        // 4. 创建玩家列表容器（一排10个，支持滚动）
         // 玩家卡片尺寸：每个卡片100x120，间距10px
         // 一排10个：10 * 100 + 9 * 10 = 1090px 宽度
-        // 玩家展示区域：居中显示，位置调整到背景图中间偏上位置
+        // 玩家展示区域：居中显示
         
-        // 创建裁剪容器（确保内容只在可视区域内显示）
-        var clipNode = new cc.Node("PlayerClipArea");
-        clipNode.setContentSize(cc.size(1150, 420));  // 可视区域大小
-        clipNode.setPosition(0, -30);  // 调整位置
+        // 创建容器背景
+        var containerNode = new cc.Node("PlayerArea");
+        containerNode.setContentSize(cc.size(1160, 440));
+        containerNode.setPosition(0, -25);
         
-        // 添加 Mask 组件实现裁剪效果
-        var clipMask = clipNode.addComponent(cc.Mask);
-        clipMask.type = cc.Mask.Type.RECT;  // 矩形裁剪
+        // 半透明背景
+        var bgNode = new cc.Node("Bg");
+        bgNode.setContentSize(cc.size(1160, 440));
+        var bgGraphics = bgNode.addComponent(cc.Graphics);
+        bgGraphics.fillColor = cc.color(0, 0, 0, 80);
+        bgGraphics.roundRect(-580, -220, 1160, 440, 10);
+        bgGraphics.fill();
+        bgNode.parent = containerNode;
         
-        // 创建 ScrollView 节点
-        var scrollViewNode = new cc.Node("ScrollView");
-        scrollViewNode.setContentSize(cc.size(1150, 420));  // 可视区域
-        scrollViewNode.setPosition(0, 0);
-        
-        // 添加 ScrollView 组件
-        var scrollView = scrollViewNode.addComponent(cc.ScrollView);
-        scrollView.horizontal = false;  // 禁用水平滚动
-        scrollView.vertical = true;      // 启用垂直滚动
-        scrollView.inertia = true;       // 惯性滚动
-        scrollView.elastic = true;       // 弹性效果
-        
-        // 内容容器
+        // 内容容器（直接放置玩家卡片）
         var contentNode = new cc.Node("Content");
-        contentNode.setContentSize(cc.size(1150, 420));  // 初始高度，后续根据玩家数量调整
-        contentNode.anchorX = 0.5;
-        contentNode.anchorY = 1;  // 锚点在顶部，内容从上往下排列
-        contentNode.setPosition(0, 210);  // 相对于 ScrollView 中心的位置
-        contentNode.parent = scrollViewNode;
+        contentNode.setContentSize(cc.size(1150, 420));
+        contentNode.setPosition(0, 0);
+        contentNode.parent = containerNode;
         
-        // 设置 ScrollView 的 content
-        scrollView.content = contentNode;
-        
-        scrollViewNode.parent = clipNode;
-        clipNode.parent = waitingNode;
+        containerNode.parent = waitingNode;
         
         // 添加到 Canvas
         waitingNode.parent = canvas;
@@ -2876,7 +2863,7 @@ cc.Class({
     },
     
     /**
-     * 更新玩家列表UI（重新设计：一排10个，紧凑布局，支持滚动）
+     * 更新玩家列表UI（一排10个，紧凑布局）
      */
     _updateArenaPlayerListUI: function() {
         if (!this._arenaWaitingContent) return;
@@ -2885,7 +2872,7 @@ cc.Class({
         this._arenaWaitingContent.removeAllChildren();
         
         var players = this._arenaWaitingData.players || [];
-        console.log("🏟️ [ArenaWaiting] 更新玩家列表，玩家数据:", JSON.stringify(players));
+        console.log("🏟️ [ArenaWaiting] 更新玩家列表，玩家数量:", players.length);
         
         if (players.length === 0) {
             console.log("🏟️ [ArenaWaiting] 没有玩家数据，跳过渲染");
@@ -2899,27 +2886,20 @@ cc.Class({
         var spacingY = 10;     // 垂直间距
         var cols = 10;         // 一排10个
         
-        // 可视区域高度
-        var viewHeight = 420;
-        
         // 计算总行数
         var totalRows = Math.ceil(players.length / cols);
         
-        // 计算内容高度（内容高度可以超过可视区域，实现滚动）
-        var contentHeight = Math.max(viewHeight, totalRows * itemHeight + (totalRows - 1) * spacingY + 20);
-        
-        // 更新 Content 高度
-        this._arenaWaitingContent.setContentSize(cc.size(1150, contentHeight));
-        
-        // 计算起始位置（从左上角开始排列）
+        // 计算起始位置（居中排列，从容器中心开始）
         var totalWidth = cols * itemWidth + (cols - 1) * spacingX;
+        var totalHeight = totalRows * itemHeight + (totalRows - 1) * spacingY;
+        
         var startX = -totalWidth / 2 + itemWidth / 2;
-        var startY = contentHeight / 2 - itemHeight / 2 - 10;  // 从顶部开始，留10px边距
+        var startY = totalHeight / 2 - itemHeight / 2;  // 从顶部中心开始
         
         // 添加玩家项
         for (var i = 0; i < players.length; i++) {
             var player = players[i];
-            console.log("🏟️ [ArenaWaiting] 创建玩家卡片:", i, player.player_name, "is_robot:", player.is_robot);
+            console.log("🏟️ [ArenaWaiting] 创建玩家卡片:", i, player.player_name);
             var itemNode = this._createArenaPlayerItemNew(player, i);
             
             // 计算位置
