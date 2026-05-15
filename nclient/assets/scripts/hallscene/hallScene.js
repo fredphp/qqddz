@@ -91,6 +91,11 @@ cc.Class({
             return;
         }
         
+        // 🔧【关键修复】重置竞技场相关标志，防止重复处理
+        this._arenaRoomJoinedProcessed = false;
+        this._arenaLoadingInProgress = false;
+        this._enterGameSceneInProgress = false;
+        
         var playerData = myglobal.playerData;
         
         if (!playerData.token) {
@@ -2707,6 +2712,13 @@ cc.Class({
                     return;
                 }
                 
+                // 🔧【关键修复】防止重复处理 room_joined
+                if (self._arenaRoomJoinedProcessed) {
+                    console.log("🏟️ [ArenaWaiting] room_joined 已处理过，跳过");
+                    return;
+                }
+                self._arenaRoomJoinedProcessed = true;
+                
                 // 隐藏等待界面
                 self._hideArenaWaitingUI();
                 
@@ -3420,6 +3432,13 @@ cc.Class({
      */
     _showArenaLoadingAndPreload: function(playerdata, roomData) {
         var self = this;
+        
+        // 🔧【关键修复】防止重复调用
+        if (this._arenaLoadingInProgress) {
+            console.log("🏟️ [ArenaLoading] 已在进行中，跳过");
+            return;
+        }
+        this._arenaLoadingInProgress = true;
         
         console.log("🏟️ [ArenaLoading] 显示加载界面，准备预加载头像...");
         
@@ -6723,6 +6742,15 @@ cc.Class({
     
     _enterGameScene: function(roomData) {
         var startTime = Date.now();
+        
+        // 🔧【关键修复】防止重复加载场景
+        if (this._enterGameSceneInProgress) {
+            console.log("🚀 [进入场景] 已在进行中，跳过");
+            return;
+        }
+        this._enterGameSceneInProgress = true;
+        
+        console.log("🚀 [进入场景] 开始加载游戏场景");
         
         // 🔧【修复】添加安全检查，防止节点已销毁时报错
         if (this.node && this.node.isValid) {
