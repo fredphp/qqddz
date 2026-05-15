@@ -1985,7 +1985,7 @@ cc.Class({
         // 创建跑马灯节点
         var marqueeNode = new cc.Node("ChampionMarquee");
         marqueeNode.setPosition(cc.v2(0, screenHeight / 2 - 80)); // 顶部位置
-        marqueeNode.setLocalZOrder(9999); // 最高层级
+        marqueeNode.zIndex = 9999; // 最高层级
         
         // 背景
         var bgNode = new cc.Node("Bg");
@@ -2423,7 +2423,7 @@ cc.Class({
         var waitingNode = new cc.Node("ArenaWaitingUI");
         waitingNode.setContentSize(cc.size(1280, 720));
         waitingNode.setPosition(0, 0);
-        waitingNode.setLocalZOrder(1000);  // 确保在最上层
+        waitingNode.zIndex = 1000;  // 确保在最上层
         
         // 1. 创建半透明遮罩
         var maskNode = new cc.Node("Mask");
