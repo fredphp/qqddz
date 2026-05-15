@@ -404,8 +404,9 @@ func (b *ArenaStatusBroadcaster) checkAndPushPendingMatchStartPopups() {
                 }
 
                 // 检查是否超时
-                elapsed := time.Now().Unix() - data.StartTime
-                remaining := data.Countdown - int(elapsed)
+                // 🔧【修复】data.StartTime 是毫秒时间戳，需要使用 UnixMilli() 保持单位一致
+                elapsed := time.Now().UnixMilli() - data.StartTime
+                remaining := data.Countdown - int(elapsed/1000) // 将毫秒转换为秒
                 if remaining <= 0 {
                         // 超时，清理数据
                         b.removePlayerEnterPhaseFromRedis(playerID)
