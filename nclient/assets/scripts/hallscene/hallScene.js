@@ -233,6 +233,11 @@ cc.Class({
     
     // 显示离线提示
     _showOfflineMessage: function() {
+        // 🔧【修复】安全检查：如果节点已销毁，跳过显示
+        if (!this.node || !this.node.isValid) {
+            console.log("🏟️ [HallScene] 节点已销毁，跳过离线提示");
+            return;
+        }
         this._showMessage("网络连接已断开，正在重新连接...");
     },
     
@@ -3329,6 +3334,27 @@ cc.Class({
         // 显示简短加载提示
         this._showMessageCenter("正在进入竞技场...");
         
+        // 🔧【关键修复】从 _arenaWaitingData 获取玩家数据
+        var waitingPlayers = this._arenaWaitingData && this._arenaWaitingData.players ? this._arenaWaitingData.players : [];
+        console.log("🏟️ [Arena] 从等待数据获取玩家数量:", waitingPlayers.length);
+        
+        // 🔧【关键修复】转换 players 数组为 playerdata 格式
+        var playerdata = waitingPlayers.map(function(p, idx) {
+            return {
+                accountid: p.player_id || p.id,
+                nick_name: p.player_name || p.name,
+                avatar: p.avatar || "avatar_1",
+                avatarUrl: p.avatar || "avatar_1",
+                gold_count: p.gold_count || 0,
+                goldcount: p.gold_count || 0,
+                seatindex: idx + 1,
+                isready: p.entered_at && p.entered_at > 0,
+                is_robot: p.is_robot || false,
+                room_category: 2,  // 竞技场
+                period_no: matchData.period_no
+            };
+        });
+        
         // 构造房间数据
         var roomData = {
             room_code: matchData.room_code || ("arena_" + matchData.period_no),
@@ -3338,7 +3364,8 @@ cc.Class({
             base_score: roomConfig.base_score || 1,
             multiplier: roomConfig.multiplier || 1,
             period_no: matchData.period_no,
-            match_rounds: matchData.match_rounds
+            match_rounds: matchData.match_rounds,
+            playerdata: playerdata  // 🔧【关键修复】添加玩家数据
         };
         
         // 保存房间数据
@@ -3347,6 +3374,7 @@ cc.Class({
             myglobal.playerData = myglobal.playerData || {};
             myglobal.playerData.bottom = roomConfig.base_score || 1;
             myglobal.playerData.rate = roomConfig.multiplier || 1;
+            console.log("🏟️ [Arena] myglobal.roomData 已设置, playerdata 数量:", playerdata.length);
         }
         
         // 🔧【关键】最多等待2秒后直接进入游戏场景
