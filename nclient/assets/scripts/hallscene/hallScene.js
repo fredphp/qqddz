@@ -3410,8 +3410,237 @@ cc.Class({
             console.log("🏟️ [Arena] myglobal.roomData 已保存, playerdata=" + playerdata.length + "人");
         }
         
-        // 直接进入游戏场景
-        this._enterGameScene(myglobal.roomData);
+        // 🔧【优化】先显示加载界面，预加载头像资源，然后再进入场景
+        this._showArenaLoadingAndPreload(playerdata, myglobal.roomData);
+    },
+
+    /**
+     * 🔧【新增】显示竞技场加载界面并预加载头像资源
+     * 优化用户体验：倒计时结束后先显示加载动画，预加载完成后再进入场景
+     */
+    _showArenaLoadingAndPreload: function(playerdata, roomData) {
+        var self = this;
+        
+        console.log("🏟️ [ArenaLoading] 显示加载界面，准备预加载头像...");
+        
+        // 显示加载界面
+        self._showArenaLoadingUI();
+        
+        // 预加载所有玩家的头像
+        var avatarUrls = [];
+        for (var i = 0; i < playerdata.length; i++) {
+            var avatarUrl = playerdata[i].avatar || playerdata[i].avatarUrl || "avatar_1";
+            if (avatarUrl && avatarUrls.indexOf(avatarUrl) === -1) {
+                avatarUrls.push(avatarUrl);
+            }
+        }
+        
+        console.log("🏟️ [ArenaLoading] 需要预加载的头像数量:", avatarUrls.length);
+        
+        // 如果没有头像需要加载，直接进入场景
+        if (avatarUrls.length === 0) {
+            self._hideArenaLoadingUI();
+            self._enterGameScene(roomData);
+            return;
+        }
+        
+        // 预加载头像资源
+        var loadedCount = 0;
+        var totalCount = avatarUrls.length;
+        
+        var checkAllLoaded = function() {
+            loadedCount++;
+            console.log("🏟️ [ArenaLoading] 头像加载进度:", loadedCount + "/" + totalCount);
+            
+            if (loadedCount >= totalCount) {
+                console.log("🏟️ [ArenaLoading] 所有头像预加载完成，准备进入场景");
+                // 短暂延迟，让加载动画显示一会儿（至少500ms）
+                setTimeout(function() {
+                    self._hideArenaLoadingUI();
+                    self._enterGameScene(roomData);
+                }, 500);
+            }
+        };
+        
+        for (var j = 0; j < avatarUrls.length; j++) {
+            var url = avatarUrls[j];
+            self._preloadAvatar(url, checkAllLoaded);
+        }
+        
+        // 设置超时保护（最多等待3秒）
+        self._arenaLoadingTimeout = setTimeout(function() {
+            console.warn("🏟️ [ArenaLoading] 预加载超时，强制进入场景");
+            self._hideArenaLoadingUI();
+            self._enterGameScene(roomData);
+        }, 3000);
+    },
+
+    /**
+     * 🔧【新增】预加载单个头像
+     */
+    _preloadAvatar: function(avatarUrl, callback) {
+        // 判断是否是远程URL
+        if (avatarUrl.indexOf('http://') === 0 || avatarUrl.indexOf('https://') === 0) {
+            // 远程URL头像
+            cc.assetManager.loadRemote(avatarUrl, { ext: '.png' }, function(err, texture) {
+                if (err || !texture) {
+                    console.warn("🏟️ [ArenaLoading] 远程头像预加载失败:", avatarUrl);
+                } else {
+                    console.log("🏟️ [ArenaLoading] 远程头像预加载成功:", avatarUrl);
+                    // 缓存到 myglobal
+                    var myglobal = window.myglobal;
+                    if (myglobal) {
+                        if (!myglobal._avatarCache) myglobal._avatarCache = {};
+                        try {
+                            myglobal._avatarCache[avatarUrl] = new cc.SpriteFrame(texture);
+                        } catch (e) {
+                            console.warn("🏟️ [ArenaLoading] 缓存头像失败:", e);
+                        }
+                    }
+                }
+                if (callback) callback();
+            });
+        } else {
+            // 本地资源头像
+            var localPath = "UI/headimage/" + avatarUrl;
+            cc.loader.loadRes(localPath, cc.SpriteFrame, function(err, spriteFrame) {
+                if (err || !spriteFrame) {
+                    console.warn("🏟️ [ArenaLoading] 本地头像预加载失败:", localPath);
+                } else {
+                    console.log("🏟️ [ArenaLoading] 本地头像预加载成功:", localPath);
+                    // 缓存到 myglobal
+                    var myglobal = window.myglobal;
+                    if (myglobal) {
+                        if (!myglobal._avatarCache) myglobal._avatarCache = {};
+                        myglobal._avatarCache[avatarUrl] = spriteFrame;
+                    }
+                }
+                if (callback) callback();
+            });
+        }
+    },
+
+    /**
+     * 🔧【新增】显示竞技场加载界面
+     */
+    _showArenaLoadingUI: function() {
+        var self = this;
+        
+        // 安全检查
+        if (!this.node || !this.node.isValid) {
+            console.warn("🏟️ [ArenaLoading] 节点不存在，无法显示加载界面");
+            return;
+        }
+        
+        // 如果已经有加载界面，先销毁
+        this._hideArenaLoadingUI();
+        
+        // 获取画布尺寸
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
+        var screenHeight = canvas ? canvas.designResolution.height : 720;
+        var screenWidth = canvas ? canvas.designResolution.width : 1280;
+        
+        // 创建遮罩层
+        var maskNode = new cc.Node("ArenaLoadingMask");
+        maskNode.setContentSize(cc.size(screenWidth * 2, screenHeight * 2));
+        maskNode.color = cc.color(0, 0, 0);
+        maskNode.opacity = 0;
+        maskNode.zIndex = 9999;
+        
+        // 添加 BlockInputEvents 防止点击穿透
+        maskNode.addComponent(cc.BlockInputEvents);
+        maskNode.parent = this.node;
+        
+        // 创建加载动画容器
+        var loadingContainer = new cc.Node("LoadingContainer");
+        loadingContainer.parent = maskNode;
+        
+        // 尝试加载加载图片
+        cc.resources.load('UI/loading_image', cc.SpriteFrame, function(err, spriteFrame) {
+            if (!maskNode || !maskNode.isValid) return;
+            
+            if (err || !spriteFrame) {
+                console.warn("🏟️ [ArenaLoading] 加载图片不存在，使用文字提示");
+                // 降级：使用文字提示
+                var loadingLabel = new cc.Node("LoadingLabel");
+                var label = loadingLabel.addComponent(cc.Label);
+                label.string = "房间分配中...";
+                label.fontSize = 28;
+                label.lineHeight = 36;
+                label.fontFamily = "Arial";
+                loadingLabel.color = cc.color(255, 255, 255);
+                loadingLabel.parent = loadingContainer;
+                
+                // 添加"请稍候"提示
+                var tipLabel = new cc.Node("TipLabel");
+                tipLabel.y = -50;
+                var tip = tipLabel.addComponent(cc.Label);
+                tip.string = "请稍候";
+                tip.fontSize = 20;
+                tip.lineHeight = 28;
+                tip.fontFamily = "Arial";
+                tipLabel.color = cc.color(200, 200, 200);
+                tipLabel.parent = loadingContainer;
+            } else {
+                // 使用加载图片
+                var loadingImage = new cc.Node("LoadingImage");
+                loadingImage.setContentSize(cc.size(100, 100));
+                
+                var sprite = loadingImage.addComponent(cc.Sprite);
+                sprite.spriteFrame = spriteFrame;
+                sprite.type = cc.Sprite.Type.SIMPLE;
+                sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+                
+                loadingImage.parent = loadingContainer;
+                
+                // 保存引用用于旋转动画
+                self._arenaLoadingImageNode = loadingImage;
+                
+                // 添加"房间分配中"文字
+                var textLabel = new cc.Node("TextLabel");
+                textLabel.y = -80;
+                var label = textLabel.addComponent(cc.Label);
+                label.string = "房间分配中...";
+                label.fontSize = 24;
+                label.lineHeight = 32;
+                label.fontFamily = "Arial";
+                textLabel.color = cc.color(255, 255, 255);
+                textLabel.parent = loadingContainer;
+            }
+        });
+        
+        // 淡入动画
+        cc.tween(maskNode)
+            .to(0.2, { opacity: 220 })
+            .start();
+        
+        // 保存引用
+        this._arenaLoadingMask = maskNode;
+        
+        console.log("🏟️ [ArenaLoading] 加载界面已显示");
+    },
+
+    /**
+     * 🔧【新增】隐藏竞技场加载界面
+     */
+    _hideArenaLoadingUI: function() {
+        // 清除超时定时器
+        if (this._arenaLoadingTimeout) {
+            clearTimeout(this._arenaLoadingTimeout);
+            this._arenaLoadingTimeout = null;
+        }
+        
+        // 销毁加载界面
+        if (this._arenaLoadingMask) {
+            if (this._arenaLoadingMask.isValid) {
+                this._arenaLoadingMask.destroy();
+            }
+            this._arenaLoadingMask = null;
+        }
+        
+        this._arenaLoadingImageNode = null;
+        
+        console.log("🏟️ [ArenaLoading] 加载界面已隐藏");
     },
 
     // 🔧【新增】从配置初始化本地状态（作为备用）
