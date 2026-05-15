@@ -371,6 +371,10 @@ cc.Class({
 
     /**
      * 监听 room_joined 消息以进入游戏场景
+     * 🔧【关键修改】
+     * 1. 停止加载动画
+     * 2. 保存预加载数据到 myglobal.roomData 和 myglobal.arenaMatchData
+     * 3. 直接进入游戏场景，无需重新请求数据
      */
     _registerRoomJoinedHandler: function() {
         var self = this
@@ -387,6 +391,9 @@ cc.Class({
                     console.log("🏟️ [ArenaMatchWaiting] 不是竞技场房间，忽略")
                     return
                 }
+                
+                // 🔧【关键修复】停止加载动画
+                self._stopLoadingAnimation()
                 
                 // 转换数据格式
                 var players = roomData.players || []
@@ -414,20 +421,45 @@ cc.Class({
                     period_no: self._periodNo
                 }
                 
-                // 保存转换后的房间数据
+                // 🔧【关键修复】保存预加载数据到 myglobal
                 if (myglobal) {
+                    // 保存房间数据
                     myglobal.roomData = convertedRoomData
+                    
+                    // 🔧【新增】保存竞技场比赛数据（用于游戏场景）
+                    myglobal.arenaMatchData = {
+                        periodNo: self._periodNo,
+                        roomId: self._roomId,
+                        roomName: self._roomName,
+                        totalPlayers: self._totalPlayers,
+                        totalTables: self._totalTables || 0,
+                        players: self._players,
+                        matchRounds: roomData.match_rounds || 0,
+                        currentRound: roomData.current_round || 1
+                    }
+                    
+                    console.log("🏟️ [ArenaMatchWaiting] 预加载数据已保存:")
+                    console.log("  - myglobal.roomData.playerdata:", convertedRoomData.playerdata.length, "人")
+                    console.log("  - myglobal.arenaMatchData.periodNo:", self._periodNo)
+                    console.log("  - 头像缓存数量:", myglobal._avatarCache ? Object.keys(myglobal._avatarCache).length : 0)
                 }
                 
-                // 进入游戏场景
+                // 🔧【优化】直接进入游戏场景，无需重新请求数据
+                // 游戏场景会从 myglobal.roomData 读取预加载数据
+                console.log("🏟️ [ArenaMatchWaiting] 进入游戏场景...")
                 cc.director.loadScene("gameScene")
             })
         }
     },
 
     onDestroy () {
+        // 停止加载动画
+        this._stopLoadingAnimation()
+        
         // 取消事件监听
         this._unregisterEvents()
+        
+        console.log("🏟️ [ArenaMatchWaiting] 场景销毁，已停止加载动画")
     },
 
     // ============================================================
@@ -555,16 +587,227 @@ cc.Class({
             return
         }
         
+        console.log("🏟️ [ArenaMatchWaiting] 分配阶段开始:", JSON.stringify(data))
+        
         this._countdown = data.countdown
         this._totalPlayers = data.total_players
         this._enteredPlayers = data.total_players
+        this._totalTables = data.total_tables || 0
         
+        // 🔧【关键修改】显示"系统分配中"加载动画
+        this._showAssigningLoadingUI(data)
+        
+        // 🔧【关键修改】预加载所有玩家头像资源
+        this._preloadAllPlayerAvatars()
+        
+        // 更新UI
         this._updateUI()
+    },
+    
+    /**
+     * 🔧【新增】显示"系统分配中"加载动画
+     */
+    _showAssigningLoadingUI: function(data) {
+        var self = this
+        
+        // 隐藏取消按钮（分配阶段不能取消）
+        if (this._cancelBtn) {
+            this._cancelBtn.active = false
+        }
         
         // 显示分配消息
         if (this._messageLabel) {
-            this._messageLabel.string = data.message || "正在分配玩家，即将进入游戏..."
+            this._messageLabel.string = data.message || "系统分配中..."
             this._messageLabel.node.color = cc.color(255, 220, 100)
+        }
+        
+        // 创建加载动画覆盖层
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas)
+        var screenHeight = canvas ? canvas.designResolution.height : 720
+        var screenWidth = canvas ? canvas.designResolution.width : 1280
+        
+        // 创建加载覆盖层
+        var loadingOverlay = new cc.Node("AssigningLoadingOverlay")
+        loadingOverlay.setContentSize(cc.size(screenWidth, screenHeight))
+        loadingOverlay.setPosition(0, 0)
+        loadingOverlay.zIndex = 1000
+        
+        // 半透明背景
+        var bgNode = new cc.Node("Bg")
+        bgNode.setContentSize(cc.size(screenWidth, screenHeight))
+        var bgGraphics = bgNode.addComponent(cc.Graphics)
+        bgGraphics.fillColor = cc.color(0, 0, 0, 150)
+        bgGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight)
+        bgGraphics.fill()
+        bgNode.parent = loadingOverlay
+        
+        // 创建加载图标容器（旋转动画）
+        var loadingContainer = new cc.Node("LoadingContainer")
+        loadingContainer.setPosition(0, 50)
+        loadingContainer.parent = loadingOverlay
+        
+        // 加载图标（使用简单的圆形旋转动画）
+        var loadingIcon = new cc.Node("LoadingIcon")
+        loadingIcon.setContentSize(cc.size(60, 60))
+        var iconGraphics = loadingIcon.addComponent(cc.Graphics)
+        // 绘制加载圆环
+        iconGraphics.strokeColor = cc.color(255, 215, 0)
+        iconGraphics.lineWidth = 4
+        iconGraphics.arc(0, 0, 25, 0, Math.PI * 1.5, false)
+        iconGraphics.stroke()
+        loadingIcon.parent = loadingContainer
+        
+        // 保存引用以便旋转动画
+        this._loadingIconNode = loadingIcon
+        
+        // 加载文字
+        var loadingLabel = new cc.Node("LoadingLabel")
+        loadingLabel.setPosition(0, -30)
+        var label = loadingLabel.addComponent(cc.Label)
+        label.string = "系统分配中..."
+        label.fontSize = 28
+        label.lineHeight = 36
+        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        loadingLabel.color = cc.color(255, 220, 100)
+        var outline = loadingLabel.addComponent(cc.LabelOutline)
+        outline.color = cc.color(0, 0, 0)
+        outline.width = 2
+        loadingLabel.parent = loadingContainer
+        this._assigningLoadingLabel = label
+        
+        // 显示分配信息
+        var infoLabel = new cc.Node("InfoLabel")
+        infoLabel.setPosition(0, -70)
+        var infoLabelComp = infoLabel.addComponent(cc.Label)
+        var totalTables = data.total_tables || 0
+        var totalPlayers = data.total_players || 0
+        infoLabelComp.string = "正在分配 " + totalPlayers + " 名玩家到 " + totalTables + " 桌"
+        infoLabelComp.fontSize = 18
+        infoLabelComp.lineHeight = 24
+        infoLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        infoLabel.color = cc.color(200, 200, 220)
+        infoLabel.parent = loadingContainer
+        
+        loadingOverlay.parent = this.node
+        this._assigningLoadingOverlay = loadingOverlay
+        
+        // 启动旋转动画
+        this._startLoadingAnimation()
+        
+        console.log("🏟️ [ArenaMatchWaiting] 显示'系统分配中'加载动画")
+    },
+    
+    /**
+     * 🔧【新增】启动加载动画
+     */
+    _startLoadingAnimation: function() {
+        var self = this
+        this._loadingAnimScheduled = true
+        
+        // 使用 schedule 更新旋转角度
+        this.schedule(function() {
+            if (self._loadingIconNode && self._loadingIconNode.isValid) {
+                self._loadingIconNode.angle += 5
+            }
+        }, 0.016)  // 约60fps
+    },
+    
+    /**
+     * 🔧【新增】停止加载动画
+     */
+    _stopLoadingAnimation: function() {
+        if (this._loadingAnimScheduled) {
+            this.unschedule(this._startLoadingAnimation)
+            this._loadingAnimScheduled = false
+        }
+        
+        if (this._assigningLoadingOverlay && this._assigningLoadingOverlay.isValid) {
+            this._assigningLoadingOverlay.destroy()
+            this._assigningLoadingOverlay = null
+        }
+        
+        this._loadingIconNode = null
+    },
+    
+    /**
+     * 🔧【新增】预加载所有玩家头像资源
+     */
+    _preloadAllPlayerAvatars: function() {
+        var self = this
+        
+        if (!this._players || this._players.length === 0) {
+            console.log("🏟️ [ArenaMatchWaiting] 没有玩家头像需要预加载")
+            return
+        }
+        
+        // 收集所有头像URL
+        var avatarUrls = []
+        for (var i = 0; i < this._players.length; i++) {
+            var player = this._players[i]
+            var avatarUrl = player.avatar || player.avatarUrl || "avatar_1"
+            if (avatarUrl && avatarUrls.indexOf(avatarUrl) === -1) {
+                avatarUrls.push(avatarUrl)
+            }
+        }
+        
+        console.log("🏟️ [ArenaMatchWaiting] 预加载玩家头像数量:", avatarUrls.length)
+        
+        // 初始化头像缓存
+        var myglobal = window.myglobal
+        if (myglobal && !myglobal._avatarCache) {
+            myglobal._avatarCache = {}
+        }
+        
+        // 预加载头像
+        var loadedCount = 0
+        var totalCount = avatarUrls.length
+        
+        var onLoaded = function() {
+            loadedCount++
+            if (loadedCount >= totalCount) {
+                console.log("🏟️ [ArenaMatchWaiting] 所有玩家头像预加载完成")
+            }
+        }
+        
+        for (var j = 0; j < avatarUrls.length; j++) {
+            this._preloadSingleAvatar(avatarUrls[j], onLoaded)
+        }
+    },
+    
+    /**
+     * 🔧【新增】预加载单个头像
+     */
+    _preloadSingleAvatar: function(avatarUrl, callback) {
+        var myglobal = window.myglobal
+        
+        // 如果已缓存，直接返回
+        if (myglobal && myglobal._avatarCache && myglobal._avatarCache[avatarUrl]) {
+            if (callback) callback()
+            return
+        }
+        
+        // 判断是否是远程URL
+        if (avatarUrl.indexOf('http://') === 0 || avatarUrl.indexOf('https://') === 0) {
+            cc.assetManager.loadRemote(avatarUrl, { ext: '.png' }, function(err, texture) {
+                if (!err && texture && myglobal && myglobal._avatarCache) {
+                    try {
+                        myglobal._avatarCache[avatarUrl] = new cc.SpriteFrame(texture)
+                        console.log("🏟️ [ArenaMatchWaiting] 远程头像预加载成功:", avatarUrl)
+                    } catch (e) {
+                        console.warn("🏟️ [ArenaMatchWaiting] 缓存头像失败:", e)
+                    }
+                }
+                if (callback) callback()
+            })
+        } else {
+            // 本地资源
+            cc.resources.load('UI/headimage/' + avatarUrl, cc.SpriteFrame, function(err, spriteFrame) {
+                if (!err && spriteFrame && myglobal && myglobal._avatarCache) {
+                    myglobal._avatarCache[avatarUrl] = spriteFrame
+                    console.log("🏟️ [ArenaMatchWaiting] 本地头像预加载成功:", avatarUrl)
+                }
+                if (callback) callback()
+            })
         }
     },
 

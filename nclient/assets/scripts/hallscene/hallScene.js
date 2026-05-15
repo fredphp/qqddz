@@ -3437,6 +3437,7 @@ cc.Class({
     /**
      * 🔧【新增】从 room_joined 消息进入游戏场景
      * 🔧【修复】正确转换 players 数组为 playerdata 格式，确保头像、金币等显示正常
+     * 🔧【优化】检查是否有预加载数据，避免重复预加载
      */
     _enterArenaGameSceneFromRoomJoined: function(roomData) {
         console.log("🏟️ [Arena] 从 room_joined 进入游戏场景, roomData=" + JSON.stringify(roomData));
@@ -3496,8 +3497,18 @@ cc.Class({
             console.log("🏟️ [Arena] myglobal.roomData 已保存, playerdata=" + playerdata.length + "人");
         }
         
-        // 🔧【优化】先显示加载界面，预加载头像资源，然后再进入场景
-        this._showArenaLoadingAndPreload(playerdata, myglobal.roomData);
+        // 🔧【优化】检查是否有预加载的头像缓存
+        var hasAvatarCache = myglobal && myglobal._avatarCache && Object.keys(myglobal._avatarCache).length > 0;
+        console.log("🏟️ [Arena] 头像缓存状态:", hasAvatarCache ? "已有缓存" : "无缓存");
+        
+        // 🔧【优化】如果有预加载数据，直接进入场景；否则显示加载界面
+        if (hasAvatarCache) {
+            console.log("🏟️ [Arena] 使用预加载的头像缓存，直接进入场景");
+            this._enterGameScene(myglobal.roomData);
+        } else {
+            // 没有预加载，显示加载界面并预加载头像
+            this._showArenaLoadingAndPreload(playerdata, myglobal.roomData);
+        }
     },
 
     /**
