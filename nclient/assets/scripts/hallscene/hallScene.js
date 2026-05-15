@@ -2410,12 +2410,14 @@ cc.Class({
         // 如果已存在等待界面，先移除
         this._hideArenaWaitingUI();
         
-        // 创建遮罩层
-        var canvas = cc.find('Canvas');
-        if (!canvas) {
-            console.error("🏟️ [Arena] 找不到 Canvas 节点");
+        // hallScene 挂载在 Canvas 节点上，this.node 就是 Canvas
+        var canvas = this.node;
+        if (!canvas || !canvas.isValid) {
+            console.error("🏟️ [Arena] Canvas 节点无效");
             return;
         }
+        
+        console.log("🏟️ [Arena] Canvas 节点已找到:", canvas.name);
         
         // 创建等待界面容器
         var waitingNode = new cc.Node("ArenaWaitingUI");

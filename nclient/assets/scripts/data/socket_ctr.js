@@ -768,7 +768,7 @@ window.socketCtr = function(){
             // 🔧【新增】玩家加入等待场景广播
             case MessageType.ARENA_PLAYER_JOINED:
                 console.log("🏟️ [Arena] 收到玩家加入广播:", JSON.stringify(data));
-                evt.fire("arena_player_joined_notify", {
+                var playerJoinedData = {
                     period_no: data.period_no || "",
                     room_id: data.room_id || 0,
                     player: data.player || {},
@@ -776,7 +776,31 @@ window.socketCtr = function(){
                     total_players: data.total_players || 0,
                     players: data.players || [],
                     message: data.message || ""
-                })
+                };
+                
+                // 🔧【修复】同样缓存到 arenaWaitingStatusCache，确保场景创建时能获取最新数据
+                if (window.myglobal) {
+                    // 合并更新：更新 players 列表和计数
+                    if (window.myglobal.arenaWaitingStatusCache) {
+                        window.myglobal.arenaWaitingStatusCache.players = playerJoinedData.players;
+                        window.myglobal.arenaWaitingStatusCache.entered_players = playerJoinedData.entered_players;
+                        window.myglobal.arenaWaitingStatusCache.total_players = playerJoinedData.total_players;
+                        console.log("🏟️ [Arena] 更新缓存数据，玩家数量:", playerJoinedData.players.length);
+                    } else {
+                        // 如果缓存不存在，创建一个新的缓存
+                        window.myglobal.arenaWaitingStatusCache = {
+                            period_no: playerJoinedData.period_no,
+                            room_id: playerJoinedData.room_id,
+                            players: playerJoinedData.players,
+                            entered_players: playerJoinedData.entered_players,
+                            total_players: playerJoinedData.total_players,
+                            message: playerJoinedData.message
+                        };
+                        console.log("🏟️ [Arena] 创建缓存数据，玩家数量:", playerJoinedData.players.length);
+                    }
+                }
+                
+                evt.fire("arena_player_joined_notify", playerJoinedData)
                 break
             
             default:
