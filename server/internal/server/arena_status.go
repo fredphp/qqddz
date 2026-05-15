@@ -1226,12 +1226,24 @@ func (b *ArenaStatusBroadcaster) HandlePlayerEnter(periodNo string, playerID uin
 }
 
 // 🔧【新增】启动等待阶段（60秒倒计时）
+// 🔧【关键修复】不重置 StartTime，使用报名结束时的 StartTime 计算剩余倒计时
 func (b *ArenaStatusBroadcaster) startWaitingPhase(enterPhase *EnterPhaseInfo) {
         enterPhase.WaitingPhase = WaitingPhaseWaiting
-        enterPhase.WaitingCountdown = WaitingPhaseCountdown
-        enterPhase.StartTime = time.Now()
+        
+        // 🔧【关键修复】计算剩余倒计时，而不是重置为60秒
+        // StartTime 是报名结束时设置的，从这里开始计算已经过去的时间
+        elapsed := time.Since(enterPhase.StartTime)
+        elapsedSeconds := int(elapsed.Seconds())
+        remainingCountdown := EnterPhaseCountdown - elapsedSeconds
+        if remainingCountdown < 0 {
+                remainingCountdown = 0
+        }
+        enterPhase.WaitingCountdown = remainingCountdown
+        
+        // 🔧【修复】StartTime 已经在报名结束时设置，不需要重新设置
+        // enterPhase.StartTime = time.Now()  // 删除这行，不重置开始时间
 
-        log.Printf("[ArenaStatus] 🚀 启动等待阶段: periodNo=%s, countdown=%d秒", enterPhase.PeriodNo, WaitingPhaseCountdown)
+        log.Printf("[ArenaStatus] 🚀 启动等待阶段: periodNo=%s, 已过时间=%d秒, 剩余倒计时=%d秒", enterPhase.PeriodNo, elapsedSeconds, remainingCountdown)
 
         // 启动每秒推送倒计时的定时器
         enterPhase.WaitingTimer = time.NewTicker(1 * time.Second)

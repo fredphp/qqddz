@@ -2482,21 +2482,16 @@ cc.Class({
         roomOutline.width = 2;
         roomNode.parent = topBar;
         
-        // 🔧【关键修复】先根据 start_time 计算实际剩余倒计时
+        // 🔧【关键修复】直接使用服务端推送的倒计时
+        // 服务端已经根据 StartTime 计算了正确的剩余时间
         var actualCountdownForLabel = data.countdown || 60;
-        if (data.start_time) {
-            var nowMsForLabel = Date.now();
-            var elapsedMsForLabel = nowMsForLabel - data.start_time;
-            var elapsedSecForLabel = Math.floor(elapsedMsForLabel / 1000);
-            actualCountdownForLabel = Math.max(0, (data.countdown || 60) - elapsedSecForLabel);
-            console.log("🏟️ [Arena] 等待界面初始倒计时计算: start_time=" + data.start_time + ", now=" + nowMsForLabel + ", elapsed=" + elapsedSecForLabel + "s, remaining=" + actualCountdownForLabel + "s");
-        }
+        console.log("🏟️ [Arena] 等待界面初始倒计时: countdown=" + actualCountdownForLabel);
         
         // 倒计时
         var countdownNode = new cc.Node("Countdown");
         countdownNode.setPosition(480, 20);
         var countdownLabel = countdownNode.addComponent(cc.Label);
-        countdownLabel.string = actualCountdownForLabel + "秒";  // 🔧【修复】使用计算后的实际剩余时间
+        countdownLabel.string = actualCountdownForLabel + "秒";  // 🔧【修复】直接使用服务端推送的倒计时
         countdownLabel.fontSize = 24;
         countdownLabel.lineHeight = 32;
         countdownNode.color = cc.color(100, 255, 100);
@@ -2548,15 +2543,10 @@ cc.Class({
         // 添加到 Canvas
         waitingNode.parent = canvas;
         
-        // 🔧【关键修复】根据 start_time 计算实际剩余倒计时
+        // 🔧【关键修复】直接使用服务端推送的倒计时
+        // 服务端已经根据 StartTime 计算了正确的剩余时间
         var actualCountdown = data.countdown || 60;
-        if (data.start_time) {
-            var nowMs = Date.now();
-            var elapsedMs = nowMs - data.start_time;
-            var elapsedSec = Math.floor(elapsedMs / 1000);
-            actualCountdown = Math.max(0, (data.countdown || 60) - elapsedSec);
-            console.log("🏟️ [Arena] 根据start_time计算剩余时间: start_time=" + data.start_time + ", now=" + nowMs + ", elapsed=" + elapsedSec + "s, remaining=" + actualCountdown + "s");
-        }
+        console.log("🏟️ [Arena] 等待界面保存数据: countdown=" + actualCountdown);
         
         // 保存引用
         this._arenaWaitingNode = waitingNode;
@@ -2564,13 +2554,13 @@ cc.Class({
             periodNo: data.period_no || "",
             roomId: data.room_id || 0,
             roomName: data.room_name || "竞技场",
-            countdown: actualCountdown,  // 🔧【修复】使用计算后的剩余时间
+            countdown: actualCountdown,  // 🔧【修复】直接使用服务端推送的倒计时
             totalPlayers: data.total_players || 0,
             enteredPlayers: 0,
             players: [],
-            serverCountdown: actualCountdown,  // 🔧【修复】使用计算后的剩余时间
+            serverCountdown: actualCountdown,  // 🔧【修复】直接使用服务端推送的倒计时
             lastServerUpdateTime: Date.now(),  // 最后收到服务端更新的时间
-            startTime: data.start_time || Date.now()  // 🔧【新增】保存开始时间
+            startTime: data.start_time || Date.now()  // 🔧【保留】用于日志参考
         };
         this._arenaWaitingLabels = {
             period: periodLabel,
@@ -2778,7 +2768,7 @@ cc.Class({
     
     /**
      * 处理倒计时更新（服务端推送）
-     * 🔧【关键修复】始终基于 start_time 计算剩余时间，确保与服务端同步
+     * 🔧【关键修复】直接使用服务端推送的倒计时，不做本地计算
      */
     _onArenaWaitingTick: function(data) {
         if (!this._arenaWaitingNode) return;
@@ -2788,31 +2778,19 @@ cc.Class({
             return;
         }
         
-        // 🔧【关键修复】始终基于 start_time 计算剩余时间，而不是直接使用服务端的 countdown
-        // 这样可以确保用户在任何时间点进入等待界面，倒计时都是正确的
-        var calculatedCountdown = data.countdown;
-        if (this._arenaWaitingData.startTime) {
-            var nowMs = Date.now();
-            var elapsedMs = nowMs - this._arenaWaitingData.startTime;
-            var elapsedSec = Math.floor(elapsedMs / 1000);
-            calculatedCountdown = Math.max(0, (this._arenaWaitingData.serverCountdown || 60) + (data.countdown - (this._arenaWaitingData.serverCountdown || 60)) - elapsedSec);
-            // 简化：直接用总时长 - 已过时间
-            var totalDuration = 60;  // 默认总时长
-            calculatedCountdown = Math.max(0, totalDuration - elapsedSec);
-        }
-        
-        // 更新数据
+        // 🔧【关键修复】直接使用服务端推送的倒计时
+        // 服务端已经根据 StartTime 计算了正确的剩余时间
         this._arenaWaitingData.serverCountdown = data.countdown;
-        this._arenaWaitingData.countdown = calculatedCountdown;
+        this._arenaWaitingData.countdown = data.countdown;
         this._arenaWaitingData.lastServerUpdateTime = Date.now();
         this._arenaWaitingData.enteredPlayers = data.entered_players;
         
         // 更新倒计时显示
         if (this._arenaWaitingLabels && this._arenaWaitingLabels.countdown) {
-            this._arenaWaitingLabels.countdown.string = calculatedCountdown + "秒";
+            this._arenaWaitingLabels.countdown.string = data.countdown + "秒";
             
             // 最后10秒变红
-            if (calculatedCountdown <= 10 && calculatedCountdown > 0) {
+            if (data.countdown <= 10 && data.countdown > 0) {
                 this._arenaWaitingLabels.countdown.node.color = cc.color(255, 100, 100);
             } else {
                 this._arenaWaitingLabels.countdown.node.color = cc.color(100, 255, 100);
@@ -2827,7 +2805,7 @@ cc.Class({
     
     /**
      * 🔧【新增】启动本地备用计时器（服务端断线时使用）
-     * 🔧【关键修复】始终基于 start_time 计算剩余时间
+     * 🔧【关键修复】直接使用服务端推送的倒计时，断线时本地递减
      */
     _startArenaLocalCountdownTimer: function() {
         var self = this;
@@ -2852,36 +2830,9 @@ cc.Class({
             // 计算距离上次服务端更新的时间
             var timeSinceLastUpdate = Date.now() - (self._arenaWaitingData.lastServerUpdateTime || 0);
             
-            // 🔧【关键修复】始终基于 start_time 计算剩余时间
-            if (self._arenaWaitingData.startTime) {
-                var nowMs = Date.now();
-                var elapsedMs = nowMs - self._arenaWaitingData.startTime;
-                var elapsedSec = Math.floor(elapsedMs / 1000);
-                var totalDuration = 60;  // 默认总时长
-                var calculatedCountdown = Math.max(0, totalDuration - elapsedSec);
-                
-                // 更新倒计时
-                self._arenaWaitingData.countdown = calculatedCountdown;
-                
-                // 更新倒计时显示
-                if (self._arenaWaitingLabels && self._arenaWaitingLabels.countdown) {
-                    self._arenaWaitingLabels.countdown.string = calculatedCountdown + "秒";
-                    
-                    // 最后10秒变红
-                    if (calculatedCountdown <= 10 && calculatedCountdown > 0) {
-                        self._arenaWaitingLabels.countdown.node.color = cc.color(255, 100, 100);
-                    } else {
-                        self._arenaWaitingLabels.countdown.node.color = cc.color(100, 255, 100);
-                    }
-                }
-                
-                if (!isConnected || timeSinceLastUpdate > 2000) {
-                    console.log("🏟️ [ArenaWaiting] 本地倒计时(基于start_time):", calculatedCountdown, "(连接断开)");
-                }
-            }
-            // 如果没有 start_time，使用旧的递减逻辑
-            else if (!isConnected || timeSinceLastUpdate > 2000) {
-                // 本地倒计时
+            // 如果连接断开超过2秒，使用本地递减
+            if (!isConnected || timeSinceLastUpdate > 2000) {
+                // 本地倒计时递减
                 if (self._arenaWaitingData.countdown > 0) {
                     self._arenaWaitingData.countdown--;
                     
@@ -2897,7 +2848,7 @@ cc.Class({
                         }
                     }
                     
-                    console.log("🏟️ [ArenaWaiting] 本地倒计时:", self._arenaWaitingData.countdown, "(连接断开)");
+                    console.log("🏟️ [ArenaWaiting] 本地倒计时(断线递减):", self._arenaWaitingData.countdown);
                 }
             }
             // 如果连接恢复，同步服务端倒计时
