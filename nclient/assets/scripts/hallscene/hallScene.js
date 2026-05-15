@@ -2525,43 +2525,11 @@ cc.Class({
         
         topBar.parent = waitingNode;
         
-        // 4. 创建玩家列表容器（ScrollView，一排3个）
-        var scrollViewNode = new cc.Node("ScrollView");
-        scrollViewNode.setContentSize(cc.size(1180, 400));
-        scrollViewNode.setPosition(0, -40);
-        
-        var scrollView = scrollViewNode.addComponent(cc.ScrollView);
-        scrollView.horizontal = false;
-        scrollView.vertical = true;
-        scrollView.inertia = true;
-        scrollView.elastic = true;
-        
-        // Content 节点
+        // 4. 创建玩家列表容器（一排3个，手动定位布局）
         var contentNode = new cc.Node("Content");
         contentNode.setContentSize(cc.size(1160, 400));
-        contentNode.anchorY = 1;
-        contentNode.setPosition(0, 200);
-        
-        // Layout 组件（网格布局，一排3个）
-        var layout = contentNode.addComponent(cc.Layout);
-        layout.type = cc.Layout.Type.GRID;
-        layout.horizontalDirection = cc.Layout.HorizontalDirection.LEFT_TO_RIGHT;
-        layout.verticalDirection = cc.Layout.VerticalDirection.TOP_TO_BOTTOM;
-        layout.cellSize = cc.size(360, 180);
-        layout.startAxis = cc.Layout.Axis.HORIZONTAL;
-        layout.constraint = cc.Layout.Constraint.FIXED_ROW;
-        layout.constraintNum = 3;  // 一排3个
-        layout.spacingX = 20;
-        layout.spacingY = 20;
-        layout.paddingTop = 20;
-        layout.paddingBottom = 20;
-        layout.paddingLeft = 20;
-        layout.paddingRight = 20;
-        
-        contentNode.parent = scrollViewNode;
-        scrollView.content = contentNode;
-        
-        scrollViewNode.parent = waitingNode;
+        contentNode.setPosition(0, -40);
+        contentNode.parent = waitingNode;
         
         // 5. 创建底部按钮区
         var bottomBar = new cc.Node("BottomBar");
@@ -2875,17 +2843,29 @@ cc.Class({
         var players = this._arenaWaitingData.players || [];
         console.log("🏟️ [ArenaWaiting] 更新玩家列表，玩家数量:", players.length);
         
+        // 布局参数：一排3个
+        var itemWidth = 360;
+        var itemHeight = 160;
+        var spacingX = 20;
+        var spacingY = 20;
+        var cols = 3;
+        var startX = -480 + itemWidth / 2;  // 起始X位置
+        var startY = 140;  // 起始Y位置（顶部）
+        
         // 添加玩家项
         for (var i = 0; i < players.length; i++) {
             var player = players[i];
             var itemNode = this._createArenaPlayerItem(player, i);
+            
+            // 计算位置：一排3个
+            var col = i % cols;
+            var row = Math.floor(i / cols);
+            var x = startX + col * (itemWidth + spacingX);
+            var y = startY - row * (itemHeight + spacingY);
+            
+            itemNode.setPosition(x, y);
             itemNode.parent = this._arenaWaitingContent;
         }
-        
-        // 更新容器高度
-        var rows = Math.ceil(players.length / 3);
-        var contentHeight = rows * 200 + 40;
-        this._arenaWaitingContent.setContentSize(1160, Math.max(contentHeight, 400));
     },
     
     /**
@@ -2893,24 +2873,21 @@ cc.Class({
      */
     _createArenaPlayerItem: function(player, index) {
         var itemNode = new cc.Node("PlayerItem_" + index);
-        itemNode.setContentSize(cc.size(360, 180));
+        itemNode.setContentSize(cc.size(360, 160));
         
         // 卡片背景
         var bgNode = new cc.Node("Bg");
-        bgNode.setContentSize(cc.size(340, 160));
+        bgNode.setContentSize(cc.size(340, 140));
         var bgGraphics = bgNode.addComponent(cc.Graphics);
-        bgGraphics.fillColor = cc.color(40, 45, 70, 200);
-        bgGraphics.roundRect(-170, -80, 340, 160, 10);
+        bgGraphics.fillColor = cc.color(40, 45, 70, 220);
+        bgGraphics.roundRect(-170, -70, 340, 140, 10);
         bgGraphics.fill();
-        bgGraphics.strokeColor = cc.color(100, 120, 180);
-        bgGraphics.lineWidth = 2;
-        bgGraphics.stroke();
         bgNode.parent = itemNode;
         
         // 头像节点
         var avatarNode = new cc.Node("Avatar");
         avatarNode.setPosition(0, 20);
-        avatarNode.setContentSize(cc.size(80, 80));
+        avatarNode.setContentSize(cc.size(70, 70));
         
         var avatarSprite = avatarNode.addComponent(cc.Sprite);
         avatarSprite.type = cc.Sprite.Type.SIMPLE;
@@ -2918,29 +2895,18 @@ cc.Class({
         
         // 加载头像
         this._loadArenaPlayerAvatar(player.avatar, avatarSprite);
-        
-        // 圆形遮罩
-        var maskNode = new cc.Node("AvatarMask");
-        maskNode.setPosition(0, 20);
-        maskNode.setContentSize(cc.size(80, 80));
-        var mask = maskNode.addComponent(cc.Mask);
-        mask.type = cc.Mask.Type.ELLIPSE;
-        mask.segements = 64;
-        
-        avatarNode.parent = maskNode;
-        maskNode.parent = itemNode;
+        avatarNode.parent = itemNode;
         
         // 昵称节点（在头像下方）
         var nameNode = new cc.Node("NameLabel");
-        nameNode.setPosition(0, -50);
+        nameNode.setPosition(0, -40);
         
         var nameLabel = nameNode.addComponent(cc.Label);
         var playerName = player.player_name || player.name || ("玩家" + (player.player_id || index));
         nameLabel.string = playerName;
         nameLabel.fontSize = 18;
         nameLabel.lineHeight = 24;
-        nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        nameNode.setContentSize(cc.size(320, 24));
+        nameNode.setContentSize(cc.size(300, 24));
         
         // 机器人用灰色，真人用白色
         if (player.is_robot) {
@@ -2955,23 +2921,6 @@ cc.Class({
         outline.width = 2;
         
         nameNode.parent = itemNode;
-        
-        // 机器人标识
-        if (player.is_robot) {
-            var robotTag = new cc.Node("RobotTag");
-            robotTag.setPosition(130, 60);
-            var tagLabel = robotTag.addComponent(cc.Label);
-            tagLabel.string = "AI";
-            tagLabel.fontSize = 14;
-            tagLabel.lineHeight = 18;
-            robotTag.color = cc.color(255, 200, 100);
-            
-            var tagOutline = robotTag.addComponent(cc.LabelOutline);
-            tagOutline.color = cc.color(0, 0, 0);
-            tagOutline.width = 1;
-            
-            robotTag.parent = itemNode;
-        }
         
         return itemNode;
     },
