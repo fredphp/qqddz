@@ -314,6 +314,7 @@ func (b *ArenaStatusBroadcaster) checkAndBroadcast() {
 
                 // 首次获取状态，标记需要广播
                 if !exists {
+                        log.Printf("[ArenaStatus] 🆕 首次获取竞技场状态: roomID=%d, periodNoStr=%s, statusText=%s", roomID, status.PeriodNoStr, status.StatusText)
                         b.lastStatus[roomID] = &status
                         needBroadcast = true
                         continue
@@ -324,6 +325,7 @@ func (b *ArenaStatusBroadcaster) checkAndBroadcast() {
 
                 // 情况1：期号变化
                 if lastStatus.PeriodNoStr != status.PeriodNoStr && status.PeriodNoStr != "" {
+                        log.Printf("[ArenaStatus] 🔄 检测到期号变化: roomID=%d, lastPeriodNoStr=%s, newPeriodNoStr=%s", roomID, lastStatus.PeriodNoStr, status.PeriodNoStr)
                         shouldBroadcast = true
                         // 期号变化时，触发上一期结算和新期号创建
                         b.handlePeriodChange(roomID, lastStatus.PeriodNoStr, status.PeriodNoStr, status)
@@ -331,6 +333,7 @@ func (b *ArenaStatusBroadcaster) checkAndBroadcast() {
 
                 // 情况2：阶段变化
                 if lastStatus.StatusText != status.StatusText {
+                        log.Printf("[ArenaStatus] 📋 检测到阶段变化: roomID=%d, lastStatus=%s, newStatus=%s", roomID, lastStatus.StatusText, status.StatusText)
                         shouldBroadcast = true
                         // 阶段变化处理
                         b.handlePhaseChange(roomID, status)
@@ -477,6 +480,7 @@ func (b *ArenaStatusBroadcaster) handlePeriodChange(roomID uint64, oldPeriodNo, 
                 log.Printf("[ArenaStatus] ⚠️ 无法获取期号缓存信息: roomID=%d", roomID)
                 return
         }
+        log.Printf("[ArenaStatus] 📋 期号缓存信息: PeriodNo=%s, Phase=%d, TotalPlayers=%d", periodInfo.PeriodNo, periodInfo.Phase, periodInfo.TotalPlayers)
 
         // 1. 结算上一期（如果存在）- 结算任务会自动清理缓存
         if oldPeriodNo != "" {
@@ -484,6 +488,13 @@ func (b *ArenaStatusBroadcaster) handlePeriodChange(roomID uint64, oldPeriodNo, 
                 // 获取上一期的报名玩家列表
                 signupPlayers := b.GetSignupList(oldPeriodNo)
                 log.Printf("[ArenaStatus] 📋 获取报名列表: oldPeriodNo=%s, 报名人数=%d", oldPeriodNo, len(signupPlayers))
+                
+                // 🔧【调试】如果报名列表为空，尝试用期号缓存中的期号查询
+                if len(signupPlayers) == 0 && periodInfo.PeriodNo != "" && periodInfo.PeriodNo != oldPeriodNo {
+                        log.Printf("[ArenaStatus] 🔍 尝试用缓存期号查询报名列表: periodNo=%s", periodInfo.PeriodNo)
+                        signupPlayers = b.GetSignupList(periodInfo.PeriodNo)
+                        log.Printf("[ArenaStatus] 📋 缓存期号报名人数=%d", len(signupPlayers))
+                }
                 
                 // 🔧【重构】如果报名人数不是3的倍数，自动添加机器人补位
                 // 例如：31人 -> 补2个机器人 -> 33人（11桌）
@@ -2759,11 +2770,13 @@ func (b *ArenaStatusBroadcaster) forceRefreshPeriodCache(roomID uint64) {
 // AddPlayerToSignupList 添加玩家到报名列表（Redis）
 func (b *ArenaStatusBroadcaster) AddPlayerToSignupList(periodNo string, playerID uint64) error {
         if b.server.redis == nil {
+                log.Printf("[ArenaSignup] ⚠️ Redis 不可用，无法添加玩家到报名列表: periodNo=%s, playerID=%d", periodNo, playerID)
                 return nil
         }
 
         ctx := context.Background()
         key := getSignupListKey(periodNo)
+        log.Printf("[ArenaSignup] 🔑 报名列表 Redis key: %s", key)
 
         // 使用SISMEMBER检查是否已在集合中（O(1)复杂度，比LRange更高效）
         isMember, err := b.server.redis.SIsMember(ctx, key, playerID).Result()
@@ -2779,7 +2792,7 @@ func (b *ArenaStatusBroadcaster) AddPlayerToSignupList(periodNo string, playerID
         // 设置过期时间（10分钟后过期，每期只有5分钟，预留缓冲）
         b.server.redis.Expire(ctx, key, 10*time.Minute)
 
-        log.Printf("[ArenaSignup] 玩家 %d 加入报名列表，期号=%s", playerID, periodNo)
+        log.Printf("[ArenaSignup] ✅ 玩家 %d 加入报名列表，期号=%s, key=%s", playerID, periodNo, key)
         return nil
 }
 
