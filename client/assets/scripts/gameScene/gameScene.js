@@ -483,6 +483,29 @@ cc.Class({
 
         // 🔧【新增】检查是否是竞技场模式
         var isArenaMode = result.room_category === 2
+        
+        // 🔧【优化】竞技场模式下，优先使用预加载的数据
+        if (isArenaMode && myglobal.arenaMatchData) {
+            console.log("🏟️ [_processRoomData] 使用预加载的竞技场数据:", JSON.stringify(myglobal.arenaMatchData))
+            
+            // 使用预加载的数据补充缺失字段
+            if (!result.base_score && myglobal.arenaMatchData.base_score) {
+                result.base_score = myglobal.arenaMatchData.base_score
+            }
+            if (!result.multiplier && myglobal.arenaMatchData.multiplier) {
+                result.multiplier = myglobal.arenaMatchData.multiplier
+            }
+            if (!result.match_rounds && myglobal.arenaMatchData.match_rounds) {
+                result.match_rounds = myglobal.arenaMatchData.match_rounds
+            }
+            if (!result.match_duration && myglobal.arenaMatchData.match_duration) {
+                result.match_duration = myglobal.arenaMatchData.match_duration
+            }
+            if (!result.initial_arena_gold && myglobal.arenaMatchData.initial_arena_gold) {
+                result.initial_arena_gold = myglobal.arenaMatchData.initial_arena_gold
+            }
+        }
+        
         if (isArenaMode) {
             console.log("🏟️ [_processRoomData] 竞技场模式: room_category=2, playerdata数量=" + playerdata_list.length + ", 期号=" + result.period_no)
         }
@@ -491,6 +514,12 @@ cc.Class({
         this._roomCategory = result.room_category || 1
         this._isArenaMode = isArenaMode
         this._periodNo = result.period_no || "" // 🔧【新增】保存期号
+        
+        // 🔧【新增】保存底分和倍数
+        this._baseScore = result.base_score || 1
+        this._multiplier = result.multiplier || 1
+        this._matchRounds = result.match_rounds || 1
+        this._initialArenaGold = result.initial_arena_gold || 1000
 
         this._playerdataList = playerdata_list
 
@@ -499,6 +528,14 @@ cc.Class({
             this.roomid_label.string = "房间号:" + roomid
         } else {
             console.error("🎮 [游戏场景] roomid_label 未绑定！")
+        }
+        
+        // 🔧【优化】更新底分和倍数标签
+        if (this.di_label && result.base_score) {
+            this.di_label.string = "底:" + result.base_score
+        }
+        if (this.beishu_label && result.multiplier) {
+            this.beishu_label.string = "倍数:" + result.multiplier
         }
         
         myglobal.playerData.housemanageid = result.housemanageid || result.creator_id || result.creatorId || ""
@@ -532,7 +569,7 @@ cc.Class({
         
         // 🔧【修复】竞技场模式下不显示等待玩家UI（所有玩家已分配好）
         if (isArenaMode) {
-            console.log("🏟️ [_processRoomData] 竞技场模式：不显示等待玩家UI")
+            console.log("🏟️ [_processRoomData] 竞技场模式：不显示等待玩家UI，玩家数量=" + playerdata_list.length)
             // 竞技场模式下所有玩家应该已经准备好，直接等待游戏开始
         } else if (playerdata_list.length < 3) {
             this._showWaitingUI(3 - playerdata_list.length, roomid)

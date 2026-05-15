@@ -2015,6 +2015,17 @@ cc.Class({
                 // 🔧【关键修复】转换数据格式：players → playerdata
                 // 游戏场景期望的数据格式与普通场一致
                 var players = roomData.players || [];
+                
+                // 🔧【优化】获取房间配置信息（从预加载的房间列表中）
+                var roomConfig = self._arenaRooms ? self._arenaRooms.find(function(r) {
+                    return r.config && r.config.id === data.room_id;
+                }) : null;
+                var baseScore = roomConfig ? (roomConfig.config.base_score || 1) : 1;
+                var multiplier = roomConfig ? (roomConfig.config.multiplier || 1) : 1;
+                
+                // 🔧【优化】计算玩家初始竞技金币（从服务端数据或配置）
+                var initialArenaGold = roomData.initial_arena_gold || (roomConfig ? roomConfig.config.min_gold : 1000);
+                
                 var convertedRoomData = {
                     roomid: roomData.room_code || "ARENA",
                     room_code: roomData.room_code || "ARENA",
@@ -2024,26 +2035,52 @@ cc.Class({
                             accountid: p.id,
                             nick_name: p.name,
                             avatarUrl: p.avatar || "avatar_1",  // 🔧【修复】使用实际头像URL
-                            gold_count: p.gold_count || 0,
-                            goldcount: p.gold_count || 0,
+                            gold_count: p.gold_count || p.arena_gold || initialArenaGold,  // 🔧【优化】使用预加载的初始金币
+                            goldcount: p.gold_count || p.arena_gold || initialArenaGold,
                             seatindex: (p.seat !== undefined ? p.seat : idx) + 1,
-                            isready: p.ready || false,
-                            arena_gold: p.arena_gold || 0,  // 🔧【修复】添加竞技场金币
+                            isready: p.ready || true,  // 🔧【优化】竞技场玩家默认已准备
+                            arena_gold: p.arena_gold || initialArenaGold,  // 🔧【优化】使用预加载的初始金币
                             match_coin: p.match_coin || 0,  // 兼容字段
-                            period_no: p.period_no || ""    // 期号
+                            period_no: data.period_no || roomData.period_no || ""  // 期号
                         };
                     }),
                     housemanageid: roomData.creator_id || "",
                     creator_id: roomData.creator_id || "",
                     room_category: 2,  // 竞技场
-                    period_no: data.period_no
+                    period_no: data.period_no || roomData.period_no || "",
+                    // 🔧【新增】传递预加载的房间配置信息
+                    base_score: baseScore,
+                    multiplier: multiplier,
+                    room_id: data.room_id,
+                    room_name: data.room_name,
+                    match_rounds: data.match_rounds,
+                    match_duration: data.match_duration,
+                    signup_fee: data.signup_fee,
+                    total_players: data.total_players || players.length,
+                    initial_arena_gold: initialArenaGold
                 };
                 
                 console.log("🏟️ [Arena] 转换后的房间数据:", JSON.stringify(convertedRoomData));
                 
-                // 保存转换后的房间数据
+                // 🔧【优化】保存完整的竞技场预加载数据
                 if (myglobal) {
                     myglobal.roomData = convertedRoomData;
+                    // 🔧【新增】保存竞技场专用数据，供游戏场景使用
+                    myglobal.arenaMatchData = {
+                        period_no: data.period_no,
+                        room_id: data.room_id,
+                        room_name: data.room_name,
+                        match_rounds: data.match_rounds,
+                        match_duration: data.match_duration,
+                        signup_fee: data.signup_fee,
+                        base_score: baseScore,
+                        multiplier: multiplier,
+                        initial_arena_gold: initialArenaGold,
+                        players: convertedRoomData.playerdata,
+                        table_id: roomData.table_id || 1,
+                        start_time: Date.now()
+                    };
+                    console.log("🏟️ [Arena] 已保存竞技场预加载数据:", JSON.stringify(myglobal.arenaMatchData));
                 }
                 
                 // 进入游戏场景
