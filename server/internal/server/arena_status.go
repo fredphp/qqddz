@@ -1125,8 +1125,8 @@ func (b *ArenaStatusBroadcaster) createRoomsForEnteredPlayers(enterPhase *EnterP
                 return
         }
 
-        // 获取房间配置
-        roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
+        // 验证房间配置存在
+        _, err := database.GetRoomConfigByID(enterPhase.RoomID)
         if err != nil {
                 log.Printf("[ArenaStatus] ⚠️ 获取房间配置失败: %v", err)
                 return
