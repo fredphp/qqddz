@@ -2329,6 +2329,21 @@ cc.Class({
             window.arenaData.saveToLocal && window.arenaData.saveToLocal();
         }
         
+        // 🔧【关键修复】保存弹窗数据，供 _onArenaWaitingStatus 使用
+        // 不在本地计算倒计时，等服务端推送
+        this._pendingArenaEnterData = {
+            period_no: data.period_no || "",
+            room_id: data.room_id || 0,
+            room_name: data.room_name || "竞技场",
+            total_players: data.total_players || 0,
+            start_time: data.start_time,
+            message: data.message || "比赛即将开始！"
+        };
+        
+        // 🔧【关键修复】提前注册事件监听器，确保能收到服务端推送
+        // 如果监听器还没有注册，先注册
+        this._ensureArenaWaitingEventsRegistered();
+        
         // 🔧【修改】发送 arena_enter 请求，等待服务端推送 arena_waiting_status
         var socket = myglobal && myglobal.socket;
         if (socket && socket.sendArenaEnter) {
@@ -2339,17 +2354,6 @@ cc.Class({
             });
             
             console.log("🏟️ [Arena] 已发送 arena_enter 请求，等待服务端推送等待状态...");
-            
-            // 🔧【关键修复】保存弹窗数据，供 _onArenaWaitingStatus 使用
-            // 不在本地计算倒计时，等服务端推送
-            this._pendingArenaEnterData = {
-                period_no: data.period_no || "",
-                room_id: data.room_id || 0,
-                room_name: data.room_name || "竞技场",
-                total_players: data.total_players || 0,
-                start_time: data.start_time,
-                message: data.message || "比赛即将开始！"
-            };
             
             // 🔧【关键修复】不立即显示等待界面，等服务端推送 arena_waiting_status
             // 服务端会推送正确的倒计时
@@ -2572,8 +2576,8 @@ cc.Class({
         // 🔧【新增】启动本地备用计时器（服务端断线时使用）
         this._startArenaLocalCountdownTimer();
         
-        // 注册事件监听
-        this._registerArenaWaitingEvents();
+        // 注册事件监听（确保不重复注册）
+        this._ensureArenaWaitingEventsRegistered();
         
         // 检查是否有缓存数据
         console.log("🏟️ [Arena] 检查缓存数据...");
@@ -2690,6 +2694,21 @@ cc.Class({
     },
     
     /**
+     * 确保竞技场等待界面事件监听已注册（防止重复注册）
+     */
+    _ensureArenaWaitingEventsRegistered: function() {
+        // 如果已经注册过，直接返回
+        if (this._arenaWaitingEventsRegistered) {
+            console.log("🏟️ [ArenaWaiting] 事件监听器已注册，跳过");
+            return;
+        }
+        
+        console.log("🏟️ [ArenaWaiting] 注册事件监听器");
+        this._registerArenaWaitingEvents();
+        this._arenaWaitingEventsRegistered = true;
+    },
+    
+    /**
      * 取消竞技场等待界面事件监听
      */
     _unregisterArenaWaitingEvents: function() {
@@ -2710,6 +2729,9 @@ cc.Class({
         if (this._arenaAssignStartHandler) {
             evt.off("arena_assign_start_notify", this._arenaAssignStartHandler);
         }
+        
+        // 重置注册标志
+        this._arenaWaitingEventsRegistered = false;
     },
     
     /**
