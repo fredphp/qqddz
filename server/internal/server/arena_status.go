@@ -2290,7 +2290,68 @@ func (b *ArenaStatusBroadcaster) sendToNewClient(playerID uint64) {
 func (b *ArenaStatusBroadcaster) sendPendingMatchStartPopup(playerID uint64, client *Client) {
         log.Printf("[ArenaStatus] 🔍 sendPendingMatchStartPopup: 检查玩家 %d 是否有待进入的比赛", playerID)
 
-        // 🔧【修复】先尝试从 Redis 恢复进入阶段状态（同时检查内存）
+        // 🔧【关键修复】先直接从 Redis 获取玩家个人的进入阶段状态
+        // 这比 getActiveEnterPhaseForPlayer 更可靠，确保刷新页面后能立即获取弹窗
+        data := b.getPlayerEnterPhaseFromRedis(playerID)
+        if data != nil {
+                log.Printf("[ArenaStatus] 🔍 玩家 %d 从Redis获取到进入阶段数据: periodNo=%s", playerID, data.PeriodNo)
+                
+                // 检查是否已取消
+                if data.HasCancelled {
+                        log.Printf("[ArenaStatus] 🔍 玩家 %d 已取消报名", playerID)
+                        return
+                }
+
+                // 🔧【关键修复】检查是否已进入（进入阶段结束时标记）
+                // 如果已进入，说明游戏已经开始，需要通知玩家进入房间
+                if data.HasEntered {
+                        log.Printf("[ArenaStatus] 🎮 玩家 %d 已进入游戏，发送进入房间通知", playerID)
+                        b.sendGameStartedNotification(playerID, client, data)
+                        return
+                }
+
+                // 检查是否超时
+                elapsed := time.Now().UnixMilli() - data.StartTime
+                remaining := data.Countdown - int(elapsed/1000)
+                if remaining <= 0 {
+                        log.Printf("[ArenaStatus] 🔍 玩家 %d 进入阶段已超时: remaining=%d，游戏可能已开始", playerID, remaining)
+                        // 🔧【修复】超时不删除数据，而是检查游戏是否已开始
+                        // 如果游戏已开始，通知玩家进入房间
+                        b.sendGameStartedNotification(playerID, client, data)
+                        return
+                }
+
+                log.Printf("[ArenaStatus] 🔄 玩家 %d 重连，发现待进入的比赛: periodNo=%s, remaining=%ds", playerID, data.PeriodNo, remaining)
+
+                // 获取房间配置
+                roomConfig, err := database.GetRoomConfigByID(data.RoomID)
+                if err != nil {
+                        log.Printf("[ArenaStatus] ⚠️ 获取房间配置失败: %v", err)
+                        return
+                }
+
+                // 构建弹窗消息
+                payload := &protocol.ArenaMatchStartPayload{
+                        PeriodNo:      data.PeriodNo,
+                        RoomID:        data.RoomID,
+                        RoomName:      roomConfig.RoomName,
+                        RoomConfigID:  data.RoomID,
+                        SignupFee:     data.SignupFee,
+                        TotalPlayers:  0,
+                        MatchDuration: PeriodTotalMinutes,
+                        MatchRounds:   5,
+                        Countdown:     remaining,
+                        StartTime:     data.StartTime,
+                        Message:       "比赛进行中，请点击进入！",
+                }
+
+                msg := codec.MustNewMessage(protocol.MsgArenaMatchStart, payload)
+                client.SendMessage(msg)
+                log.Printf("[ArenaStatus] ✅ 已向重连玩家 %d 发送比赛弹窗(Redis): periodNo=%s, remaining=%ds", playerID, data.PeriodNo, remaining)
+                return
+        }
+
+        // 如果 Redis 中没有，再检查内存（兼容旧逻辑）
         enterPhase := b.getActiveEnterPhaseForPlayer(playerID)
         if enterPhase == nil {
                 log.Printf("[ArenaStatus] 🔍 玩家 %d 没有待进入的比赛", playerID)
@@ -2303,7 +2364,7 @@ func (b *ArenaStatusBroadcaster) sendPendingMatchStartPopup(playerID uint64, cli
                 return
         }
 
-        log.Printf("[ArenaStatus] 🔄 玩家 %d 重连，发现待进入的比赛: periodNo=%s, HasEntered=%v", playerID, enterPhase.PeriodNo, status.HasEntered)
+        log.Printf("[ArenaStatus] 🔄 玩家 %d 重连，从内存发现待进入的比赛: periodNo=%s, HasEntered=%v", playerID, enterPhase.PeriodNo, status.HasEntered)
 
         // 获取房间配置
         roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
@@ -2348,8 +2409,50 @@ func (b *ArenaStatusBroadcaster) sendPendingMatchStartPopup(playerID uint64, cli
 
         msg := codec.MustNewMessage(protocol.MsgArenaMatchStart, payload)
         client.SendMessage(msg)
-        log.Printf("[ArenaStatus] ✅ 已向重连玩家 %d 重新发送比赛弹窗: periodNo=%s, remaining=%ds", playerID, enterPhase.PeriodNo, remaining)
+        log.Printf("[ArenaStatus] ✅ 已向重连玩家 %d 发送比赛弹窗(内存): periodNo=%s, remaining=%ds", playerID, enterPhase.PeriodNo, remaining)
 }
+
+// 🔧【新增】sendGameStartedNotification 发送游戏已开始的通知
+// 当玩家在进入阶段结束后重连时，通知玩家游戏已经开始
+func (b *ArenaStatusBroadcaster) sendGameStartedNotification(playerID uint64, client *Client, data *EnterPhaseRedisData) {
+        // 检查玩家是否已在房间中
+        currentRoom := client.GetRoom()
+        if currentRoom != "" {
+                log.Printf("[ArenaStatus] 玩家 %d 已在房间 %s 中，跳过通知", playerID, currentRoom)
+                return
+        }
+        
+        // 获取房间配置
+        roomConfig, err := database.GetRoomConfigByID(data.RoomID)
+        if err != nil {
+                log.Printf("[ArenaStatus] ⚠️ 获取房间配置失败: %v", err)
+                return
+        }
+        
+        // 发送游戏已开始的通知
+        payload := &protocol.ArenaMatchStartPayload{
+                PeriodNo:      data.PeriodNo,
+                RoomID:        data.RoomID,
+                RoomName:      roomConfig.RoomName,
+                RoomConfigID:  data.RoomID,
+                SignupFee:     data.SignupFee,
+                TotalPlayers:  0,
+                MatchDuration: PeriodTotalMinutes,
+                MatchRounds:   5,
+                Countdown:     0, // 游戏已开始
+                StartTime:     data.StartTime,
+                Message:       "游戏已开始，正在为您进入房间...",
+        }
+        
+        msg := codec.MustNewMessage(protocol.MsgArenaMatchStart, payload)
+        client.SendMessage(msg)
+        log.Printf("[ArenaStatus] ✅ 已向玩家 %d 发送游戏开始通知: periodNo=%s", playerID, data.PeriodNo)
+        
+        // 🔧【TODO】自动将玩家加入已创建的房间
+        // 这需要查询玩家被分配到哪个房间，然后调用 JoinRoom
+}
+
+
 
 // calculateArenaStatus 计算所有竞技场的状态
 func (b *ArenaStatusBroadcaster) calculateArenaStatus() []protocol.ArenaRoomStatus {
