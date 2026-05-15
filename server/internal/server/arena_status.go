@@ -1027,6 +1027,14 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
         if enterPhase.timer != nil {
                 enterPhase.timer.Stop()
         }
+        // 停止等待阶段定时器
+        if enterPhase.WaitingTimer != nil {
+                enterPhase.WaitingTimer.Stop()
+        }
+        // 停止分配阶段定时器
+        if enterPhase.AssigningTimer != nil {
+                enterPhase.AssigningTimer.Stop()
+        }
         // 清理进入阶段信息
         delete(b.enterPhases, periodNo)
         b.enterPhasesMu.Unlock()
@@ -1036,13 +1044,20 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
 
         // 统计玩家状态
         var timeoutPlayers []uint64
+        var enteredPlayers []uint64
 
         for playerID, status := range enterPhase.PlayerStatuses {
                 if !status.HasEntered && !status.HasCancelled {
                         // 未进入也未取消的玩家 = 超时未响应
                         timeoutPlayers = append(timeoutPlayers, playerID)
+                } else if status.HasEntered && !status.HasCancelled {
+                        // 已进入的玩家
+                        enteredPlayers = append(enteredPlayers, playerID)
                 }
         }
+
+        log.Printf("[ArenaStatus] ⏰ 进入阶段超时: periodNo=%s, 超时玩家=%d, 已进入玩家=%d", 
+                periodNo, len(timeoutPlayers), len(enteredPlayers))
 
         // 对于超时未响应的玩家，自动取消并返还竞技币
         for _, playerID := range timeoutPlayers {
@@ -1061,31 +1076,125 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
                 b.updatePlayerEnterPhaseCancelled(playerID)
         }
 
-        // 🔧【关键修复】对于已经进入的玩家，为他们的桌子开始游戏
-        for _, table := range enterPhase.Tables {
-                if !table.RoomCreated || table.RoomCode == "" {
-                        continue
-                }
-                // 检查这桌是否有已进入的玩家
-                hasEnteredPlayer := false
-                for _, playerID := range table.Players {
-                        if status, ok := enterPhase.PlayerStatuses[playerID]; ok && status.HasEntered {
-                                hasEnteredPlayer = true
+        // 🔧【关键修复】对于已经进入的玩家，为他们创建房间并开始游戏
+        if len(enteredPlayers) > 0 {
+                // 检查是否已有房间创建
+                hasCreatedRoom := false
+                for _, table := range enterPhase.Tables {
+                        if table.RoomCreated && table.RoomCode != "" {
+                                hasCreatedRoom = true
                                 break
                         }
                 }
-                // 如果有已进入的玩家且游戏未开始，开始游戏
-                if hasEnteredPlayer && !table.AllEntered {
-                        gameRoom := b.server.roomManager.GetRoom(table.RoomCode)
-                        if gameRoom != nil {
-                                table.AllEntered = true
-                                b.startArenaGame(gameRoom)
+
+                if hasCreatedRoom {
+                        // 已有房间，检查并开始游戏
+                        for _, table := range enterPhase.Tables {
+                                if !table.RoomCreated || table.RoomCode == "" {
+                                        continue
+                                }
+                                hasEnteredPlayer := false
+                                for _, playerID := range table.Players {
+                                        if status, ok := enterPhase.PlayerStatuses[playerID]; ok && status.HasEntered {
+                                                hasEnteredPlayer = true
+                                                break
+                                        }
+                                }
+                                if hasEnteredPlayer && !table.AllEntered {
+                                        gameRoom := b.server.roomManager.GetRoom(table.RoomCode)
+                                        if gameRoom != nil {
+                                                table.AllEntered = true
+                                                b.startArenaGame(gameRoom)
+                                        }
+                                }
                         }
+                } else {
+                        // 没有房间创建，需要为已进入的玩家创建房间
+                        log.Printf("[ArenaStatus] 🚀 为已进入玩家创建房间: periodNo=%s, 玩家数=%d", periodNo, len(enteredPlayers))
+                        b.createRoomsForEnteredPlayers(enterPhase, enteredPlayers)
                 }
         }
 
         // 发送关闭弹窗消息
         b.sendCloseDialogNotification(enterPhase.RoomID, periodNo)
+}
+
+// 🔧【新增】为已进入的玩家创建房间并开始游戏
+func (b *ArenaStatusBroadcaster) createRoomsForEnteredPlayers(enterPhase *EnterPhaseInfo, enteredPlayers []uint64) {
+        if len(enteredPlayers) == 0 {
+                return
+        }
+
+        // 获取房间配置
+        roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
+        if err != nil {
+                log.Printf("[ArenaStatus] ⚠️ 获取房间配置失败: %v", err)
+                return
+        }
+
+        // 获取所有玩家信息
+        var players []database.Player
+        database.DB().Where("id IN ?", enteredPlayers).Find(&players)
+        playerMap := make(map[uint64]*database.Player)
+        for i := range players {
+                playerMap[players[i].ID] = &players[i]
+        }
+
+        // 随机打乱玩家顺序
+        rand.Shuffle(len(enteredPlayers), func(i, j int) {
+                enteredPlayers[i], enteredPlayers[j] = enteredPlayers[j], enteredPlayers[i]
+        })
+
+        // 每3人一桌，不足补机器人
+        for i := 0; i < len(enteredPlayers); i += 3 {
+                tableID := i/3 + 1
+                table := &GameTable{
+                        TableID:        tableID,
+                        Players:        make([]uint64, 0, 3),
+                        RobotPlayers:   make([]uint64, 0),
+                        PlayerStatuses: make(map[uint64]bool),
+                }
+
+                end := i + 3
+                if end > len(enteredPlayers) {
+                        end = len(enteredPlayers)
+                }
+
+                // 添加玩家
+                for j := i; j < end; j++ {
+                        playerID := enteredPlayers[j]
+                        table.Players = append(table.Players, playerID)
+                        table.PlayerStatuses[playerID] = true
+
+                        if playerMap[playerID] != nil && playerMap[playerID].PlayerType == database.PlayerTypeRobot {
+                                table.RobotPlayers = append(table.RobotPlayers, playerID)
+                        }
+                }
+
+                // 如果不足3人，补机器人
+                if len(table.Players) < 3 {
+                        needRobots := 3 - len(table.Players)
+                        var robots []database.Player
+                        database.DB().Where("player_type = ? AND robot_status = ?",
+                                database.PlayerTypeRobot, database.RobotStatusIdle).
+                                Order("RAND()").
+                                Limit(needRobots).
+                                Find(&robots)
+
+                        for idx := range robots {
+                                robot := &robots[idx]
+                                table.Players = append(table.Players, robot.ID)
+                                table.RobotPlayers = append(table.RobotPlayers, robot.ID)
+                                table.PlayerStatuses[robot.ID] = true
+                                playerMap[robot.ID] = robot
+                        }
+                }
+
+                log.Printf("[ArenaStatus] 📋 创建桌子: tableID=%d, 玩家=%v", tableID, table.Players)
+
+                // 为这桌创建房间并开始游戏
+                b.createAndStartTableGameForWaiting(enterPhase, table)
+        }
 }
 
 // 🔧【新增】处理玩家点击"进入"按钮
