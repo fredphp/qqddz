@@ -1,9 +1,5 @@
 node_modules/
 .env
-nclient/library/
-nclient/local/
-nclient/temp/
-server/bin/server
 
 # Next.js files (not used in this project)
 .next/
@@ -21,3 +17,12 @@ dev.log
 .DS_Store
 Thumbs.db
 
+
+# Cocos Creator 构建缓存
+nclient/library/
+nclient/local/
+nclient/temp/
+
+# 编译产物
+server/bin/server
+*.exe
