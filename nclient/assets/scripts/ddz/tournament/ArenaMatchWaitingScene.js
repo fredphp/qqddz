@@ -432,39 +432,67 @@ cc.Class({
 
     _registerEvents: function() {
         var self = this
+        var myglobal = window.myglobal
+        var evt = myglobal && myglobal.eventlister
         
-        // 监听等待状态推送
-        if (window.myglobal && window.myglobal.socket) {
-            var socket = window.myglobal.socket
-            
-            // 等待状态推送
-            socket.on("arena_waiting_status_notify", function(data) {
-                console.log("🏟️ [ArenaMatchWaiting] 收到等待状态:", JSON.stringify(data))
-                self._onWaitingStatus(data)
-            })
-            
-            // 倒计时更新
-            socket.on("arena_waiting_tick_notify", function(data) {
-                console.log("🏟️ [ArenaMatchWaiting] 倒计时更新:", data.countdown)
-                self._onWaitingTick(data)
-            })
-            
-            // 玩家加入广播
-            socket.on("arena_player_joined_notify", function(data) {
-                console.log("🏟️ [ArenaMatchWaiting] 玩家加入:", JSON.stringify(data))
-                self._onPlayerJoined(data)
-            })
-            
-            // 分配阶段开始
-            socket.on("arena_assign_start_notify", function(data) {
-                console.log("🏟️ [ArenaMatchWaiting] 分配阶段开始:", JSON.stringify(data))
-                self._onAssignStart(data)
-            })
+        console.log("🏟️ [ArenaMatchWaiting] 注册事件监听, evt:", evt ? "存在" : "不存在")
+        
+        if (!evt) {
+            console.warn("🏟️ [ArenaMatchWaiting] eventlister 不存在，无法注册事件")
+            return
         }
+        
+        // 等待状态推送
+        this._waitingStatusHandler = function(data) {
+            console.log("🏟️ [ArenaMatchWaiting] ✅ 收到等待状态:", JSON.stringify(data))
+            self._onWaitingStatus(data)
+        }
+        evt.on("arena_waiting_status_notify", this._waitingStatusHandler)
+        
+        // 倒计时更新
+        this._waitingTickHandler = function(data) {
+            console.log("🏟️ [ArenaMatchWaiting] 倒计时更新:", data.countdown)
+            self._onWaitingTick(data)
+        }
+        evt.on("arena_waiting_tick_notify", this._waitingTickHandler)
+        
+        // 玩家加入广播
+        this._playerJoinedHandler = function(data) {
+            console.log("🏟️ [ArenaMatchWaiting] 玩家加入:", JSON.stringify(data))
+            self._onPlayerJoined(data)
+        }
+        evt.on("arena_player_joined_notify", this._playerJoinedHandler)
+        
+        // 分配阶段开始
+        this._assignStartHandler = function(data) {
+            console.log("🏟️ [ArenaMatchWaiting] 分配阶段开始:", JSON.stringify(data))
+            self._onAssignStart(data)
+        }
+        evt.on("arena_assign_start_notify", this._assignStartHandler)
+        
+        console.log("🏟️ [ArenaMatchWaiting] ✅ 事件监听注册完成")
     },
 
     _unregisterEvents: function() {
-        // 事件会随节点销毁自动取消
+        var myglobal = window.myglobal
+        var evt = myglobal && myglobal.eventlister
+        
+        if (!evt) return
+        
+        if (this._waitingStatusHandler) {
+            evt.off("arena_waiting_status_notify", this._waitingStatusHandler)
+        }
+        if (this._waitingTickHandler) {
+            evt.off("arena_waiting_tick_notify", this._waitingTickHandler)
+        }
+        if (this._playerJoinedHandler) {
+            evt.off("arena_player_joined_notify", this._playerJoinedHandler)
+        }
+        if (this._assignStartHandler) {
+            evt.off("arena_assign_start_notify", this._assignStartHandler)
+        }
+        
+        console.log("🏟️ [ArenaMatchWaiting] 事件监听已取消")
     },
 
     // ============================================================
