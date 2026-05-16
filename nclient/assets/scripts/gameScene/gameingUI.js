@@ -494,6 +494,13 @@ cc.Class({
             this._onTournamentFinalRank(data)
         }.bind(this))
 
+        // 🔧【新增】监听竞技场淘汰踢出房间通知
+        // 当玩家被淘汰时，服务端发送此消息通知客户端显示被淘汰提示
+        myglobal.socket.onArenaEliminatedKick(function(data){
+            console.log("🚪 [gameingUI] 收到淘汰踢出通知:", JSON.stringify(data))
+            this._onArenaEliminatedKick(data)
+        }.bind(this))
+
         // 内部事件：显示底牌
         // 🔧【关键修复】此事件已废弃，逻辑已移到 onCallLandlordEnd 和 onLandlordCards
         // 保留此监听器仅用于兼容旧版本，不再触发 pushThreeCard
@@ -6209,6 +6216,134 @@ cc.Class({
         
         // 显示最终榜单弹窗
         this._showTournamentFinalRankDialog(data)
+    },
+    
+    /**
+     * 🚪【竞技场】处理淘汰踢出房间通知
+     * 当玩家被淘汰时，服务端发送此消息
+     * @param {Object} data - { period_no, player_id, message }
+     */
+    _onArenaEliminatedKick: function(data) {
+        console.log("🚪 [_onArenaEliminatedKick] 收到淘汰踢出通知:", JSON.stringify(data))
+        
+        var self = this
+        var winSize = cc.winSize
+        
+        // 停止所有倒计时
+        this._stopPlayCountdown()
+        this._stopBidCountdown()
+        if (this._localArenaCountdownTimer) {
+            this.unschedule(this._localArenaCountdownTick)
+            this._localArenaCountdownTimer = null
+        }
+        
+        // 隐藏比赛金币显示
+        this._hideMatchCoinDisplay()
+        
+        // 关闭之前的结算弹窗
+        if (this._gameResultPopup || this._gameResultMask) {
+            this._closeGameResultPopup(this._gameResultPopup, this._gameResultMask)
+        }
+        
+        // 显示淘汰提示弹窗
+        var canvas = cc.find("Canvas") || cc.find("UI_ROOT") || this.node.parent
+        if (!canvas) canvas = this.node
+        
+        // ========== 遮罩层 ==========
+        var maskNode = new cc.Node("EliminatedKickMask")
+        maskNode.addComponent(cc.BlockInputEvents)
+        maskNode.color = new cc.Color(10, 5, 30)
+        maskNode.opacity = 200
+        maskNode.width = winSize.width * 2
+        maskNode.height = winSize.height * 2
+        maskNode.zIndex = 999
+        maskNode.parent = canvas
+        
+        // ========== 弹窗容器 ==========
+        var popupNode = new cc.Node("EliminatedKickPopup")
+        popupNode.scale = 0.3
+        popupNode.opacity = 0
+        popupNode.zIndex = 1000
+        popupNode.parent = canvas
+        
+        // 弹窗尺寸
+        var popupWidth = 500
+        var popupHeight = 280
+        
+        // ========== 主背景 ==========
+        var bgNode = new cc.Node("Bg")
+        var bg = bgNode.addComponent(cc.Graphics)
+        bg.fillColor = new cc.Color(30, 22, 54, 250)
+        bg.roundRect(-popupWidth/2, -popupHeight/2, popupWidth, popupHeight, 16)
+        bg.fill()
+        bg.strokeColor = new cc.Color(255, 100, 100)
+        bg.lineWidth = 3
+        bg.roundRect(-popupWidth/2, -popupHeight/2, popupWidth, popupHeight, 16)
+        bg.stroke()
+        bgNode.parent = popupNode
+        
+        // ========== 标题 ==========
+        var titleNode = new cc.Node("Title")
+        var titleLabel = titleNode.addComponent(cc.Label)
+        titleLabel.string = "💔 淘汰通知"
+        titleLabel.fontSize = 32
+        titleLabel.lineHeight = 40
+        titleNode.color = new cc.Color(255, 100, 100)
+        titleNode.y = 80
+        titleNode.parent = popupNode
+        
+        // ========== 消息内容 ==========
+        var msgNode = new cc.Node("Message")
+        var msgLabel = msgNode.addComponent(cc.Label)
+        msgLabel.string = data.message || "您已被淘汰，即将离开房间"
+        msgLabel.fontSize = 24
+        msgLabel.lineHeight = 32
+        msgNode.color = new cc.Color(220, 220, 220)
+        msgNode.y = 20
+        msgNode.parent = popupNode
+        
+        // ========== 确定按钮 ==========
+        var btnNode = new cc.Node("ConfirmBtn")
+        var btnBg = btnNode.addComponent(cc.Graphics)
+        btnBg.fillColor = new cc.Color(80, 140, 200)
+        btnBg.roundRect(-80, -25, 160, 50, 8)
+        btnBg.fill()
+        btnNode.y = -70
+        btnNode.parent = popupNode
+        
+        var btnLabelNode = new cc.Node("Label")
+        var btnLabel = btnLabelNode.addComponent(cc.Label)
+        btnLabel.string = "确定"
+        btnLabel.fontSize = 24
+        btnLabelNode.color = new cc.Color(255, 255, 255)
+        btnLabelNode.parent = btnNode
+        
+        // 按钮点击事件
+        btnNode.on(cc.Node.EventType.TOUCH_END, function() {
+            // 关闭弹窗
+            popupNode.destroy()
+            maskNode.destroy()
+            
+            // 返回大厅
+            cc.director.loadScene("hallScene")
+        })
+        
+        // 弹窗入场动画
+        popupNode.runAction(cc.sequence(
+            cc.spawn(
+                cc.scaleTo(0.3, 1.0).easing(cc.easeBackOut()),
+                cc.fadeIn(0.3)
+            )
+        ))
+        
+        // 3秒后自动返回大厅
+        this.scheduleOnce(function() {
+            if (popupNode && popupNode.parent) {
+                popupNode.destroy()
+                maskNode.destroy()
+                cc.director.loadScene("hallScene")
+            }
+        }, 3)
     },
     
     /**

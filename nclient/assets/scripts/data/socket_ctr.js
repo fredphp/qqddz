@@ -165,6 +165,9 @@ window.socketCtr = function(){
         // 🔧【新增】竞技场玩家加入广播（玩家点击进入后广播给所有本期玩家）
         ARENA_PLAYER_JOINED: "arena_player_joined",     // 玩家加入等待场景广播
 
+        // 🔧【新增】竞技场淘汰踢出通知
+        ARENA_ELIMINATED_KICK: "arena_eliminated_kick", // 被淘汰踢出房间通知
+
         // 🔧【新增】竞技场报名相关消息类型
         ARENA_SIGNUP: "arena_signup",                   // 竞技场报名请求
         ARENA_CANCEL_SIGNUP: "arena_cancel_signup",     // 取消报名请求
@@ -834,6 +837,22 @@ window.socketCtr = function(){
                 }
                 
                 evt.fire("arena_player_joined_notify", playerJoinedData)
+                break
+
+            // ============================================================
+            // 【新增】竞技场淘汰踢出房间通知
+            // ============================================================
+            case MessageType.ARENA_ELIMINATED_KICK:
+                console.log("🚪 [Arena] 收到淘汰踢出通知:", JSON.stringify(data));
+                // 🔧【关键】清除房间状态
+                _currentRoomCode = ""
+                _isInRoom = false
+                // 触发事件，让 UI 显示被淘汰提示
+                evt.fire("arena_eliminated_kick_notify", {
+                    period_no: data.period_no || "",
+                    player_id: data.player_id || "",
+                    message: data.message || "您已被淘汰，即将离开房间"
+                })
                 break
 
             // ============================================================
@@ -1925,6 +1944,20 @@ window.socketCtr = function(){
     that.onTournamentFinalRank = function(callback){
         var evt = _getEvent()
         if (evt) evt.on("tournament_final_rank_notify", callback)
+    }
+
+    // ============================================================
+    // 【新增】竞技场淘汰踢出房间通知监听
+    // ============================================================
+
+    /**
+     * 🔧【新增】监听竞技场淘汰踢出房间通知
+     * 当玩家被淘汰时，服务端发送此消息通知客户端离开房间
+     * @param {Function} callback - 回调函数，接收 { period_no, player_id, message }
+     */
+    that.onArenaEliminatedKick = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("arena_eliminated_kick_notify", callback)
     }
 
     // ============================================================
