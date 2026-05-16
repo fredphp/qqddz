@@ -29,13 +29,6 @@ defineOptions({
   name: 'QRCodeUpload'
 })
 
-defineProps({
-  classId: {
-    type: Number,
-    default: 0
-  }
-})
-
 const props = defineProps({
   classId: {
     type: Number,
