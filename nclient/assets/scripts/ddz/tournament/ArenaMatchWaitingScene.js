@@ -1023,7 +1023,7 @@ cc.Class({
             return
         }
         
-        // 如果是网络URL
+        // 如果是完整网络URL
         if (avatarUrl.indexOf('http://') === 0 || avatarUrl.indexOf('https://') === 0) {
             cc.assetManager.loadRemote(avatarUrl, { ext: '.png' }, function(err, texture) {
                 if (!err && texture && sprite && sprite.node && sprite.node.isValid) {
@@ -1031,6 +1031,36 @@ cc.Class({
                         var sf = new cc.SpriteFrame(texture)
                         sprite.spriteFrame = sf
                     } catch (e) {}
+                }
+            })
+            return
+        }
+        
+        // 服务端上传的头像路径处理（相对路径）
+        // 支持格式: "/uploads/file/avatar/..." 
+        var myglobal = window.myglobal
+        var cdnUrl = myglobal && myglobal.cdnUrl ? myglobal.cdnUrl : "https://houtais.hongxiu88.com"
+        
+        if (avatarUrl.indexOf('/uploads/') === 0) {
+            // 相对路径，需要添加域名前缀
+            var fullUrl = cdnUrl + avatarUrl
+            console.log("🏟️ [ArenaMatchWaiting] 加载头像(相对路径):", fullUrl)
+            cc.assetManager.loadRemote(fullUrl, { ext: '.png' }, function(err, texture) {
+                if (!err && texture && sprite && sprite.node && sprite.node.isValid) {
+                    try {
+                        var sf = new cc.SpriteFrame(texture)
+                        sprite.spriteFrame = sf
+                    } catch (e) {
+                        console.warn("🏟️ [ArenaMatchWaiting] 头像加载失败:", fullUrl)
+                    }
+                } else if (err) {
+                    console.warn("🏟️ [ArenaMatchWaiting] 头像加载错误:", err)
+                    // 加载失败，使用默认头像
+                    cc.resources.load('UI/headimage/avatar_1', cc.SpriteFrame, function(err2, spriteFrame) {
+                        if (!err2 && spriteFrame && sprite && sprite.node && sprite.node.isValid) {
+                            sprite.spriteFrame = spriteFrame
+                        }
+                    })
                 }
             })
             return
