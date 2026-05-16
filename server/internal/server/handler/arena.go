@@ -164,6 +164,9 @@ func (h *Handler) handleArenaSignup(client types.ClientInterface, msg *protocol.
                 queue.PushSignupLog(periodInfo.PeriodNo, payload.RoomID, playerID, signupFee, balanceBefore, balanceAfter)
         }
 
+        // 🔧【新增】立即将报名记录写入数据库（确保 getTotalPlayers 能从数据库获取正确人数）
+        h.saveSignupToDatabase(periodInfo.PeriodNo, payload.RoomID, playerID, roomConfig.MinGold)
+
         // 发送报名成功消息
         balanceAfter := balanceBefore - signupFee
         client.SendMessage(codec.MustNewMessage("arena_signup_success", map[string]interface{}{
@@ -276,6 +279,9 @@ func (h *Handler) handleArenaCancelSignup(client types.ClientInterface, msg *pro
         if ok {
                 queue.PushCancelLog(periodInfo.PeriodNo, payload.RoomID, playerID, signupFee, balanceBefore, balanceAfter)
         }
+
+        // 🔧【新增】从数据库删除报名记录
+        h.deleteSignupFromDatabase(periodInfo.PeriodNo, playerID)
 
         // 发送取消成功消息
         client.SendMessage(codec.MustNewMessage("arena_cancel_success", map[string]interface{}{
@@ -453,4 +459,52 @@ func (h *Handler) handleGetArenaStatus(client types.ClientInterface, msg *protoc
         arena.OnNewClient(playerID)
 
         log.Printf("[GetArenaStatus] ✅ 已触发竞技场状态推送，playerID=%d", playerID)
+}
+
+// =============================================
+// 🔧【新增】辅助函数
+// =============================================
+
+// saveSignupToDatabase 将报名记录保存到数据库
+// 这确保 getTotalPlayers 能从数据库获取正确的报名人数
+func (h *Handler) saveSignupToDatabase(periodNo string, roomID, playerID uint64, initialGold int64) {
+        // 获取期号记录
+        period, _ := database.GetArenaPeriodByPeriodNo(periodNo)
+        var periodID uint64
+        if period != nil {
+                periodID = period.ID
+        }
+
+        // 设置初始金币
+        if initialGold <= 0 {
+                initialGold = 10000
+        }
+
+        // 创建报名记录
+        playerRecord := &database.ArenaPeriodPlayer{
+                PeriodNo:    periodNo,
+                PeriodID:    periodID,
+                RoomID:      roomID,
+                PlayerID:    playerID,
+                SignupTime:  time.Now(),
+                SignupOrder: 0, // 顺序在比赛开始时确定
+                Status:      database.ArenaPeriodPlayerStatusNormal,
+                ArenaGold:   initialGold,
+        }
+
+        // 写入数据库（使用 FirstOrCreate 避免重复）
+        if err := database.FirstOrCreateArenaPeriodPlayer(periodID, playerID, playerRecord); err != nil {
+                log.Printf("[ArenaSignup] ⚠️ 写入数据库失败: periodNo=%s, playerID=%d, err=%v", periodNo, playerID, err)
+        } else {
+                log.Printf("[ArenaSignup] ✅ 报名记录已写入数据库: periodNo=%s, playerID=%d", periodNo, playerID)
+        }
+}
+
+// deleteSignupFromDatabase 从数据库删除报名记录
+func (h *Handler) deleteSignupFromDatabase(periodNo string, playerID uint64) {
+        if err := database.DeleteArenaPeriodPlayerByPeriodNoAndPlayerID(periodNo, playerID); err != nil {
+                log.Printf("[ArenaCancel] ⚠️ 从数据库删除报名记录失败: periodNo=%s, playerID=%d, err=%v", periodNo, playerID, err)
+        } else {
+                log.Printf("[ArenaCancel] ✅ 报名记录已从数据库删除: periodNo=%s, playerID=%d", periodNo, playerID)
+        }
 }

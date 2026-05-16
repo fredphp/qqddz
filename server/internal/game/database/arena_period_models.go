@@ -647,6 +647,23 @@ func FirstOrCreateArenaPeriodPlayerWithTime(periodID, playerID uint64, player *A
         }).Error
 }
 
+// DeleteArenaPeriodPlayerByPeriodNoAndPlayerID 删除玩家的报名记录（取消报名时调用）
+func DeleteArenaPeriodPlayerByPeriodNoAndPlayerID(periodNo string, playerID uint64) error {
+        // 从期号解析日期
+        t, err := parsePeriodNoToTime(periodNo)
+        if err != nil {
+                return err
+        }
+
+        // 获取分表名
+        tableName := getArenaPeriodPlayerTableNameByTime(t)
+
+        // 删除记录（软删除：更新状态为已取消）
+        return DB().Table(tableName).
+                Where("period_no = ? AND player_id = ?", periodNo, playerID).
+                Update("status", ArenaPeriodPlayerStatusCanceled).Error
+}
+
 // =============================================
 // 🔧【新增】竞技场赛事金币操作函数
 // =============================================
