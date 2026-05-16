@@ -435,14 +435,32 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
         // 🔧【新增】计算竞技场下一轮轮次
         nextRound := gs.room.GameCount + 1
 
-        // 🔧【新增】预先计算竞技场总人数，用于判断是否是最终结算
+        // 🔧【新增】预先计算竞技场相关字段
         var totalPlayers int
         var isFinalRound bool
+        var arenaCountdown int
+        
         if gs.room.RoomCategory == 2 {
                 periodNo := gs.room.PeriodNo
                 totalPlayers = gs.getArenaTotalPlayers(periodNo)
-                isFinalRound = totalPlayers > 0 && totalPlayers <= 3
-                log.Printf("🏟️ [endGame] 竞技场: 当期报名人数=%d, 是否最终结算=%v", totalPlayers, isFinalRound)
+                maxRoundCount := gs.getMaxRoundCount()
+                currentRound := gs.room.GameCount
+                
+                // 🔧【关键】判断是否是最终结算
+                // 剩余 <= 3人 且 已完成配置的局数 → 最终结算
+                isFinalRound = totalPlayers > 0 && totalPlayers <= 3 && currentRound >= maxRoundCount
+                
+                // 🔧【关键】设置倒计时
+                // 每一局结束都是30秒倒计时
+                // 只有最终结算（剩余<=3人且打完配置局数）才不需要倒计时
+                if isFinalRound {
+                        arenaCountdown = 0 // 直接显示排行榜
+                } else {
+                        arenaCountdown = 30 // 30秒倒计时
+                }
+                
+                log.Printf("🏟️ [endGame] 竞技场: 当期报名人数=%d, 当前局数=%d/%d, 是否最终结算=%v, 倒计时=%d秒", 
+                        totalPlayers, currentRound, maxRoundCount, isFinalRound, arenaCountdown)
         }
 
         // 广播游戏结束（包含完整结算信息）
@@ -458,8 +476,8 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 Players:     players,
                 // 🔧【新增】房间分类（用于区分普通场和竞技场）
                 RoomCategory: gs.room.RoomCategory,
-                // 🔧【修改】移除30秒倒计时，改为等待所有桌完成
-                ArenaCountdown: 0, // 不再有倒计时，等待所有桌完成
+                // 🔧【修改】竞技场倒计时：每局30秒，最终结算不需要倒计时
+                ArenaCountdown: arenaCountdown,
                 ArenaRound:     nextRound,
                 MatchCoin:      0, // 比赛金币（TODO: 从竞技场管理器获取）
                 // 🔧【新增】竞技场最终结算标识
@@ -518,16 +536,23 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 log.Printf("🏟️ [endGame] 竞技场房间 %s 结算完成, 期号=%s, 当期报名人数=%d, 当前局数=%d/%d", 
                         gs.room.Code, periodNo, totalPlayers, currentRound, maxRoundCount)
 
-                // 🔧【关键修复】区分两种情况：
-                // 1. 未完成配置的局数（如只打了1局，配置要打5局）→ 继续在同一桌打下一局
-                // 2. 已完成配置的局数（如打完了5局）→ 检查所有桌是否完成，然后进行淘汰
-                if currentRound >= maxRoundCount {
-                        // 已完成配置的局数，注册桌完成状态，检查所有桌是否完成，然后进行淘汰
-                        log.Printf("🏟️ [endGame] 已完成配置的局数 (当前=%d, 配置=%d)，注册桌完成状态", currentRound, maxRoundCount)
-                        gs.registerTableFinishedAndCheckAdvance()
+                // 🔧【关键修复】根据局数和剩余人数区分不同情况：
+                // 1. 未完成配置的局数（如只打了1局，配置要打5局）→ 30秒倒计时后继续在同一桌打下一局
+                // 2. 已完成配置的局数且剩余 <= 3人 → 直接显示排行榜（不需要倒计时，已在上面设置 arenaCountdown=0）
+                // 3. 已完成配置的局数且剩余 > 3人 → 30秒倒计时后注册桌完成状态（等待其他桌）
+                
+                if currentRound >= maxRoundCount && totalPlayers <= 3 {
+                        // 已完成配置的局数且剩余 <= 3人，直接显示排行榜
+                        // 注意：这种情况 arenaCountdown 已经设为 0，客户端会直接显示排行榜
+                        log.Printf("🏆 [endGame] 已完成配置的局数且剩余 %d 人 <= 3，直接发送最终榜单", totalPlayers)
+                        gs.sendFinalRankingsForSingleTable(periodNo, players)
+                } else if currentRound >= maxRoundCount {
+                        // 已完成配置的局数且剩余 > 3人，30秒倒计时后注册桌完成状态
+                        log.Printf("🏟️ [endGame] 已完成配置的局数 (当前=%d, 配置=%d)，剩余 %d 人 > 3，启动30秒倒计时后进入等待界面", currentRound, maxRoundCount, totalPlayers)
+                        gs.startArenaRoundCountdownForWaiting()
                 } else {
-                        // 未完成配置的局数，启动倒计时，自动准备并开始下一局（在同一桌继续打）
-                        log.Printf("🏟️ [endGame] 未完成配置的局数 (当前=%d, 配置=%d)，启动倒计时准备下一局", currentRound, maxRoundCount)
+                        // 未完成配置的局数，30秒倒计时后自动开始下一局（在同一桌继续打）
+                        log.Printf("🏟️ [endGame] 未完成配置的局数 (当前=%d, 配置=%d)，启动30秒倒计时准备下一局", currentRound, maxRoundCount)
                         gs.startArenaRoundCountdown()
                 }
         } else {
@@ -866,6 +891,84 @@ func (gs *GameSession) startArenaRoundCountdown() {
         // 启动倒计时协程
         log.Printf("🏟️ [startArenaRoundCountdown] 启动倒计时协程...")
         go gs.runArenaCountdown(ArenaCountdownDuration, nextRound)
+}
+
+// startArenaRoundCountdownForWaiting 启动竞技场等待倒计时
+// 🔧【新增】用于打完配置局数后，等待其他桌完成的场景
+// 倒计时结束后注册桌完成状态，而不是自动开始下一局
+func (gs *GameSession) startArenaRoundCountdownForWaiting() {
+        // 🔧【关键修复】检查是否已有倒计时在运行，防止重复启动
+        gs.arenaCountdownMu.Lock()
+        if gs.arenaCountdownActive {
+                gs.arenaCountdownMu.Unlock()
+                log.Printf("⚠️ [startArenaRoundCountdownForWaiting] 房间 %s 已有倒计时在运行，跳过", gs.room.Code)
+                return
+        }
+        gs.arenaCountdownActive = true
+        gs.arenaCountdownMu.Unlock()
+
+        roomCode := gs.room.Code
+        gameCount := gs.room.GameCount
+        periodNo := gs.room.PeriodNo
+        roomConfigID := gs.room.RoomConfigID
+
+        log.Printf("🏟️ [startArenaRoundCountdownForWaiting] 房间 %s 启动30秒倒计时（等待界面），当前局数: %d",
+                roomCode, gameCount)
+
+        // 广播倒计时开始消息
+        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaRoundCountdown, &protocol.ArenaRoundCountdownPayload{
+                Seconds:  ArenaCountdownDuration,
+                Round:    gameCount,
+                PeriodNo: periodNo,
+                RoomID:   roomConfigID,
+                Message:  "等待其他玩家完成，30秒后进入下一阶段",
+        }))
+
+        // 启动倒计时协程
+        log.Printf("🏟️ [startArenaRoundCountdownForWaiting] 启动倒计时协程...")
+        go gs.runArenaCountdownForWaiting(ArenaCountdownDuration)
+}
+
+// runArenaCountdownForWaiting 运行竞技场等待倒计时
+// 🔧【新增】倒计时结束后注册桌完成状态
+func (gs *GameSession) runArenaCountdownForWaiting(totalSeconds int) {
+        ticker := time.NewTicker(1 * time.Second)
+        defer ticker.Stop()
+
+        // 🔧【关键修复】确保在函数结束时清除倒计时状态
+        defer func() {
+                gs.arenaCountdownMu.Lock()
+                gs.arenaCountdownActive = false
+                gs.arenaCountdownMu.Unlock()
+                log.Printf("🏟️ [runArenaCountdownForWaiting] 房间 %s 倒计时结束，状态已清除", gs.room.Code)
+        }()
+
+        remaining := totalSeconds
+        log.Printf("🏟️ [runArenaCountdownForWaiting] 房间 %s 开始倒计时, 总秒数=%d", gs.room.Code, totalSeconds)
+
+        for {
+                select {
+                case <-ticker.C:
+                        remaining--
+
+                        // 广播倒计时更新
+                        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaCountdownTick, &protocol.ArenaCountdownTickPayload{
+                                Seconds:  remaining,
+                                PeriodNo: "",
+                                RoomID:   0,
+                        }))
+
+                        log.Printf("🏟️ [runArenaCountdownForWaiting] 房间 %s 倒计时: %d秒", gs.room.Code, remaining)
+
+                        // 倒计时结束
+                        if remaining <= 0 {
+                                log.Printf("🏟️ [runArenaCountdownForWaiting] 房间 %s 倒计时归零，注册桌完成状态", gs.room.Code)
+                                // 🔧【关键】倒计时结束后注册桌完成状态，检查所有桌是否完成
+                                gs.registerTableFinishedAndCheckAdvance()
+                                return
+                        }
+                }
+        }
 }
 
 // runArenaCountdown 运行竞技场倒计时
