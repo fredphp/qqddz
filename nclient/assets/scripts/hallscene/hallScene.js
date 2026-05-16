@@ -2208,11 +2208,23 @@ cc.Class({
             if (newRemaining <= 0) {
                 clearInterval(self._matchStartCountdownTimer);
                 self._matchStartCountdownTimer = null;
-                countdownLabel.string = "正在进入比赛...";
-                countdownLabel.color = cc.color(100, 200, 100);
-                // 🔧【修复】不返回，等待服务端发送 room_joined 消息
-                // 服务端会在 handleEnterPhaseTimeout 中为所有未取消的玩家创建房间
-                console.log("🏟️ [Arena] 弹窗倒计时结束，等待服务端 room_joined 消息");
+                
+                // 🔧【关键修复】弹窗倒计时结束，自动进入独立的等待场景
+                // 这样玩家不会先看到大厅界面再跳转游戏场景，体验更流畅
+                console.log("🏟️ [Arena] 弹窗倒计时结束，自动进入等待场景 ArenaMatchWaitingScene");
+                
+                // 清除弹窗引用
+                self._arenaMatchStartDialog = null;
+                self._arenaMatchStartDialogRoomId = null;
+                self._arenaMatchStartDialogPeriodNo = null;
+                
+                // 销毁弹窗
+                if (dialogNode && dialogNode.isValid) {
+                    dialogNode.destroy();
+                }
+                
+                // 跳转到等待场景（等待场景会监听 room_joined 消息并直接进入游戏场景）
+                self._enterArenaMatch(data);
                 return;
             }
             
