@@ -187,70 +187,34 @@ cc.Class({
     },
 
     /**
-     * 创建玩家列表容器
+     * 创建玩家列表容器（一排10个，从左上角开始排列）
      */
     _createPlayerListContainer: function(width, height) {
-        // 主容器
-        var container = new cc.Node("PlayerListContainer")
-        container.setContentSize(cc.size(width - 100, height - 280))
-        container.setPosition(0, -20)
+        // 玩家区域容器
+        var containerNode = new cc.Node("PlayerArea")
+        containerNode.setContentSize(cc.size(1160, 440))
+        containerNode.setPosition(0, -25)
         
-        // 标题
-        var titleNode = new cc.Node("Title")
-        titleNode.setPosition(0, height/2 - 200)
-        var titleLabel = titleNode.addComponent(cc.Label)
-        titleLabel.string = "参赛玩家"
-        titleLabel.fontSize = 26
-        titleLabel.lineHeight = 36
-        titleNode.color = cc.color(255, 215, 0)
-        var titleOutline = titleNode.addComponent(cc.LabelOutline)
-        titleOutline.color = cc.color(0, 0, 0)
-        titleOutline.width = 2
-        titleNode.parent = this.node
-        this._titleLabel = titleLabel
+        // 半透明背景
+        var bgNode = new cc.Node("Bg")
+        bgNode.setContentSize(cc.size(1160, 440))
+        var bgGraphics = bgNode.addComponent(cc.Graphics)
+        bgGraphics.fillColor = cc.color(0, 0, 0, 80)
+        bgGraphics.roundRect(-580, -220, 1160, 440, 10)
+        bgGraphics.fill()
+        bgNode.parent = containerNode
         
-        // ScrollView
-        var scrollViewNode = new cc.Node("ScrollView")
-        scrollViewNode.setContentSize(cc.size(width - 100, height - 340))
-        scrollViewNode.setPosition(0, -30)
-        
-        var scrollView = scrollViewNode.addComponent(cc.ScrollView)
-        scrollView.horizontal = false
-        scrollView.vertical = true
-        scrollView.inertia = true
-        scrollView.elastic = true
-        
-        // Content 节点
+        // 内容容器（锚点设在左上角，从左上角开始排列）
         var contentNode = new cc.Node("Content")
-        contentNode.setContentSize(cc.size(width - 120, 200))
-        contentNode.anchorY = 1
-        contentNode.setPosition(0, 0)
+        contentNode.setContentSize(cc.size(1150, 420))
+        contentNode.anchorX = 0  // 左锚点
+        contentNode.anchorY = 1  // 上锚点
+        contentNode.setPosition(-575, 210)  // 对应左上角位置
+        contentNode.parent = containerNode
         
-        // 添加 Layout 组件（用于网格布局）
-        var layout = contentNode.addComponent(cc.Layout)
-        layout.type = cc.Layout.Type.GRID
-        layout.horizontalDirection = cc.Layout.HorizontalDirection.LEFT_TO_RIGHT
-        layout.verticalDirection = cc.Layout.VerticalDirection.TOP_TO_BOTTOM
-        layout.cellSize = cc.size(180, 200)
-        layout.startAxis = cc.Layout.Axis.HORIZONTAL
-        layout.constraint = cc.Layout.Constraint.FIXED_ROW
-        layout.constraintNum = 3  // 一排3个
-        layout.spacingX = 20
-        layout.spacingY = 20
-        layout.paddingTop = 20
-        layout.paddingBottom = 20
-        layout.paddingLeft = 20
-        layout.paddingRight = 20
-        
-        contentNode.parent = scrollViewNode
-        scrollView.content = contentNode
-        
-        scrollViewNode.parent = this.node
-        this._scrollView = scrollView
+        containerNode.parent = this.node
         this._playerListContent = contentNode
-        
-        container.parent = this.node
-        this._playerListContainer = container
+        this._playerListContainer = containerNode
     },
 
     /**
@@ -856,7 +820,7 @@ cc.Class({
     },
 
     // ============================================================
-    // 玩家列表渲染（ul > li 形式，一排3个）
+    // 玩家列表渲染（一排10个，从左上角开始排列）
     // ============================================================
 
     _updatePlayerListUI: function() {
@@ -865,107 +829,152 @@ cc.Class({
         // 清空现有列表
         this._playerListContent.removeAllChildren()
         
-        console.log("🏟️ [ArenaMatchWaiting] 更新玩家列表，玩家数量:", this._players.length)
+        var players = this._players || []
+        console.log("🏟️ [ArenaMatchWaiting] 更新玩家列表，玩家数量:", players.length)
         
-        // 添加玩家项
-        for (var i = 0; i < this._players.length; i++) {
-            var player = this._players[i]
-            var itemNode = this._createPlayerItem(player, i)
-            itemNode.parent = this._playerListContent
+        if (players.length === 0) {
+            console.log("🏟️ [ArenaMatchWaiting] 没有玩家数据，跳过渲染")
+            return
         }
         
-        // 更新容器高度
-        var rows = Math.ceil(this._players.length / 3)
-        var contentHeight = rows * 220 + 40  // 每行高度 220，加上边距
-        this._playerListContent.setContentSize(this._playerListContent.width, Math.max(contentHeight, 200))
+        // 排序：已进入的玩家（entered_at > 0）排在前面，等待中的排在后面
+        var sortedPlayers = players.slice().sort(function(a, b) {
+            var aEntered = a.entered_at && a.entered_at > 0
+            var bEntered = b.entered_at && b.entered_at > 0
+            
+            // 已进入的排在前面
+            if (aEntered && !bEntered) return -1
+            if (!aEntered && bEntered) return 1
+            
+            // 同状态按进入时间排序
+            return (a.entered_at || 0) - (b.entered_at || 0)
+        })
+        
+        console.log("🏟️ [ArenaMatchWaiting] 排序后玩家:", sortedPlayers.map(function(p) { 
+            return p.player_name + (p.entered_at > 0 ? '(已进入)' : '(等待中)') 
+        }).join(', '))
+        
+        // 布局参数：一排10个，从左上角开始排列
+        var itemWidth = 100   // 卡片宽度
+        var itemHeight = 120  // 卡片高度
+        var spacingX = 10     // 水平间距
+        var spacingY = 10     // 垂直间距
+        var cols = 10         // 一排10个
+        var marginX = 10      // 左边距
+        var marginY = 10      // 上边距
+        
+        // 添加玩家项
+        for (var i = 0; i < sortedPlayers.length; i++) {
+            var player = sortedPlayers[i]
+            var statusText = (player.entered_at && player.entered_at > 0) ? '(已进入)' : '(等待中)'
+            console.log("🏟️ [ArenaMatchWaiting] 创建玩家卡片:", i, player.player_name, statusText)
+            var itemNode = this._createPlayerItem(player, i)
+            
+            // 计算位置（从左上角开始，锚点为左上角）
+            // contentNode 的锚点是 (0, 1)，即左上角
+            // (0, 0) 是左上角，x 向右增加，y 向下减少
+            var col = i % cols
+            var row = Math.floor(i / cols)
+            var x = marginX + col * (itemWidth + spacingX) + itemWidth / 2  // 卡片中心位置
+            var y = -marginY - row * (itemHeight + spacingY) - itemHeight / 2  // Y向下为负
+            
+            itemNode.setPosition(x, y)
+            itemNode.parent = this._playerListContent
+        }
     },
 
     /**
-     * 创建玩家项节点（头像 + 昵称在头像下面）
+     * 创建玩家卡片（紧凑卡片，圆形头像，与原大厅界面一致）
      */
     _createPlayerItem: function(player, index) {
-        // 创建 li 节点（单个玩家卡片）
-        var itemNode = new cc.Node("PlayerItem_" + index)
-        itemNode.setContentSize(cc.size(180, 200))
+        var itemNode = new cc.Node("PlayerCard_" + index)
+        itemNode.setContentSize(cc.size(100, 120))
         
-        // 卡片背景
+        // 卡片背景（圆角矩形）
         var bgNode = new cc.Node("Bg")
-        bgNode.setContentSize(cc.size(170, 190))
+        bgNode.setContentSize(cc.size(95, 115))
         var bgGraphics = bgNode.addComponent(cc.Graphics)
-        bgGraphics.fillColor = cc.color(40, 45, 70, 200)
-        bgGraphics.roundRect(-85, -95, 170, 190, 10)
+        
+        // 根据是否是机器人设置不同背景色
+        if (player.is_robot) {
+            bgGraphics.fillColor = cc.color(60, 50, 80, 230)  // 紫色调 - 机器人
+        } else {
+            bgGraphics.fillColor = cc.color(40, 60, 80, 230)  // 蓝色调 - 真人
+        }
+        bgGraphics.roundRect(-47.5, -57.5, 95, 115, 8)
         bgGraphics.fill()
-        bgGraphics.strokeColor = cc.color(100, 120, 180)
-        bgGraphics.lineWidth = 2
-        bgGraphics.stroke()
         bgNode.parent = itemNode
         
-        // 创建头像节点
-        var avatarNode = new cc.Node("Avatar")
-        avatarNode.setPosition(0, 30)
-        avatarNode.setContentSize(cc.size(100, 100))
+        // ========== 圆形头像（使用 Mask 实现圆形裁剪）==========
+        // 创建遮罩节点
+        var maskNode = new cc.Node("AvatarMask")
+        maskNode.setPosition(0, 25)
+        maskNode.setContentSize(cc.size(60, 60))
         
+        // 添加 Mask 组件
+        var mask = maskNode.addComponent(cc.Mask)
+        mask.type = cc.Mask.Type.ELLIPSE  // 椭圆形遮罩（圆形）
+        mask.segements = 64  // 圆滑度
+        
+        // 头像背景圆圈
+        var avatarBg = new cc.Node("AvatarBg")
+        var avatarBgGraphics = avatarBg.addComponent(cc.Graphics)
+        avatarBgGraphics.fillColor = cc.color(80, 80, 100, 255)
+        avatarBgGraphics.circle(0, 0, 32)
+        avatarBgGraphics.fill()
+        avatarBg.parent = maskNode
+        
+        // 头像节点（在遮罩内部，会被裁剪成圆形）
+        var avatarNode = new cc.Node("Avatar")
+        avatarNode.setContentSize(cc.size(60, 60))
         var avatarSprite = avatarNode.addComponent(cc.Sprite)
         avatarSprite.type = cc.Sprite.Type.SIMPLE
         avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
         
         // 加载头像
         this._loadPlayerAvatar(player.avatar, avatarSprite)
-        
-        // 创建圆形遮罩
-        var maskNode = new cc.Node("AvatarMask")
-        maskNode.setPosition(0, 30)
-        maskNode.setContentSize(cc.size(100, 100))
-        
-        var mask = maskNode.addComponent(cc.Mask)
-        mask.type = cc.Mask.Type.ELLIPSE
-        mask.segements = 64
-        
         avatarNode.parent = maskNode
+        
         maskNode.parent = itemNode
         
-        // 创建昵称节点（在头像下面）
-        var nameNode = new cc.Node("NameLabel")
-        nameNode.setPosition(0, -55)
-        
+        // 昵称
+        var nameNode = new cc.Node("Name")
+        nameNode.setPosition(0, -25)
         var nameLabel = nameNode.addComponent(cc.Label)
-        var playerName = player.player_name || player.name || ("玩家" + (player.player_id || index))
-        nameLabel.string = playerName
-        nameLabel.fontSize = 18
-        nameLabel.lineHeight = 24
+        nameLabel.string = player.player_name || player.name || ("玩家" + (index + 1))
+        nameLabel.fontSize = 14
+        nameLabel.lineHeight = 18
+        nameNode.setContentSize(cc.size(90, 18))
         nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-        nameNode.setContentSize(cc.size(160, 24))
         
-        // 机器人用灰色，真人用白色
+        // 真人白色，机器人金色
         if (player.is_robot) {
-            nameNode.color = cc.color(150, 150, 150)
+            nameNode.color = cc.color(255, 215, 100)  // 金色
         } else {
-            nameNode.color = cc.color(255, 255, 255)
+            nameNode.color = cc.color(255, 255, 255)  // 白色
         }
-        
-        // 添加描边效果
-        var outline = nameNode.addComponent(cc.LabelOutline)
-        outline.color = cc.color(0, 0, 0)
-        outline.width = 2
-        
         nameNode.parent = itemNode
         
-        // 机器人标识
-        if (player.is_robot) {
-            var robotTag = new cc.Node("RobotTag")
-            robotTag.setPosition(60, 70)
-            var tagLabel = robotTag.addComponent(cc.Label)
-            tagLabel.string = "AI"
-            tagLabel.fontSize = 14
-            tagLabel.lineHeight = 18
-            robotTag.color = cc.color(255, 200, 100)
-            
-            var tagOutline = robotTag.addComponent(cc.LabelOutline)
-            tagOutline.color = cc.color(0, 0, 0)
-            tagOutline.width = 1
-            
-            robotTag.parent = itemNode
+        // 状态标签
+        // 规则：根据 entered_at 判断是否已进入
+        // - 已进入的玩家（包括机器人和真人）显示"已进入"
+        // - 未进入的玩家显示"等待中"
+        var statusNode = new cc.Node("Status")
+        statusNode.setPosition(0, -45)
+        var statusLabel = statusNode.addComponent(cc.Label)
+        statusLabel.fontSize = 12
+        statusLabel.lineHeight = 14
+        statusLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        
+        // 判断是否已进入：有 entered_at 且值大于0表示已进入
+        if (player.entered_at && player.entered_at > 0) {
+            statusLabel.string = "已进入"
+            statusNode.color = cc.color(100, 255, 150)  // 绿色
+        } else {
+            statusLabel.string = "等待中"
+            statusNode.color = cc.color(255, 200, 100)  // 橙色
         }
+        statusNode.parent = itemNode
         
         return itemNode
     },
