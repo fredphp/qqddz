@@ -48,7 +48,7 @@ func (rc *RankCalculator) CalculateRankings(sessionID uint64, roundNum int, elim
                 Select("p.player_id, pl.nickname, p.match_coin, p.round_match_coin, p.is_robot, p.is_tournament_bot, p.is_eliminated").
                 Joins("LEFT JOIN ddz_players pl ON p.player_id = pl.id").
                 Where("p.session_id = ? AND p.is_eliminated = 0", sessionID).
-                Order("p.round_match_coin DESC").
+                Order("p.round_match_coin DESC, p.player_id ASC").
                 Find(&participations).Error
 
         if err != nil {
@@ -118,7 +118,7 @@ func (rc *RankCalculator) GetPlayersToEliminate(sessionID uint64, eliminationTar
                 Select("p.player_id, pl.nickname, p.round_match_coin, p.is_robot, p.is_online").
                 Joins("LEFT JOIN ddz_players pl ON p.player_id = pl.id").
                 Where("p.session_id = ? AND p.is_eliminated = 0", sessionID).
-                Order("p.round_match_coin DESC").
+                Order("p.round_match_coin DESC, p.player_id ASC").
                 Find(&participations).Error
 
         if err != nil {
@@ -216,7 +216,7 @@ func (rc *RankCalculator) GetTopPlayers(sessionID uint64, n int) (PlayerList, er
                 Select("p.player_id, pl.nickname, p.match_coin, p.round_match_coin, p.is_robot, p.is_tournament_bot").
                 Joins("LEFT JOIN ddz_players pl ON p.player_id = pl.id").
                 Where("p.session_id = ? AND p.is_eliminated = 0", sessionID).
-                Order("p.round_match_coin DESC, p.match_coin DESC").
+                Order("p.round_match_coin DESC, p.match_coin DESC, p.player_id ASC").
                 Limit(n).
                 Find(&participations).Error
 
@@ -250,14 +250,19 @@ func (rc *RankCalculator) GetRemainingPlayers(sessionID uint64) (int, error) {
 }
 
 // SortPlayersByCoin 按金币排序玩家列表
+// 🔧【修复】当金币相同时，按玩家ID正序排序（ID小的排在前面）
 func (rc *RankCalculator) SortPlayersByCoin(players PlayerList) {
         sort.Slice(players, func(i, j int) bool {
                 // 先按本轮比赛金币排序
                 if players[i].RoundMatchCoin != players[j].RoundMatchCoin {
                         return players[i].RoundMatchCoin > players[j].RoundMatchCoin
                 }
-                // 金币相同，按总比赛金币排序
-                return players[i].MatchCoin > players[j].MatchCoin
+                // 本轮金币相同，按总比赛金币排序
+                if players[i].MatchCoin != players[j].MatchCoin {
+                        return players[i].MatchCoin > players[j].MatchCoin
+                }
+                // 总金币也相同，按玩家ID正序排序（ID小的排在前面）
+                return players[i].PlayerID < players[j].PlayerID
         })
 }
 
