@@ -4179,8 +4179,21 @@ func (b *ArenaStatusBroadcaster) CreateRoomsForNextRound(periodNo string, roomCo
         }
 
         if b.server.tournamentProgressManager != nil {
-                b.server.tournamentProgressManager.InitTournament(periodNo, totalRounds, totalTables, playerIDStrs)
-                log.Printf("[ArenaStatus] ✅ 初始化赛事进度: periodNo=%s, rounds=%d, tables=%d", periodNo, totalRounds, totalTables)
+                // 🔧【关键修复】检查进度是否已存在
+                // 如果已存在，调用 AdvanceRound 更新进度；否则初始化新进度
+                progress := b.server.tournamentProgressManager.GetProgress(periodNo)
+                if progress != nil {
+                        // 进度已存在，调用 AdvanceRound 更新进度
+                        if b.server.tournamentProgressManager.AdvanceRound(periodNo, totalTables, playerIDStrs) {
+                                log.Printf("[ArenaStatus] ✅ 更新赛事进度: periodNo=%s, round=%d, tables=%d", periodNo, progress.Round+1, totalTables)
+                        } else {
+                                log.Printf("[ArenaStatus] ⚠️ 更新赛事进度失败: periodNo=%s", periodNo)
+                        }
+                } else {
+                        // 进度不存在，初始化新进度
+                        b.server.tournamentProgressManager.InitTournament(periodNo, totalRounds, totalTables, playerIDStrs)
+                        log.Printf("[ArenaStatus] ✅ 初始化赛事进度: periodNo=%s, rounds=%d, tables=%d", periodNo, totalRounds, totalTables)
+                }
         }
 
         // 每3人一桌创建房间
