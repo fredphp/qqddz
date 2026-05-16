@@ -445,6 +445,31 @@ cc.Class({
             return;
         }
 
+        // 🔧【关键修复】检查玩家是否已存在，如果存在则更新而非创建新节点
+        var existingPlayerNode = this._findPlayerNodeByAccountId(player_data.accountid || player_data.accountId)
+        if (existingPlayerNode) {
+            console.log("🎮 [addPlayerNode] 玩家节点已存在，更新数据而非创建新节点, accountid:", player_data.accountid || player_data.accountId)
+            var existingScript = existingPlayerNode.getComponent("player_node")
+            if (existingScript) {
+                // 更新现有节点的数据
+                if (player_data.gold_count !== undefined || player_data.arena_gold !== undefined || player_data.match_coin !== undefined) {
+                    existingScript.updateArenaData && existingScript.updateArenaData({
+                        gold_count: player_data.gold_count,
+                        arena_gold: player_data.arena_gold,
+                        match_coin: player_data.match_coin,
+                        avatar: player_data.avatar || player_data.avatarUrl,
+                        avatarUrl: player_data.avatar || player_data.avatarUrl
+                    })
+                }
+                // 更新头像（如果有有效的头像URL）
+                var avatarUrl = player_data.avatar || player_data.avatarUrl || player_data.avatarurl
+                if (avatarUrl && avatarUrl !== "" && avatarUrl !== "avatar_1") {
+                    existingScript._loadAvatar && existingScript._loadAvatar(avatarUrl)
+                }
+            }
+            return // 不创建新节点
+        }
+
         var playernode_inst = cc.instantiate(this.player_node_prefabs);
         if (!playernode_inst) {
             console.error("无法实例化 player_node_prefabs");
@@ -486,6 +511,27 @@ cc.Class({
         }
         
         playerNodeScript.init_data(player_data, index);
+    },
+    
+    /**
+     * 🔧【新增】根据 accountid 查找玩家节点
+     * @param {string} accountId - 玩家账号ID
+     * @returns {cc.Node|null} 玩家节点或 null
+     */
+    _findPlayerNodeByAccountId: function(accountId) {
+        if (!this.playerNodeList || !accountId) return null
+        
+        var accountIdStr = String(accountId)
+        for (var i = 0; i < this.playerNodeList.length; i++) {
+            var node = this.playerNodeList[i]
+            if (node) {
+                var script = node.getComponent("player_node")
+                if (script && String(script.accountid) === accountIdStr) {
+                    return node
+                }
+            }
+        }
+        return null
     },
 
     start() {

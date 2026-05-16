@@ -413,7 +413,18 @@ cc.Class({
      */
     _loadRemoteAvatar: function(url) {
         var self = this
-        cc.assetManager.loadRemote(url, { ext: '.png' }, function(err, texture) {
+        
+        // 🔧【修复】根据URL确定正确的扩展名，避免加载失败
+        var ext = '.png'  // 默认扩展名
+        if (url.indexOf('.jpg') > 0 || url.indexOf('.jpeg') > 0) {
+            ext = '.jpg'
+        } else if (url.indexOf('.png') > 0) {
+            ext = '.png'
+        }
+        
+        console.log("🖼️ [player_node] 开始加载远程头像:", url, "扩展名:", ext)
+        
+        cc.assetManager.loadRemote(url, function(err, texture) {
             if (err || !texture) {
                 console.warn("🖼️ [player_node] 远程头像加载失败，使用默认头像:", err)
                 self._loadDefaultAvatar()
@@ -423,7 +434,7 @@ cc.Class({
                 var spriteFrame = new cc.SpriteFrame(texture)
                 if (spriteFrame) {
                     self._setAvatarSprite(spriteFrame)
-                    console.log("🖼️ [player_node] 远程头像加载成功")
+                    console.log("🖼️ [player_node] 远程头像加载成功:", url)
                 }
             } catch (e) {
                 console.warn("🖼️ [player_node] 创建SpriteFrame失败:", e)
@@ -452,17 +463,28 @@ cc.Class({
     updateArenaData: function(data) {
         console.log("🏟️ [player_node] updateArenaData 被调用, accountid:", this.accountid, "data:", JSON.stringify(data))
         
-        // 更新金币显示
-        if (data.arena_gold !== undefined && data.arena_gold > 0) {
-            if (this.gold_label) {
-                this.gold_label.string = data.arena_gold.toString()
-                console.log("🏟️ [player_node] 更新 arena_gold:", data.arena_gold)
-            }
-        } else if (data.gold_count !== undefined && data.gold_count > 0) {
-            if (this.gold_label) {
-                this.gold_label.string = data.gold_count.toString()
-                console.log("🏟️ [player_node] 更新 gold_count:", data.gold_count)
-            }
+        // 🔧【修复】竞技场模式优先使用 match_coin，其次 arena_gold
+        var displayValue = 0
+        if (data.match_coin !== undefined && data.match_coin !== null && data.match_coin > 0) {
+            displayValue = data.match_coin
+            console.log("🏟️ [player_node] 更新 match_coin:", data.match_coin)
+        } else if (data.arena_gold !== undefined && data.arena_gold !== null && data.arena_gold > 0) {
+            displayValue = data.arena_gold
+            console.log("🏟️ [player_node] 更新 arena_gold:", data.arena_gold)
+        } else if (data.gold_count !== undefined && data.gold_count !== null && data.gold_count > 0) {
+            displayValue = data.gold_count
+            console.log("🏟️ [player_node] 更新 gold_count:", data.gold_count)
+        }
+        
+        // 🔧【关键修复】使用正确的 globalcount_label 而非 gold_label
+        if (displayValue > 0 && this.globalcount_label) {
+            this.globalcount_label.string = displayValue.toString()
+            this._arenaGold = displayValue // 更新保存的赛事金币
+            console.log("🏟️ [player_node] 金币已更新为:", displayValue)
+        } else if (displayValue === 0) {
+            console.log("🏟️ [player_node] 警告：displayValue 为 0，跳过更新")
+        } else if (!this.globalcount_label) {
+            console.warn("🏟️ [player_node] 错误：globalcount_label 未绑定！")
         }
         
         // 更新头像
