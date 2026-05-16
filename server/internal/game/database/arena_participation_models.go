@@ -619,3 +619,48 @@ func UpdateParticipationEliminationStatus(periodNo string, playerID uint64, isEl
                         "updated_at":   time.Now(),
                 }).Error
 }
+
+// GetActiveParticipationsByPeriodNo 根据期号获取未淘汰的参赛记录
+// 🔧【新增】用于淘汰阶段的排名计算，只返回未淘汰的玩家
+func GetActiveParticipationsByPeriodNo(periodNo string) ([]*ArenaParticipation, error) {
+        tableName, err := getArenaParticipationTableNameByPeriodNo(periodNo)
+        if err != nil {
+                return nil, err
+        }
+
+        var participations []*ArenaParticipation
+        // 查询未淘汰的参赛记录
+        err = DB().Table(tableName).
+                Where("period_no = ? AND is_eliminated = 0", periodNo).
+                Order("match_coin DESC, player_id ASC").
+                Find(&participations).Error
+        if err != nil {
+                return nil, err
+        }
+
+        // 手动加载 Player 信息
+        playerIDs := make([]uint64, 0)
+        for _, p := range participations {
+                if p.IsRobot == 0 {
+                        playerIDs = append(playerIDs, p.PlayerID)
+                }
+        }
+
+        if len(playerIDs) > 0 {
+                var players []Player
+                DB().Where("id IN ?", playerIDs).Find(&players)
+
+                playerMap := make(map[uint64]Player)
+                for _, player := range players {
+                        playerMap[player.ID] = player
+                }
+
+                for _, p := range participations {
+                        if player, ok := playerMap[p.PlayerID]; ok {
+                                p.Player = player
+                        }
+                }
+        }
+
+        return participations, nil
+}

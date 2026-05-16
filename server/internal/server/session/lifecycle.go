@@ -1563,9 +1563,10 @@ func (gs *GameSession) onAllTablesFinished(periodNo string, currentRound int) {
 
 // 🔧【新增】计算当期所有参赛玩家的排名
 // 按金币降序排序，金币相同按玩家ID正序排序
+// 🔧【修复】只计算未淘汰的玩家
 func (gs *GameSession) calculatePeriodRankings(periodNo string) []protocol.TournamentRankEntry {
-        // 从数据库获取所有参赛者的金币
-        participations, err := database.GetArenaParticipationsByPeriodNo(periodNo)
+        // 🔧【关键修复】只获取未淘汰的玩家参与排名
+        participations, err := database.GetActiveParticipationsByPeriodNo(periodNo)
         if err != nil || len(participations) == 0 {
                 log.Printf("⚠️ [calculatePeriodRankings] 获取参赛记录失败: err=%v", err)
                 return nil
