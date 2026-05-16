@@ -749,6 +749,32 @@ cc.Class({
         // 发牌起始位置（屏幕中央上方，模拟发牌堆）
         var deckPos = cc.v2(DealConfig.deckPosition.x, DealConfig.deckPosition.y)
         
+        // 🔧【关键修复】确保卡牌图集已加载
+        if (!window._cardAtlasLoaded || !window._cardAtlas) {
+            console.log("🎮 [_dealCardsWithAnimation] 图集未加载，先加载图集...")
+            cc.resources.load("UI/card/card", cc.SpriteAtlas, function(err, atlas) {
+                if (err) {
+                    console.error("🎮 [_dealCardsWithAnimation] 加载图集失败:", err)
+                    return
+                }
+                window._cardAtlasLoaded = true
+                window._cardAtlas = atlas
+                console.log("🎮 [_dealCardsWithAnimation] 图集加载完成，开始发牌")
+                self._doDealCards(sortedCards, cardParent, cardInterval, animDuration, deckPos)
+            })
+            return
+        }
+        
+        this._doDealCards(sortedCards, cardParent, cardInterval, animDuration, deckPos)
+    },
+    
+    /**
+     * 🔧【新增】实际执行发牌
+     */
+    _doDealCards: function(sortedCards, cardParent, cardInterval, animDuration, deckPos) {
+        var self = this
+        var myglobal = window.myglobal
+        
         // 逐张发牌
         for (var i = 0; i < sortedCards.length; i++) {
             (function(index) {

@@ -135,11 +135,23 @@ cc.Class({
         var suitName = this._getSuitName(card.suit)
         var rankName = this._getRankName(card.rank)
 
-        // 🔧【修复】优先使用预加载的全局图集，解决竞技场进入游戏场景时图集为null的问题
+        // 🔧【修复】获取卡牌图集
         var atlas = this.cards_sprite_atlas || window._cardAtlas
+        
+        // 🔧【关键修复】如果图集未加载，尝试同步加载（阻塞式）
         if (!atlas) {
-            console.error("🃏 [showCards] 卡牌精灵图集未加载！cards_sprite_atlas=null, window._cardAtlas=null")
-            return
+            console.warn("🃏 [showCards] 图集未预加载，尝试同步加载...")
+            // 同步加载图集（使用 cc.loader.get 或直接加载）
+            var loadedAtlas = this._loadAtlasSync()
+            if (loadedAtlas) {
+                atlas = loadedAtlas
+                window._cardAtlas = atlas
+                window._cardAtlasLoaded = true
+            } else {
+                console.error("🃏 [showCards] 无法加载卡牌图集！")
+                // 设置一个默认的红色方块背景，防止完全看不到牌
+                return
+            }
         }
 
         var spriteFrame = atlas.getSpriteFrame(spriteKey)
@@ -149,6 +161,41 @@ cc.Class({
         } else {
             console.error("🃏 [showCards] 找不到精灵帧:", spriteKey)
         }
+    },
+    
+    /**
+     * 🔧【新增】同步加载卡牌图集
+     * 在预加载失败时作为兜底方案
+     */
+    _loadAtlasSync: function() {
+        // 检查是否已经在加载队列中
+        if (window._cardAtlasLoading) {
+            return null
+        }
+        
+        // 尝试从资源缓存中获取
+        var cache = cc.loader.getRes("UI/card/card", cc.SpriteAtlas)
+        if (cache) {
+            console.log("🃏 [_loadAtlasSync] 从缓存获取图集成功")
+            return cache
+        }
+        
+        // 标记正在加载
+        window._cardAtlasLoading = true
+        
+        // 异步加载（这次调用会失败，但下次就能从缓存获取）
+        cc.resources.load("UI/card/card", cc.SpriteAtlas, function(err, atlas) {
+            window._cardAtlasLoading = false
+            if (err) {
+                console.error("🃏 [_loadAtlasSync] 加载失败:", err)
+                return
+            }
+            window._cardAtlas = atlas
+            window._cardAtlasLoaded = true
+            console.log("🃏 [_loadAtlasSync] 后台加载成功")
+        })
+        
+        return null
     },
 
     _getSuitName: function(suit) {
