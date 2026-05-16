@@ -2864,24 +2864,56 @@ func (b *ArenaStatusBroadcaster) updatePlayerEnterPhaseEntered(playerID uint64) 
 }
 
 // getTotalPlayers 获取报名人数
+// 🔧【修复】优先从 Redis 获取，如果 Redis 没有数据则从数据库获取
 func (b *ArenaStatusBroadcaster) getTotalPlayers(roomID uint64, periodNo string) int {
-        // 优先从Redis获取
+        // 1. 优先从 Redis 获取
         if b.server.redis != nil {
                 ctx := context.Background()
                 key := getSignupListKey(periodNo)
                 
-                // 使用SCard获取集合大小
+                // 使用 SCard 获取集合大小
                 count, err := b.server.redis.SCard(ctx, key).Result()
-                if err == nil {
+                if err == nil && count > 0 {
                         return int(count)
+                }
+                
+                // 🔧【调试】Redis 没有数据或出错
+                if err != nil {
+                        log.Printf("[getTotalPlayers] ⚠️ Redis SCard 失败: key=%s, err=%v", key, err)
+                } else if count == 0 {
+                        log.Printf("[getTotalPlayers] 📋 Redis 报名列表为空: key=%s", key)
                 }
         }
 
-        // Redis不可用或出错，从数据库获取
+        // 2. Redis 没有数据，从数据库获取
         count, err := database.CountArenaPeriodPlayersByPeriodNo(periodNo)
         if err != nil {
+                log.Printf("[getTotalPlayers] ⚠️ 数据库查询失败: periodNo=%s, err=%v", periodNo, err)
                 return 0
         }
+        
+        // 🔧【关键修复】如果数据库有数据但 Redis 没有，同步到 Redis
+        if count > 0 && b.server.redis != nil {
+                log.Printf("[getTotalPlayers] 🔄 同步数据库报名数据到 Redis: periodNo=%s, count=%d", periodNo, count)
+                
+                // 获取该期号的所有报名玩家
+                players, err := database.GetArenaPeriodPlayersByPeriodNo(periodNo)
+                if err == nil && len(players) > 0 {
+                        ctx := context.Background()
+                        key := getSignupListKey(periodNo)
+                        
+                        // 批量添加到 Redis
+                        for _, p := range players {
+                                b.server.redis.SAdd(ctx, key, p.PlayerID)
+                        }
+                        
+                        // 设置过期时间（10分钟）
+                        b.server.redis.Expire(ctx, key, 10*time.Minute)
+                        
+                        log.Printf("[getTotalPlayers] ✅ 已同步 %d 个玩家到 Redis: key=%s", len(players), key)
+                }
+        }
+        
         return int(count)
 }
 
@@ -3015,34 +3047,65 @@ func (b *ArenaStatusBroadcaster) ClearSignupList(periodNo string) error {
 }
 
 // GetSignupList 获取报名列表
+// 🔧【修复】优先从 Redis 获取，如果没有数据则从数据库获取
 func (b *ArenaStatusBroadcaster) GetSignupList(periodNo string) []uint64 {
-        if b.server.redis == nil {
-                log.Printf("[ArenaStatus] ⚠️ Redis 不可用，无法获取报名列表: periodNo=%s", periodNo)
-                return nil
-        }
-
         ctx := context.Background()
-        key := getSignupListKey(periodNo)
+        
+        // 1. 优先从 Redis 获取
+        if b.server.redis != nil {
+                key := getSignupListKey(periodNo)
 
-        // 🔧【调试】记录查询的 key
-        log.Printf("[ArenaStatus] 🔍 查询报名列表: key=%s", key)
+                // 🔧【调试】记录查询的 key
+                log.Printf("[ArenaStatus] 🔍 查询报名列表: key=%s", key)
 
-        // 使用SMembers获取集合所有成员
-        result, err := b.server.redis.SMembers(ctx, key).Result()
+                // 使用 SMembers 获取集合所有成员
+                result, err := b.server.redis.SMembers(ctx, key).Result()
+                if err == nil && len(result) > 0 {
+                        players := make([]uint64, 0, len(result))
+                        for _, s := range result {
+                                if id, err := strconv.ParseUint(s, 10, 64); err == nil {
+                                        players = append(players, id)
+                                }
+                        }
+
+                        // 🔧【调试】记录查询结果
+                        log.Printf("[ArenaStatus] ✅ 从 Redis 获取报名列表: periodNo=%s, count=%d", periodNo, len(players))
+                        return players
+                }
+
+                // Redis 没有数据或出错
+                if err != nil {
+                        log.Printf("[ArenaStatus] ⚠️ Redis 获取报名列表失败: periodNo=%s, err=%v", periodNo, err)
+                } else {
+                        log.Printf("[ArenaStatus] 📋 Redis 报名列表为空: periodNo=%s", periodNo)
+                }
+        } else {
+                log.Printf("[ArenaStatus] ⚠️ Redis 不可用: periodNo=%s", periodNo)
+        }
+
+        // 2. Redis 没有数据，从数据库获取
+        dbPlayers, err := database.GetArenaPeriodPlayersByPeriodNo(periodNo)
         if err != nil {
-                log.Printf("[ArenaStatus] ⚠️ 获取报名列表失败: periodNo=%s, err=%v", periodNo, err)
+                log.Printf("[ArenaStatus] ⚠️ 数据库获取报名列表失败: periodNo=%s, err=%v", periodNo, err)
                 return nil
         }
 
-        players := make([]uint64, 0, len(result))
-        for _, s := range result {
-                if id, err := strconv.ParseUint(s, 10, 64); err == nil {
-                        players = append(players, id)
-                }
+        players := make([]uint64, 0, len(dbPlayers))
+        for _, p := range dbPlayers {
+                players = append(players, p.PlayerID)
         }
 
-        // 🔧【调试】记录查询结果
-        log.Printf("[ArenaStatus] 📋 报名列表查询结果: periodNo=%s, count=%d, players=%v", periodNo, len(players), players)
+        log.Printf("[ArenaStatus] ✅ 从数据库获取报名列表: periodNo=%s, count=%d", periodNo, len(players))
+
+        // 3. 同步到 Redis（以便下次查询更快）
+        if len(players) > 0 && b.server.redis != nil {
+                key := getSignupListKey(periodNo)
+                for _, playerID := range players {
+                        b.server.redis.SAdd(ctx, key, playerID)
+                }
+                b.server.redis.Expire(ctx, key, 10*time.Minute)
+                log.Printf("[ArenaStatus] 🔄 已同步报名列表到 Redis: periodNo=%s, count=%d", periodNo, len(players))
+        }
 
         return players
 }
