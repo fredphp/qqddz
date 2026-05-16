@@ -373,6 +373,8 @@ cc.Class({
                 } else {
                     console.warn("🎮 [gameScene] roomid_label 未绑定");
                 }
+                // 🔧【新增】隐藏加载界面（房间号已更新）
+                this._hideArenaLoadingUI()
             }
             
             // 🔧【关键修复】用 ROOM_JOINED 数据更新玩家信息（头像、金币等）
@@ -666,12 +668,14 @@ cc.Class({
 
         
         if (this.roomid_label) {
-            // 🔧【关键修复】竞技场模式下，如果房间号为空或看起来像期号（超过10位），不显示
+            // 🔧【关键修复】竞技场模式下，如果房间号为空或看起来像期号（超过10位），显示加载界面
             // 等待 ROOM_JOINED 消息更新正确的房间号
             if (isArenaMode && (roomid === "" || roomid === "WAITING" || roomid.length > 10)) {
-                // 房间号为空或看起来是期号，不显示，等待服务端返回正确的房间号
+                // 房间号为空或看起来是期号，显示加载界面，等待服务端返回正确的房间号
                 this.roomid_label.string = ""
-                console.log("🏟️ [_processRoomData] 竞技场模式：房间号为空或为期号，等待正确的房间号... roomid=" + roomid)
+                console.log("🏟️ [_processRoomData] 竞技场模式：房间号为空或为期号，显示加载界面... roomid=" + roomid)
+                // 🔧【新增】显示加载界面
+                this._showArenaLoadingUI(myglobal)
             } else {
                 this.roomid_label.string = "房间号:" + roomid
             }
@@ -849,7 +853,143 @@ cc.Class({
         }
         
         this._hideWaitingUI()
+        this._hideArenaLoadingUI()
         cc.director.loadScene("hallScene")
+    },
+    
+    // ============================================================
+    // 【新增】竞技场加载界面
+    // ============================================================
+    
+    /**
+     * 显示竞技场加载界面
+     * 在等待 ROOM_JOINED 消息时显示
+     */
+    _showArenaLoadingUI: function(myglobal) {
+        // 如果已存在，不重复创建
+        if (this._arenaLoadingUINode) {
+            return
+        }
+        
+        var self = this
+        
+        // 获取屏幕尺寸
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas)
+        var screenHeight = canvas ? canvas.designResolution.height : 720
+        var screenWidth = canvas ? canvas.designResolution.width : 1280
+        
+        // 创建加载界面容器
+        var loadingNode = new cc.Node("ArenaLoadingUI")
+        loadingNode.setContentSize(cc.size(screenWidth, screenHeight))
+        loadingNode.anchorX = 0.5
+        loadingNode.anchorY = 0.5
+        loadingNode.x = 0
+        loadingNode.y = 0
+        loadingNode.zIndex = 2000 // 确保在顶层
+        loadingNode.parent = this.node
+        this._arenaLoadingUINode = loadingNode
+        
+        // 创建半透明背景
+        var bgNode = new cc.Node("Background")
+        bgNode.setContentSize(cc.size(screenWidth, screenHeight))
+        bgNode.anchorX = 0.5
+        bgNode.anchorY = 0.5
+        var bgGraphics = bgNode.addComponent(cc.Graphics)
+        bgGraphics.fillColor = cc.color(0, 0, 0, 200) // 黑色半透明
+        bgGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight)
+        bgGraphics.fill()
+        bgNode.parent = loadingNode
+        
+        // 创建加载提示文字
+        var labelNode = new cc.Node("LoadingLabel")
+        labelNode.anchorX = 0.5
+        labelNode.anchorY = 0.5
+        var label = labelNode.addComponent(cc.Label)
+        label.string = "正在加载比赛数据..."
+        label.fontSize = 28
+        label.lineHeight = 36
+        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        labelNode.color = cc.color(255, 255, 255)
+        var outline = labelNode.addComponent(cc.LabelOutline)
+        outline.color = cc.color(0, 0, 0)
+        outline.width = 2
+        labelNode.parent = loadingNode
+        
+        // 创建加载动画（旋转的点）
+        this._loadingDots = []
+        for (var i = 0; i < 3; i++) {
+            var dotNode = new cc.Node("Dot" + i)
+            dotNode.anchorX = 0.5
+            dotNode.anchorY = 0.5
+            dotNode.y = -60
+            dotNode.x = (i - 1) * 30 // 三个点水平排列
+            var dotGraphics = dotNode.addComponent(cc.Graphics)
+            dotGraphics.fillColor = cc.color(255, 255, 255)
+            dotGraphics.circle(0, 0, 8)
+            dotGraphics.fill()
+            dotNode.parent = loadingNode
+            this._loadingDots.push(dotNode)
+        }
+        
+        // 启动加载动画
+        this._startLoadingAnimation()
+        
+        console.log("🏟️ [_showArenaLoadingUI] 加载界面已显示")
+    },
+    
+    /**
+     * 隐藏竞技场加载界面
+     */
+    _hideArenaLoadingUI: function() {
+        // 停止加载动画
+        this._stopLoadingAnimation()
+        
+        // 销毁加载界面
+        if (this._arenaLoadingUINode) {
+            this._arenaLoadingUINode.destroy()
+            this._arenaLoadingUINode = null
+            console.log("🏟️ [_hideArenaLoadingUI] 加载界面已隐藏")
+        }
+    },
+    
+    /**
+     * 启动加载动画
+     */
+    _startLoadingAnimation: function() {
+        var self = this
+        this._loadingAnimIndex = 0
+        
+        this._loadingAnimSchedule = function() {
+            if (!self._loadingDots || self._loadingDots.length === 0) return
+            
+            // 更新点的透明度，形成波浪效果
+            for (var i = 0; i < self._loadingDots.length; i++) {
+                var dot = self._loadingDots[i]
+                if (dot) {
+                    var phase = (self._loadingAnimIndex + i) % 3
+                    var opacity = phase === 0 ? 255 : (phase === 1 ? 150 : 80)
+                    dot.opacity = opacity
+                    // 添加缩放效果
+                    dot.scale = phase === 0 ? 1.2 : 1.0
+                }
+            }
+            self._loadingAnimIndex = (self._loadingAnimIndex + 1) % 3
+        }
+        
+        // 每 0.3 秒更新一次动画
+        this.schedule(this._loadingAnimSchedule, 0.3)
+    },
+    
+    /**
+     * 停止加载动画
+     */
+    _stopLoadingAnimation: function() {
+        if (this._loadingAnimSchedule) {
+            this.unschedule(this._loadingAnimSchedule)
+            this._loadingAnimSchedule = null
+        }
+        this._loadingDots = []
+        this._loadingAnimIndex = 0
     },
     
     // ============================================================
