@@ -103,6 +103,7 @@ func (h *Handler) initHandlers() {
                 protocol.MsgPlayCards:    h.handlePlayCards,
                 protocol.MsgPass:         func(c types.ClientInterface, _ *protocol.Message) { h.handlePass(c) },
                 protocol.MsgHintRequest:  func(c types.ClientInterface, _ *protocol.Message) { h.handleHint(c) },
+                protocol.MsgCancelTrustee: h.handleCancelTrustee, // 🔧【新增】取消托管
 
                 // 信息查询
                 protocol.MsgGetStats:             func(c types.ClientInterface, _ *protocol.Message) { h.handleGetStats(c) },

@@ -261,3 +261,29 @@ func calculateCardValue(rank int) int {
                 return 0
         }
 }
+
+// handleCancelTrustee 处理取消托管请求
+// 当用户在屏幕上活动时触发，停止机器人自动操作，让玩家恢复手动控制
+func (h *Handler) handleCancelTrustee(client types.ClientInterface, _ *protocol.Message) {
+        log.Printf("[TRUSTEE] 收到取消托管请求，玩家: %s, 房间: %s", client.GetName(), client.GetRoom())
+
+        if h.roomManager == nil {
+                log.Printf("[TRUSTEE] roomManager 为空")
+                return
+        }
+
+        room := h.roomManager.GetRoom(client.GetRoom())
+        if room == nil {
+                log.Printf("[TRUSTEE] 房间为空")
+                return
+        }
+
+        gameSession := h.GetGameSession(room.Code)
+        if gameSession == nil {
+                log.Printf("[TRUSTEE] 游戏会话为空")
+                return
+        }
+
+        // 调用游戏会话的取消托管方法
+        gameSession.HandleCancelTrustee(client.GetID())
+}

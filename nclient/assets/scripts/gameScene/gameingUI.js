@@ -118,6 +118,8 @@ cc.Class({
         this._biddingPhase = "idle"
         this._gamePhase = "idle"  // 🔧【新增】游戏阶段: idle, bidding, playing
         this.cardsReady = false
+        this._pendingBidUI = false    // 🔧【新增】待显示的抢地主UI标记
+        this._pendingBidRound = 1     // 🔧【新增】待显示的抢地主轮次
         
         // 🕐【倒计时系统】
         this._bidTimeout = 0
@@ -146,6 +148,11 @@ cc.Class({
         this._competitionCountdown = 0        // 竞技场倒计时
         this._competitionCountdownTimer = null // 竞技场倒计时定时器
         this._wasDisconnected = false         // 是否在比赛中掉线
+        
+        // 🔧【托管】用户活动检测 - 触发取消托管
+        this._lastUserActivityTime = 0        // 上次用户活动时间
+        this._userActivityThrottle = 1000     // 节流时间（毫秒）
+        this._setupUserActivityDetection()
         
         // ============ 服务器消息监听 ============
         
@@ -891,6 +898,19 @@ cc.Class({
         }
         
         var myPlayerId = myglobal.socket.getPlayerInfo().id || myglobal.playerData.serverPlayerId || myglobal.playerData.accountID
+        
+        // 🔧【关键修复】检查是否有待显示的抢地主UI（服务端消息在发牌完成前到达）
+        if (this._pendingBidUI && this.cardsReady && this.robUI && !this.robUI.active) {
+            console.log("🃏 [_checkAndShowRobUI] 发牌完成，显示待处理的抢地主UI, round:", this._pendingBidRound)
+            if (this._pendingBidRound === 1 || this._biddingPhase === "bidding") {
+                this._showBidUI("叫地主", "不叫")
+            } else {
+                this._showBidUI("抢地主", "不抢")
+            }
+            this._pendingBidUI = false
+            return
+        }
+        
         if (this.rob_player_accountid == myPlayerId && this.cardsReady && this.robUI && !this.robUI.active) {
             if (this._biddingPhase === "bidding") {
                 this._showBidUI("叫地主", "不叫")
@@ -919,14 +939,25 @@ cc.Class({
 
         var myPlayerId = myglobal.socket.getPlayerInfo().id || myglobal.playerData.serverPlayerId || myglobal.playerData.accountID
 
-        if (String(playerId) === String(myPlayerId) && this.cardsReady) {
-            if (round === 1) {
-                this._showBidUI("叫地主", "不叫")
+        // 🔧【关键修复】检查是否轮到当前玩家
+        if (String(playerId) === String(myPlayerId)) {
+            // 🔧【关键修复】如果发牌还没完成，等待发牌完成后再显示按钮
+            if (!this.cardsReady) {
+                console.log("🃏 [_processCallLandlordTurn] 发牌未完成，等待发牌完成后再显示抢地主按钮")
+                // 标记需要显示抢地主UI，在发牌完成后会调用 _checkAndShowRobUI
+                this._pendingBidUI = true
+                this._pendingBidRound = round
             } else {
-                this._showBidUI("抢地主", "不抢")
+                // 发牌已完成，直接显示按钮
+                if (round === 1) {
+                    this._showBidUI("叫地主", "不叫")
+                } else {
+                    this._showBidUI("抢地主", "不抢")
+                }
             }
         } else {
             this._hideRobUI()
+            this._pendingBidUI = false  // 清除待显示标记
             if (this.node && this.node.parent) {
                 this.node.parent.emit("call_landlord_turn_event", {
                     player_id: playerId,
@@ -6710,5 +6741,108 @@ cc.Class({
                 }
             })
         }
+    },
+    
+    // ============================================================
+    // 🔧【托管】用户活动检测 - 触发取消托管
+    // ============================================================
+    
+    /**
+     * 🔧【托管】设置用户活动检测
+     * 当用户在屏幕上移动或点击时，触发取消托管请求
+     */
+    _setupUserActivityDetection: function() {
+        var self = this
+        
+        // 监听全局触摸开始事件
+        this.node.on(cc.Node.EventType.TOUCH_START, function(event) {
+            self._onUserActivity("touch_start")
+        }, this)
+        
+        // 监听全局触摸移动事件
+        this.node.on(cc.Node.EventType.TOUCH_MOVE, function(event) {
+            self._onUserActivity("touch_move")
+        }, this)
+        
+        // 监听全局鼠标移动事件（PC端）
+        this.node.on(cc.Node.EventType.MOUSE_MOVE, function(event) {
+            self._onUserActivity("mouse_move")
+        }, this)
+        
+        console.log("🖐️ [用户活动检测] 已启动")
+    },
+    
+    /**
+     * 🔧【托管】用户活动回调
+     * 节流处理，避免频繁发送请求
+     */
+    _onUserActivity: function(activityType) {
+        var now = Date.now()
+        
+        // 节流：1秒内只处理一次
+        if (now - this._lastUserActivityTime < this._userActivityThrottle) {
+            return
+        }
+        this._lastUserActivityTime = now
+        
+        // 检查是否处于游戏进行中
+        if (this._gamePhase !== "bidding" && this._gamePhase !== "playing") {
+            return
+        }
+        
+        var myglobal = window.myglobal
+        if (!myglobal || !myglobal.socket) {
+            return
+        }
+        
+        // 检查当前玩家是否处于托管状态
+        // 通过检查 player_node 的托管状态
+        var isTrustee = this._isCurrentPlayerTrustee()
+        if (!isTrustee) {
+            return
+        }
+        
+        console.log("🖐️ [用户活动] 检测到用户活动:", activityType, "，发送取消托管请求")
+        
+        // 发送取消托管请求
+        if (myglobal.socket.cancelTrustee) {
+            myglobal.socket.cancelTrustee()
+        }
+    },
+    
+    /**
+     * 🔧【托管】检查当前玩家是否处于托管状态
+     */
+    _isCurrentPlayerTrustee: function() {
+        var myglobal = window.myglobal
+        if (!myglobal || !myglobal.playerData) {
+            return false
+        }
+        
+        // 查找当前玩家的 player_node
+        var gameSceneNode = this.node.parent
+        if (!gameSceneNode) {
+            return false
+        }
+        
+        var myPlayerId = myglobal.socket.getPlayerInfo().id || 
+                         myglobal.playerData.serverPlayerId || 
+                         myglobal.playerData.accountID
+        
+        // 遍历 playerNodeList 查找当前玩家
+        var playerNodeList = gameSceneNode.getComponent("gameScene")
+        if (playerNodeList && playerNodeList.playerNodeList) {
+            for (var i = 0; i < playerNodeList.playerNodeList.length; i++) {
+                var node = playerNodeList.playerNodeList[i]
+                if (node) {
+                    var script = node.getComponent("player_node")
+                    if (script && String(script.accountid) === String(myPlayerId)) {
+                        return script._isTrustee || false
+                    }
+                }
+            }
+        }
+        
+        return false
     }
 });

@@ -297,3 +297,33 @@ func (gs *GameSession) IsPlayerTrustee(playerID string) bool {
         }
         return player.IsTrustee
 }
+
+// 🔧【托管】HandleCancelTrustee 处理取消托管请求
+// 当用户在屏幕上活动时触发，停止机器人自动操作，让玩家恢复手动控制
+func (gs *GameSession) HandleCancelTrustee(playerID string) {
+        gs.mu.Lock()
+        defer gs.mu.Unlock()
+
+        player := gs.GetPlayerByID(playerID)
+        if player == nil {
+                log.Printf("[TRUSTEE] HandleCancelTrustee: 玩家不存在 %s", playerID)
+                return
+        }
+
+        // 如果玩家不处于托管状态，无需处理
+        if !player.IsTrustee {
+                log.Printf("[TRUSTEE] HandleCancelTrustee: 玩家 %s 不处于托管状态", player.Name)
+                return
+        }
+
+        log.Printf("[TRUSTEE] HandleCancelTrustee: 玩家 %s 取消托管", player.Name)
+
+        // 取消托管状态
+        player.DisableTrustee()
+
+        // 停止机器人计时器
+        gs.StopRobotTimer()
+
+        // 广播取消托管状态
+        gs.BroadcastTrusteeState(playerID, player.Name, false, "user_activity")
+}

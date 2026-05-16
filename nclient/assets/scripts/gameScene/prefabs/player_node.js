@@ -616,6 +616,10 @@ cc.Class({
             return
         }
         
+        // 更新托管状态变量
+        this._isTrustee = data.is_trustee || false
+        console.log("🔄 [player_node] 托管状态更新:", data.player_name, "is_trustee:", this._isTrustee, "reason:", data.reason)
+        
         if (data.is_trustee) {
             // 开启托管状态
             if (this.trusteeimage) {
