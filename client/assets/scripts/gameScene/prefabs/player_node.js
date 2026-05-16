@@ -175,8 +175,12 @@ cc.Class({
     init_data(data, index) {
       var myglobal = window.myglobal
 
-      this.accountid = data.accountid
+      // 🔧【修复】兼容 accountid 和 accountId 两种命名
+      this.accountid = data.accountid || data.accountId || ""
       this.seat_index = index
+      
+      // 🔧【调试】输出 accountid 设置
+      console.log("🎮 [player_node.init_data] accountid:", this.accountid, "seat_index:", this.seat_index, "nick_name:", data.nick_name)
 
       // 同步玩家ID
       if (myglobal && myglobal.playerData && !myglobal.playerData.serverPlayerId) {

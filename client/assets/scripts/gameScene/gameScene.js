@@ -443,11 +443,15 @@ cc.Class({
             return null;
         }
         
+        // 🔧【修复】使用字符串比较，避免类型不匹配问题
+        var targetAccountId = String(accountid || "")
+        
         for (var i = 0; i < this.playerNodeList.length; i++) {
             var node = this.playerNodeList[i]
             if (node) {
                 var node_script = node.getComponent("player_node")
-                if (node_script && node_script.accountid === accountid) {
+                // 🔧【修复】使用字符串比较，确保类型一致
+                if (node_script && String(node_script.accountid || "") === targetAccountId) {
                     if (node_script.seat_index === undefined || node_script.seat_index === null) {
                         console.error("无效的 seat_index");
                         return null;
@@ -459,12 +463,24 @@ cc.Class({
                     }
                     
                     var seat_node = this.players_seat_pos.children[node_script.seat_index]
+                    // 🔧【修复】检查 seat_node 是否存在
+                    if (!seat_node) {
+                        console.error("seat_node 为空，seat_index:", node_script.seat_index);
+                        return null;
+                    }
                     var index_name = "cardsoutzone" + node_script.seat_index
                     var out_card_node = seat_node.getChildByName(index_name)
+                    
+                    // 🔧【调试】输出找到的出牌区域
+                    console.log("🃏 [getUserOutCardPosByAccount] accountid:", accountid, "seat_index:", node_script.seat_index, "out_card_node:", out_card_node ? out_card_node.name : "null")
+                    
                     return out_card_node
                 }
             }
         }
+        
+        // 🔧【调试】未找到玩家节点
+        console.warn("🃏 [getUserOutCardPosByAccount] 未找到玩家节点, accountid:", accountid, "playerNodeList.length:", this.playerNodeList.length)
 
         return null
     },

@@ -269,10 +269,20 @@ cc.Class({
 
             // 显示出的牌到桌面
             var gameScene_script = this.node.parent.getComponent("gameScene")
-            if (!gameScene_script) return
+            if (!gameScene_script) {
+                console.error("🃏 [onOtherPlayerChuCard] gameScene_script 为空")
+                return
+            }
 
             var outCard_node = gameScene_script.getUserOutCardPosByAccount(data.accountid)
-            if (!outCard_node || !this.card_prefab) return
+            
+            // 🔧【调试】输出出牌区域查找结果
+            console.log("🃏 [onOtherPlayerChuCard] data.accountid:", data.accountid, "outCard_node:", outCard_node ? outCard_node.name : "null")
+            
+            if (!outCard_node || !this.card_prefab) {
+                console.error("🃏 [onOtherPlayerChuCard] outCard_node 或 card_prefab 为空, outCard_node:", !!outCard_node, "card_prefab:", !!this.card_prefab)
+                return
+            }
 
             // 【重要】直接使用服务端数据创建节点
             var node_cards = []

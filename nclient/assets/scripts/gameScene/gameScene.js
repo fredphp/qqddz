@@ -498,6 +498,14 @@ cc.Class({
             return;
         }
 
+        // 🔧【调试】输出玩家数据
+        console.log("🎮 [addPlayerNode] player_data:", JSON.stringify({
+            accountid: player_data.accountid || player_data.accountId,
+            nick_name: player_data.nick_name,
+            seatindex: player_data.seatindex,
+            is_robot: player_data.is_robot
+        }))
+
         // 🔧【关键修复】检查玩家是否已存在，如果存在则更新而非创建新节点
         var existingPlayerNode = this._findPlayerNodeByAccountId(player_data.accountid || player_data.accountId)
         if (existingPlayerNode) {
@@ -601,11 +609,15 @@ cc.Class({
             return null;
         }
         
+        // 🔧【修复】使用字符串比较，避免类型不匹配问题
+        var targetAccountId = String(accountid || "")
+        
         for (var i = 0; i < this.playerNodeList.length; i++) {
             var node = this.playerNodeList[i]
             if (node) {
                 var node_script = node.getComponent("player_node")
-                if (node_script && node_script.accountid === accountid) {
+                // 🔧【修复】使用字符串比较，确保类型一致
+                if (node_script && String(node_script.accountid || "") === targetAccountId) {
                     if (node_script.seat_index === undefined || node_script.seat_index === null) {
                         console.error("无效的 seat_index");
                         return null;
@@ -624,10 +636,17 @@ cc.Class({
                     }
                     var index_name = "cardsoutzone" + node_script.seat_index
                     var out_card_node = seat_node.getChildByName(index_name)
+                    
+                    // 🔧【调试】输出找到的出牌区域
+                    console.log("🃏 [getUserOutCardPosByAccount] accountid:", accountid, "seat_index:", node_script.seat_index, "out_card_node:", out_card_node ? out_card_node.name : "null")
+                    
                     return out_card_node
                 }
             }
         }
+        
+        // 🔧【调试】未找到玩家节点
+        console.warn("🃏 [getUserOutCardPosByAccount] 未找到玩家节点, accountid:", accountid, "playerNodeList.length:", this.playerNodeList.length)
 
         return null
     },
