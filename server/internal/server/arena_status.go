@@ -451,7 +451,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartPopupToPlayer(playerID uint64, cl
                 SignupFee:     data.SignupFee,
                 TotalPlayers:  0, // 无法从Redis获取，使用默认值
                 MatchDuration: PeriodTotalMinutes,
-                MatchRounds:   5, // 默认值
+                MatchRounds:   roomConfig.MatchRoundCount, // 🔧【修复】使用房间配置的每桌局数
                 Countdown:     remaining,
                 StartTime:     data.StartTime,
                 Message:       "比赛进行中，请点击进入！",
@@ -844,7 +844,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartPopup(roomID uint64, periodNo str
                 SignupFee:     roomConfig.MinArenaCoin,
                 TotalPlayers:  totalPlayers,
                 MatchDuration: PeriodTotalMinutes,
-                MatchRounds:   totalRounds, // 🔧【修复】动态计算的总轮次
+                MatchRounds:   roomConfig.MatchRoundCount, // 🔧【修复】使用房间配置的每桌局数
                 Countdown:     remaining,   // 🔧【关键修复】使用实际剩余时间
                 StartTime:     enterPhase.StartTime.UnixMilli(), // 🔧【关键修复】使用进入阶段的开始时间
                 Message:       "比赛即将开始，请点击进入！",
@@ -2491,7 +2491,7 @@ func (b *ArenaStatusBroadcaster) sendPendingMatchStartPopup(playerID uint64, cli
                         SignupFee:     data.SignupFee,
                         TotalPlayers:  0,
                         MatchDuration: PeriodTotalMinutes,
-                        MatchRounds:   5,
+                        MatchRounds:   roomConfig.MatchRoundCount, // 🔧【修复】使用房间配置的每桌局数
                         Countdown:     remaining,
                         StartTime:     data.StartTime,
                         Message:       "比赛进行中，请点击进入！",
@@ -2553,7 +2553,7 @@ func (b *ArenaStatusBroadcaster) sendPendingMatchStartPopup(playerID uint64, cli
                 SignupFee:     enterPhase.SignupFee,
                 TotalPlayers:  len(enterPhase.PlayerStatuses),
                 MatchDuration: PeriodTotalMinutes,
-                MatchRounds:   totalRounds,
+                MatchRounds:   roomConfig.MatchRoundCount, // 🔧【修复】使用房间配置的每桌局数
                 Countdown:     remaining,
                 StartTime:     enterPhase.StartTime.UnixMilli(),
                 Message:       "比赛进行中，请点击进入！",
@@ -2590,7 +2590,7 @@ func (b *ArenaStatusBroadcaster) sendGameStartedNotification(playerID uint64, cl
                 SignupFee:     data.SignupFee,
                 TotalPlayers:  0,
                 MatchDuration: PeriodTotalMinutes,
-                MatchRounds:   5,
+                MatchRounds:   roomConfig.MatchRoundCount, // 🔧【修复】使用房间配置的每桌局数
                 Countdown:     0, // 游戏已开始
                 StartTime:     data.StartTime,
                 Message:       "游戏已开始，正在为您进入房间...",
@@ -3544,7 +3544,7 @@ func (b *ArenaStatusBroadcaster) OnPlayerReconnect(playerID uint64, client types
                                 SignupFee:     enterPhase.SignupFee,
                                 TotalPlayers:  len(enterPhase.PlayerStatuses),
                                 MatchDuration: PeriodTotalMinutes,
-                                MatchRounds:   totalRounds,
+                                MatchRounds:   roomConfig.MatchRoundCount, // 🔧【修复】使用房间配置的每桌局数
                                 Countdown:     remaining,
                 StartTime:     enterPhase.StartTime.UnixMilli(),
                                 Message:       "比赛正在进行中，请点击进入！",
