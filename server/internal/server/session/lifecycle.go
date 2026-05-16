@@ -999,11 +999,24 @@ func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
 }
 
 // getMaxRoundCount 获取竞技场最大轮次
+// 🔧【修复】根据实际报名人数和淘汰规则动态计算轮次
 func (gs *GameSession) getMaxRoundCount() int {
-        // 默认轮次为 3
-        defaultRoundCount := 3
+        // 🔧【关键修复】优先根据报名人数和淘汰规则动态计算
+        periodNo := gs.room.PeriodNo
+        if periodNo != "" {
+                // 获取当期报名人数
+                totalPlayers := gs.getArenaTotalPlayers(periodNo)
+                if totalPlayers > 0 {
+                        rules := gs.getEliminationRules()
+                        totalRounds := rules.GetTotalRounds(totalPlayers)
+                        log.Printf("🏟️ [getMaxRoundCount] 动态计算: periodNo=%s, players=%d, rules=%v, totalRounds=%d",
+                                periodNo, totalPlayers, rules, totalRounds)
+                        return totalRounds
+                }
+        }
 
-        // 从房间配置ID获取配置
+        // 回退：从房间配置ID获取配置
+        defaultRoundCount := 3
         if gs.room.RoomConfigID > 0 {
                 roomConfig, err := database.GetRoomConfigByID(gs.room.RoomConfigID)
                 if err != nil {
@@ -1595,17 +1608,42 @@ func (gs *GameSession) calculatePeriodRankings(periodNo string) []protocol.Tourn
 
 // 🔧【新增】获取本轮淘汰目标（保留多少人）
 // 淘汰规则 [60, 30, 18, 9, 3]
+// 🔧【修复】添加边界检查，确保淘汰目标不超过实际人数
 func (gs *GameSession) getEliminationTarget(currentRound int, totalPlayers int) int {
+        // 🔧【关键修复】边界检查：如果人数 <= 3，直接返回人数（决赛）
+        if totalPlayers <= 3 {
+                log.Printf("🏟️ [getEliminationTarget] 人数=%d <= 3，直接决赛", totalPlayers)
+                return totalPlayers
+        }
+
         // 从房间配置获取淘汰规则
         rules := gs.getEliminationRules()
-        
+
         // 计算当前轮次对应的淘汰目标索引
         activeRules := rules.GetActiveRules(totalPlayers)
-        if currentRound-1 < len(activeRules) {
-                return activeRules[currentRound-1]
+
+        // 🔧【关键修复】如果 activeRules 为空，表示直接决赛
+        if len(activeRules) == 0 {
+                log.Printf("🏟️ [getEliminationTarget] activeRules 为空，人数=%d，直接决赛", totalPlayers)
+                return totalPlayers
         }
-        
+
+        // 获取本轮淘汰目标
+        if currentRound-1 < len(activeRules) {
+                target := activeRules[currentRound-1]
+                // 🔧【关键修复】确保淘汰目标不超过实际人数
+                if target > totalPlayers {
+                        log.Printf("🏟️ [getEliminationTarget] 目标=%d > 人数=%d，调整为人数", target, totalPlayers)
+                        return totalPlayers
+                }
+                log.Printf("🏟️ [getEliminationTarget] round=%d, players=%d, target=%d, activeRules=%v",
+                        currentRound, totalPlayers, target, activeRules)
+                return target
+        }
+
         // 默认保留3人（决赛）
+        log.Printf("🏟️ [getEliminationTarget] 超出轮次范围，默认决赛, round=%d, len(activeRules)=%d",
+                currentRound, len(activeRules))
         return 3
 }
 
