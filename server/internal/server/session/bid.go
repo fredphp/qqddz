@@ -308,7 +308,7 @@ func (gs *GameSession) notifyCallTurnInternal() {
                                 log.Printf("[TRUSTEE] 玩家 %s 托管状态决定不抢", player.Name)
                         }
                 }
-                // 使用快速操作（800-1500ms）
+                // 🔧【调整】延迟 2-3 秒后再操作，让玩家有时间反应
                 gs.scheduleRobotAction(func() {
                         _ = gs.HandleCallLandlordImmediate(player.ID, action)
                 })

@@ -553,7 +553,7 @@ func (gs *GameSession) notifyPlayTurnWithRobotCheck() {
                 // 🔧【修复】同时启动后备倒计时和机器人快速操作
                 // 1. 启动后备倒计时（30秒）- 如果机器人操作失败，倒计时到期后自动出牌
                 gs.startPlayTimer()
-                // 2. 启动机器人快速操作（800-1500ms）
+                // 2. 启动机器人操作（2000-3000ms延迟）
                 gs.scheduleRobotAction(func() {
                         gs.handleRobotPlay()
                 })
