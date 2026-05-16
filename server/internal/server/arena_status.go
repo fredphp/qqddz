@@ -1616,11 +1616,19 @@ func (b *ArenaStatusBroadcaster) handleAssigningTimeout(periodNo string) {
                 }
         }
         
-        // 获取房间配置中的总轮次
+        // 获取房间配置中的淘汰规则，计算总轮次
         roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
         totalRounds := 3 // 默认3轮
-        if err == nil && roomConfig != nil && roomConfig.MatchRoundCount > 0 {
-                totalRounds = roomConfig.MatchRoundCount
+        if err == nil && roomConfig != nil {
+                var rules tournament.EliminationRules
+                if roomConfig.EliminationRules != "" {
+                        if err := json.Unmarshal([]byte(roomConfig.EliminationRules), &rules); err != nil {
+                                rules = tournament.EliminationRules{60, 30, 18, 9, 3}
+                        }
+                } else {
+                        rules = tournament.EliminationRules{60, 30, 18, 9, 3}
+                }
+                totalRounds = rules.GetTotalRounds(len(playerIDs))
         }
         
         // 初始化赛事进度管理器
@@ -4187,10 +4195,14 @@ func (b *ArenaStatusBroadcaster) CreateRoomsForNextRound(periodNo string, roomCo
                 playerIDStrs = append(playerIDStrs, fmt.Sprintf("%d", pid))
         }
 
-        // 获取总轮次
+        // 获取淘汰规则，计算总轮次
         totalRounds := 3 // 默认
-        if roomConfig.MatchRoundCount > 0 {
-                totalRounds = roomConfig.MatchRoundCount
+        if roomConfig.EliminationRules != "" {
+                var rules tournament.EliminationRules
+                if err := json.Unmarshal([]byte(roomConfig.EliminationRules), &rules); err != nil {
+                        rules = tournament.EliminationRules{60, 30, 18, 9, 3}
+                }
+                totalRounds = rules.GetTotalRounds(len(allPlayers))
         }
 
         if b.server.tournamentProgressManager != nil {
