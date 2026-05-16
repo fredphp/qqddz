@@ -61,9 +61,6 @@ cc.Class({
         
         // 3. 创建玩家列表容器
         this._createPlayerListContainer(screenWidth, screenHeight)
-        
-        // 4. 创建底部按钮区
-        this._createBottomButtons(screenWidth, screenHeight)
     },
 
     /**
@@ -215,48 +212,6 @@ cc.Class({
         containerNode.parent = this.node
         this._playerListContent = contentNode
         this._playerListContainer = containerNode
-    },
-
-    /**
-     * 创建底部按钮区
-     */
-    _createBottomButtons: function(width, height) {
-        var bottomBar = new cc.Node("BottomBar")
-        bottomBar.setPosition(0, -height/2 + 60)
-        
-        // 取消按钮
-        var cancelBtn = new cc.Node("CancelButton")
-        cancelBtn.setContentSize(cc.size(160, 50))
-        cancelBtn.setPosition(-100, 0)
-        
-        var cancelBg = cancelBtn.addComponent(cc.Graphics)
-        cancelBg.fillColor = cc.color(180, 80, 80)
-        cancelBg.roundRect(-80, -25, 160, 50, 8)
-        cancelBg.fill()
-        
-        var cancelLabelNode = new cc.Node("Label")
-        var cancelLabel = cancelLabelNode.addComponent(cc.Label)
-        cancelLabel.string = "取消进入"
-        cancelLabel.fontSize = 20
-        cancelLabel.lineHeight = 28
-        cancelLabelNode.color = cc.color(255, 255, 255)
-        cancelLabelNode.parent = cancelBtn
-        
-        var cancelBtnComp = cancelBtn.addComponent(cc.Button)
-        cancelBtnComp.transition = cc.Button.Transition.SCALE
-        cancelBtnComp.duration = 0.1
-        cancelBtnComp.zoomScale = 1.1
-        
-        cancelBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
-            event.stopPropagation()
-            this.onCancelClick()
-        }, this)
-        
-        cancelBtn.parent = bottomBar
-        this._cancelBtn = cancelBtn
-        
-        bottomBar.parent = this.node
-        this._bottomBar = bottomBar
     },
 
     /**
@@ -601,11 +556,6 @@ cc.Class({
      */
     _showAssigningLoadingUI: function(data) {
         var self = this
-        
-        // 隐藏取消按钮（分配阶段不能取消）
-        if (this._cancelBtn) {
-            this._cancelBtn.active = false
-        }
         
         // 显示分配消息
         if (this._messageLabel) {
@@ -1102,27 +1052,5 @@ cc.Class({
             cc.fadeOut(0.5),
             cc.removeSelf()
         ))
-    },
-
-    // ============================================================
-    // 按钮事件
-    // ============================================================
-
-    /**
-     * 取消进入（返回大厅）
-     */
-    onCancelClick: function() {
-        console.log("🏟️ [ArenaMatchWaiting] 玩家点击取消")
-        
-        // 发送取消进入请求
-        if (window.myglobal && window.myglobal.socket) {
-            window.myglobal.socket.emit("arena_cancel_enter", {
-                period_no: this._periodNo,
-                room_id: this._roomId
-            })
-        }
-        
-        // 返回大厅
-        cc.director.loadScene("hallScene")
     }
 });
