@@ -886,8 +886,9 @@ cc.Class({
     // ============================================================
     
     /**
-     * 显示竞技场加载界面
-     * 在等待 ROOM_JOINED 消息时显示
+     * 显示竞技场等待界面（游戏场景内嵌）
+     * 🔧【修改】将 ArenaMatchWaitingScene 的等待UI集成到游戏场景中
+     * 普通场不使用此等待界面
      */
     _showArenaLoadingUI: function(myglobal) {
         // 如果已存在，不重复创建
@@ -902,63 +903,157 @@ cc.Class({
         var screenHeight = canvas ? canvas.designResolution.height : 720
         var screenWidth = canvas ? canvas.designResolution.width : 1280
         
-        // 创建加载界面容器
-        var loadingNode = new cc.Node("ArenaLoadingUI")
-        loadingNode.setContentSize(cc.size(screenWidth, screenHeight))
-        loadingNode.anchorX = 0.5
-        loadingNode.anchorY = 0.5
-        loadingNode.x = 0
-        loadingNode.y = 0
-        loadingNode.zIndex = 2000 // 确保在顶层
-        loadingNode.parent = this.node
-        this._arenaLoadingUINode = loadingNode
+        // 创建等待界面容器
+        var waitingNode = new cc.Node("ArenaWaitingUI")
+        waitingNode.setContentSize(cc.size(screenWidth, screenHeight))
+        waitingNode.anchorX = 0.5
+        waitingNode.anchorY = 0.5
+        waitingNode.x = 0
+        waitingNode.y = 0
+        waitingNode.zIndex = 2000 // 确保在顶层
+        waitingNode.parent = this.node
+        this._arenaLoadingUINode = waitingNode
         
-        // 创建半透明背景
+        // 创建背景（使用 join_bk.png）
         var bgNode = new cc.Node("Background")
         bgNode.setContentSize(cc.size(screenWidth, screenHeight))
-        bgNode.anchorX = 0.5
-        bgNode.anchorY = 0.5
-        var bgGraphics = bgNode.addComponent(cc.Graphics)
-        bgGraphics.fillColor = cc.color(0, 0, 0, 200) // 黑色半透明
-        bgGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight)
-        bgGraphics.fill()
-        bgNode.parent = loadingNode
+        bgNode.setPosition(0, 0)
+        var bgSprite = bgNode.addComponent(cc.Sprite)
+        bgSprite.type = cc.Sprite.Type.SIMPLE
+        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
         
-        // 创建加载提示文字
-        var labelNode = new cc.Node("LoadingLabel")
-        labelNode.anchorX = 0.5
-        labelNode.anchorY = 0.5
-        var label = labelNode.addComponent(cc.Label)
-        label.string = "正在加载比赛数据..."
-        label.fontSize = 28
-        label.lineHeight = 36
-        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-        labelNode.color = cc.color(255, 255, 255)
-        var outline = labelNode.addComponent(cc.LabelOutline)
-        outline.color = cc.color(0, 0, 0)
-        outline.width = 2
-        labelNode.parent = loadingNode
+        // 尝试加载背景图片
+        cc.resources.load('join_bk', cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                // 使用纯色背景作为后备
+                var bgGraphics = bgNode.addComponent(cc.Graphics)
+                bgGraphics.fillColor = cc.color(25, 30, 50, 255)
+                bgGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight)
+                bgGraphics.fill()
+                return
+            }
+            if (bgSprite && bgSprite.node && bgSprite.node.isValid) {
+                bgSprite.spriteFrame = spriteFrame
+            }
+        })
+        bgNode.parent = waitingNode
         
-        // 创建加载动画（旋转的点）
-        this._loadingDots = []
-        for (var i = 0; i < 3; i++) {
-            var dotNode = new cc.Node("Dot" + i)
-            dotNode.anchorX = 0.5
-            dotNode.anchorY = 0.5
-            dotNode.y = -60
-            dotNode.x = (i - 1) * 30 // 三个点水平排列
-            var dotGraphics = dotNode.addComponent(cc.Graphics)
-            dotGraphics.fillColor = cc.color(255, 255, 255)
-            dotGraphics.circle(0, 0, 8)
-            dotGraphics.fill()
-            dotNode.parent = loadingNode
-            this._loadingDots.push(dotNode)
+        // 创建顶部信息栏
+        var topBar = new cc.Node("TopBar")
+        topBar.setContentSize(cc.size(screenWidth - 100, 100))
+        topBar.setPosition(0, screenHeight/2 - 80)
+        
+        // 半透明背景
+        var topBarBg = new cc.Node("Bg")
+        topBarBg.setContentSize(cc.size(screenWidth - 100, 100))
+        var topBarBgGraphics = topBarBg.addComponent(cc.Graphics)
+        topBarBgGraphics.fillColor = cc.color(0, 0, 0, 150)
+        topBarBgGraphics.roundRect(-(screenWidth-100)/2, -50, screenWidth-100, 100, 10)
+        topBarBgGraphics.fill()
+        topBarBg.parent = topBar
+        topBar.parent = waitingNode
+        
+        // 期号
+        var periodNode = new cc.Node("PeriodNo")
+        periodNode.setPosition(-screenWidth/2 + 150, 25)
+        var periodLabel = periodNode.addComponent(cc.Label)
+        periodLabel.string = "期号: " + (this._periodNo || "--")
+        periodLabel.fontSize = 22
+        periodLabel.lineHeight = 28
+        periodNode.color = cc.color(255, 215, 0)
+        var periodOutline = periodNode.addComponent(cc.LabelOutline)
+        periodOutline.color = cc.color(0, 0, 0)
+        periodOutline.width = 2
+        periodNode.parent = topBar
+        this._arenaPeriodLabel = periodLabel
+        
+        // 房间名称
+        var roomNode = new cc.Node("RoomName")
+        roomNode.setPosition(0, 25)
+        var roomLabel = roomNode.addComponent(cc.Label)
+        roomLabel.string = "竞技场匹配中"
+        roomLabel.fontSize = 28
+        roomLabel.lineHeight = 36
+        roomNode.color = cc.color(255, 255, 255)
+        var roomOutline = roomNode.addComponent(cc.LabelOutline)
+        roomOutline.color = cc.color(0, 0, 0)
+        roomOutline.width = 2
+        roomNode.parent = topBar
+        this._arenaRoomLabel = roomLabel
+        
+        // 提示消息
+        var msgNode = new cc.Node("Message")
+        msgNode.setPosition(0, -30)
+        var msgLabel = msgNode.addComponent(cc.Label)
+        msgLabel.string = "正在为您匹配对手..."
+        msgLabel.fontSize = 20
+        msgLabel.lineHeight = 28
+        msgNode.color = cc.color(255, 200, 100)
+        var msgOutline = msgNode.addComponent(cc.LabelOutline)
+        msgOutline.color = cc.color(0, 0, 0)
+        msgOutline.width = 2
+        msgNode.parent = topBar
+        this._arenaMsgLabel = msgLabel
+        
+        // 创建加载动画（旋转的圆环）
+        var loadingContainer = new cc.Node("LoadingContainer")
+        loadingContainer.setPosition(0, 0)
+        loadingContainer.parent = waitingNode
+        
+        // 加载图标（圆环）
+        var loadingIcon = new cc.Node("LoadingIcon")
+        loadingIcon.setContentSize(cc.size(80, 80))
+        var iconGraphics = loadingIcon.addComponent(cc.Graphics)
+        iconGraphics.strokeColor = cc.color(255, 215, 0)
+        iconGraphics.lineWidth = 4
+        iconGraphics.arc(0, 0, 30, 0, Math.PI * 1.5, false)
+        iconGraphics.stroke()
+        loadingIcon.parent = loadingContainer
+        this._arenaLoadingIcon = loadingIcon
+        
+        // 加载文字
+        var loadingLabel = new cc.Node("LoadingLabel")
+        loadingLabel.setPosition(0, -70)
+        var loadingLabelComp = loadingLabel.addComponent(cc.Label)
+        loadingLabelComp.string = "匹配中..."
+        loadingLabelComp.fontSize = 24
+        loadingLabelComp.lineHeight = 32
+        loadingLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        loadingLabel.color = cc.color(255, 220, 100)
+        var loadingOutline = loadingLabel.addComponent(cc.LabelOutline)
+        loadingOutline.color = cc.color(0, 0, 0)
+        loadingOutline.width = 2
+        loadingLabel.parent = loadingContainer
+        this._arenaLoadingLabel = loadingLabelComp
+        
+        // 启动旋转动画
+        this._startArenaLoadingAnimation()
+        
+        console.log("🏟️ [_showArenaLoadingUI] 竞技场等待界面已显示（游戏场景内嵌）")
+    },
+    
+    /**
+     * 启动竞技场加载旋转动画
+     */
+    _startArenaLoadingAnimation: function() {
+        var self = this
+        this._arenaLoadingAnimScheduled = true
+        
+        this.schedule(function() {
+            if (self._arenaLoadingIcon && self._arenaLoadingIcon.isValid) {
+                self._arenaLoadingIcon.angle += 5
+            }
+        }, 0.016)  // 约60fps
+    },
+    
+    /**
+     * 停止竞技场加载旋转动画
+     */
+    _stopArenaLoadingAnimation: function() {
+        if (this._arenaLoadingAnimScheduled) {
+            this.unschedule(this._startArenaLoadingAnimation)
+            this._arenaLoadingAnimScheduled = false
         }
-        
-        // 启动加载动画
-        this._startLoadingAnimation()
-        
-        console.log("🏟️ [_showArenaLoadingUI] 加载界面已显示")
     },
     
     /**
@@ -966,54 +1061,19 @@ cc.Class({
      */
     _hideArenaLoadingUI: function() {
         // 停止加载动画
-        this._stopLoadingAnimation()
+        this._stopArenaLoadingAnimation()
         
         // 销毁加载界面
         if (this._arenaLoadingUINode) {
             this._arenaLoadingUINode.destroy()
             this._arenaLoadingUINode = null
-            console.log("🏟️ [_hideArenaLoadingUI] 加载界面已隐藏")
+            this._arenaLoadingIcon = null
+            this._arenaPeriodLabel = null
+            this._arenaRoomLabel = null
+            this._arenaMsgLabel = null
+            this._arenaLoadingLabel = null
+            console.log("🏟️ [_hideArenaLoadingUI] 竞技场等待界面已隐藏")
         }
-    },
-    
-    /**
-     * 启动加载动画
-     */
-    _startLoadingAnimation: function() {
-        var self = this
-        this._loadingAnimIndex = 0
-        
-        this._loadingAnimSchedule = function() {
-            if (!self._loadingDots || self._loadingDots.length === 0) return
-            
-            // 更新点的透明度，形成波浪效果
-            for (var i = 0; i < self._loadingDots.length; i++) {
-                var dot = self._loadingDots[i]
-                if (dot) {
-                    var phase = (self._loadingAnimIndex + i) % 3
-                    var opacity = phase === 0 ? 255 : (phase === 1 ? 150 : 80)
-                    dot.opacity = opacity
-                    // 添加缩放效果
-                    dot.scale = phase === 0 ? 1.2 : 1.0
-                }
-            }
-            self._loadingAnimIndex = (self._loadingAnimIndex + 1) % 3
-        }
-        
-        // 每 0.3 秒更新一次动画
-        this.schedule(this._loadingAnimSchedule, 0.3)
-    },
-    
-    /**
-     * 停止加载动画
-     */
-    _stopLoadingAnimation: function() {
-        if (this._loadingAnimSchedule) {
-            this.unschedule(this._loadingAnimSchedule)
-            this._loadingAnimSchedule = null
-        }
-        this._loadingDots = []
-        this._loadingAnimIndex = 0
     },
     
     // ============================================================
