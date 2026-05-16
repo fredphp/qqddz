@@ -3048,6 +3048,9 @@ cc.Class({
         
         console.log("🏟️ [ArenaWaiting] 分配阶段开始，准备进入游戏");
         
+        // 🔧【关键修复】设置标志，防止 room_joined 再次触发进入游戏场景
+        this._arenaRoomJoinedProcessed = true;
+        
         // 隐藏等待界面
         this._hideArenaWaitingUI();
         
@@ -3363,6 +3366,15 @@ cc.Class({
         var self = this;
         var myglobal = window.myglobal;
         
+        // 🔧【关键修复】防止重复进入游戏场景
+        if (this._enterGameSceneInProgress) {
+            console.log("🏟️ [Arena] 已在进入游戏场景中，跳过");
+            return;
+        }
+        
+        // 🔧【关键修复】设置标志，防止 room_joined 再次触发
+        this._arenaRoomJoinedProcessed = true;
+        
         // 显示简短加载提示
         this._showMessageCenter("正在进入竞技场...");
         
@@ -3436,6 +3448,12 @@ cc.Class({
      */
     _enterArenaGameSceneFromRoomJoined: function(roomData) {
         console.log("🏟️ [Arena] 从 room_joined 进入游戏场景, roomData=" + JSON.stringify(roomData));
+        
+        // 🔧【关键修复】防止重复进入游戏场景
+        if (this._enterGameSceneInProgress) {
+            console.log("🏟️ [Arena] 已在进入游戏场景中，跳过（来自 room_joined）");
+            return;
+        }
         
         var myglobal = window.myglobal;
         

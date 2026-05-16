@@ -377,27 +377,20 @@ cc.Class({
             }
         }
 
+        // 🔧【修复】处理以 / 开头的路径（服务器相对路径）
+        if (avatarUrl.indexOf('/') === 0 && avatarUrl.indexOf('/uploads/') === 0) {
+            // 拼接服务器地址
+            var serverUrl = 'https://houtais.hongxiu88.com' + avatarUrl
+            console.log("🖼️ [player_node] 加载服务器头像(格式1):", serverUrl)
+            this._loadRemoteAvatar(serverUrl)
+            return
+        }
+
         // 判断是否是远程URL
         if (avatarUrl.indexOf('http://') === 0 || avatarUrl.indexOf('https://') === 0) {
             // 远程URL头像
             console.log("🖼️ [player_node] 加载远程头像:", avatarUrl)
-            cc.assetManager.loadRemote(avatarUrl, { ext: '.png' }, function(err, texture) {
-                if (err || !texture) {
-                    console.warn("🖼️ [player_node] 远程头像加载失败，使用默认头像:", err)
-                    self._loadDefaultAvatar()
-                    return
-                }
-                try {
-                    var spriteFrame = new cc.SpriteFrame(texture)
-                    if (spriteFrame) {
-                        self._setAvatarSprite(spriteFrame)
-                        console.log("🖼️ [player_node] 远程头像加载成功")
-                    }
-                } catch (e) {
-                    console.warn("🖼️ [player_node] 创建SpriteFrame失败:", e)
-                    self._loadDefaultAvatar()
-                }
-            })
+            this._loadRemoteAvatar(avatarUrl)
         } else {
             // 本地资源头像
             console.log("🖼️ [player_node] 加载本地头像:", avatarUrl)
@@ -412,6 +405,31 @@ cc.Class({
                 console.log("🖼️ [player_node] 本地头像加载成功")
             })
         }
+    },
+
+    /**
+     * 🔧【新增】加载远程头像
+     * @param {string} url - 完整的远程URL
+     */
+    _loadRemoteAvatar: function(url) {
+        var self = this
+        cc.assetManager.loadRemote(url, { ext: '.png' }, function(err, texture) {
+            if (err || !texture) {
+                console.warn("🖼️ [player_node] 远程头像加载失败，使用默认头像:", err)
+                self._loadDefaultAvatar()
+                return
+            }
+            try {
+                var spriteFrame = new cc.SpriteFrame(texture)
+                if (spriteFrame) {
+                    self._setAvatarSprite(spriteFrame)
+                    console.log("🖼️ [player_node] 远程头像加载成功")
+                }
+            } catch (e) {
+                console.warn("🖼️ [player_node] 创建SpriteFrame失败:", e)
+                self._loadDefaultAvatar()
+            }
+        })
     },
 
     /**
