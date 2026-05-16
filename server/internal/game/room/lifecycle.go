@@ -333,12 +333,18 @@ func (rm *RoomManager) ReconnectPlayer(oldClient, newClient types.ClientInterfac
 
 // generateRoomCode 生成房间号
 func (rm *RoomManager) generateRoomCode() string {
+        return rm.generateRoomCodeWithPrefix("")
+}
+
+// generateRoomCodeWithPrefix 生成带前缀的房间号
+// prefix: 房间号前缀，如 "arena_" 表示竞技场房间
+func (rm *RoomManager) generateRoomCodeWithPrefix(prefix string) string {
         for {
                 code := make([]byte, roomCodeLength)
                 for i := range code {
                         code[i] = roomCodeChars[rand.IntN(len(roomCodeChars))]
                 }
-                codeStr := string(code)
+                codeStr := prefix + string(code)
                 if _, exists := rm.rooms[codeStr]; !exists {
                         return codeStr
                 }

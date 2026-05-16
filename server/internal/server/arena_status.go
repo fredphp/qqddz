@@ -944,10 +944,11 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
 
         // ============================================================
         // 3. 创建房间（房主自动加入，座位0）
+        // 🔧【修复】使用 CreateArenaRoom 创建竞技场房间，房间号带 arena_ 前缀
         // ============================================================
-        gameRoom, err := b.server.roomManager.CreateRoom(hostClient, roomConfigID)
+        gameRoom, err := b.server.roomManager.CreateArenaRoom(hostClient, roomConfigID)
         if err != nil {
-                log.Printf("[ArenaStatus] ❌ 创建房间失败: %v", err)
+                log.Printf("[ArenaStatus] ❌ 创建竞技场房间失败: %v", err)
                 return
         }
 
@@ -1624,9 +1625,10 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGameForWaiting(enterPhase *E
         }
 
         // 创建房间
-        gameRoom, err := b.server.roomManager.CreateRoom(hostClient, enterPhase.RoomID)
+        // 🔧【修复】使用 CreateArenaRoom 创建竞技场房间，房间号带 arena_ 前缀
+        gameRoom, err := b.server.roomManager.CreateArenaRoom(hostClient, enterPhase.RoomID)
         if err != nil {
-                log.Printf("[ArenaStatus] ❌ 创建房间失败: %v", err)
+                log.Printf("[ArenaStatus] ❌ 创建竞技场房间失败: %v", err)
                 return
         }
 
@@ -2017,10 +2019,10 @@ func (b *ArenaStatusBroadcaster) createTableRoom(enterPhase *EnterPhaseInfo, tab
                 return fmt.Errorf("roomManager 未初始化")
         }
 
-        // 创建房间
-        gameRoom, err := b.server.roomManager.CreateRoom(hostClient, enterPhase.RoomID)
+        // 🔧【修复】使用 CreateArenaRoom 创建竞技场房间，房间号带 arena_ 前缀
+        gameRoom, err := b.server.roomManager.CreateArenaRoom(hostClient, enterPhase.RoomID)
         if err != nil {
-                return fmt.Errorf("创建房间失败: %v", err)
+                return fmt.Errorf("创建竞技场房间失败: %v", err)
         }
 
         // 🔧【关键修复】设置竞技场期号
@@ -3701,10 +3703,10 @@ func (b *ArenaStatusBroadcaster) createRoomForTableWithRobots(enterPhase *EnterP
                 return
         }
 
-        // Create room
-        gameRoom, err := b.server.roomManager.CreateRoom(hostClient, enterPhase.RoomID)
+        // Create room - 🔧【修复】使用 CreateArenaRoom 创建竞技场房间
+        gameRoom, err := b.server.roomManager.CreateArenaRoom(hostClient, enterPhase.RoomID)
         if err != nil {
-                log.Printf("[ArenaStatus] Failed to create room for table %d: %v", table.TableID, err)
+                log.Printf("[ArenaStatus] Failed to create arena room for table %d: %v", table.TableID, err)
                 return
         }
 

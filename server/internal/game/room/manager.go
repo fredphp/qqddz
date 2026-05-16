@@ -161,6 +161,122 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface, roomConfigID uin
         return room, nil
 }
 
+// CreateArenaRoom 创建竞技场房间
+// 与普通房间不同，竞技场房间号带有 "arena_" 前缀，方便区分
+// roomConfigID: 房间配置ID，用于关联房间配置表
+func (rm *RoomManager) CreateArenaRoom(client types.ClientInterface, roomConfigID uint64) (*Room, error) {
+        rm.mu.Lock()
+        defer rm.mu.Unlock()
+
+        // 使用当前登录用户的 PlayerID
+        creatorID := client.GetPlayerID()
+
+        // 生成带 arena_ 前缀的唯一房间号
+        code := rm.generateRoomCodeWithPrefix("arena_")
+
+        room := &Room{
+                Code:            code,
+                State:           RoomStateWaiting,
+                Players:         make(map[string]*RoomPlayer),
+                PlayerOrder:     make([]string, 0, 3),
+                CreatorID:       client.GetID(),
+                CreatedAt:       time.Now(),
+                LastLandlordIdx: -1,
+                GameCount:       0,
+                RoomCategory:    2, // 竞技场
+                RoomConfigID:    roomConfigID,
+        }
+
+        // 添加创建者（房主自动设置为已准备）
+        player := NewRoomPlayer(client, 0)
+        player.Ready = true
+        room.Players[client.GetID()] = player
+        room.PlayerOrder = append(room.PlayerOrder, client.GetID())
+        client.SetRoom(code)
+
+        // 预加载玩家信息
+        room.PreloadPlayerInfo(client.GetID())
+
+        rm.rooms[code] = room
+
+        // 获取房间配置信息
+        var roomConfig *database.RoomConfig
+        var err error
+        if roomConfigID > 0 {
+                roomConfig, err = database.GetRoomConfigByID(roomConfigID)
+                if err != nil {
+                        log.Printf("⚠️ 获取房间配置失败: %v, 使用默认配置", err)
+                }
+        }
+
+        // 设置房间分类为竞技场
+        if roomConfig != nil {
+                room.RoomCategory = roomConfig.RoomCategory
+        }
+
+        // 保存房间到分表
+        roomName := fmt.Sprintf("竞技场%s", code)
+
+        dbRoom := &database.PartitionRoom{
+                RoomCode:     code,
+                RoomName:     roomName,
+                RoomConfigID: roomConfigID,
+                RoomType:     2, // 竞技场
+                RoomCategory: 2, // 竞技场
+                CreatorID:    creatorID,
+                PlayerCount:  1,
+                MaxPlayers:   3,
+                Status:       database.RoomStatusWaiting,
+                BaseScore:    1,
+                Multiplier:   1,
+                CreatedAt:    time.Now(),
+        }
+
+        if roomConfig != nil {
+                dbRoom.BaseScore = roomConfig.BaseScore
+                dbRoom.Multiplier = roomConfig.Multiplier
+        }
+
+        if creatorID > 0 {
+                dbRoom.Player1ID = &creatorID
+        }
+
+        // 使用分表保存房间
+        if err := database.CreatePartitionRoom(dbRoom); err != nil {
+                log.Printf("⚠️ 创建竞技场房间到分表失败: %v", err)
+        } else {
+                log.Printf("💾 竞技场房间 %s 已保存到分表，创建者ID: %d", code, creatorID)
+        }
+
+        // 保存房间玩家到分表
+        if creatorID > 0 {
+                roomPlayer := &database.PartitionRoomPlayer{
+                        RoomCode:  code,
+                        PlayerID:  creatorID,
+                        SeatIndex: 0,
+                        IsCreator: 1,
+                        IsReady:   1,
+                        IsOffline: 0,
+                        JoinedAt:  time.Now(),
+                }
+                if err := database.CreatePartitionRoomPlayer(roomPlayer); err != nil {
+                        log.Printf("⚠️ 创建房间玩家记录失败: %v", err)
+                }
+        }
+
+        // 保存到 Redis
+        if rm.store != nil && rm.store.IsReady() {
+                ctx := context.Background()
+                go func() { _ = rm.store.SaveRoom(ctx, room.Code, room.ToRoomData()) }()
+        }
+
+        // 注意：竞技场房间不加入普通房间列表，不广播房间列表更新
+
+        log.Printf("🏟️ 竞技场房间 %s 已创建，玩家 %s", code, client.GetName())
+
+        return room, nil
+}
+
 // JoinRoom 加入房间
 func (rm *RoomManager) JoinRoom(client types.ClientInterface, code string) (*Room, error) {
         rm.mu.Lock()
