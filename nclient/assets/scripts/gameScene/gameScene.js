@@ -378,7 +378,7 @@ cc.Class({
             }
             
             // 🔧【关键修复】用 ROOM_JOINED 数据更新玩家信息（头像、金币等）
-            // 需要同时支持数字 ID（机器人）和 UUID（当前玩家）
+            // 简化匹配逻辑：机器人通过 ID 匹配，当前玩家通过位置索引 0 匹配
             if (data && data.players && this.playerNodeList) {
                 console.log("🎮 [gameScene] 更新玩家数据，玩家数量:", data.players.length);
                 
@@ -386,66 +386,57 @@ cc.Class({
                 var currentServerPlayerId = myglobal.playerData && myglobal.playerData.serverPlayerId;
                 console.log("🎮 [gameScene] 当前玩家 serverPlayerId:", currentServerPlayerId);
                 
+                // 🔧【关键修复】遍历服务端玩家列表，更新所有玩家数据
                 for (var i = 0; i < data.players.length; i++) {
                     var serverPlayer = data.players[i];
+                    
+                    // 🔧【修复】判断是否是当前玩家：
+                    // 1. ID 匹配 serverPlayerId
+                    // 2. 或者 ID 是 UUID 格式（包含 '-'）且不匹配已知的机器人 ID
+                    var isCurrentPlayer = (serverPlayer.id === currentServerPlayerId) || 
+                                          (serverPlayer.id && serverPlayer.id.indexOf('-') > 0 && !this._isKnownRobotId(serverPlayer.id));
+                    
+                    console.log("🎮 [gameScene] 处理玩家: " + serverPlayer.name + ", id=" + serverPlayer.id + ", isCurrentPlayer=" + isCurrentPlayer);
+                    
                     // 查找对应的玩家节点
-                    var matched = false;
                     for (var j = 0; j < this.playerNodeList.length; j++) {
                         var playerNode = this.playerNodeList[j];
-                        if (playerNode) {
-                            var playerScript = playerNode.getComponent("player_node");
-                            if (playerScript) {
-                                // 🔧【关键修复】同时检查数字 ID 和 UUID
-                                var isMatch = (playerScript.accountid === serverPlayer.id) || 
-                                              (serverPlayer.id === currentServerPlayerId && !playerScript.accountid.startsWith(currentServerPlayerId));
-                                
-                                // 额外检查：如果 serverPlayer.id 是当前玩家的 UUID，则匹配 accountid 为数字的玩家节点
-                                if (!isMatch && serverPlayer.id === currentServerPlayerId) {
-                                    // 当前玩家：通过位置索引 0 来匹配
-                                    if (playerScript.seat_index === 0) {
-                                        isMatch = true;
-                                        console.log("🎮 [gameScene] 通过位置索引匹配当前玩家");
-                                    }
-                                }
-                                
-                                if (isMatch) {
-                                    // 更新玩家数据
-                                    var updateData = {
-                                        gold_count: serverPlayer.gold_count || 0,
-                                        arena_gold: serverPlayer.arena_gold || 0,
-                                        match_coin: serverPlayer.match_coin || 0,
-                                        avatar: serverPlayer.avatar || "",
-                                        avatarUrl: serverPlayer.avatar || ""
-                                    };
-                                    playerScript.updateArenaData && playerScript.updateArenaData(updateData);
-                                    console.log("🎮 [gameScene] 更新玩家 " + serverPlayer.name + " 数据:", JSON.stringify(updateData));
-                                    matched = true;
-                                    break;
-                                }
+                        if (!playerNode) continue;
+                        
+                        var playerScript = playerNode.getComponent("player_node");
+                        if (!playerScript) continue;
+                        
+                        // 🔧【简化匹配逻辑】
+                        // 1. 机器人玩家：通过 accountid 匹配
+                        // 2. 当前玩家：通过位置索引 0 匹配（当前玩家始终在位置 0）
+                        var isMatch = false;
+                        
+                        if (isCurrentPlayer) {
+                            // 当前玩家：匹配位置索引 0 的节点
+                            if (playerScript.seat_index === 0) {
+                                isMatch = true;
+                                console.log("🎮 [gameScene] 当前玩家匹配成功（位置索引 0）");
+                            }
+                        } else {
+                            // 其他玩家（机器人）：通过 accountid 匹配
+                            if (playerScript.accountid === serverPlayer.id) {
+                                isMatch = true;
+                                console.log("🎮 [gameScene] 机器人玩家匹配成功: " + serverPlayer.name);
                             }
                         }
-                    }
-                    
-                    // 🔧【新增】如果没匹配到，但这是当前玩家，强制更新位置 0 的玩家节点
-                    if (!matched && serverPlayer.id === currentServerPlayerId) {
-                        console.log("🎮 [gameScene] 当前玩家未匹配到，尝试通过位置索引更新...");
-                        for (var j = 0; j < this.playerNodeList.length; j++) {
-                            var playerNode = this.playerNodeList[j];
-                            if (playerNode) {
-                                var playerScript = playerNode.getComponent("player_node");
-                                if (playerScript && playerScript.seat_index === 0) {
-                                    var updateData = {
-                                        gold_count: serverPlayer.gold_count || 0,
-                                        arena_gold: serverPlayer.arena_gold || 0,
-                                        match_coin: serverPlayer.match_coin || 0,
-                                        avatar: serverPlayer.avatar || "",
-                                        avatarUrl: serverPlayer.avatar || ""
-                                    };
-                                    playerScript.updateArenaData && playerScript.updateArenaData(updateData);
-                                    console.log("🎮 [gameScene] 强制更新位置 0 的玩家数据:", JSON.stringify(updateData));
-                                    break;
-                                }
-                            }
+                        
+                        if (isMatch) {
+                            // 更新玩家数据
+                            var updateData = {
+                                gold_count: serverPlayer.gold_count || 0,
+                                arena_gold: serverPlayer.arena_gold || 0,
+                                match_coin: serverPlayer.match_coin || 0,
+                                avatar: serverPlayer.avatar || "",
+                                avatarUrl: serverPlayer.avatar || ""
+                            };
+                            playerScript.updateArenaData && playerScript.updateArenaData(updateData);
+                            console.log("🎮 [gameScene] 更新玩家 " + serverPlayer.name + " 数据:", JSON.stringify(updateData));
+                            break;
                         }
                     }
                 }
@@ -479,6 +470,16 @@ cc.Class({
             default:
                 break
         }
+    },
+    
+    /**
+     * 检查是否是已知的机器人 ID
+     * 机器人 ID 通常是纯数字字符串
+     */
+    _isKnownRobotId: function(playerId) {
+        if (!playerId) return false
+        // 机器人 ID 是纯数字
+        return /^\d+$/.test(playerId)
     },
 
     addPlayerNode(player_data) {
