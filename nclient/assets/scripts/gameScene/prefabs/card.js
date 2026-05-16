@@ -135,7 +135,14 @@ cc.Class({
         var suitName = this._getSuitName(card.suit)
         var rankName = this._getRankName(card.rank)
 
-        var spriteFrame = this.cards_sprite_atlas.getSpriteFrame(spriteKey)
+        // 🔧【修复】优先使用预加载的全局图集，解决竞技场进入游戏场景时图集为null的问题
+        var atlas = this.cards_sprite_atlas || window._cardAtlas
+        if (!atlas) {
+            console.error("🃏 [showCards] 卡牌精灵图集未加载！cards_sprite_atlas=null, window._cardAtlas=null")
+            return
+        }
+
+        var spriteFrame = atlas.getSpriteFrame(spriteKey)
         if (spriteFrame) {
             this.node.getComponent(cc.Sprite).spriteFrame = spriteFrame
             this.setTouchEvent()

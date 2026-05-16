@@ -622,6 +622,54 @@ cc.Class({
             return
         }
         
+        // 🔧【关键修复】等待卡牌图集加载完成
+        if (!window._cardAtlasLoaded) {
+            console.log("🎮 [renderCards] 卡牌图集未加载完成，等待中...")
+            var self = this
+            this._waitForAtlasAndRender(cards)
+            return
+        }
+        
+        this._doRenderCards(cards)
+    },
+    
+    /**
+     * 🔧【新增】等待图集加载完成后渲染
+     */
+    _waitForAtlasAndRender: function(cards) {
+        var self = this
+        var checkCount = 0
+        var maxCheck = 50  // 最多等待5秒（50 * 100ms）
+        
+        var checkAtlas = function() {
+            checkCount++
+            if (window._cardAtlasLoaded) {
+                console.log("🎮 [renderCards] 卡牌图集加载完成，开始渲染")
+                self._doRenderCards(cards)
+            } else if (checkCount < maxCheck) {
+                setTimeout(checkAtlas, 100)
+            } else {
+                console.error("🎮 [renderCards] 等待卡牌图集超时，强制重新加载")
+                // 强制重新加载
+                cc.resources.load("UI/card/card", cc.SpriteAtlas, function(err, atlas) {
+                    if (err) {
+                        console.error("🎮 [renderCards] 强制加载卡牌图集失败:", err)
+                        return
+                    }
+                    window._cardAtlasLoaded = true
+                    window._cardAtlas = atlas
+                    console.log("🎮 [renderCards] 强制加载卡牌图集成功")
+                    self._doRenderCards(cards)
+                })
+            }
+        }
+        checkAtlas()
+    },
+    
+    /**
+     * 🔧【新增】实际执行渲染手牌
+     */
+    _doRenderCards: function(cards) {
         // 🔧【关键修复】确保 cards_node 存在
         if (!this.cards_node) {
             console.warn("🎮 [renderCards] cards_node 未定义，尝试重新查找或创建")
