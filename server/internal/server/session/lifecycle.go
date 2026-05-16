@@ -999,38 +999,27 @@ func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
         log.Printf("🏟️ [onArenaCountdownEnd] ========== 处理完成 ==========")
 }
 
-// getMaxRoundCount 获取竞技场最大轮次
-// 🔧【修复】根据实际报名人数和淘汰规则动态计算轮次
+// getMaxRoundCount 获取竞技场每桌最大局数
+// 🔧【修复】返回房间配置的每桌局数（match_round_count），而不是淘汰轮次数
+// 每桌需要打完配置的局数后，才进行淘汰排名
 func (gs *GameSession) getMaxRoundCount() int {
-        // 🔧【关键修复】优先根据报名人数和淘汰规则动态计算
-        periodNo := gs.room.PeriodNo
-        if periodNo != "" {
-                // 获取当期报名人数
-                totalPlayers := gs.getArenaTotalPlayers(periodNo)
-                if totalPlayers > 0 {
-                        rules := gs.getEliminationRules()
-                        totalRounds := rules.GetTotalRounds(totalPlayers)
-                        log.Printf("🏟️ [getMaxRoundCount] 动态计算: periodNo=%s, players=%d, rules=%v, totalRounds=%d",
-                                periodNo, totalPlayers, rules, totalRounds)
-                        return totalRounds
-                }
-        }
-
-        // 回退：从房间配置ID获取配置
+        // 默认每桌打 3 局
         defaultRoundCount := 3
+
+        // 从房间配置获取每桌局数
         if gs.room.RoomConfigID > 0 {
                 roomConfig, err := database.GetRoomConfigByID(gs.room.RoomConfigID)
                 if err != nil {
-                        log.Printf("⚠️ [getMaxRoundCount] 获取房间配置失败: %v, 使用默认轮次 %d", err, defaultRoundCount)
+                        log.Printf("⚠️ [getMaxRoundCount] 获取房间配置失败: %v, 使用默认局数 %d", err, defaultRoundCount)
                         return defaultRoundCount
                 }
                 if roomConfig.MatchRoundCount > 0 {
-                        log.Printf("🏟️ [getMaxRoundCount] 房间配置ID=%d, 最大轮次=%d", gs.room.RoomConfigID, roomConfig.MatchRoundCount)
+                        log.Printf("🏟️ [getMaxRoundCount] 房间配置ID=%d, 每桌局数=%d", gs.room.RoomConfigID, roomConfig.MatchRoundCount)
                         return roomConfig.MatchRoundCount
                 }
         }
 
-        log.Printf("🏟️ [getMaxRoundCount] 无房间配置，使用默认轮次 %d", defaultRoundCount)
+        log.Printf("🏟️ [getMaxRoundCount] 无房间配置，使用默认局数 %d", defaultRoundCount)
         return defaultRoundCount
 }
 
