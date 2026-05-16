@@ -1609,35 +1609,46 @@ func (gs *GameSession) calculatePeriodRankings(periodNo string) []protocol.Tourn
 // 🔧【新增】获取本轮淘汰目标（保留多少人）
 // 淘汰规则 [60, 30, 18, 9, 3]
 // 🔧【修复】添加边界检查，确保淘汰目标不超过实际人数
-func (gs *GameSession) getEliminationTarget(currentRound int, totalPlayers int) int {
+// 🔧【关键修复】基于初始报名人数计算淘汰目标，而不是当前人数
+func (gs *GameSession) getEliminationTarget(currentRound int, currentPlayers int) int {
         // 🔧【关键修复】边界检查：如果人数 <= 3，直接返回人数（决赛）
-        if totalPlayers <= 3 {
-                log.Printf("🏟️ [getEliminationTarget] 人数=%d <= 3，直接决赛", totalPlayers)
-                return totalPlayers
+        if currentPlayers <= 3 {
+                log.Printf("🏟️ [getEliminationTarget] 人数=%d <= 3，直接决赛", currentPlayers)
+                return currentPlayers
         }
 
         // 从房间配置获取淘汰规则
         rules := gs.getEliminationRules()
 
-        // 计算当前轮次对应的淘汰目标索引
+        // 🔧【关键修复】获取初始报名人数，而不是当前人数
+        periodNo := gs.room.PeriodNo
+        totalPlayers := gs.getArenaTotalPlayers(periodNo)
+        if totalPlayers <= 0 {
+                totalPlayers = currentPlayers // 回退到当前人数
+        }
+
+        // 计算初始淘汰规则（基于报名人数）
         activeRules := rules.GetActiveRules(totalPlayers)
 
         // 🔧【关键修复】如果 activeRules 为空，表示直接决赛
         if len(activeRules) == 0 {
-                log.Printf("🏟️ [getEliminationTarget] activeRules 为空，人数=%d，直接决赛", totalPlayers)
-                return totalPlayers
+                log.Printf("🏟️ [getEliminationTarget] activeRules 为空，初始人数=%d，直接决赛", totalPlayers)
+                return currentPlayers
         }
 
         // 获取本轮淘汰目标
-        if currentRound-1 < len(activeRules) {
-                target := activeRules[currentRound-1]
+        // currentRound 是已完成的轮次数（从1开始）
+        // 淘汰规则索引：第一轮用 activeRules[0]，第二轮用 activeRules[1]，依此类推
+        ruleIndex := currentRound - 1
+        if ruleIndex < len(activeRules) {
+                target := activeRules[ruleIndex]
                 // 🔧【关键修复】确保淘汰目标不超过实际人数
-                if target > totalPlayers {
-                        log.Printf("🏟️ [getEliminationTarget] 目标=%d > 人数=%d，调整为人数", target, totalPlayers)
-                        return totalPlayers
+                if target > currentPlayers {
+                        log.Printf("🏟️ [getEliminationTarget] 目标=%d > 当前人数=%d，调整为当前人数", target, currentPlayers)
+                        return currentPlayers
                 }
-                log.Printf("🏟️ [getEliminationTarget] round=%d, players=%d, target=%d, activeRules=%v",
-                        currentRound, totalPlayers, target, activeRules)
+                log.Printf("🏟️ [getEliminationTarget] round=%d, 初始人数=%d, 当前人数=%d, target=%d, activeRules=%v",
+                        currentRound, totalPlayers, currentPlayers, target, activeRules)
                 return target
         }
 
@@ -1736,9 +1747,19 @@ func (gs *GameSession) notifyEliminatedPlayers(periodNo string, eliminatedPlayer
                                 Message:  "您已被淘汰，即将离开房间",
                         }))
                         
-                        // 标记玩家需要离开房间
-                        // 注意：不立即断开连接，让客户端有时间显示淘汰消息
-                        log.Printf("🏟️ [notifyEliminatedPlayers] 玩家 %d 已标记为淘汰状态，将从房间移除", playerID)
+                        // 🔧【关键修复】将玩家从房间玩家列表中移除
+                        // 这确保被淘汰的玩家无法继续参与后续游戏
+                        delete(gs.room.Players, playerIDStr)
+                        log.Printf("🏟️ [notifyEliminatedPlayers] 玩家 %d 已从房间移除", playerID)
+                        
+                        // 同时从游戏会话玩家列表中移除
+                        for i, p := range gs.players {
+                                if p.ID == playerIDStr {
+                                        gs.players = append(gs.players[:i], gs.players[i+1:]...)
+                                        log.Printf("🏟️ [notifyEliminatedPlayers] 玩家 %d 已从游戏会话移除", playerID)
+                                        break
+                                }
+                        }
                 }
                 gs.mu.Unlock()
         }
@@ -1823,21 +1844,44 @@ func (gs *GameSession) broadcastFinalRoundStart(periodNo string, playerIDs []uin
 }
 
 // 🔧【新增】重新分配桌子并创建房间
+// 🔧【关键修复】正确处理多桌场景，销毁旧房间并创建新房间
 func (gs *GameSession) reassignTablesForNextRound(periodNo string, nextRound int, playerIDs []uint64) {
         log.Printf("🏟️ [reassignTablesForNextRound] 重新分配桌子: periodNo=%s, round=%d, players=%d",
                 periodNo, nextRound, len(playerIDs))
 
-        // 如果当前房间只有一个玩家（单人测试场景），直接继续
+        // 如果当前房间只有3人或更少，直接继续使用当前房间
         if len(playerIDs) <= 3 {
                 // 当前的桌子继续使用
                 gs.advanceToNextRound(periodNo, nextRound)
                 return
         }
 
-        // 🔧【核心】多桌场景：需要销毁当前房间，重新分配
-        // 这需要通过服务端的全局管理器来处理
-        // 暂时使用简单的继续逻辑
-        gs.advanceToNextRound(periodNo, nextRound)
+        // 🔧【核心】多桌场景：需要通过 ArenaStatusBroadcaster 重新分配
+        // 获取服务器实例
+        server := gs.getServer()
+        if server == nil || server.arenaBroadcaster == nil {
+                log.Printf("⚠️ [reassignTablesForNextRound] 服务器或广播器不可用，使用简单逻辑")
+                gs.advanceToNextRound(periodNo, nextRound)
+                return
+        }
+
+        // 获取房间配置ID
+        roomConfigID := gs.room.RoomConfigID
+
+        // 🔧【关键】调用 ArenaStatusBroadcaster 为晋级玩家创建新房间
+        // 这会处理：
+        // 1. 随机分配玩家到新桌子
+        // 2. 补充机器人（如果需要）
+        // 3. 创建新房间并开始游戏
+        log.Printf("🏟️ [reassignTablesForNextRound] 调用 ArenaStatusBroadcaster 为 %d 名玩家创建新房间", len(playerIDs))
+        server.arenaBroadcaster.CreateRoomsForNextRound(periodNo, roomConfigID, playerIDs, nextRound)
+
+        // 🔧【关键】销毁当前房间（不再需要）
+        // 当前房间的玩家已被移动到新房间
+        log.Printf("🏟️ [reassignTablesForNextRound] 当前房间 %s 将被销毁", gs.room.Code)
+        if gs.onGameEnd != nil {
+                gs.scheduleRoomDestruction()
+        }
 }
 
 // 🔧【新增】发送消息给指定玩家ID

@@ -4108,3 +4108,143 @@ func contains(slice []uint64, item uint64) bool {
         }
         return false
 }
+
+// 🔧【新增】为下一轮创建房间
+// 用于淘汰后的晋级玩家重新分配桌子
+func (b *ArenaStatusBroadcaster) CreateRoomsForNextRound(periodNo string, roomConfigID uint64, playerIDs []uint64, nextRound int) {
+        log.Printf("[ArenaStatus] 🏟️ CreateRoomsForNextRound: periodNo=%s, roomConfigID=%d, players=%d, nextRound=%d",
+                periodNo, roomConfigID, len(playerIDs), nextRound)
+
+        if len(playerIDs) == 0 {
+                log.Printf("[ArenaStatus] ⚠️ 没有晋级玩家，跳过创建房间")
+                return
+        }
+
+        // 获取房间配置
+        roomConfig, err := database.GetRoomConfigByID(roomConfigID)
+        if err != nil {
+                log.Printf("[ArenaStatus] ⚠️ 获取房间配置失败: %v", err)
+                return
+        }
+
+        // 获取初始金币
+        initialGold := roomConfig.MinGold
+        if initialGold <= 0 {
+                initialGold = 10000
+        }
+
+        // 获取所有玩家信息
+        var players []database.Player
+        database.DB().Where("id IN ?", playerIDs).Find(&players)
+        playerMap := make(map[uint64]*database.Player)
+        for i := range players {
+                playerMap[players[i].ID] = &players[i]
+        }
+
+        // 分离真人和机器人
+        var realPlayers []uint64
+        var robotPlayers []uint64
+        for _, playerID := range playerIDs {
+                if player, exists := playerMap[playerID]; exists && player.PlayerType == database.PlayerTypeRobot {
+                        robotPlayers = append(robotPlayers, playerID)
+                } else {
+                        realPlayers = append(realPlayers, playerID)
+                }
+        }
+
+        log.Printf("[ArenaStatus] 📊 晋级玩家: 真人=%d, 机器人=%d", len(realPlayers), len(robotPlayers))
+
+        // 合并所有玩家并随机打乱
+        allPlayers := make([]uint64, 0, len(realPlayers)+len(robotPlayers))
+        allPlayers = append(allPlayers, realPlayers...)
+        allPlayers = append(allPlayers, robotPlayers...)
+
+        rand.Shuffle(len(allPlayers), func(i, j int) {
+                allPlayers[i], allPlayers[j] = allPlayers[j], allPlayers[i]
+        })
+
+        // 计算总桌数
+        totalTables := (len(allPlayers) + 2) / 3
+
+        // 初始化 TournamentProgressManager
+        var playerIDStrs []string
+        for _, pid := range allPlayers {
+                playerIDStrs = append(playerIDStrs, fmt.Sprintf("%d", pid))
+        }
+
+        // 获取总轮次
+        totalRounds := 3 // 默认
+        if roomConfig.MatchRoundCount > 0 {
+                totalRounds = roomConfig.MatchRoundCount
+        }
+
+        if b.server.tournamentProgressManager != nil {
+                b.server.tournamentProgressManager.InitTournament(periodNo, totalRounds, totalTables, playerIDStrs)
+                log.Printf("[ArenaStatus] ✅ 初始化赛事进度: periodNo=%s, rounds=%d, tables=%d", periodNo, totalRounds, totalTables)
+        }
+
+        // 每3人一桌创建房间
+        for i := 0; i < len(allPlayers); i += 3 {
+                tableID := i/3 + 1
+                table := &GameTable{
+                        TableID:        tableID,
+                        Players:        make([]uint64, 0, 3),
+                        RobotPlayers:   make([]uint64, 0),
+                        PlayerStatuses: make(map[uint64]bool),
+                }
+
+                end := i + 3
+                if end > len(allPlayers) {
+                        end = len(allPlayers)
+                }
+
+                // 添加玩家
+                for j := i; j < end; j++ {
+                        playerID := allPlayers[j]
+                        table.Players = append(table.Players, playerID)
+                        table.PlayerStatuses[playerID] = true
+
+                        if playerMap[playerID] != nil && playerMap[playerID].PlayerType == database.PlayerTypeRobot {
+                                table.RobotPlayers = append(table.RobotPlayers, playerID)
+                        }
+                }
+
+                // 如果不足3人，补机器人
+                if len(table.Players) < 3 {
+                        needRobots := 3 - len(table.Players)
+                        var robots []database.Player
+                        database.DB().Where("player_type = ? AND robot_status = ?",
+                                database.PlayerTypeRobot, database.RobotStatusIdle).
+                                Order("RAND()").
+                                Limit(needRobots).
+                                Find(&robots)
+
+                        for idx := range robots {
+                                robot := &robots[idx]
+                                table.Players = append(table.Players, robot.ID)
+                                table.RobotPlayers = append(table.RobotPlayers, robot.ID)
+                                table.PlayerStatuses[robot.ID] = true
+                                playerMap[robot.ID] = robot
+
+                                // 初始化机器人竞技金币
+                                if err := database.InitArenaGold(periodNo, robot.ID, initialGold); err != nil {
+                                        log.Printf("⚠️ [CreateRoomsForNextRound] 初始化机器人竞技金币失败: robotID=%d, err=%v", robot.ID, err)
+                                }
+                        }
+                }
+
+                log.Printf("[ArenaStatus] 📋 创建桌子: tableID=%d, 玩家=%v", tableID, table.Players)
+
+                // 创建进入阶段信息（简化版，用于传递参数）
+                enterPhase := &EnterPhaseInfo{
+                        PeriodNo: periodNo,
+                        RoomID:   roomConfigID,
+                        Tables:   []*GameTable{table},
+                }
+
+                // 为这桌创建房间并开始游戏
+                b.createAndStartTableGameForWaiting(enterPhase, table)
+        }
+
+        log.Printf("[ArenaStatus] ✅ CreateRoomsForNextRound 完成: periodNo=%s, tables=%d", periodNo, totalTables)
+}
