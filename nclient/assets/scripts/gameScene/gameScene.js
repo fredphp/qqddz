@@ -355,16 +355,51 @@ cc.Class({
             this._onPlayerOnline(data)
         }.bind(this))
         
-        // 🔧【修复】监听 room_joined 事件更新房间号
+        // 🔧【修复】监听 room_joined 事件更新房间号和玩家数据
         // 竞技场模式下，先进入游戏场景，后收到真正的房间号
         myglobal.socket.onRoomJoined(function(data) {
-            if (data && data.room_code && this.roomid_label) {
-                var currentText = this.roomid_label.string || "";
-                var currentRoomCode = currentText.replace("房间号:", "");
-                // 🔧【修复】如果当前房间号为空或看起来是期号（长度>10），更新为正确的房间号
-                if (currentRoomCode === "" || currentRoomCode.length > 10) {
-                    this.roomid_label.string = "房间号:" + data.room_code;
-                    console.log("🎮 [gameScene] 更新房间号: " + data.room_code);
+            console.log("🎮 [gameScene] 收到 room_joined 消息:", JSON.stringify(data))
+            
+            // 更新房间号
+            if (data && data.room_code) {
+                if (this.roomid_label) {
+                    var currentText = this.roomid_label.string || "";
+                    var currentRoomCode = currentText.replace("房间号:", "");
+                    // 🔧【修复】如果当前房间号为空或看起来是期号（长度>10），更新为正确的房间号
+                    if (currentRoomCode === "" || currentRoomCode.length > 10) {
+                        this.roomid_label.string = "房间号:" + data.room_code;
+                        console.log("🎮 [gameScene] 更新房间号: " + data.room_code);
+                    }
+                } else {
+                    console.warn("🎮 [gameScene] roomid_label 未绑定");
+                }
+            }
+            
+            // 🔧【新增】用 ROOM_JOINED 数据更新玩家信息（头像、金币等）
+            if (data && data.players && this.playerNodeList) {
+                console.log("🎮 [gameScene] 更新玩家数据，玩家数量:", data.players.length);
+                for (var i = 0; i < data.players.length; i++) {
+                    var serverPlayer = data.players[i];
+                    // 查找对应的玩家节点
+                    for (var j = 0; j < this.playerNodeList.length; j++) {
+                        var playerNode = this.playerNodeList[j];
+                        if (playerNode) {
+                            var playerScript = playerNode.getComponent("player_node");
+                            if (playerScript && playerScript.accountid === serverPlayer.id) {
+                                // 更新玩家数据
+                                var updateData = {
+                                    gold_count: serverPlayer.gold_count || 0,
+                                    arena_gold: serverPlayer.arena_gold || 0,
+                                    match_coin: serverPlayer.match_coin || 0,
+                                    avatar: serverPlayer.avatar || "",
+                                    avatarUrl: serverPlayer.avatar || ""
+                                };
+                                playerScript.updateArenaData && playerScript.updateArenaData(updateData);
+                                console.log("🎮 [gameScene] 更新玩家 " + serverPlayer.name + " 数据:", JSON.stringify(updateData));
+                                break;
+                            }
+                        }
+                    }
                 }
             }
         }.bind(this))
@@ -525,12 +560,12 @@ cc.Class({
 
         
         if (this.roomid_label) {
-            // 🔧【关键修复】竞技场模式下，如果房间号看起来像期号（超过10位），不显示
+            // 🔧【关键修复】竞技场模式下，如果房间号为空或看起来像期号（超过10位），不显示
             // 等待 ROOM_JOINED 消息更新正确的房间号
-            if (isArenaMode && roomid.length > 10) {
-                // 房间号看起来是期号，不显示，等待服务端返回正确的房间号
+            if (isArenaMode && (roomid === "" || roomid === "WAITING" || roomid.length > 10)) {
+                // 房间号为空或看起来是期号，不显示，等待服务端返回正确的房间号
                 this.roomid_label.string = ""
-                console.log("🏟️ [_processRoomData] 竞技场模式：房间号为期号，等待正确的房间号...")
+                console.log("🏟️ [_processRoomData] 竞技场模式：房间号为空或为期号，等待正确的房间号... roomid=" + roomid)
             } else {
                 this.roomid_label.string = "房间号:" + roomid
             }

@@ -444,6 +444,35 @@ cc.Class({
         })
     },
 
+    /**
+     * 🔧【新增】更新竞技场玩家数据（头像、金币等）
+     * 当收到 ROOM_JOINED 消息后调用，更新从服务端获取的正确数据
+     * @param {Object} data - 包含 gold_count, arena_gold, match_coin, avatar, avatarUrl
+     */
+    updateArenaData: function(data) {
+        console.log("🏟️ [player_node] updateArenaData 被调用, accountid:", this.accountid, "data:", JSON.stringify(data))
+        
+        // 更新金币显示
+        if (data.arena_gold !== undefined && data.arena_gold > 0) {
+            if (this.gold_label) {
+                this.gold_label.string = data.arena_gold.toString()
+                console.log("🏟️ [player_node] 更新 arena_gold:", data.arena_gold)
+            }
+        } else if (data.gold_count !== undefined && data.gold_count > 0) {
+            if (this.gold_label) {
+                this.gold_label.string = data.gold_count.toString()
+                console.log("🏟️ [player_node] 更新 gold_count:", data.gold_count)
+            }
+        }
+        
+        // 更新头像
+        var avatarUrl = data.avatar || data.avatarUrl
+        if (avatarUrl && avatarUrl !== "" && avatarUrl !== "avatar_1") {
+            console.log("🏟️ [player_node] 更新头像:", avatarUrl)
+            this._loadAvatar(avatarUrl)
+        }
+    },
+
     // ============================================================
     // 【核心】直接显示牌背（无动画，保证数据正确性）
     // ============================================================
