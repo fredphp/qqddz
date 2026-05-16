@@ -1031,6 +1031,17 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
         }
 
         // ============================================================
+        // 🔧【关键修复】等待客户端场景加载完成
+        // ============================================================
+        // 问题：客户端收到 room_joined 后开始加载游戏场景
+        // 如果立即发送发牌消息，gameingUI.js 的监听器还没注册，消息会丢失
+        // 解决：等待 1.5 秒，让客户端场景加载完成后再发送发牌消息
+        // ============================================================
+        log.Printf("[ArenaStatus] ⏳ 等待 1.5 秒让客户端场景加载完成...")
+        time.Sleep(1500 * time.Millisecond)
+        log.Printf("[ArenaStatus] ✅ 等待完成，开始游戏")
+
+        // ============================================================
         // 10. 开始游戏
         // ============================================================
         if err := gameRoom.StartGame(); err != nil {
@@ -1681,6 +1692,17 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGameForWaiting(enterPhase *E
         }
         b.server.clientsMu.RUnlock()
 
+        // ============================================================
+        // 🔧【关键修复】等待客户端场景加载完成
+        // ============================================================
+        // 问题：客户端收到 room_joined 后开始加载游戏场景
+        // 如果立即发送发牌消息，gameingUI.js 的监听器还没注册，消息会丢失
+        // 解决：等待 1.5 秒，让客户端场景加载完成后再发送发牌消息
+        // ============================================================
+        log.Printf("[ArenaStatus] ⏳ 等待 1.5 秒让客户端场景加载完成...")
+        time.Sleep(1500 * time.Millisecond)
+        log.Printf("[ArenaStatus] ✅ 等待完成，开始游戏")
+
         // 开始游戏
         if err := gameRoom.StartGame(); err != nil {
                 log.Printf("[ArenaStatus] ⚠️ 开始游戏失败: %v", err)
@@ -2083,6 +2105,17 @@ func (b *ArenaStatusBroadcaster) startArenaGame(gameRoom *room.Room) error {
         if gameRoom == nil {
                 return fmt.Errorf("房间为空")
         }
+
+        // ============================================================
+        // 🔧【关键修复】等待客户端场景加载完成
+        // ============================================================
+        // 问题：客户端收到 room_joined 后开始加载游戏场景
+        // 如果立即发送发牌消息，gameingUI.js 的监听器还没注册，消息会丢失
+        // 解决：等待 1.5 秒，让客户端场景加载完成后再发送发牌消息
+        // ============================================================
+        log.Printf("[ArenaStatus] ⏳ startArenaGame: 等待 1.5 秒让客户端场景加载完成...")
+        time.Sleep(1500 * time.Millisecond)
+        log.Printf("[ArenaStatus] ✅ startArenaGame: 等待完成，开始游戏")
 
         // 开始游戏
         if err := gameRoom.StartGame(); err != nil {
@@ -3730,7 +3763,18 @@ func (b *ArenaStatusBroadcaster) createRoomForTableWithRobots(enterPhase *EnterP
 
         // Set all ready and start
         gameRoom.SetAllPlayersReady()
-        
+
+        // ============================================================
+        // 🔧【关键修复】等待客户端场景加载完成
+        // ============================================================
+        // 问题：客户端收到 room_joined 后开始加载游戏场景
+        // 如果立即发送发牌消息，gameingUI.js 的监听器还没注册，消息会丢失
+        // 解决：等待 1.5 秒，让客户端场景加载完成后再发送发牌消息
+        // ============================================================
+        log.Printf("[ArenaStatus] ⏳ createRoomForTableWithRobots: 等待 1.5 秒让客户端场景加载完成...")
+        time.Sleep(1500 * time.Millisecond)
+        log.Printf("[ArenaStatus] ✅ createRoomForTableWithRobots: 等待完成，开始游戏")
+
         if err := gameRoom.StartGame(); err != nil {
                 log.Printf("[ArenaStatus] Failed to start game: %v", err)
                 return
