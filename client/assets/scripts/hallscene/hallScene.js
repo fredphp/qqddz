@@ -5266,30 +5266,53 @@ cc.Class({
     _enterGameScene: function(roomData) {
         var startTime = Date.now();
         
+        // 🔧【关键修复】防止重复加载游戏场景
+        // 当 room_joined 消息被多个监听器处理时，可能会导致多次调用此方法
+        if (this._isEnteringGameScene) {
+            console.log("🚀 [进入场景] 已在加载游戏场景中，跳过重复请求");
+            return;
+        }
+        this._isEnteringGameScene = true;
+        
         // 隐藏加载提示
         this._hideMessageCenter();
         
         // 🔧【优化】显示快速进入动画
         this._showQuickEnterAnimation();
         
+        console.log("🚀 [进入场景] 开始加载游戏场景");
+        
         // 🔧【优化】使用预加载的场景，切换更快
+        var self = this;
         if (this._gameScenePreloaded) {
             cc.director.runSceneImmediate(new cc.Scene(), function() {
                 cc.director.loadScene("gameScene", function(err) {
                     if (err) {
                         console.error("🚀 [进入场景] 加载游戏场景失败:", err);
+                        self._isEnteringGameScene = false;
                         return;
                     }
                     var elapsed = Date.now() - startTime;
+                    console.log("🚀 [进入场景] 游戏场景加载完成，耗时:", elapsed, "ms");
+                    // 🔧【关键修复】延迟重置标志，确保场景完全加载
+                    setTimeout(function() {
+                        self._isEnteringGameScene = false;
+                    }, 2000);
                 });
             });
         } else {
             cc.director.loadScene("gameScene", function(err) {
                 if (err) {
                     console.error("🚀 [进入场景] 加载游戏场景失败:", err);
+                    self._isEnteringGameScene = false;
                     return;
                 }
                 var elapsed = Date.now() - startTime;
+                console.log("🚀 [进入场景] 游戏场景加载完成，耗时:", elapsed, "ms");
+                // 🔧【关键修复】延迟重置标志，确保场景完全加载
+                setTimeout(function() {
+                    self._isEnteringGameScene = false;
+                }, 2000);
             });
         }
     },

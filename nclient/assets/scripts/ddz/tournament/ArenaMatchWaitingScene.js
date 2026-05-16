@@ -294,6 +294,7 @@ cc.Class({
      * 1. 停止加载动画
      * 2. 保存预加载数据到 myglobal.roomData 和 myglobal.arenaMatchData
      * 3. 直接进入游戏场景，无需重新请求数据
+     * 🔧【修复】添加防重复加载机制，避免多个监听器同时处理导致场景状态混乱
      */
     _registerRoomJoinedHandler: function() {
         var self = this
@@ -304,11 +305,23 @@ cc.Class({
             socket.onRoomJoined(function(roomData) {
                 console.log("🏟️ [ArenaMatchWaiting] 收到 room_joined，准备进入游戏场景:", JSON.stringify(roomData))
                 
+                // 🔧【关键修复】防止重复加载游戏场景
+                // 检查全局标志，如果已经在加载中则跳过
+                if (myglobal && myglobal._isEnteringGameScene) {
+                    console.log("🏟️ [ArenaMatchWaiting] 已在加载游戏场景中，跳过重复请求")
+                    return
+                }
+                
                 // 检查是否是竞技场房间
                 var roomCategory = roomData.room_category || 1
                 if (roomCategory !== 2) {
                     console.log("🏟️ [ArenaMatchWaiting] 不是竞技场房间，忽略")
                     return
+                }
+                
+                // 🔧【关键修复】设置全局标志，防止其他监听器重复加载
+                if (myglobal) {
+                    myglobal._isEnteringGameScene = true
                 }
                 
                 // 🔧【关键修复】停止加载动画
@@ -366,7 +379,21 @@ cc.Class({
                 // 🔧【优化】直接进入游戏场景，无需重新请求数据
                 // 游戏场景会从 myglobal.roomData 读取预加载数据
                 console.log("🏟️ [ArenaMatchWaiting] 进入游戏场景...")
-                cc.director.loadScene("gameScene")
+                cc.director.loadScene("gameScene", function(err) {
+                    if (err) {
+                        console.error("🏟️ [ArenaMatchWaiting] 加载游戏场景失败:", err)
+                        if (myglobal) {
+                            myglobal._isEnteringGameScene = false
+                        }
+                        return
+                    }
+                    // 🔧【关键修复】延迟重置标志，确保场景完全加载
+                    setTimeout(function() {
+                        if (myglobal) {
+                            myglobal._isEnteringGameScene = false
+                        }
+                    }, 2000)
+                })
             })
         }
     },
