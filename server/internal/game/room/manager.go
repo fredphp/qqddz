@@ -162,7 +162,7 @@ func (rm *RoomManager) CreateRoom(client types.ClientInterface, roomConfigID uin
 }
 
 // CreateArenaRoom 创建竞技场房间
-// 与普通房间不同，竞技场房间号带有 "arena_" 前缀，方便区分
+// 竞技场房间号与普通房间格式相同，通过 RoomCategory 区分房间类型
 // roomConfigID: 房间配置ID，用于关联房间配置表
 func (rm *RoomManager) CreateArenaRoom(client types.ClientInterface, roomConfigID uint64) (*Room, error) {
         rm.mu.Lock()
@@ -171,8 +171,8 @@ func (rm *RoomManager) CreateArenaRoom(client types.ClientInterface, roomConfigI
         // 使用当前登录用户的 PlayerID
         creatorID := client.GetPlayerID()
 
-        // 生成带 arena_ 前缀的唯一房间号
-        code := rm.generateRoomCodeWithPrefix("arena_")
+        // 生成唯一房间号（与普通房间格式相同）
+        code := rm.generateRoomCode()
 
         room := &Room{
                 Code:            code,
