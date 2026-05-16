@@ -27,6 +27,7 @@ cc.Class({
     onLoad () {
         this.flag = false
         this.offset_y = 20
+        this._touchEventAdded = false  // 🔧【修复】标记是否已添加触摸监听器，防止重复添加
 
         this.node.on("reset_card_flag", function(event){
             if(this.flag == true){
@@ -44,7 +45,15 @@ cc.Class({
         var myglobal = window.myglobal
         if (!myglobal || !myglobal.playerData) return
 
+        // 🔧【修复】防止重复添加触摸监听器
+        // 每次调用 showCards 时都会调用此函数，但只应添加一次监听器
+        if (this._touchEventAdded) {
+            return
+        }
+
         if (this.accountid == myglobal.playerData.accountID) {
+            this._touchEventAdded = true  // 标记已添加
+
             this.node.on(cc.Node.EventType.TOUCH_START, function(event){
                 // 🔧【修复】向上查找 gameScene 节点
                 var gameScene_node = this._findGameSceneNode()
