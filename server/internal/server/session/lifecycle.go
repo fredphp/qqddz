@@ -515,19 +515,20 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 totalPlayers := gs.getArenaTotalPlayers(periodNo)
                 maxRoundCount := gs.getMaxRoundCount()
                 currentRound := gs.room.GameCount
-                log.Printf("🏟️ [endGame] 竞技场房间 %s 结算完成, 期号=%s, 当期报名人数=%d, 当前轮次=%d/%d", 
+                log.Printf("🏟️ [endGame] 竞技场房间 %s 结算完成, 期号=%s, 当期报名人数=%d, 当前局数=%d/%d", 
                         gs.room.Code, periodNo, totalPlayers, currentRound, maxRoundCount)
 
-                // 🔧【关键修复】检查是否已完成所有轮次
-                // 无论是单人一桌还是多桌，都必须完成所有轮次后才显示最终排名
+                // 🔧【关键修复】区分两种情况：
+                // 1. 未完成配置的局数（如只打了1局，配置要打5局）→ 继续在同一桌打下一局
+                // 2. 已完成配置的局数（如打完了5局）→ 检查所有桌是否完成，然后进行淘汰
                 if currentRound >= maxRoundCount {
-                        log.Printf("🏆 [endGame] 已完成所有轮次 (当前=%d, 最大=%d)，发送最终排名消息", currentRound, maxRoundCount)
-                        gs.sendFinalRankingsForSingleTable(periodNo, players)
-                } else {
-                        // 🔧【修改】移除30秒倒计时，改为注册桌完成状态
-                        // 等待所有桌都完成后才进入下一轮
-                        log.Printf("🏟️ [endGame] 未完成所有轮次 (当前=%d, 最大=%d)，注册桌完成状态", currentRound, maxRoundCount)
+                        // 已完成配置的局数，注册桌完成状态，检查所有桌是否完成，然后进行淘汰
+                        log.Printf("🏟️ [endGame] 已完成配置的局数 (当前=%d, 配置=%d)，注册桌完成状态", currentRound, maxRoundCount)
                         gs.registerTableFinishedAndCheckAdvance()
+                } else {
+                        // 未完成配置的局数，启动倒计时，自动准备并开始下一局（在同一桌继续打）
+                        log.Printf("🏟️ [endGame] 未完成配置的局数 (当前=%d, 配置=%d)，启动倒计时准备下一局", currentRound, maxRoundCount)
+                        gs.startArenaRoundCountdown()
                 }
         } else {
                 // 普通场：玩家手动选择继续游戏或返回大厅
@@ -1514,20 +1515,23 @@ func (gs *GameSession) registerTableFinishedAndCheckAdvance() {
 
 // onAllTablesFinished 所有桌完成后的处理
 // 🔧【重构】添加淘汰阶段逻辑
-// 流程：等待完成 → 排名计算 → 执行淘汰 → 通知被淘汰玩家 → 进入下一轮或决赛
+// 流程：等待完成 → 排名计算 → 检查剩余人数 → 执行淘汰或发送最终榜单
 func (gs *GameSession) onAllTablesFinished(periodNo string, currentRound int) {
         maxRoundCount := gs.getMaxRoundCount()
 
-        log.Printf("🏟️ [onAllTablesFinished] periodNo=%s, currentRound=%d, maxRoundCount=%d",
+        log.Printf("🏟️ [onAllTablesFinished] periodNo=%s, 当前已完成局数=%d, 每桌配置局数=%d",
                 periodNo, currentRound, maxRoundCount)
 
         // 🔧【关键】获取当期所有参赛玩家并排名
         rankings := gs.calculatePeriodRankings(periodNo)
         log.Printf("🏟️ [onAllTablesFinished] 排名计算完成，玩家数=%d", len(rankings))
 
-        if currentRound >= maxRoundCount {
-                // 比赛结束，发送最终榜单
-                log.Printf("🏁 [onAllTablesFinished] 已完成所有轮次，发送最终榜单")
+        // 🔧【关键修复】根据剩余人数决定是发送最终榜单还是执行淘汰
+        // 如果剩余 <= 3人，直接发送最终榜单（决赛）
+        // 如果剩余 > 3人，执行淘汰逻辑
+        if len(rankings) <= 3 {
+                // 剩余3人或更少，比赛结束，发送最终榜单
+                log.Printf("🏁 [onAllTablesFinished] 剩余 %d 人，比赛结束，发送最终榜单", len(rankings))
                 gs.broadcastFinalRankings()
 
                 // 广播竞技场结束消息
@@ -1561,7 +1565,7 @@ func (gs *GameSession) onAllTablesFinished(periodNo string, currentRound int) {
                         gs.startFinalRound(periodNo, survivingPlayers)
                 } else {
                         // 进入下一轮
-                        log.Printf("🏟️ [onAllTablesFinished] 准备进入第 %d 轮", currentRound+1)
+                        log.Printf("🏟️ [onAllTablesFinished] 准备进入下一轮淘汰赛，晋级 %d 人", len(survivingPlayers))
                         gs.advanceToNextRoundWithNewPlayers(periodNo, currentRound+1, survivingPlayers)
                 }
         }
@@ -1944,6 +1948,12 @@ func (gs *GameSession) advanceToNextRound(periodNo string, nextRound int) {
 
         // 确保房间状态为 Waiting
         gs.room.State = RoomStateWaiting
+        
+        // 🔧【关键修复】重置 GameCount，确保新一轮从头计算局数
+        // 每轮淘汰赛都需要重新打配置的局数（如5局）
+        gs.room.GameCount = 0
+        log.Printf("🏟️ [advanceToNextRound] GameCount 已重置为 0，新一轮将从第 1 局开始")
+        
         gs.mu.Unlock()
 
         // 重置游戏会话状态
@@ -1952,5 +1962,5 @@ func (gs *GameSession) advanceToNextRound(periodNo string, nextRound int) {
         // 开始新一轮
         gs.Start()
 
-        log.Printf("✅ [advanceToNextRound] 房间 %s 第 %d 轮游戏已开始", gs.room.Code, nextRound)
+        log.Printf("✅ [advanceToNextRound] 房间 %s 第 %d 轮淘汰赛游戏已开始", gs.room.Code, nextRound)
 }
