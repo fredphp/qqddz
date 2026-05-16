@@ -456,25 +456,25 @@ cc.Class({
         // - 位置 1 (seat_node_2): 右侧 (526, 79) - x 正数
         // - 位置 2 (seat_node_3): 左侧 (-539, 79) - x 负数
         //
-        // 逆时针出牌布局（用户要求）：
-        // - 上家在右侧（位置 1）
-        // - 下家在左侧（位置 2）
-        // - 出牌顺序：当前玩家 → 下家（左侧）→ 上家（右侧）→ 当前玩家
+        // 🔧【关键修复】逆时针出牌布局：
+        // - 出牌顺序：当前玩家 → 下家 → 上家 → 当前玩家
+        // - 逆时针方向：底部 → 右侧 → 左侧 → 底部
+        // - 所以下家在右侧（位置1），上家在左侧（位置2）
         switch (seat_index) {
             case 1:
                 this.playerdata_list_pos[1] = 0  // 座位1：当前玩家 → 位置0
-                this.playerdata_list_pos[2] = 2  // 座位2：下家 → 位置2（左侧）
-                this.playerdata_list_pos[3] = 1  // 座位3：上家 → 位置1（右侧）
+                this.playerdata_list_pos[2] = 1  // 座位2：下家 → 位置1（右侧）✓逆时针
+                this.playerdata_list_pos[3] = 2  // 座位3：上家 → 位置2（左侧）
                 break
             case 2:
                 this.playerdata_list_pos[2] = 0  // 座位2：当前玩家 → 位置0
-                this.playerdata_list_pos[3] = 2  // 座位3：下家 → 位置2（左侧）
-                this.playerdata_list_pos[1] = 1  // 座位1：上家 → 位置1（右侧）
+                this.playerdata_list_pos[3] = 1  // 座位3：下家 → 位置1（右侧）✓逆时针
+                this.playerdata_list_pos[1] = 2  // 座位1：上家 → 位置2（左侧）
                 break
             case 3:
                 this.playerdata_list_pos[3] = 0  // 座位3：当前玩家 → 位置0
-                this.playerdata_list_pos[1] = 2  // 座位1：下家 → 位置2（左侧）
-                this.playerdata_list_pos[2] = 1  // 座位2：上家 → 位置1（右侧）
+                this.playerdata_list_pos[1] = 1  // 座位1：下家 → 位置1（右侧）✓逆时针
+                this.playerdata_list_pos[2] = 2  // 座位2：上家 → 位置2（左侧）
                 break
             default:
                 break
@@ -483,8 +483,8 @@ cc.Class({
         // 🔧【调试日志】确认座位映射
         console.log("🎯 [setPlayerSeatPos] 当前玩家座位:", seat_index)
         console.log("🎯 [setPlayerSeatPos] 座位映射:", JSON.stringify(this.playerdata_list_pos))
-        console.log("🎯 [setPlayerSeatPos] 座位2(下家)→位置" + this.playerdata_list_pos[2] + (this.playerdata_list_pos[2] === 2 ? "(左侧)" : "(右侧)"))
-        console.log("🎯 [setPlayerSeatPos] 座位3(上家)→位置" + this.playerdata_list_pos[3] + (this.playerdata_list_pos[3] === 1 ? "(右侧)" : "(左侧)"))
+        console.log("🎯 [setPlayerSeatPos] 座位2(下家)→位置" + this.playerdata_list_pos[2] + (this.playerdata_list_pos[2] === 1 ? "(右侧)✓逆时针" : "(左侧)"))
+        console.log("🎯 [setPlayerSeatPos] 座位3(上家)→位置" + this.playerdata_list_pos[3] + (this.playerdata_list_pos[3] === 2 ? "(左侧)" : "(右侧)"))
     },
     
     /**
