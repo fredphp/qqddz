@@ -2533,17 +2533,6 @@ func (b *ArenaStatusBroadcaster) sendPendingMatchStartPopup(playerID uint64, cli
                 return
         }
 
-        // 动态计算总轮次
-        var rules tournament.EliminationRules
-        if roomConfig.EliminationRules != "" {
-                if err := json.Unmarshal([]byte(roomConfig.EliminationRules), &rules); err != nil {
-                        rules = tournament.EliminationRules{60, 30, 18, 9, 3}
-                }
-        } else {
-                rules = tournament.EliminationRules{60, 30, 18, 9, 3}
-        }
-        totalRounds := rules.GetTotalRounds(len(enterPhase.PlayerStatuses))
-
         // 计算剩余倒计时
         elapsed := time.Since(enterPhase.StartTime)
         remaining := enterPhase.Countdown - int(elapsed.Seconds())
@@ -3532,16 +3521,6 @@ func (b *ArenaStatusBroadcaster) OnPlayerReconnect(playerID uint64, client types
                                 remaining = 0
                         }
 
-                        // 计算总轮次
-                        var rules tournament.EliminationRules
-                        if roomConfig.EliminationRules != "" {
-                                if err := json.Unmarshal([]byte(roomConfig.EliminationRules), &rules); err != nil {
-                                        rules = tournament.EliminationRules{60, 30, 18, 9, 3}
-                                }
-                        } else {
-                                rules = tournament.EliminationRules{60, 30, 18, 9, 3}
-                        }
-                        totalRounds := rules.GetTotalRounds(len(enterPhase.PlayerStatuses))
 
                         // 发送弹窗消息
                         payload := &protocol.ArenaMatchStartPayload{
