@@ -450,26 +450,31 @@ cc.Class({
             return
         }
 
-        // 🔧【修复】调整为逆时针方向：
-        // - 位置 0：下方（当前玩家）
-        // - 位置 1：左侧（上家）
-        // - 位置 2：右侧（下家）
-        // 斗地主出牌顺序：当前玩家 → 下家（右侧）→ 上家（左侧）→ 当前玩家
+        // 🔧【座位布局说明】
+        // 场景座位位置（基于实际坐标）：
+        // - 位置 0 (seat_node_1): 左下角 (-539, -309) - 当前玩家
+        // - 位置 1 (seat_node_2): 右侧 (526, 79)
+        // - 位置 2 (seat_node_3): 左侧 (-539, 79)
+        //
+        // 逆时针出牌布局：
+        // - 下家在左侧（位置 2）
+        // - 上家在右侧（位置 1）
+        // - 出牌顺序：当前玩家 → 下家（左侧）→ 上家（右侧）→ 当前玩家
         switch (seat_index) {
             case 1:
-                this.playerdata_list_pos[1] = 0  // 座位1：当前玩家 → 位置0（下方）
-                this.playerdata_list_pos[2] = 2  // 座位2：下家 → 位置2（右侧）
-                this.playerdata_list_pos[3] = 1  // 座位3：上家 → 位置1（左侧）
+                this.playerdata_list_pos[1] = 0  // 座位1：当前玩家 → 位置0
+                this.playerdata_list_pos[2] = 2  // 座位2：下家 → 位置2（左侧）
+                this.playerdata_list_pos[3] = 1  // 座位3：上家 → 位置1（右侧）
                 break
             case 2:
-                this.playerdata_list_pos[2] = 0  // 座位2：当前玩家 → 位置0（下方）
-                this.playerdata_list_pos[3] = 2  // 座位3：下家 → 位置2（右侧）
-                this.playerdata_list_pos[1] = 1  // 座位1：上家 → 位置1（左侧）
+                this.playerdata_list_pos[2] = 0  // 座位2：当前玩家 → 位置0
+                this.playerdata_list_pos[3] = 2  // 座位3：下家 → 位置2（左侧）
+                this.playerdata_list_pos[1] = 1  // 座位1：上家 → 位置1（右侧）
                 break
             case 3:
-                this.playerdata_list_pos[3] = 0  // 座位3：当前玩家 → 位置0（下方）
-                this.playerdata_list_pos[1] = 2  // 座位1：下家 → 位置2（右侧）
-                this.playerdata_list_pos[2] = 1  // 座位2：上家 → 位置1（左侧）
+                this.playerdata_list_pos[3] = 0  // 座位3：当前玩家 → 位置0
+                this.playerdata_list_pos[1] = 2  // 座位1：下家 → 位置2（左侧）
+                this.playerdata_list_pos[2] = 1  // 座位2：上家 → 位置1（右侧）
                 break
             default:
                 break
