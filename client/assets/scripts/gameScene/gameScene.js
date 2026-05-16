@@ -1007,6 +1007,18 @@ cc.Class({
         this._arenaRoundLabel.color = cc.color(180, 180, 200)
         this._arenaRoundLabel.parent = cardNode
         
+        // ========== 5.5 金币显示 ==========
+        this._arenaCoinLabel = new cc.Node("CoinLabel")
+        this._arenaCoinLabel.y = cardHeight/2 - 140
+        var coinLabel = this._arenaCoinLabel.addComponent(cc.Label)
+        // 获取当前玩家的竞技金币
+        var myMatchCoin = this._getMyMatchCoin ? this._getMyMatchCoin() : 0
+        coinLabel.string = "💰 当前金币: " + myMatchCoin
+        coinLabel.fontSize = 18
+        coinLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        this._arenaCoinLabel.color = cc.color(255, 215, 0)
+        this._arenaCoinLabel.parent = cardNode
+        
         // ========== 6. 进度条 ==========
         this._arenaProgressBar = new cc.Node("ProgressBar")
         this._arenaProgressBar.setContentSize(cc.size(320, 20))
@@ -1084,6 +1096,7 @@ cc.Class({
         // 清理引用
         this._arenaPeriodLabel = null
         this._arenaRoundLabel = null
+        this._arenaCoinLabel = null
         this._arenaProgressBar = null
         this._arenaProgressFill = null
         this._arenaProgressLabel = null
@@ -1197,6 +1210,44 @@ cc.Class({
         if (this._arenaLoadingNode) {
             this._arenaLoadingNode.angle = 0
         }
+    },
+    
+    /**
+     * 获取当前玩家的竞技金币
+     * 🔧【新增】用于等待界面显示金币
+     */
+    _getMyMatchCoin: function() {
+        var myglobal = window.myglobal
+        if (!myglobal || !myglobal.playerData) {
+            return 0
+        }
+        
+        // 从玩家数据中获取竞技金币
+        // 在游戏场景中，玩家的竞技金币存储在 myglobal.playerData.match_coin 或通过 player_node 获取
+        var matchCoin = 0
+        
+        // 方式1：从 player_node_prefabs 获取
+        if (this.player_node_prefabs && this.player_node_prefabs.length > 0) {
+            for (var i = 0; i < this.player_node_prefabs.length; i++) {
+                var playerNode = this.player_node_prefabs[i]
+                if (playerNode && playerNode.player_data) {
+                    // 找到当前玩家
+                    var playerData = playerNode.player_data
+                    var myPlayerId = myglobal.playerData.accountID || myglobal.playerData.uniqueID
+                    if (playerData.accountid === myPlayerId || playerData.accountid === String(myPlayerId)) {
+                        matchCoin = playerData.match_coin || playerData.arena_gold || 0
+                        break
+                    }
+                }
+            }
+        }
+        
+        // 方式2：从全局数据获取
+        if (matchCoin === 0 && myglobal.arenaMatchData) {
+            matchCoin = myglobal.arenaMatchData.myMatchCoin || 0
+        }
+        
+        return matchCoin
     },
     
     /**
