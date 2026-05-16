@@ -75,7 +75,13 @@ func (gs *GameSession) Start() {
         }()
 
         // 🔧【关键修复】在锁外调用 StartCallLandlord，避免死锁
+        // 🔧【关键修复】增加延迟，等待客户端发牌动画完成（约2秒）
+        // 客户端发牌动画：17张牌 × 80ms间隔 + 动画时间 ≈ 1.5秒
+        // 增加2秒延迟确保所有客户端动画完成，按钮能正确显示
         if startCallLandlordFunc != nil {
+                log.Printf("🃏 [GameSession.Start] 等待 2 秒后开始抢地主阶段，让客户端发牌动画完成...")
+                time.Sleep(2 * time.Second)
+                log.Printf("🃏 [GameSession.Start] 延迟结束，开始抢地主阶段")
                 startCallLandlordFunc()
         }
 }

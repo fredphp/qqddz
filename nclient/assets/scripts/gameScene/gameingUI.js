@@ -982,7 +982,14 @@ cc.Class({
     },
 
     _showBidUI: function(confirmText, cancelText) {
-        if (!this.robUI) return
+        console.log("🎯 ========== [_showBidUI] 显示抢地主按钮 ==========")
+        console.log("🎯 [_showBidUI] confirmText:", confirmText, "cancelText:", cancelText)
+        console.log("🎯 [_showBidUI] robUI 存在:", !!this.robUI)
+        
+        if (!this.robUI) {
+            console.error("🎯 [_showBidUI] robUI 为空，无法显示按钮！")
+            return
+        }
         
         if (this.playingUI_node) {
             this.playingUI_node.active = false
@@ -991,10 +998,13 @@ cc.Class({
         var confirmBtn = this.robUI.getChildByName("btn_qiandz")
         var cancelBtn = this.robUI.getChildByName("btn_buqiandz")
         
+        console.log("🎯 [_showBidUI] confirmBtn 存在:", !!confirmBtn, "cancelBtn 存在:", !!cancelBtn)
+        
         if (confirmBtn) {
             var label = confirmBtn.getChildByName("Label")
             if (label && label.getComponent(cc.Label)) {
                 label.getComponent(cc.Label).string = confirmText
+                console.log("🎯 [_showBidUI] 设置确认按钮文字:", confirmText)
             }
         }
         
@@ -1002,10 +1012,12 @@ cc.Class({
             var label = cancelBtn.getChildByName("Label")
             if (label && label.getComponent(cc.Label)) {
                 label.getComponent(cc.Label).string = cancelText
+                console.log("🎯 [_showBidUI] 设置取消按钮文字:", cancelText)
             }
         }
         
         this.robUI.active = true
+        console.log("🎯 [_showBidUI] robUI.active 已设置为 true")
         this._startBidCountdown()
         
         if (this.node && this.node.parent) {
@@ -1015,6 +1027,7 @@ cc.Class({
                 timeout: this._bidTimeout || 15
             })
         }
+        console.log("🎯 [_showBidUI] ========== 抢地主按钮显示完成 ==========")
     },
     
     _hideRobUI: function() {
