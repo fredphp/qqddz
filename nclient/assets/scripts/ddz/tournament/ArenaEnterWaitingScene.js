@@ -117,32 +117,58 @@ cc.Class({
     _registerEvents: function() {
         var self = this
         
-        // 监听等待状态推送
-        if (window.myglobal && window.myglobal.socket) {
-            var socket = window.myglobal.socket
-            
-            // 等待状态推送
-            socket.on("arena_waiting_status", function(data) {
-                console.log("🏟️ [ArenaEnterWaiting] 收到等待状态:", JSON.stringify(data))
-                self._onWaitingStatus(data)
-            })
-            
-            // 倒计时更新
-            socket.on("arena_waiting_tick", function(data) {
-                console.log("🏟️ [ArenaEnterWaiting] 倒计时更新:", data.countdown)
-                self._onWaitingTick(data)
-            })
-            
-            // 分配阶段开始
-            socket.on("arena_assign_start", function(data) {
-                console.log("🏟️ [ArenaEnterWaiting] 分配阶段开始:", JSON.stringify(data))
-                self._onAssignStart(data)
-            })
+        // 🔧【修复】使用正确的事件监听方式
+        // 获取全局事件监听器
+        var myglobal = window.myglobal
+        var evt = myglobal && myglobal.eventlister
+        
+        if (!evt) {
+            console.error("🏟️ [ArenaEnterWaiting] 事件监听器不可用")
+            return
         }
+        
+        // 等待状态推送
+        this._waitingStatusHandler = function(data) {
+            console.log("🏟️ [ArenaEnterWaiting] 收到等待状态:", JSON.stringify(data))
+            self._onWaitingStatus(data)
+        }
+        evt.on("arena_waiting_status_notify", this._waitingStatusHandler)
+        
+        // 倒计时更新
+        this._waitingTickHandler = function(data) {
+            console.log("🏟️ [ArenaEnterWaiting] 倒计时更新:", data.countdown)
+            self._onWaitingTick(data)
+        }
+        evt.on("arena_waiting_tick_notify", this._waitingTickHandler)
+        
+        // 分配阶段开始
+        this._assignStartHandler = function(data) {
+            console.log("🏟️ [ArenaEnterWaiting] 分配阶段开始:", JSON.stringify(data))
+            self._onAssignStart(data)
+        }
+        evt.on("arena_assign_start_notify", this._assignStartHandler)
+        
+        console.log("🏟️ [ArenaEnterWaiting] 事件监听注册完成")
     },
 
     _unregisterEvents: function() {
-        // 事件会随节点销毁自动取消
+        // 🔧【修复】正确取消事件监听
+        var myglobal = window.myglobal
+        var evt = myglobal && myglobal.eventlister
+        
+        if (!evt) return
+        
+        if (this._waitingStatusHandler) {
+            evt.off("arena_waiting_status_notify", this._waitingStatusHandler)
+        }
+        if (this._waitingTickHandler) {
+            evt.off("arena_waiting_tick_notify", this._waitingTickHandler)
+        }
+        if (this._assignStartHandler) {
+            evt.off("arena_assign_start_notify", this._assignStartHandler)
+        }
+        
+        console.log("🏟️ [ArenaEnterWaiting] 事件监听已取消")
     },
 
     // ============================================================
