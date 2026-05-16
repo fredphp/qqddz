@@ -3996,12 +3996,19 @@ func (b *ArenaStatusBroadcaster) RestoreInProgressTournaments() {
         }
 
         // Restore tournament progress from database
+        // Check if database is available
+        db := database.DB()
+        if db == nil {
+                log.Printf("[ArenaStatus] Database not available, skip tournament recovery")
+                return
+        }
+
         // Find periods that are in PLAYING status
         var playingPeriods []database.ArenaPeriod
-        err = database.DB().Where("status = ?", database.ArenaPeriodStatusInProgress).
+        err = db.Where("status = ?", database.ArenaPeriodStatusInProgress).
                 Where("start_time > ?", time.Now().Add(-2*time.Hour)).
                 Find(&playingPeriods).Error
-        
+
         if err != nil {
                 log.Printf("[ArenaStatus] Failed to get playing periods: %v", err)
                 return
