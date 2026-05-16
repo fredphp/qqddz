@@ -455,8 +455,8 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 Players:     players,
                 // 🔧【新增】房间分类（用于区分普通场和竞技场）
                 RoomCategory: gs.room.RoomCategory,
-                // 🔧【新增】竞技场专用字段
-                ArenaCountdown: ArenaCountdownDuration, // 30秒倒计时
+                // 🔧【修改】移除30秒倒计时，改为等待所有桌完成
+                ArenaCountdown: 0, // 不再有倒计时，等待所有桌完成
                 ArenaRound:     nextRound,
                 MatchCoin:      0, // 比赛金币（TODO: 从竞技场管理器获取）
                 // 🔧【新增】竞技场最终结算标识
@@ -521,9 +521,10 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                         log.Printf("🏆 [endGame] 已完成所有轮次 (当前=%d, 最大=%d)，发送最终排名消息", currentRound, maxRoundCount)
                         gs.sendFinalRankingsForSingleTable(periodNo, players)
                 } else {
-                        // 未完成所有轮次：启动30秒倒计时，自动进入下一轮
-                        log.Printf("🏟️ [endGame] 未完成所有轮次 (当前=%d, 最大=%d)，启动30秒倒计时进入下一轮", currentRound, maxRoundCount)
-                        gs.startArenaRoundCountdown()
+                        // 🔧【修改】移除30秒倒计时，改为注册桌完成状态
+                        // 等待所有桌都完成后才进入下一轮
+                        log.Printf("🏟️ [endGame] 未完成所有轮次 (当前=%d, 最大=%d)，注册桌完成状态", currentRound, maxRoundCount)
+                        gs.registerTableFinishedAndCheckAdvance()
                 }
         } else {
                 // 普通场：玩家手动选择继续游戏或返回大厅
@@ -1450,4 +1451,133 @@ func (gs *GameSession) broadcastFinalRankings() {
         }
 
         log.Printf("🏆 [broadcastFinalRankings] 最终榜单广播完成, 总人数=%d, 真人=%d", totalPlayers, countRealPlayers(participations))
+}
+
+// ============================================================
+// 🔧【新增】桌完成状态跟踪和自动推进下一轮
+// ============================================================
+
+// registerTableFinishedAndCheckAdvance 注册桌完成状态并检查是否可以进入下一轮
+// 🔧【核心修改】移除30秒倒计时，改为等待所有桌完成后自动进入下一轮
+func (gs *GameSession) registerTableFinishedAndCheckAdvance() {
+        periodNo := gs.room.PeriodNo
+        if periodNo == "" {
+                log.Printf("⚠️ [registerTableFinishedAndCheckAdvance] 期号为空，跳过")
+                return
+        }
+
+        // 获取当前轮次
+        currentRound := gs.room.GameCount
+
+        // 收集这一桌的玩家ID列表
+        playerIDs := make([]string, 0)
+        for _, p := range gs.players {
+                playerIDs = append(playerIDs, p.ID)
+        }
+
+        // 获取服务器的 TournamentProgressManager
+        server := gs.getServer()
+        if server == nil || server.tournamentProgressManager == nil {
+                log.Printf("⚠️ [registerTableFinishedAndCheckAdvance] TournamentProgressManager 不可用")
+                // 回退到旧的倒计时机制
+                gs.startArenaRoundCountdown()
+                return
+        }
+
+        tm := server.tournamentProgressManager
+
+        // 注册桌完成状态
+        tableID := gs.room.TableID
+        if tableID == 0 {
+                tableID = uint64(time.Now().UnixNano() % 1000000) // 生成一个临时桌ID
+        }
+
+        allFinished, finishedCount, totalTables := tm.UpdateTableFinished(periodNo, currentRound, tableID, playerIDs)
+
+        log.Printf("🏟️ [registerTableFinishedAndCheckAdvance] 桌完成注册: periodNo=%s, tableID=%d, finished=%d/%d, allFinished=%v",
+                periodNo, tableID, finishedCount, totalTables, allFinished)
+
+        // 如果所有桌都完成了，触发下一轮或最终榜单
+        if allFinished {
+                log.Printf("🏟️ [registerTableFinishedAndCheckAdvance] 所有桌完成，准备进入下一阶段")
+                gs.onAllTablesFinished(periodNo, currentRound)
+        }
+}
+
+// onAllTablesFinished 所有桌完成后的处理
+// 检查是否还有下一轮，或者比赛结束
+func (gs *GameSession) onAllTablesFinished(periodNo string, currentRound int) {
+        maxRoundCount := gs.getMaxRoundCount()
+
+        log.Printf("🏟️ [onAllTablesFinished] periodNo=%s, currentRound=%d, maxRoundCount=%d",
+                periodNo, currentRound, maxRoundCount)
+
+        if currentRound >= maxRoundCount {
+                // 比赛结束，发送最终榜单
+                log.Printf("🏁 [onAllTablesFinished] 已完成所有轮次，发送最终榜单")
+                gs.broadcastFinalRankings()
+
+                // 广播竞技场结束消息
+                gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaMatchEnd, &protocol.ArenaMatchEndPayload{
+                        PeriodNo: periodNo,
+                        RoomID:   gs.room.RoomConfigID,
+                        Message:  "比赛结束",
+                }))
+
+                // 调用游戏结束回调销毁房间
+                if gs.onGameEnd != nil {
+                        gs.scheduleRoomDestruction()
+                }
+        } else {
+                // 进入下一轮
+                log.Printf("🏟️ [onAllTablesFinished] 准备进入第 %d 轮", currentRound+1)
+                gs.advanceToNextRound(periodNo, currentRound+1)
+        }
+}
+
+// advanceToNextRound 推进到下一轮
+func (gs *GameSession) advanceToNextRound(periodNo string, nextRound int) {
+        log.Printf("🏟️ [advanceToNextRound] 进入第 %d 轮, periodNo=%s", nextRound, periodNo)
+
+        // 广播轮次推进消息
+        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgTournamentRoundAdvance, &protocol.TournamentRoundAdvancePayload{
+                PeriodNo:    periodNo,
+                NewRound:    nextRound,
+                TotalRounds: gs.getMaxRoundCount(),
+                Message:     "进入下一轮，请准备",
+        }))
+
+        // 广播自动准备消息
+        gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaAutoReady, &protocol.ArenaAutoReadyPayload{
+                PeriodNo: periodNo,
+                RoomID:   gs.room.RoomConfigID,
+                Message:  "系统已自动准备",
+        }))
+
+        // 为所有玩家设置准备状态
+        gs.mu.Lock()
+        for playerID, rp := range gs.room.Players {
+                if rp != nil {
+                        rp.Ready = true
+                        log.Printf("🏟️ [advanceToNextRound] 玩家 %s 已自动准备", playerID)
+                }
+        }
+
+        // 确保房间状态为 Waiting
+        gs.room.State = RoomStateWaiting
+        gs.mu.Unlock()
+
+        // 重置游戏会话状态
+        gs.resetForNewRound()
+
+        // 开始新一轮
+        gs.Start()
+
+        log.Printf("✅ [advanceToNextRound] 房间 %s 第 %d 轮游戏已开始", gs.room.Code, nextRound)
+}
+
+// getServer 获取服务器实例
+// 🔧【修改】使用全局服务器实例
+func (gs *GameSession) getServer() *Server {
+        return GetGlobalServer()
 }

@@ -24,6 +24,24 @@ import (
         "github.com/palemoky/fight-the-landlord/internal/types"
 )
 
+// 🔧【新增】全局服务器实例，用于 GameSession 访问 TournamentProgressManager
+var globalServer *Server
+var globalServerMu sync.RWMutex
+
+// SetGlobalServer 设置全局服务器实例
+func SetGlobalServer(s *Server) {
+        globalServerMu.Lock()
+        defer globalServerMu.Unlock()
+        globalServer = s
+}
+
+// GetGlobalServer 获取全局服务器实例
+func GetGlobalServer() *Server {
+        globalServerMu.RLock()
+        defer globalServerMu.RUnlock()
+        return globalServer
+}
+
 var upgrader = websocket.Upgrader{
         ReadBufferSize:  1024,
         WriteBufferSize: 1024,
@@ -265,6 +283,9 @@ func NewServer(cfg *config.Config) (*Server, error) {
         // 🔧【新增】创建竞技场赛事进度管理器
         s.tournamentProgressManager = NewTournamentProgressManager(s)
         log.Println("🏆 竞技场赛事进度管理器已创建")
+
+        // 🔧【新增】设置全局服务器实例，用于 GameSession 访问 TournamentProgressManager
+        SetGlobalServer(s)
 
         log.Printf("🔒 安全配置: 连接限制=%d/s, 消息限制=%d/s, 聊天限制=%d/s, 最大连接数=%d",
                 cfg.Security.RateLimit.MaxPerSecond, cfg.Security.MessageLimit.MaxPerSecond, cfg.Security.ChatLimit.MaxPerSecond, cfg.Server.MaxConnections)
