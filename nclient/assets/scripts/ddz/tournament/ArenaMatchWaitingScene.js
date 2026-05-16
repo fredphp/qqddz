@@ -74,7 +74,7 @@ cc.Class({
         var bgNode = new cc.Node("Background")
         bgNode.setContentSize(cc.size(width, height))
         bgNode.setPosition(0, 0)
-        bgNode.setLocalZOrder(-100)
+        bgNode.zIndex = -100
         
         var sprite = bgNode.addComponent(cc.Sprite)
         sprite.type = cc.Sprite.Type.SIMPLE
