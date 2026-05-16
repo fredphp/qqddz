@@ -3388,8 +3388,9 @@ cc.Class({
         });
         
         // 构造房间数据
+        // 🔧【修复】竞技场房间号不添加 arena_ 前缀，使用期号作为临时标识
         var roomData = {
-            room_code: matchData.room_code || ("arena_" + matchData.period_no),
+            room_code: matchData.room_code || matchData.period_no,  // 房间号不带前缀
             room_id: matchData.room_id,
             room_name: matchData.room_name,
             room_category: 2,  // 竞技场
