@@ -6830,6 +6830,15 @@ cc.Class({
         }
         this._enterGameSceneInProgress = true;
         
+        // 🔧【新增】5秒后自动重置标志位（防止卡死）
+        var self = this;
+        setTimeout(function() {
+            if (self._enterGameSceneInProgress) {
+                console.log("🚀 [进入场景] 超时自动重置标志位");
+                self._enterGameSceneInProgress = false;
+            }
+        }, 5000);
+        
         console.log("🚀 [进入场景] 开始加载游戏场景");
         
         // 🔧【修复】添加安全检查，防止节点已销毁时报错

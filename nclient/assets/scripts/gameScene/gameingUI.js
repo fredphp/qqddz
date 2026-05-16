@@ -587,6 +587,12 @@ cc.Class({
      * @param {Array} cards - 服务端原始手牌数据
      */
     renderCards: function(cards) {
+        // 🔧【关键修复】首先检查节点是否有效
+        if (!this.node || !this.node.isValid) {
+            console.warn("🎮 [renderCards] 节点已销毁或无效，跳过渲染")
+            return
+        }
+        
         if (!cards || cards.length === 0) {
             console.warn("🎮 [renderCards] 没有牌可渲染")
             return
@@ -799,6 +805,12 @@ cc.Class({
      * 🔥【修复】同时清理 cards_node 和 node.parent，确保无残留
      */
     clearAllCards: function() {
+        // 🔧【修复】首先检查节点是否有效
+        if (!this.node || !this.node.isValid) {
+            console.warn("🎮 [clearAllCards] 节点已销毁或无效，跳过")
+            return
+        }
+        
         // 🔧【修复】只清理手牌容器中的节点，不遍历node.parent
         if (this.cards_node) {
             this.cards_node.removeAllChildren()
@@ -1934,8 +1946,8 @@ cc.Class({
     
     _getOutCardNode: function(accountid) {
         // 🔧【修复】检查 node.parent 是否存在
-        if (!this.node || !this.node.parent) {
-            console.warn("🃏 [_getOutCardNode] node 或 node.parent 未定义")
+        if (!this.node || !this.node.isValid || !this.node.parent) {
+            console.warn("🃏 [_getOutCardNode] node 或 node.parent 未定义或已销毁")
             return null
         }
         var gameScene_script = this.node.parent.getComponent("gameScene")
@@ -2649,6 +2661,12 @@ cc.Class({
      * @param {Array} cards - 底牌数据
      */
     _showBottomCardsToAll: function(cards) {
+        // 🔧【修复】首先检查节点是否有效
+        if (!this.node || !this.node.isValid) {
+            console.warn("🃏 [_showBottomCardsToAll] 节点已销毁或无效，跳过")
+            return
+        }
+        
         if (!cards || cards.length === 0) {
             return
         }
@@ -2677,6 +2695,12 @@ cc.Class({
      * @param {Array} cards - 地主的完整手牌（含底牌）
      */
     _updateLandlordHandCards: function(cards) {
+        // 🔧【修复】首先检查节点是否有效
+        if (!this.node || !this.node.isValid) {
+            console.warn("🃏 [_updateLandlordHandCards] 节点已销毁或无效，跳过")
+            return
+        }
+        
         if (!cards || cards.length === 0) {
             return
         }
@@ -3189,8 +3213,8 @@ cc.Class({
     _showPassEffect: function(accountid) {
         
         // 🔧【修复】检查 node.parent 是否存在
-        if (!this.node || !this.node.parent) {
-            console.warn("🃏 [_showPassEffect] node 或 node.parent 未定义")
+        if (!this.node || !this.node.isValid || !this.node.parent) {
+            console.warn("🃏 [_showPassEffect] node 或 node.parent 未定义或已销毁")
             return
         }
         
@@ -4900,8 +4924,8 @@ cc.Class({
     _clearAllOutCardZones: function() {
         
         // 🔧【修复】添加更完整的空值检查
-        if (!this.node) {
-            console.warn("🎮 [_clearAllOutCardZones] this.node 为空")
+        if (!this.node || !this.node.isValid) {
+            console.warn("🎮 [_clearAllOutCardZones] this.node 为空或已销毁")
             return
         }
         
