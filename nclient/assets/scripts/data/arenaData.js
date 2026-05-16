@@ -77,11 +77,10 @@ window.arenaData = function() {
      * @param {Function} callback - 回调函数 (err, result)
      */
     that.signup = function(roomId, callback) {
-        // 🔧【修改】使用 WebSocket 指令发送报名请求
-        // socketCtr 是工厂函数，需要调用 socketCtr() 获取实例
-        var socketCtrInstance = window.socketCtr ? window.socketCtr() : null;
+        // 🔧【修复】使用 myglobal.socket 获取已连接的实例，而不是每次创建新实例
+        var socketCtrInstance = window.myglobal && window.myglobal.socket ? window.myglobal.socket : null;
         if (!socketCtrInstance) {
-            callback && callback('WebSocket未初始化', null);
+            callback && callback('WebSocket未初始化，请刷新页面重试', null);
             return;
         }
         
@@ -183,11 +182,10 @@ window.arenaData = function() {
      * @param {Function} callback - 回调函数 (err, result)
      */
     that.cancelSignup = function(roomId, callback) {
-        // 🔧【修改】使用 WebSocket 指令发送取消报名请求
-        // socketCtr 是工厂函数，需要调用 socketCtr() 获取实例
-        var socketCtrInstance = window.socketCtr ? window.socketCtr() : null;
+        // 🔧【修复】使用 myglobal.socket 获取已连接的实例，而不是每次创建新实例
+        var socketCtrInstance = window.myglobal && window.myglobal.socket ? window.myglobal.socket : null;
         if (!socketCtrInstance) {
-            callback && callback('WebSocket未初始化', null);
+            callback && callback('WebSocket未初始化，请刷新页面重试', null);
             return;
         }
         
