@@ -348,8 +348,9 @@ func (gs *GameSession) StopAllTimers() {
         gs.stopTimer()
 }
 
-// 🔧【托管】scheduleRobotAction 调度机器人操作（800-1500ms随机延迟）
+// 🔧【托管】scheduleRobotAction 调度机器人操作（2000-3000ms随机延迟）
 // 托管状态下的玩家操作不再等待完整倒计时，而是快速响应
+// 🔧【调整】延迟从 800-1500ms 改为 2000-3000ms，让玩家有足够时间反应
 func (gs *GameSession) scheduleRobotAction(action func()) {
         gs.timerMu.Lock()
         defer gs.timerMu.Unlock()
@@ -360,8 +361,8 @@ func (gs *GameSession) scheduleRobotAction(action func()) {
                 gs.robotTimer = nil
         }
 
-        // 随机延迟 800-1500ms
-        delay := time.Duration(800+rand.IntN(700)) * time.Millisecond
+        // 随机延迟 2000-3000ms（让玩家有2-3秒时间反应）
+        delay := time.Duration(2000+rand.IntN(1000)) * time.Millisecond
         log.Printf("[TRUSTEE] 机器人操作将在 %v 后执行", delay)
 
         gs.robotTimer = time.AfterFunc(delay, func() {

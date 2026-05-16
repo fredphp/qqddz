@@ -158,6 +158,7 @@ func (tm *TurnManager) startTurnTimerInternal(gs *GameSession, turnID int64) {
 }
 
 // scheduleAutoPlayInternal 调度自动出牌（内部方法，需持有 gs.mu）
+// 🔧【调整】延迟从 800-1500ms 改为 2000-3000ms，让玩家有足够时间反应
 func (tm *TurnManager) scheduleAutoPlayInternal(gs *GameSession, playerIdx int, turnID int64) {
         gs.timerMu.Lock()
         defer gs.timerMu.Unlock()
@@ -168,8 +169,8 @@ func (tm *TurnManager) scheduleAutoPlayInternal(gs *GameSession, playerIdx int, 
                 gs.robotTimer = nil
         }
 
-        // 随机延迟 800-1500ms
-        delay := time.Duration(800+rand.IntN(700)) * time.Millisecond
+        // 随机延迟 2000-3000ms（让玩家有2-3秒时间反应）
+        delay := time.Duration(2000+rand.IntN(1000)) * time.Millisecond
         log.Printf("[AUTO] 调度自动出牌: playerIdx=%d, delay=%v, turnID=%d", playerIdx, delay, turnID)
 
         gs.robotTimer = time.AfterFunc(delay, func() {

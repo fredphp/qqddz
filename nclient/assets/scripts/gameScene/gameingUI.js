@@ -891,9 +891,11 @@ cc.Class({
         var myglobal = window.myglobal
         if (!myglobal) return
         
+        console.log("🃏 [_checkAndShowRobUI] 检查是否需要显示抢地主UI, cardsReady:", this.cardsReady, "_pendingBidUI:", this._pendingBidUI, "_biddingPhase:", this._biddingPhase, "_gamePhase:", this._gamePhase)
+        
         // 🔧【关键修复】如果在出牌阶段，不显示抢地主按钮
-        var RoomState = window.RoomState || {}
-        if (this._biddingPhase === "idle" && this._gamePhase === "playing") {
+        if (this._gamePhase === "playing") {
+            console.log("🃏 [_checkAndShowRobUI] 当前是出牌阶段，不显示抢地主按钮")
             return
         }
         
@@ -902,7 +904,7 @@ cc.Class({
         // 🔧【关键修复】检查是否有待显示的抢地主UI（服务端消息在发牌完成前到达）
         if (this._pendingBidUI && this.cardsReady && this.robUI && !this.robUI.active) {
             console.log("🃏 [_checkAndShowRobUI] 发牌完成，显示待处理的抢地主UI, round:", this._pendingBidRound)
-            if (this._pendingBidRound === 1 || this._biddingPhase === "bidding") {
+            if (this._pendingBidRound === 1) {
                 this._showBidUI("叫地主", "不叫")
             } else {
                 this._showBidUI("抢地主", "不抢")
@@ -911,7 +913,11 @@ cc.Class({
             return
         }
         
+        // 🔧【修复】检查当前玩家是否需要显示按钮
+        console.log("🃏 [_checkAndShowRobUI] rob_player_accountid:", this.rob_player_accountid, "myPlayerId:", myPlayerId)
+        
         if (this.rob_player_accountid == myPlayerId && this.cardsReady && this.robUI && !this.robUI.active) {
+            console.log("🃏 [_checkAndShowRobUI] 轮到我，显示抢地主按钮, _biddingPhase:", this._biddingPhase)
             if (this._biddingPhase === "bidding") {
                 this._showBidUI("叫地主", "不叫")
             } else {
@@ -932,12 +938,17 @@ cc.Class({
         // 🔒【重要】先停止之前的倒计时（服务器轮转了）
         this._stopBidCountdown()
 
+        // 🔧【修复】确保设置游戏阶段
+        this._gamePhase = "bidding"
+        
         this.rob_player_accountid = playerId
         this._bidTimeout = timeout
         this._biddingPhase = round === 1 ? "bidding" : "robbing"
         this._bidExpiresAt = expiresAt  // 🔧【新增】保存过期时间
 
         var myPlayerId = myglobal.socket.getPlayerInfo().id || myglobal.playerData.serverPlayerId || myglobal.playerData.accountID
+
+        console.log("🃏 [_processCallLandlordTurn] playerId:", playerId, "myPlayerId:", myPlayerId, "round:", round, "cardsReady:", this.cardsReady)
 
         // 🔧【关键修复】检查是否轮到当前玩家
         if (String(playerId) === String(myPlayerId)) {
@@ -949,6 +960,7 @@ cc.Class({
                 this._pendingBidRound = round
             } else {
                 // 发牌已完成，直接显示按钮
+                console.log("🃏 [_processCallLandlordTurn] 发牌已完成，直接显示抢地主按钮")
                 if (round === 1) {
                     this._showBidUI("叫地主", "不叫")
                 } else {
@@ -6775,6 +6787,7 @@ cc.Class({
     /**
      * 🔧【托管】用户活动回调
      * 节流处理，避免频繁发送请求
+     * 🔧【优化】只要用户在游戏中活动，就发送取消托管请求，让服务端判断是否需要取消
      */
     _onUserActivity: function(activityType) {
         var now = Date.now()
@@ -6795,13 +6808,8 @@ cc.Class({
             return
         }
         
-        // 检查当前玩家是否处于托管状态
-        // 通过检查 player_node 的托管状态
-        var isTrustee = this._isCurrentPlayerTrustee()
-        if (!isTrustee) {
-            return
-        }
-        
+        // 🔧【优化】不再检查本地托管状态，直接发送取消托管请求
+        // 服务端会自己判断玩家是否处于托管状态，如果是则取消托管
         console.log("🖐️ [用户活动] 检测到用户活动:", activityType, "，发送取消托管请求")
         
         // 发送取消托管请求
@@ -6812,8 +6820,14 @@ cc.Class({
     
     /**
      * 🔧【托管】检查当前玩家是否处于托管状态
+     * 注意：此方法已不再使用，保留仅供参考
      */
     _isCurrentPlayerTrustee: function() {
+        // 🔧【优化】直接检查本地托管状态
+        if (this._isLocalTrustee) {
+            return true
+        }
+        
         var myglobal = window.myglobal
         if (!myglobal || !myglobal.playerData) {
             return false
