@@ -375,28 +375,74 @@ cc.Class({
                 }
             }
             
-            // 🔧【新增】用 ROOM_JOINED 数据更新玩家信息（头像、金币等）
+            // 🔧【关键修复】用 ROOM_JOINED 数据更新玩家信息（头像、金币等）
+            // 需要同时支持数字 ID（机器人）和 UUID（当前玩家）
             if (data && data.players && this.playerNodeList) {
                 console.log("🎮 [gameScene] 更新玩家数据，玩家数量:", data.players.length);
+                
+                // 获取当前玩家的 serverPlayerId（UUID 格式）
+                var currentServerPlayerId = myglobal.playerData && myglobal.playerData.serverPlayerId;
+                console.log("🎮 [gameScene] 当前玩家 serverPlayerId:", currentServerPlayerId);
+                
                 for (var i = 0; i < data.players.length; i++) {
                     var serverPlayer = data.players[i];
                     // 查找对应的玩家节点
+                    var matched = false;
                     for (var j = 0; j < this.playerNodeList.length; j++) {
                         var playerNode = this.playerNodeList[j];
                         if (playerNode) {
                             var playerScript = playerNode.getComponent("player_node");
-                            if (playerScript && playerScript.accountid === serverPlayer.id) {
-                                // 更新玩家数据
-                                var updateData = {
-                                    gold_count: serverPlayer.gold_count || 0,
-                                    arena_gold: serverPlayer.arena_gold || 0,
-                                    match_coin: serverPlayer.match_coin || 0,
-                                    avatar: serverPlayer.avatar || "",
-                                    avatarUrl: serverPlayer.avatar || ""
-                                };
-                                playerScript.updateArenaData && playerScript.updateArenaData(updateData);
-                                console.log("🎮 [gameScene] 更新玩家 " + serverPlayer.name + " 数据:", JSON.stringify(updateData));
-                                break;
+                            if (playerScript) {
+                                // 🔧【关键修复】同时检查数字 ID 和 UUID
+                                var isMatch = (playerScript.accountid === serverPlayer.id) || 
+                                              (serverPlayer.id === currentServerPlayerId && !playerScript.accountid.startsWith(currentServerPlayerId));
+                                
+                                // 额外检查：如果 serverPlayer.id 是当前玩家的 UUID，则匹配 accountid 为数字的玩家节点
+                                if (!isMatch && serverPlayer.id === currentServerPlayerId) {
+                                    // 当前玩家：通过位置索引 0 来匹配
+                                    if (playerScript.seat_index === 0) {
+                                        isMatch = true;
+                                        console.log("🎮 [gameScene] 通过位置索引匹配当前玩家");
+                                    }
+                                }
+                                
+                                if (isMatch) {
+                                    // 更新玩家数据
+                                    var updateData = {
+                                        gold_count: serverPlayer.gold_count || 0,
+                                        arena_gold: serverPlayer.arena_gold || 0,
+                                        match_coin: serverPlayer.match_coin || 0,
+                                        avatar: serverPlayer.avatar || "",
+                                        avatarUrl: serverPlayer.avatar || ""
+                                    };
+                                    playerScript.updateArenaData && playerScript.updateArenaData(updateData);
+                                    console.log("🎮 [gameScene] 更新玩家 " + serverPlayer.name + " 数据:", JSON.stringify(updateData));
+                                    matched = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 🔧【新增】如果没匹配到，但这是当前玩家，强制更新位置 0 的玩家节点
+                    if (!matched && serverPlayer.id === currentServerPlayerId) {
+                        console.log("🎮 [gameScene] 当前玩家未匹配到，尝试通过位置索引更新...");
+                        for (var j = 0; j < this.playerNodeList.length; j++) {
+                            var playerNode = this.playerNodeList[j];
+                            if (playerNode) {
+                                var playerScript = playerNode.getComponent("player_node");
+                                if (playerScript && playerScript.seat_index === 0) {
+                                    var updateData = {
+                                        gold_count: serverPlayer.gold_count || 0,
+                                        arena_gold: serverPlayer.arena_gold || 0,
+                                        match_coin: serverPlayer.match_coin || 0,
+                                        avatar: serverPlayer.avatar || "",
+                                        avatarUrl: serverPlayer.avatar || ""
+                                    };
+                                    playerScript.updateArenaData && playerScript.updateArenaData(updateData);
+                                    console.log("🎮 [gameScene] 强制更新位置 0 的玩家数据:", JSON.stringify(updateData));
+                                    break;
+                                }
                             }
                         }
                     }
@@ -583,11 +629,6 @@ cc.Class({
         
         console.log("🎮 [_processRoomData] 接收到的数据:", JSON.stringify(result))
         
-        var seatid = result.seatindex || 1
-        
-        this.playerdata_list_pos = []
-        this.setPlayerSeatPos(seatid)
-
         var playerdata_list = result.playerdata || []
         var roomid = result.roomid || result.room_code || result.roomCode || "WAITING"
 
@@ -596,6 +637,25 @@ cc.Class({
         if (isArenaMode) {
             console.log("🏟️ [_processRoomData] 竞技场模式: room_category=2, playerdata数量=" + playerdata_list.length + ", 期号=" + result.period_no)
         }
+        
+        // 🔧【关键修复】竞技场模式下，确保当前玩家始终在位置 0（下方）
+        // 找出当前玩家（非机器人）并计算其正确位置
+        var seatid = result.seatindex || 1
+        if (isArenaMode && playerdata_list.length > 0) {
+            // 在竞技场模式下，找到当前玩家（非机器人）
+            for (var i = 0; i < playerdata_list.length; i++) {
+                var p = playerdata_list[i]
+                if (p && !p.is_robot) {
+                    // 当前玩家的 seatindex 就是他在数组中的正确座位
+                    seatid = p.seatindex || 1
+                    console.log("🏟️ [_processRoomData] 竞技场模式：当前玩家=" + p.nick_name + ", seatid=" + seatid)
+                    break
+                }
+            }
+        }
+        
+        this.playerdata_list_pos = []
+        this.setPlayerSeatPos(seatid)
 
         // 🔧【修复】保存房间类型到实例变量，供 player_node 使用
         this._roomCategory = result.room_category || 1
