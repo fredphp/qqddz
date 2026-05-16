@@ -1809,6 +1809,7 @@ func (b *ArenaStatusBroadcaster) getIdleRobots(count int) []uint64 {
 
 // 🔧【新增】推送等待状态给单个玩家
 // 修改：推送所有报名玩家（包括未进入的），让客户端显示完整列表
+// 🔧【修复】显示玩家竞技币余额（arena_coin）而非比赛金币（match_coin）
 func (b *ArenaStatusBroadcaster) sendWaitingStatusToPlayer(enterPhase *EnterPhaseInfo, playerID uint64, client *Client) {
         // 获取房间配置
         roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
@@ -1839,12 +1840,17 @@ func (b *ArenaStatusBroadcaster) sendWaitingStatusToPlayer(enterPhase *EnterPhas
                                 enteredAt = 0 // 未进入的玩家 entered_at 为 0
                         }
                         
+                        // 🔧【修复】使用玩家的竞技币余额（arena_coin），而非比赛金币（match_coin）
+                        // 比赛金币在游戏开始前为 0，竞技币余额才是玩家报名后剩余的金额
+                        arenaCoin := player.ArenaCoin
+                        
                         players = append(players, protocol.WaitingPlayerInfo{
                                 PlayerID:   fmt.Sprintf("%d", pid),
                                 PlayerName: player.Nickname,
                                 Avatar:     player.Avatar,
                                 IsRobot:    status.IsRobot,
                                 EnteredAt:  enteredAt,
+                                MatchCoin:  arenaCoin,
                         })
                 }
         }
@@ -1875,7 +1881,7 @@ func (b *ArenaStatusBroadcaster) sendWaitingStatusToPlayer(enterPhase *EnterPhas
 
 // 🔧【新增】广播等待状态给所有已进入的玩家
 // 修改：推送所有报名玩家（包括未进入的），让客户端显示完整列表
-// 🔧【修复】添加金币和排名信息
+// 🔧【修复】显示玩家竞技币余额（arena_coin）而非比赛金币（match_coin）
 func (b *ArenaStatusBroadcaster) broadcastWaitingStatus(enterPhase *EnterPhaseInfo) {
         // 🔧【调试日志】输出推送的倒计时值
         log.Printf("[ArenaStatus] 📢 broadcastWaitingStatus: periodNo=%s, WaitingPhase=%d, Countdown=%d, StartTime=%d",
@@ -1885,13 +1891,6 @@ func (b *ArenaStatusBroadcaster) broadcastWaitingStatus(enterPhase *EnterPhaseIn
         roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
         if err != nil {
                 return
-        }
-
-        // 🔧【新增】获取所有玩家的金币排名
-        playerCoins := make(map[uint64]int64)
-        participations, _ := database.GetArenaParticipationsByPeriodNo(enterPhase.PeriodNo)
-        for _, p := range participations {
-                playerCoins[p.PlayerID] = p.MatchCoin
         }
 
         // 收集所有报名玩家列表（不只是已进入的）
@@ -1916,8 +1915,9 @@ func (b *ArenaStatusBroadcaster) broadcastWaitingStatus(enterPhase *EnterPhaseIn
                                 enteredAt = 0 // 未进入的玩家 entered_at 为 0
                         }
                         
-                        // 🔧【新增】获取金币
-                        matchCoin := playerCoins[playerID]
+                        // 🔧【修复】使用玩家的竞技币余额（arena_coin），而非比赛金币（match_coin）
+                        // 比赛金币在游戏开始前为 0，竞技币余额才是玩家报名后剩余的金额
+                        arenaCoin := player.ArenaCoin
                         
                         players = append(players, protocol.WaitingPlayerInfo{
                                 PlayerID:   fmt.Sprintf("%d", playerID),
@@ -1925,7 +1925,7 @@ func (b *ArenaStatusBroadcaster) broadcastWaitingStatus(enterPhase *EnterPhaseIn
                                 Avatar:     player.Avatar,
                                 IsRobot:    status.IsRobot,
                                 EnteredAt:  enteredAt,
-                                MatchCoin:  matchCoin,
+                                MatchCoin:  arenaCoin,
                                 Rank:       0, // 稍后计算
                         })
                 }
