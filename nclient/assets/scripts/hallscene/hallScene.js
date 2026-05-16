@@ -2161,19 +2161,9 @@ cc.Class({
         roomNode.color = cc.color(180, 180, 200);
         roomNode.parent = cardNode;
         
-        // 参赛人数
-        var playersNode = new cc.Node("Players");
-        playersNode.y = cardHeight/2 - 165;
-        var playersLabel = playersNode.addComponent(cc.Label);
-        playersLabel.string = "参赛人数: " + (data.total_players || 0) + " 人";
-        playersLabel.fontSize = 20;
-        playersLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        playersNode.color = cc.color(100, 200, 100);
-        playersNode.parent = cardNode;
-        
         // 🔧【新增】倒计时显示 - 使用服务端返回的 start_time 计算剩余时间
         var countdownNode = new cc.Node("Countdown");
-        countdownNode.y = cardHeight/2 - 200;
+        countdownNode.y = cardHeight/2 - 165;
         var countdownLabel = countdownNode.addComponent(cc.Label);
         
         // 计算剩余时间：优先使用 start_time，否则使用 countdown
