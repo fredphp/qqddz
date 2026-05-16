@@ -78,20 +78,21 @@ window.arenaData = function() {
      */
     that.signup = function(roomId, callback) {
         // 🔧【修改】使用 WebSocket 指令发送报名请求
-        var socketCtr = window.socketCtr;
-        if (!socketCtr) {
+        // socketCtr 是工厂函数，需要调用 socketCtr() 获取实例
+        var socketCtrInstance = window.socketCtr ? window.socketCtr() : null;
+        if (!socketCtrInstance) {
             callback && callback('WebSocket未初始化', null);
             return;
         }
         
         // 检查 WebSocket 连接状态
-        if (!socketCtr.isConnected || typeof socketCtr.isConnected !== 'function') {
-            console.error("🏟️ [ArenaData] socketCtr.isConnected 不是函数，socketCtr:", socketCtr);
+        if (!socketCtrInstance.isConnected || typeof socketCtrInstance.isConnected !== 'function') {
+            console.error("🏟️ [ArenaData] socketCtr.isConnected 不是函数");
             callback && callback('WebSocket连接状态异常，请刷新页面重试', null);
             return;
         }
         
-        if (!socketCtr.isConnected() || !socketCtr.isWebSocketOpen()) {
+        if (!socketCtrInstance.isConnected() || !socketCtrInstance.isWebSocketOpen()) {
             callback && callback('WebSocket未连接，请稍后重试', null);
             return;
         }
@@ -162,8 +163,8 @@ window.arenaData = function() {
         };
         
         // 注册监听（注意：这些监听器会一直存在，但通过 responded 标记防止重复回调）
-        socketCtr.onArenaSignupSuccess(successHandler);
-        socketCtr.onArenaSignupFailed(failedHandler);
+        socketCtrInstance.onArenaSignupSuccess(successHandler);
+        socketCtrInstance.onArenaSignupFailed(failedHandler);
         
         // 设置超时（10秒）
         timeoutId = setTimeout(function() {
@@ -173,7 +174,7 @@ window.arenaData = function() {
         }, 10000);
         
         // 发送报名请求
-        socketCtr.sendArenaSignup({ room_id: roomId });
+        socketCtrInstance.sendArenaSignup({ room_id: roomId });
     };
     
     /**
@@ -183,20 +184,21 @@ window.arenaData = function() {
      */
     that.cancelSignup = function(roomId, callback) {
         // 🔧【修改】使用 WebSocket 指令发送取消报名请求
-        var socketCtr = window.socketCtr;
-        if (!socketCtr) {
+        // socketCtr 是工厂函数，需要调用 socketCtr() 获取实例
+        var socketCtrInstance = window.socketCtr ? window.socketCtr() : null;
+        if (!socketCtrInstance) {
             callback && callback('WebSocket未初始化', null);
             return;
         }
         
         // 检查 WebSocket 连接状态
-        if (!socketCtr.isConnected || typeof socketCtr.isConnected !== 'function') {
-            console.error("🏟️ [ArenaData] socketCtr.isConnected 不是函数，socketCtr:", socketCtr);
+        if (!socketCtrInstance.isConnected || typeof socketCtrInstance.isConnected !== 'function') {
+            console.error("🏟️ [ArenaData] socketCtr.isConnected 不是函数");
             callback && callback('WebSocket连接状态异常，请刷新页面重试', null);
             return;
         }
         
-        if (!socketCtr.isConnected() || !socketCtr.isWebSocketOpen()) {
+        if (!socketCtrInstance.isConnected() || !socketCtrInstance.isWebSocketOpen()) {
             callback && callback('WebSocket未连接，请稍后重试', null);
             return;
         }
@@ -258,8 +260,8 @@ window.arenaData = function() {
         };
         
         // 注册监听（注意：这些监听器会一直存在，但通过 responded 标记防止重复回调）
-        socketCtr.onArenaCancelSuccess(successHandler);
-        socketCtr.onArenaCancelFailed(failedHandler);
+        socketCtrInstance.onArenaCancelSuccess(successHandler);
+        socketCtrInstance.onArenaCancelFailed(failedHandler);
         
         // 设置超时（10秒）
         timeoutId = setTimeout(function() {
@@ -269,7 +271,7 @@ window.arenaData = function() {
         }, 10000);
         
         // 发送取消报名请求
-        socketCtr.sendArenaCancelSignup({ room_id: roomId });
+        socketCtrInstance.sendArenaCancelSignup({ room_id: roomId });
     };
     
     /**
