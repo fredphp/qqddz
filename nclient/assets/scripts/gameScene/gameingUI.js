@@ -995,8 +995,9 @@ cc.Class({
             this.playingUI_node.active = false
         }
         
-        var confirmBtn = this.robUI.getChildByName("btn_qiandz")
-        var cancelBtn = this.robUI.getChildByName("btn_buqiandz")
+        // 🔧【关键修复】场景中的按钮名称是 qiangzhuang 和 buqiangzhuang
+        var confirmBtn = this.robUI.getChildByName("qiangzhuang")
+        var cancelBtn = this.robUI.getChildByName("buqiangzhuang")
         
         console.log("🎯 [_showBidUI] confirmBtn 存在:", !!confirmBtn, "cancelBtn 存在:", !!cancelBtn)
         
