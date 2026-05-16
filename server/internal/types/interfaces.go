@@ -97,3 +97,51 @@ type ArenaServer interface {
         // GetArenaBroadcaster 获取竞技场广播器
         GetArenaBroadcaster() ArenaProvider
 }
+
+// =============================================
+// 赛事进度管理器接口（用于打破 session 和 server 包的循环依赖）
+// =============================================
+
+// TournamentProgressAccessor 赛事进度访问器接口
+// 用于 session 包访问 TournamentProgressManager 的功能
+type TournamentProgressAccessor interface {
+        // UpdateTableFinished 更新桌完成状态
+        // 返回值: (是否全部完成, 已完成桌数, 总桌数)
+        UpdateTableFinished(periodNo string, round int, tableID uint64, playerIDs []string) (bool, int, int)
+        // AdvanceRound 推进到下一轮
+        // 返回值: 是否成功推进
+        AdvanceRound(periodNo string, newTotalTables int, playerIDs []string) bool
+}
+
+// ArenaRoomCreator 竞技场房间创建器接口
+// 用于 session 包访问 ArenaStatusBroadcaster 的房间创建功能
+type ArenaRoomCreator interface {
+        // CreateRoomsForNextRound 为下一轮创建房间
+        CreateRoomsForNextRound(periodNo string, roomConfigID uint64, playerIDs []uint64, nextRound int)
+}
+
+// 全局赛事进度访问器
+var globalTournamentProgress TournamentProgressAccessor
+
+// 全局竞技场房间创建器
+var globalArenaRoomCreator ArenaRoomCreator
+
+// SetGlobalTournamentProgress 设置全局赛事进度访问器
+func SetGlobalTournamentProgress(accessor TournamentProgressAccessor) {
+        globalTournamentProgress = accessor
+}
+
+// GetGlobalTournamentProgress 获取全局赛事进度访问器
+func GetGlobalTournamentProgress() TournamentProgressAccessor {
+        return globalTournamentProgress
+}
+
+// SetGlobalArenaRoomCreator 设置全局竞技场房间创建器
+func SetGlobalArenaRoomCreator(creator ArenaRoomCreator) {
+        globalArenaRoomCreator = creator
+}
+
+// GetGlobalArenaRoomCreator 获取全局竞技场房间创建器
+func GetGlobalArenaRoomCreator() ArenaRoomCreator {
+        return globalArenaRoomCreator
+}

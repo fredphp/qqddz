@@ -17,6 +17,7 @@ import (
         "github.com/palemoky/fight-the-landlord/internal/protocol"
         "github.com/palemoky/fight-the-landlord/internal/protocol/codec"
         "github.com/palemoky/fight-the-landlord/internal/protocol/convert"
+        "github.com/palemoky/fight-the-landlord/internal/types"
         "github.com/palemoky/fight-the-landlord/tournament"
 )
 
@@ -1491,20 +1492,23 @@ func (gs *GameSession) registerTableFinishedAndCheckAdvance() {
         }
 
         // 获取服务器的 TournamentProgressManager
-        server := gs.getServer()
-        if server == nil || server.tournamentProgressManager == nil {
+        tm := types.GetGlobalTournamentProgress()
+        if tm == nil {
                 log.Printf("⚠️ [registerTableFinishedAndCheckAdvance] TournamentProgressManager 不可用")
                 // 回退到旧的倒计时机制
                 gs.startArenaRoundCountdown()
                 return
         }
 
-        tm := server.tournamentProgressManager
-
         // 注册桌完成状态
-        tableID := gs.room.TableID
+        // 使用房间代码的哈希值作为桌ID，确保同一房间多次调用使用相同的ID
+        tableID := gs.room.ArenaSessionID
         if tableID == 0 {
-                tableID = uint64(time.Now().UnixNano() % 1000000) // 生成一个临时桌ID
+                // 如果 ArenaSessionID 为空，使用房间代码哈希作为备选
+                tableID = uint64(uint32(len(gs.room.Code)))
+                for _, c := range gs.room.Code {
+                        tableID = tableID*31 + uint64(c)
+                }
         }
 
         allFinished, finishedCount, totalTables := tm.UpdateTableFinished(periodNo, currentRound, tableID, playerIDs)
@@ -1857,10 +1861,10 @@ func (gs *GameSession) reassignTablesForNextRound(periodNo string, nextRound int
         }
 
         // 🔧【核心】多桌场景：需要通过 ArenaStatusBroadcaster 重新分配
-        // 获取服务器实例
-        server := gs.getServer()
-        if server == nil || server.arenaBroadcaster == nil {
-                log.Printf("⚠️ [reassignTablesForNextRound] 服务器或广播器不可用，使用简单逻辑")
+        // 获取全局竞技场房间创建器
+        roomCreator := types.GetGlobalArenaRoomCreator()
+        if roomCreator == nil {
+                log.Printf("⚠️ [reassignTablesForNextRound] 房间创建器不可用，使用简单逻辑")
                 gs.advanceToNextRound(periodNo, nextRound)
                 return
         }
@@ -1874,7 +1878,7 @@ func (gs *GameSession) reassignTablesForNextRound(periodNo string, nextRound int
         // 2. 补充机器人（如果需要）
         // 3. 创建新房间并开始游戏
         log.Printf("🏟️ [reassignTablesForNextRound] 调用 ArenaStatusBroadcaster 为 %d 名玩家创建新房间", len(playerIDs))
-        server.arenaBroadcaster.CreateRoomsForNextRound(periodNo, roomConfigID, playerIDs, nextRound)
+        roomCreator.CreateRoomsForNextRound(periodNo, roomConfigID, playerIDs, nextRound)
 
         // 🔧【关键】销毁当前房间（不再需要）
         // 当前房间的玩家已被移动到新房间
@@ -1885,18 +1889,15 @@ func (gs *GameSession) reassignTablesForNextRound(periodNo string, nextRound int
 }
 
 // 🔧【新增】发送消息给指定玩家ID
-func (gs *GameSession) sendToPlayerByID(playerID uint64, msg *codec.Message) {
-        server := gs.getServer()
-        if server == nil {
-                return
-        }
-
-        server.clientsMu.RLock()
-        defer server.clientsMu.RUnlock()
-
-        for _, client := range server.clients {
-                if client.PlayerID == playerID {
-                        client.SendMessage(msg)
+// 通过房间广播，只有目标玩家会处理该消息
+func (gs *GameSession) sendToPlayerByID(playerID uint64, msg *protocol.Message) {
+        // 遍历房间玩家找到目标玩家
+        for _, p := range gs.players {
+                if p.DBID == playerID {
+                        rp := gs.room.Players[p.ID]
+                        if rp != nil && rp.Client != nil {
+                                rp.Client.SendMessage(msg)
+                        }
                         return
                 }
         }
@@ -1908,22 +1909,20 @@ func (gs *GameSession) advanceToNextRound(periodNo string, nextRound int) {
 
         // 🔧【关键修复】更新 TournamentProgressManager 的轮次状态
         // 确保后续桌完成检查能正确工作
-        server := gs.getServer()
-        if server != nil && server.tournamentProgressManager != nil {
-                tm := server.tournamentProgressManager
-                
+        tm := types.GetGlobalTournamentProgress()
+        if tm != nil {
                 // 收集当前房间的玩家ID
                 playerIDs := make([]string, 0)
                 for _, p := range gs.players {
                         playerIDs = append(playerIDs, p.ID)
                 }
-                
+
                 // 计算新一轮的总桌数（当前房间只有1桌）
                 newTotalTables := 1
-                
+
                 // 调用 AdvanceRound 更新进度管理器
                 if tm.AdvanceRound(periodNo, newTotalTables, playerIDs) {
-                        log.Printf("🏟️ [advanceToNextRound] ✅ TournamentProgressManager 已更新: round=%d, tables=%d", 
+                        log.Printf("🏟️ [advanceToNextRound] ✅ TournamentProgressManager 已更新: round=%d, tables=%d",
                                 nextRound, newTotalTables)
                 } else {
                         log.Printf("⚠️ [advanceToNextRound] TournamentProgressManager 更新失败")
@@ -1965,10 +1964,4 @@ func (gs *GameSession) advanceToNextRound(periodNo string, nextRound int) {
         gs.Start()
 
         log.Printf("✅ [advanceToNextRound] 房间 %s 第 %d 轮游戏已开始", gs.room.Code, nextRound)
-}
-
-// getServer 获取服务器实例
-// 🔧【修改】使用全局服务器实例
-func (gs *GameSession) getServer() *Server {
-        return GetGlobalServer()
 }

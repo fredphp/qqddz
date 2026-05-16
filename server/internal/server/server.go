@@ -287,6 +287,12 @@ func NewServer(cfg *config.Config) (*Server, error) {
         // 🔧【新增】设置全局服务器实例，用于 GameSession 访问 TournamentProgressManager
         SetGlobalServer(s)
 
+        // 🔧【新增】设置全局赛事进度访问器（用于 session 包访问）
+        types.SetGlobalTournamentProgress(s.tournamentProgressManager)
+
+        // 🔧【新增】设置全局竞技场房间创建器（用于 session 包访问）
+        types.SetGlobalArenaRoomCreator(s.arenaBroadcaster)
+
         log.Printf("🔒 安全配置: 连接限制=%d/s, 消息限制=%d/s, 聊天限制=%d/s, 最大连接数=%d",
                 cfg.Security.RateLimit.MaxPerSecond, cfg.Security.MessageLimit.MaxPerSecond, cfg.Security.ChatLimit.MaxPerSecond, cfg.Server.MaxConnections)
 
