@@ -2,6 +2,7 @@ package session
 
 import (
         "context"
+        "encoding/json"
         "fmt"
         "log"
         "math/rand"
@@ -16,6 +17,7 @@ import (
         "github.com/palemoky/fight-the-landlord/internal/protocol"
         "github.com/palemoky/fight-the-landlord/internal/protocol/codec"
         "github.com/palemoky/fight-the-landlord/internal/protocol/convert"
+        "github.com/palemoky/fight-the-landlord/tournament"
 )
 
 // 全奋发牌管理器
@@ -1505,12 +1507,17 @@ func (gs *GameSession) registerTableFinishedAndCheckAdvance() {
 }
 
 // onAllTablesFinished 所有桌完成后的处理
-// 检查是否还有下一轮，或者比赛结束
+// 🔧【重构】添加淘汰阶段逻辑
+// 流程：等待完成 → 排名计算 → 执行淘汰 → 通知被淘汰玩家 → 进入下一轮或决赛
 func (gs *GameSession) onAllTablesFinished(periodNo string, currentRound int) {
         maxRoundCount := gs.getMaxRoundCount()
 
         log.Printf("🏟️ [onAllTablesFinished] periodNo=%s, currentRound=%d, maxRoundCount=%d",
                 periodNo, currentRound, maxRoundCount)
+
+        // 🔧【关键】获取当期所有参赛玩家并排名
+        rankings := gs.calculatePeriodRankings(periodNo)
+        log.Printf("🏟️ [onAllTablesFinished] 排名计算完成，玩家数=%d", len(rankings))
 
         if currentRound >= maxRoundCount {
                 // 比赛结束，发送最终榜单
@@ -1529,9 +1536,268 @@ func (gs *GameSession) onAllTablesFinished(periodNo string, currentRound int) {
                         gs.scheduleRoomDestruction()
                 }
         } else {
-                // 进入下一轮
-                log.Printf("🏟️ [onAllTablesFinished] 准备进入第 %d 轮", currentRound+1)
-                gs.advanceToNextRound(periodNo, currentRound+1)
+                // 🔧【核心】执行淘汰逻辑
+                eliminationTarget := gs.getEliminationTarget(currentRound, len(rankings))
+                log.Printf("🏟️ [onAllTablesFinished] 本轮淘汰目标: 保留前 %d 名", eliminationTarget)
+
+                // 执行淘汰并获取淘汰结果
+                eliminatedPlayers, survivingPlayers := gs.executeElimination(periodNo, rankings, eliminationTarget)
+                log.Printf("🏟️ [onAllTablesFinished] 淘汰完成: 淘汰=%d人, 晋级=%d人", 
+                        len(eliminatedPlayers), len(survivingPlayers))
+
+                // 通知被淘汰的玩家
+                gs.notifyEliminatedPlayers(periodNo, eliminatedPlayers)
+
+                // 🔧【关键】只有未被淘汰的玩家才能进入下一轮
+                if len(survivingPlayers) <= 3 {
+                        // 剩余3人或更少，直接进入决赛
+                        log.Printf("🏆 [onAllTablesFinished] 剩余 %d 人，进入决赛", len(survivingPlayers))
+                        gs.startFinalRound(periodNo, survivingPlayers)
+                } else {
+                        // 进入下一轮
+                        log.Printf("🏟️ [onAllTablesFinished] 准备进入第 %d 轮", currentRound+1)
+                        gs.advanceToNextRoundWithNewPlayers(periodNo, currentRound+1, survivingPlayers)
+                }
+        }
+}
+
+// 🔧【新增】计算当期所有参赛玩家的排名
+// 按金币降序排序，金币相同按玩家ID正序排序
+func (gs *GameSession) calculatePeriodRankings(periodNo string) []protocol.TournamentRankEntry {
+        // 从数据库获取所有参赛者的金币
+        participations, err := database.GetArenaParticipationsByPeriodNo(periodNo)
+        if err != nil || len(participations) == 0 {
+                log.Printf("⚠️ [calculatePeriodRankings] 获取参赛记录失败: err=%v", err)
+                return nil
+        }
+
+        // 按金币降序排序（已从数据库排序）
+        rankings := make([]protocol.TournamentRankEntry, len(participations))
+        for i, p := range participations {
+                avatarURL := cdnutil.CompleteAvatar("")
+                if p.Player.ID != 0 {
+                        avatarURL = cdnutil.CompleteAvatar(p.Player.Avatar)
+                }
+
+                rankings[i] = protocol.TournamentRankEntry{
+                        Rank:       i + 1,
+                        PlayerID:   strconv.FormatUint(p.PlayerID, 10),
+                        PlayerName: getPlayerDisplayName(p),
+                        Avatar:     avatarURL,
+                        MatchCoin:  p.MatchCoin,
+                        IsRobot:    p.IsRobot == 1,
+                }
+        }
+
+        return rankings
+}
+
+// 🔧【新增】获取本轮淘汰目标（保留多少人）
+// 淘汰规则 [60, 30, 18, 9, 3]
+func (gs *GameSession) getEliminationTarget(currentRound int, totalPlayers int) int {
+        // 从房间配置获取淘汰规则
+        rules := gs.getEliminationRules()
+        
+        // 计算当前轮次对应的淘汰目标索引
+        activeRules := rules.GetActiveRules(totalPlayers)
+        if currentRound-1 < len(activeRules) {
+                return activeRules[currentRound-1]
+        }
+        
+        // 默认保留3人（决赛）
+        return 3
+}
+
+// 🔧【新增】获取淘汰规则
+func (gs *GameSession) getEliminationRules() tournament.EliminationRules {
+        // 从房间配置获取
+        if gs.room.RoomConfigID > 0 {
+                roomConfig, err := database.GetRoomConfigByID(gs.room.RoomConfigID)
+                if err == nil && roomConfig != nil && roomConfig.EliminationRules != "" {
+                        var rules tournament.EliminationRules
+                        if err := json.Unmarshal([]byte(roomConfig.EliminationRules), &rules); err == nil {
+                                return rules
+                        }
+                }
+        }
+        
+        // 默认淘汰规则
+        return tournament.EliminationRules{60, 30, 18, 9, 3}
+}
+
+// 🔧【新增】执行淘汰
+// 返回：被淘汰玩家列表，晋级玩家列表
+func (gs *GameSession) executeElimination(periodNo string, rankings []protocol.TournamentRankEntry, target int) ([]protocol.TournamentRankEntry, []protocol.TournamentRankEntry) {
+        if len(rankings) <= target {
+                // 不需要淘汰
+                return nil, rankings
+        }
+
+        // 前 target 名晋级
+        surviving := rankings[:target]
+        // 后面的被淘汰
+        eliminated := rankings[target:]
+
+        // 更新数据库中被淘汰玩家的状态
+        for _, player := range eliminated {
+                playerID, _ := strconv.ParseUint(player.PlayerID, 10, 64)
+                
+                // 更新 participations 表中的 is_eliminated 状态
+                err := database.UpdateParticipationEliminationStatus(periodNo, playerID, true)
+                if err != nil {
+                        log.Printf("⚠️ [executeElimination] 更新淘汰状态失败: playerID=%d, err=%v", playerID, err)
+                } else {
+                        log.Printf("🏟️ [executeElimination] 玩家 %d (%s) 已被淘汰，排名第 %d", 
+                                playerID, player.PlayerName, player.Rank)
+                }
+        }
+
+        return eliminated, surviving
+}
+
+// 🔧【新增】通知被淘汰的玩家
+func (gs *GameSession) notifyEliminatedPlayers(periodNo string, eliminatedPlayers []protocol.TournamentRankEntry) {
+        if len(eliminatedPlayers) == 0 {
+                return
+        }
+
+        // 构建淘汰通知消息
+        for _, player := range eliminatedPlayers {
+                playerID, _ := strconv.ParseUint(player.PlayerID, 10, 64)
+                
+                // 跳过机器人
+                if player.IsRobot {
+                        continue
+                }
+
+                // 构建淘汰通知 payload
+                payload := &protocol.TournamentEliminationPayload{
+                        PeriodNo:     periodNo,
+                        PlayerID:     player.PlayerID,
+                        PlayerName:   player.PlayerName,
+                        FinalRank:    player.Rank,
+                        MatchCoin:    player.MatchCoin,
+                        TotalPlayers: 0, // 稍后填充
+                        Message:      fmt.Sprintf("很遗憾，您在第 %d 名被淘汰", player.Rank),
+                }
+
+                // 发送给该玩家
+                gs.sendToPlayerByID(playerID, codec.MustNewMessage(protocol.MsgTournamentElimination, payload))
+                log.Printf("🏟️ [notifyEliminatedPlayers] 已通知玩家 %d 被淘汰", playerID)
+        }
+}
+
+// 🔧【新增】带新玩家列表进入下一轮
+// 需要重新分配桌子
+func (gs *GameSession) advanceToNextRoundWithNewPlayers(periodNo string, nextRound int, survivingPlayers []protocol.TournamentRankEntry) {
+        log.Printf("🏟️ [advanceToNextRoundWithNewPlayers] 进入第 %d 轮, periodNo=%s, 晋级玩家=%d",
+                nextRound, periodNo, len(survivingPlayers))
+
+        // 🔧【关键】重新分配桌子
+        // 收集晋级玩家ID
+        var playerIDs []uint64
+        for _, p := range survivingPlayers {
+                id, _ := strconv.ParseUint(p.PlayerID, 10, 64)
+                playerIDs = append(playerIDs, id)
+        }
+
+        // 通知晋级玩家进入下一轮
+        gs.broadcastRoundAdvanceToPlayers(periodNo, nextRound, playerIDs)
+
+        // 🔧【核心】重新分配桌子和创建房间
+        // 这需要调用 arena_status.go 中的方法
+        gs.reassignTablesForNextRound(periodNo, nextRound, playerIDs)
+}
+
+// 🔧【新增】开始决赛轮（3人）
+func (gs *GameSession) startFinalRound(periodNo string, finalists []protocol.TournamentRankEntry) {
+        log.Printf("🏆 [startFinalRound] 开始决赛, periodNo=%s, 决赛选手=%d", periodNo, len(finalists))
+
+        // 收集决赛选手ID
+        var playerIDs []uint64
+        for _, p := range finalists {
+                id, _ := strconv.ParseUint(p.PlayerID, 10, 64)
+                playerIDs = append(playerIDs, id)
+        }
+
+        // 通知决赛选手
+        gs.broadcastFinalRoundStart(periodNo, playerIDs)
+
+        // 重新分配桌子和创建房间
+        gs.reassignTablesForNextRound(periodNo, gs.getMaxRoundCount(), playerIDs)
+}
+
+// 🔧【新增】广播轮次推进给指定玩家
+func (gs *GameSession) broadcastRoundAdvanceToPlayers(periodNo string, nextRound int, playerIDs []uint64) {
+        // 广播轮次推进消息
+        payload := &protocol.TournamentRoundAdvancePayload{
+                PeriodNo:    periodNo,
+                NewRound:    nextRound,
+                TotalRounds: gs.getMaxRoundCount(),
+                Message:     "恭喜晋级！请准备下一轮",
+        }
+
+        msg := codec.MustNewMessage(protocol.MsgTournamentRoundAdvance, payload)
+
+        // 发送给晋级的玩家
+        for _, playerID := range playerIDs {
+                gs.sendToPlayerByID(playerID, msg)
+        }
+
+        log.Printf("🏟️ [broadcastRoundAdvanceToPlayers] 已通知 %d 名玩家晋级", len(playerIDs))
+}
+
+// 🔧【新增】广播决赛开始
+func (gs *GameSession) broadcastFinalRoundStart(periodNo string, playerIDs []uint64) {
+        payload := &protocol.TournamentRoundAdvancePayload{
+                PeriodNo:    periodNo,
+                NewRound:    gs.getMaxRoundCount(),
+                TotalRounds: gs.getMaxRoundCount(),
+                Message:     "恭喜进入决赛！",
+        }
+
+        msg := codec.MustNewMessage(protocol.MsgTournamentRoundAdvance, payload)
+
+        for _, playerID := range playerIDs {
+                gs.sendToPlayerByID(playerID, msg)
+        }
+
+        log.Printf("🏆 [broadcastFinalRoundStart] 已通知 %d 名选手进入决赛", len(playerIDs))
+}
+
+// 🔧【新增】重新分配桌子并创建房间
+func (gs *GameSession) reassignTablesForNextRound(periodNo string, nextRound int, playerIDs []uint64) {
+        log.Printf("🏟️ [reassignTablesForNextRound] 重新分配桌子: periodNo=%s, round=%d, players=%d",
+                periodNo, nextRound, len(playerIDs))
+
+        // 如果当前房间只有一个玩家（单人测试场景），直接继续
+        if len(playerIDs) <= 3 {
+                // 当前的桌子继续使用
+                gs.advanceToNextRound(periodNo, nextRound)
+                return
+        }
+
+        // 🔧【核心】多桌场景：需要销毁当前房间，重新分配
+        // 这需要通过服务端的全局管理器来处理
+        // 暂时使用简单的继续逻辑
+        gs.advanceToNextRound(periodNo, nextRound)
+}
+
+// 🔧【新增】发送消息给指定玩家ID
+func (gs *GameSession) sendToPlayerByID(playerID uint64, msg *codec.Message) {
+        server := gs.getServer()
+        if server == nil {
+                return
+        }
+
+        server.clientsMu.RLock()
+        defer server.clientsMu.RUnlock()
+
+        for _, client := range server.clients {
+                if client.PlayerID == playerID {
+                        client.SendMessage(msg)
+                        return
+                }
         }
 }
 

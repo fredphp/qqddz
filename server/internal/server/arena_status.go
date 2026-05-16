@@ -1606,8 +1606,35 @@ func (b *ArenaStatusBroadcaster) handleAssigningTimeout(periodNo string) {
         // 进入游戏阶段
         enterPhase.WaitingPhase = WaitingPhaseEntering
 
-        // 为每桌创建房间并开始游戏
+        // 🔧【关键修复】初始化 TournamentProgressManager，跟踪桌完成状态
+        totalTables := len(enterPhase.Tables)
+        var playerIDs []string
         for _, table := range enterPhase.Tables {
+                for _, playerID := range table.Players {
+                        playerIDs = append(playerIDs, fmt.Sprintf("%d", playerID))
+                }
+        }
+        
+        // 获取房间配置中的总轮次
+        roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
+        totalRounds := 3 // 默认3轮
+        if err == nil && roomConfig != nil && roomConfig.MatchRoundCount > 0 {
+                totalRounds = roomConfig.MatchRoundCount
+        }
+        
+        // 初始化赛事进度管理器
+        if b.server.tournamentProgressManager != nil {
+                b.server.tournamentProgressManager.InitTournament(periodNo, totalRounds, totalTables, playerIDs)
+                log.Printf("[ArenaStatus] ✅ 初始化赛事进度: periodNo=%s, rounds=%d, tables=%d, players=%d", 
+                        periodNo, totalRounds, totalTables, len(playerIDs))
+        } else {
+                log.Printf("[ArenaStatus] ⚠️ tournamentProgressManager 未初始化")
+        }
+
+        // 为每桌创建房间并开始游戏
+        for i, table := range enterPhase.Tables {
+                // 设置桌号（从1开始）
+                table.TableID = i + 1
                 b.createAndStartTableGameForWaiting(enterPhase, table)
         }
 
@@ -1847,6 +1874,7 @@ func (b *ArenaStatusBroadcaster) sendWaitingStatusToPlayer(enterPhase *EnterPhas
 
 // 🔧【新增】广播等待状态给所有已进入的玩家
 // 修改：推送所有报名玩家（包括未进入的），让客户端显示完整列表
+// 🔧【修复】添加金币和排名信息
 func (b *ArenaStatusBroadcaster) broadcastWaitingStatus(enterPhase *EnterPhaseInfo) {
         // 🔧【调试日志】输出推送的倒计时值
         log.Printf("[ArenaStatus] 📢 broadcastWaitingStatus: periodNo=%s, WaitingPhase=%d, Countdown=%d, StartTime=%d",
@@ -1856,6 +1884,13 @@ func (b *ArenaStatusBroadcaster) broadcastWaitingStatus(enterPhase *EnterPhaseIn
         roomConfig, err := database.GetRoomConfigByID(enterPhase.RoomID)
         if err != nil {
                 return
+        }
+
+        // 🔧【新增】获取所有玩家的金币排名
+        playerCoins := make(map[uint64]int64)
+        participations, _ := database.GetArenaParticipationsByPeriodNo(enterPhase.PeriodNo)
+        for _, p := range participations {
+                playerCoins[p.PlayerID] = p.MatchCoin
         }
 
         // 收集所有报名玩家列表（不只是已进入的）
@@ -1880,14 +1915,33 @@ func (b *ArenaStatusBroadcaster) broadcastWaitingStatus(enterPhase *EnterPhaseIn
                                 enteredAt = 0 // 未进入的玩家 entered_at 为 0
                         }
                         
+                        // 🔧【新增】获取金币
+                        matchCoin := playerCoins[playerID]
+                        
                         players = append(players, protocol.WaitingPlayerInfo{
                                 PlayerID:   fmt.Sprintf("%d", playerID),
                                 PlayerName: player.Nickname,
                                 Avatar:     player.Avatar,
                                 IsRobot:    status.IsRobot,
                                 EnteredAt:  enteredAt,
+                                MatchCoin:  matchCoin,
+                                Rank:       0, // 稍后计算
                         })
                 }
+        }
+
+        // 🔧【新增】按金币降序排序并计算排名
+        sort.Slice(players, func(i, j int) bool {
+                if players[i].MatchCoin != players[j].MatchCoin {
+                        return players[i].MatchCoin > players[j].MatchCoin
+                }
+                // 金币相同按玩家ID升序排序
+                return players[i].PlayerID < players[j].PlayerID
+        })
+        
+        // 设置排名
+        for i := range players {
+                players[i].Rank = i + 1
         }
 
         phaseStr := "waiting"

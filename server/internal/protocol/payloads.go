@@ -805,6 +805,18 @@ type TournamentRankEntry struct {
         IsRobot    bool   `json:"is_robot"`    // 是否是机器人
 }
 
+// TournamentEliminationPayload 淘汰通知
+// 当玩家被淘汰时发送此消息
+type TournamentEliminationPayload struct {
+        PeriodNo     string `json:"period_no"`     // 期号
+        PlayerID     string `json:"player_id"`     // 玩家ID
+        PlayerName   string `json:"player_name"`   // 玩家昵称
+        FinalRank    int    `json:"final_rank"`    // 最终排名
+        MatchCoin    int64  `json:"match_coin"`    // 最终金币
+        TotalPlayers int    `json:"total_players"` // 总参赛人数
+        Message      string `json:"message"`       // 提示消息
+}
+
 // ============================================================
 // 【新增】竞技场等待阶段 Payloads（玩家点击进入后的等待界面）
 // ============================================================
@@ -831,6 +843,8 @@ type WaitingPlayerInfo struct {
         Avatar     string `json:"avatar"`      // 头像URL
         IsRobot    bool   `json:"is_robot"`    // 是否是机器人
         EnteredAt  int64  `json:"entered_at"`  // 进入时间戳
+        MatchCoin  int64  `json:"match_coin"`  // 当前金币
+        Rank       int    `json:"rank"`        // 当前排名
 }
 
 // ArenaWaitingTickPayload 等待阶段倒计时更新

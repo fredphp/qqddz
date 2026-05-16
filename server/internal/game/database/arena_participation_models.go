@@ -603,3 +603,19 @@ func isDuplicateKeyError(err error) bool {
         }
         return err == gorm.ErrDuplicatedKey
 }
+
+// UpdateParticipationEliminationStatus 根据期号更新玩家淘汰状态
+// 🔧【新增】用于淘汰阶段更新玩家状态
+func UpdateParticipationEliminationStatus(periodNo string, playerID uint64, isEliminated bool) error {
+        tableName, err := getArenaParticipationTableNameByPeriodNo(periodNo)
+        if err != nil {
+                return err
+        }
+
+        return DB().Table(tableName).
+                Where("period_no = ? AND player_id = ?", periodNo, playerID).
+                Updates(map[string]interface{}{
+                        "is_eliminated": boolToUint8(isEliminated),
+                        "updated_at":   time.Now(),
+                }).Error
+}

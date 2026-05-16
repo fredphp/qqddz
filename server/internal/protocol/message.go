@@ -173,6 +173,7 @@ const (
         MsgTournamentWaitProgress MessageType = "tournament_wait_progress" // 等待进度广播
         MsgTournamentRoundAdvance MessageType = "tournament_round_advance" // 下一轮通知
         MsgTournamentFinalRank    MessageType = "tournament_final_rank"    // 最终榜单
+        MsgTournamentElimination  MessageType = "tournament_elimination"   // 淘汰通知
 
         // 🔧【新增】竞技场等待阶段（玩家点击进入后的等待界面）
         MsgArenaWaitingStatus MessageType = "arena_waiting_status" // 等待阶段状态推送

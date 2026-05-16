@@ -847,8 +847,9 @@ cc.Class({
         }).join(', '))
         
         // 布局参数：一排10个，从左上角开始排列
+        // 🔧【修改】更新布局参数以适应新的卡片高度
         var itemWidth = 100   // 卡片宽度
-        var itemHeight = 120  // 卡片高度
+        var itemHeight = 140  // 卡片高度（增加了20px以容纳金币）
         var spacingX = 10     // 水平间距
         var spacingY = 10     // 垂直间距
         var cols = 10         // 一排10个
@@ -877,14 +878,15 @@ cc.Class({
 
     /**
      * 创建玩家卡片（紧凑卡片，圆形头像，与原大厅界面一致）
+     * 🔧【修复】添加金币和排名显示
      */
     _createPlayerItem: function(player, index) {
         var itemNode = new cc.Node("PlayerCard_" + index)
-        itemNode.setContentSize(cc.size(100, 120))
+        itemNode.setContentSize(cc.size(100, 140))  // 🔧【修改】增加高度以容纳金币
         
         // 卡片背景（圆角矩形）
         var bgNode = new cc.Node("Bg")
-        bgNode.setContentSize(cc.size(95, 115))
+        bgNode.setContentSize(cc.size(95, 135))  // 🔧【修改】增加高度
         var bgGraphics = bgNode.addComponent(cc.Graphics)
         
         // 根据是否是机器人设置不同背景色
@@ -893,15 +895,29 @@ cc.Class({
         } else {
             bgGraphics.fillColor = cc.color(40, 60, 80, 230)  // 蓝色调 - 真人
         }
-        bgGraphics.roundRect(-47.5, -57.5, 95, 115, 8)
+        bgGraphics.roundRect(-47.5, -67.5, 95, 135, 8)  // 🔧【修改】调整圆角矩形
         bgGraphics.fill()
         bgNode.parent = itemNode
+        
+        // ========== 排名标签（左上角）==========
+        // 🔧【新增】显示排名
+        var rankNode = new cc.Node("Rank")
+        rankNode.setPosition(-30, 55)  // 左上角
+        var rankLabel = rankNode.addComponent(cc.Label)
+        rankLabel.string = "#" + (player.rank || (index + 1))
+        rankLabel.fontSize = 12
+        rankLabel.lineHeight = 14
+        rankNode.color = cc.color(255, 215, 0)  // 金色
+        var rankOutline = rankNode.addComponent(cc.LabelOutline)
+        rankOutline.color = cc.color(0, 0, 0)
+        rankOutline.width = 1
+        rankNode.parent = itemNode
         
         // ========== 圆形头像（使用 Mask 实现圆形裁剪）==========
         // 创建遮罩节点
         var maskNode = new cc.Node("AvatarMask")
-        maskNode.setPosition(0, 25)
-        maskNode.setContentSize(cc.size(60, 60))
+        maskNode.setPosition(0, 30)  // 🔧【修改】上移
+        maskNode.setContentSize(cc.size(50, 50))  // 🔧【修改】缩小头像
         
         // 添加 Mask 组件
         var mask = maskNode.addComponent(cc.Mask)
@@ -912,13 +928,13 @@ cc.Class({
         var avatarBg = new cc.Node("AvatarBg")
         var avatarBgGraphics = avatarBg.addComponent(cc.Graphics)
         avatarBgGraphics.fillColor = cc.color(80, 80, 100, 255)
-        avatarBgGraphics.circle(0, 0, 32)
+        avatarBgGraphics.circle(0, 0, 28)
         avatarBgGraphics.fill()
         avatarBg.parent = maskNode
         
         // 头像节点（在遮罩内部，会被裁剪成圆形）
         var avatarNode = new cc.Node("Avatar")
-        avatarNode.setContentSize(cc.size(60, 60))
+        avatarNode.setContentSize(cc.size(50, 50))
         var avatarSprite = avatarNode.addComponent(cc.Sprite)
         avatarSprite.type = cc.Sprite.Type.SIMPLE
         avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
@@ -931,12 +947,12 @@ cc.Class({
         
         // 昵称
         var nameNode = new cc.Node("Name")
-        nameNode.setPosition(0, -25)
+        nameNode.setPosition(0, -10)  // 🔧【修改】调整位置
         var nameLabel = nameNode.addComponent(cc.Label)
         nameLabel.string = player.player_name || player.name || ("玩家" + (index + 1))
-        nameLabel.fontSize = 14
-        nameLabel.lineHeight = 18
-        nameNode.setContentSize(cc.size(90, 18))
+        nameLabel.fontSize = 12
+        nameLabel.lineHeight = 16
+        nameNode.setContentSize(cc.size(90, 16))
         nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         
         // 真人浅绿色，机器人金色
@@ -947,15 +963,29 @@ cc.Class({
         }
         nameNode.parent = itemNode
         
+        // ========== 金币显示 ==========
+        // 🔧【新增】显示金币
+        var coinNode = new cc.Node("Coin")
+        coinNode.setPosition(0, -28)
+        var coinLabel = coinNode.addComponent(cc.Label)
+        var matchCoin = player.match_coin || 0
+        if (matchCoin >= 10000) {
+            coinLabel.string = (matchCoin / 10000).toFixed(1) + "万"
+        } else {
+            coinLabel.string = matchCoin.toString()
+        }
+        coinLabel.fontSize = 11
+        coinLabel.lineHeight = 14
+        coinNode.color = cc.color(255, 215, 0)  // 金色
+        coinNode.parent = itemNode
+        
         // 状态标签
         // 规则：根据 entered_at 判断是否已进入
-        // - 已进入的玩家（包括机器人和真人）显示"已进入"
-        // - 未进入的玩家显示"等待中"
         var statusNode = new cc.Node("Status")
-        statusNode.setPosition(0, -45)
+        statusNode.setPosition(0, -48)  // 🔧【修改】调整位置
         var statusLabel = statusNode.addComponent(cc.Label)
-        statusLabel.fontSize = 12
-        statusLabel.lineHeight = 14
+        statusLabel.fontSize = 10
+        statusLabel.lineHeight = 12
         statusLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         
         // 判断是否已进入：有 entered_at 且值大于0表示已进入
