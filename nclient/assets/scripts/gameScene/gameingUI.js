@@ -5408,67 +5408,15 @@ cc.Class({
         this._playGameResultSound(isWinner)
         
         // ============================================================
-        // 🔧【关键修复】立即启动本地倒计时定时器
-        // 同时注册服务端消息监听，双保险确保倒计时正常工作
+        // 🔧【关键修复】完全依赖服务端推送的倒计时消息
+        // 不使用本地倒计时定时器，确保所有客户端行为一致
+        // 服务端每秒广播 arena_countdown_tick 消息
         // ============================================================
         
-        // 启动本地倒计时定时器
-        this._startLocalArenaCountdown(initialCountdown)
-        
-        // 注册服务端倒计时消息监听（作为备份）
+        // 注册服务端倒计时消息监听
         this._setupArenaCountdownListeners()
-    },
-    
-    /**
-     * 🔧【新增】启动本地竞技场倒计时
-     * @param {Number} seconds - 初始倒计时秒数
-     */
-    _startLocalArenaCountdown: function(seconds) {
-        var self = this
         
-        console.log("🏟️ [_startLocalArenaCountdown] 开始启动倒计时, seconds:", seconds)
-        
-        // 停止之前的倒计时
-        if (this._localArenaCountdownTimer) {
-            this.unschedule(this._localArenaCountdownTick)
-            this._localArenaCountdownTimer = null
-        }
-        
-        this._arenaCountdownSeconds = seconds
-        
-        // 🔧【修复】确保初始UI正确显示
-        this._updateArenaCountdownUI(seconds)
-        
-        // 🔧【修复】使用 cc.director 的时间调度，确保在所有情况下都能工作
-        // 每秒tick一次，无限重复
-        this.schedule(this._localArenaCountdownTick, 1, cc.macro.REPEAT_FOREVER, 1)
-        this._localArenaCountdownTimer = true
-        
-        console.log("🏟️ [_startLocalArenaCountdown] 本地倒计时已启动")
-    },
-    
-    /**
-     * 🔧【新增】本地竞技场倒计时Tick
-     */
-    _localArenaCountdownTick: function() {
-        if (this._arenaCountdownSeconds <= 0) {
-            this.unschedule(this._localArenaCountdownTick)
-            this._localArenaCountdownTimer = null
-            console.log("🏟️ [_localArenaCountdownTick] 倒计时结束，等待服务端消息...")
-            
-            // 🔧【修复】倒计时归0后显示等待提示，继续等待服务端消息
-            // 服务端会发送 MsgArenaAutoReady 或新一轮游戏消息
-            this._updateArenaCountdownUI(0)
-            this._showWaitingForServer()
-            return
-        }
-        
-        this._arenaCountdownSeconds--
-        
-        // 更新UI
-        this._updateArenaCountdownUI(this._arenaCountdownSeconds)
-        
-        console.log("🏟️ [_localArenaCountdownTick] 剩余:", this._arenaCountdownSeconds)
+        console.log("🏟️ [显示结算弹窗] 初始倒计时:", initialCountdown, "秒，等待服务端推送...")
     },
     
     /**
@@ -5494,7 +5442,7 @@ cc.Class({
     
     /**
      * 🔧【新增】设置竞技场倒计时消息监听
-     * 监听服务端推送的倒计时消息（作为本地倒计时的备份和同步）
+     * 🔧【关键】完全依赖服务端推送，不使用本地倒计时定时器
      */
     _setupArenaCountdownListeners: function() {
         var self = this
