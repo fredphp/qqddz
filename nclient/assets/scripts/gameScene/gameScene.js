@@ -355,6 +355,21 @@ cc.Class({
             this._onPlayerOnline(data)
         }.bind(this))
         
+        // 🔧【修复】监听 room_joined 事件更新房间号
+        // 竞技场模式下，先进入游戏场景，后收到真正的房间号
+        myglobal.socket.onRoomJoined(function(data) {
+            if (data && data.room_code && this.roomid_label) {
+                // 检查当前显示的是否是期号（长度>10），如果是则更新为真正的房间号
+                var currentText = this.roomid_label.string;
+                var currentRoomCode = currentText.replace("房间号:", "");
+                if (currentRoomCode.length > 10) {
+                    // 当前显示的是期号，更新为真正的房间号
+                    this.roomid_label.string = "房间号:" + data.room_code;
+                    console.log("🎮 [gameScene] 更新房间号: " + data.room_code);
+                }
+            }
+        }.bind(this))
+        
     },
 
     setPlayerSeatPos(seat_index) {
