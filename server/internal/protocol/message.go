@@ -183,6 +183,9 @@ const (
         // 🔧【新增】竞技场玩家加入广播（玩家点击进入后广播给所有本期玩家）
         MsgArenaPlayerJoined MessageType = "arena_player_joined" // 玩家加入等待场景广播
 
+        // 🔧【新增】竞技场淘汰踢出通知
+        MsgArenaEliminatedKick MessageType = "arena_eliminated_kick" // 被淘汰踢出房间通知
+
         // 错误
         MsgError MessageType = "error" // 错误消息
 )

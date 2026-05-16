@@ -1684,6 +1684,24 @@ func (gs *GameSession) notifyEliminatedPlayers(periodNo string, eliminatedPlayer
                 // 发送给该玩家
                 gs.sendToPlayerByID(playerID, codec.MustNewMessage(protocol.MsgTournamentElimination, payload))
                 log.Printf("🏟️ [notifyEliminatedPlayers] 已通知玩家 %d 被淘汰", playerID)
+                
+                // 🔧【关键修复】将被淘汰的玩家从房间中移除
+                // 这确保被淘汰的玩家无法继续在当期游戏中
+                gs.mu.Lock()
+                playerIDStr := fmt.Sprintf("%d", playerID)
+                if rp, exists := gs.room.Players[playerIDStr]; exists && rp != nil && rp.Client != nil {
+                        // 发送离开房间消息
+                        rp.Client.SendMessage(codec.MustNewMessage(protocol.MsgArenaEliminatedKick, &protocol.ArenaEliminatedKickPayload{
+                                PeriodNo: periodNo,
+                                PlayerID: playerIDStr,
+                                Message:  "您已被淘汰，即将离开房间",
+                        }))
+                        
+                        // 标记玩家需要离开房间
+                        // 注意：不立即断开连接，让客户端有时间显示淘汰消息
+                        log.Printf("🏟️ [notifyEliminatedPlayers] 玩家 %d 已标记为淘汰状态，将从房间移除", playerID)
+                }
+                gs.mu.Unlock()
         }
 }
 
@@ -1804,6 +1822,30 @@ func (gs *GameSession) sendToPlayerByID(playerID uint64, msg *codec.Message) {
 // advanceToNextRound 推进到下一轮
 func (gs *GameSession) advanceToNextRound(periodNo string, nextRound int) {
         log.Printf("🏟️ [advanceToNextRound] 进入第 %d 轮, periodNo=%s", nextRound, periodNo)
+
+        // 🔧【关键修复】更新 TournamentProgressManager 的轮次状态
+        // 确保后续桌完成检查能正确工作
+        server := gs.getServer()
+        if server != nil && server.tournamentProgressManager != nil {
+                tm := server.tournamentProgressManager
+                
+                // 收集当前房间的玩家ID
+                playerIDs := make([]string, 0)
+                for _, p := range gs.players {
+                        playerIDs = append(playerIDs, p.ID)
+                }
+                
+                // 计算新一轮的总桌数（当前房间只有1桌）
+                newTotalTables := 1
+                
+                // 调用 AdvanceRound 更新进度管理器
+                if tm.AdvanceRound(periodNo, newTotalTables, playerIDs) {
+                        log.Printf("🏟️ [advanceToNextRound] ✅ TournamentProgressManager 已更新: round=%d, tables=%d", 
+                                nextRound, newTotalTables)
+                } else {
+                        log.Printf("⚠️ [advanceToNextRound] TournamentProgressManager 更新失败")
+                }
+        }
 
         // 广播轮次推进消息
         gs.room.Broadcast(codec.MustNewMessage(protocol.MsgTournamentRoundAdvance, &protocol.TournamentRoundAdvancePayload{

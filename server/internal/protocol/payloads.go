@@ -817,6 +817,14 @@ type TournamentEliminationPayload struct {
         Message      string `json:"message"`       // 提示消息
 }
 
+// ArenaEliminatedKickPayload 被淘汰踢出房间通知
+// 当玩家被淘汰后，服务端发送此消息让客户端离开房间
+type ArenaEliminatedKickPayload struct {
+        PeriodNo string `json:"period_no"` // 期号
+        PlayerID string `json:"player_id"` // 玩家ID
+        Message  string `json:"message"`   // 提示消息
+}
+
 // ============================================================
 // 【新增】竞技场等待阶段 Payloads（玩家点击进入后的等待界面）
 // ============================================================
