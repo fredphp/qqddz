@@ -1,6 +1,12 @@
 import service from '@/utils/request'
-
-// getFileList 获取文件列表
+// @Tags FileUploadAndDownload
+// @Summary 分页文件列表
+// @Security ApiKeyAuth
+// @accept application/json
+// @Produce application/json
+// @Param data body modelInterface.PageInfo true "分页获取文件户列表"
+// @Success 200 {string} json "{"success":true,"data":{},"msg":"获取成功"}"
+// @Router /fileUploadAndDownload/getFileList [post]
 export const getFileList = (data) => {
   return service({
     url: '/fileUploadAndDownload/getFileList',
@@ -9,16 +15,13 @@ export const getFileList = (data) => {
   })
 }
 
-// editFileName 编辑文件名
-export const editFileName = (data) => {
-  return service({
-    url: '/fileUploadAndDownload/editFileName',
-    method: 'post',
-    data
-  })
-}
-
-// deleteFile 删除文件
+// @Tags FileUploadAndDownload
+// @Summary 删除文件
+// @Security ApiKeyAuth
+// @Produce  application/json
+// @Param data body dbModel.FileUploadAndDownload true "传入文件里面id即可"
+// @Success 200 {string} json "{"success":true,"data":{},"msg":"返回成功"}"
+// @Router /fileUploadAndDownload/deleteFile [post]
 export const deleteFile = (data) => {
   return service({
     url: '/fileUploadAndDownload/deleteFile',
@@ -27,11 +30,38 @@ export const deleteFile = (data) => {
   })
 }
 
-// uploadFile 上传文件
-export const uploadFile = (data) => {
+/**
+ * 编辑文件名或者备注
+ * @param data
+ * @returns {*}
+ */
+export const editFileName = (data) => {
   return service({
-    url: '/fileUploadAndDownload/upload',
+    url: '/fileUploadAndDownload/editFileName',
     method: 'post',
     data
   })
 }
+
+/**
+ * 导入URL
+ * @param data
+ * @returns {*}
+ */
+export const importURL = (data) => {
+  return service({
+    url: '/fileUploadAndDownload/importURL',
+    method: 'post',
+    data
+  })
+}
+
+
+// 上传文件 暂时用于头像上传
+export const uploadFile = (data) => {
+  return service({
+    url: "/fileUploadAndDownload/upload",
+    method: "post",
+    data,
+  });
+};
