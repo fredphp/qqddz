@@ -629,6 +629,7 @@ func (h *ArenaHandler) checkOtherArenaSignup(playerID uint64, currentRoomID uint
 }
 
 // SignupStatus 获取玩家已报名状态
+// 🔧【重构】按期号查询：获取每个房间的当前期号，查询玩家在该期号是否报名
 func (h *ArenaHandler) SignupStatus(w http.ResponseWriter, r *http.Request) {
         if r.Method != http.MethodGet {
                 writeJSONError(w, http.StatusMethodNotAllowed, "方法不允许")
@@ -678,13 +679,55 @@ func (h *ArenaHandler) SignupStatus(w http.ResponseWriter, r *http.Request) {
         // 获取玩家ID
         playerID := account.PlayerID
 
-        // 🔧【修复】直接查询玩家最近的报名记录，不再依赖当前时间段
-        // 这样即使当前时间不在比赛时间段，也能正确返回报名状态
-        signedUpRooms, err := h.getPlayerRecentSignups(playerID)
-        if err != nil {
-                log.Printf("⚠️ 获取玩家报名记录失败: %v", err)
-                // 出错时返回空数组，不阻塞用户
-                signedUpRooms = make([]map[string]interface{}, 0)
+        // 获取所有竞技场房间配置
+        var roomConfigs []database.RoomConfig
+        if err := db.Where("room_category = ? AND status = 1", 2).Order("sort_order ASC").Find(&roomConfigs).Error; err != nil {
+                writeJSONError(w, http.StatusInternalServerError, "获取房间配置失败")
+                return
+        }
+
+        // 🔧【核心逻辑】按期号查询报名状态
+        // 对每个竞技场房间：获取当前期号 -> 查询玩家在该期号是否报名
+        signedUpRooms := make([]map[string]interface{}, 0)
+
+        for _, config := range roomConfigs {
+                // 获取该房间的当前期号
+                periodInfo, err := h.getCurrentPeriodInfo(config.ID, &config)
+                if err != nil {
+                        log.Printf("⚠️ [SignupStatus] 获取期号失败: roomID=%d, err=%v", config.ID, err)
+                        continue
+                }
+
+                // 如果当前不在比赛时间段，检查是否有最近的报名记录
+                // 这种情况发生在：用户报名后，时间过了下一期开始，但还想显示上一期的报名状态
+                if periodInfo == nil {
+                        // 查询玩家在该房间最近的报名记录（今天的）
+                        recentSignup := h.getPlayerRecentSignupForRoom(playerID, config.ID)
+                        if recentSignup != nil {
+                                signedUpRooms = append(signedUpRooms, map[string]interface{}{
+                                        "room_id":     config.ID,
+                                        "room_name":   config.RoomName,
+                                        "period_no":   recentSignup.PeriodNo,
+                                        "signup_time": recentSignup.SignupTime.UnixMilli(),
+                                        "signup_fee":  recentSignup.SignupFee,
+                                })
+                                log.Printf("✅ [SignupStatus] 找到最近报名记录: roomID=%d, periodNo=%s", config.ID, recentSignup.PeriodNo)
+                        }
+                        continue
+                }
+
+                // 当前期号存在，查询玩家在该期号是否报名
+                player, err := h.getPlayerSignup(periodInfo.PeriodNo, playerID)
+                if err == nil && player != nil && player.Status == database.ArenaPeriodPlayerStatusNormal {
+                        signedUpRooms = append(signedUpRooms, map[string]interface{}{
+                                "room_id":     config.ID,
+                                "room_name":   config.RoomName,
+                                "period_no":   periodInfo.PeriodNo,
+                                "signup_time": player.SignupTime.UnixMilli(),
+                                "signup_fee":  player.SignupFee,
+                        })
+                        log.Printf("✅ [SignupStatus] 玩家已报名: roomID=%d, periodNo=%s", config.ID, periodInfo.PeriodNo)
+                }
         }
 
         log.Printf("✅ 玩家 %d 已报名 %d 个竞技场", playerID, len(signedUpRooms))
@@ -695,90 +738,32 @@ func (h *ArenaHandler) SignupStatus(w http.ResponseWriter, r *http.Request) {
         })
 }
 
-// getPlayerRecentSignups 获取玩家最近的报名记录
-// 返回玩家在所有竞技场房间中，最近一次有效报名（状态为正常的报名）
-func (h *ArenaHandler) getPlayerRecentSignups(playerID uint64) ([]map[string]interface{}, error) {
+// getPlayerRecentSignupForRoom 获取玩家在指定房间最近的报名记录
+// 用于处理当前时间不在比赛时间段内，但仍需要显示报名状态的情况
+func (h *ArenaHandler) getPlayerRecentSignupForRoom(playerID uint64, roomID uint64) *database.ArenaPeriodPlayer {
         db := database.DB()
         if db == nil {
-                return nil, fmt.Errorf("数据库未连接")
+                return nil
         }
 
-        // 获取所有竞技场房间配置（用于获取房间名称）
-        var roomConfigs []database.RoomConfig
-        if err := db.Where("room_category = ? AND status = 1", 2).Order("sort_order ASC").Find(&roomConfigs).Error; err != nil {
-                return nil, err
-        }
-
-        // 构建房间ID到房间配置的映射
-        roomConfigMap := make(map[uint64]database.RoomConfig)
-        for _, config := range roomConfigs {
-                roomConfigMap[config.ID] = config
-        }
-
-        // 🔧【关键】查询玩家最近的报名记录
-        // 条件：1. 状态为正常（未取消） 2. 报名时间在今天
-        // 每个房间只返回最新的一条记录
-        signedUpRooms := make([]map[string]interface{}, 0)
-
-        // 获取今天的日期范围
         now := time.Now()
         todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-        todayEnd := todayStart.Add(24 * time.Hour)
 
-        // 查询今天的报名记录（使用分表查询）
-        // 先生成所有可能的期号前缀（今天的日期格式 YYMMDD）
-        datePrefix := fmt.Sprintf("%02d%02d%02d", now.Year()%100, int(now.Month()), now.Day())
-
-        log.Printf("🔍 [SignupStatus] 查询玩家 %d 今天的报名记录, 日期前缀: %s", playerID, datePrefix)
-
-        // 🔧【简化】直接查询当前月份的分表
-        // 使用当前时间获取分表名
+        // 查询当前月份的分表
         tableName := database.GetPartitionManager().GetArenaPeriodPlayerTableName(now)
-        log.Printf("🔍 [SignupStatus] 查询分表: %s", tableName)
 
-        // 查询玩家在今天的报名记录
-        // 使用期号前缀匹配 + 玩家ID + 状态正常
-        var players []database.ArenaPeriodPlayer
+        var player database.ArenaPeriodPlayer
         result := db.Table(tableName).
-                Where("player_id = ? AND status = ?", playerID, database.ArenaPeriodPlayerStatusNormal).
-                Where("signup_time >= ? AND signup_time < ?", todayStart, todayEnd).
+                Where("player_id = ? AND room_id = ? AND status = ?", playerID, roomID, database.ArenaPeriodPlayerStatusNormal).
+                Where("signup_time >= ?", todayStart).
                 Order("signup_time DESC").
-                Find(&players)
+                First(&player)
 
         if result.Error != nil {
-                log.Printf("⚠️ [SignupStatus] 查询报名记录失败: %v", result.Error)
-                return signedUpRooms, nil
+                return nil
         }
 
-        log.Printf("🔍 [SignupStatus] 查询到 %d 条报名记录", len(players))
-
-        // 按房间分组，每个房间只保留最新的报名记录
-        roomSignups := make(map[uint64]database.ArenaPeriodPlayer)
-        for _, p := range players {
-                if _, exists := roomSignups[p.RoomID]; !exists {
-                        roomSignups[p.RoomID] = p
-                }
-        }
-
-        // 构建返回结果
-        for roomID, p := range roomSignups {
-                config, exists := roomConfigMap[roomID]
-                if !exists {
-                        log.Printf("⚠️ [SignupStatus] 房间配置不存在: roomID=%d", roomID)
-                        continue
-                }
-
-                signedUpRooms = append(signedUpRooms, map[string]interface{}{
-                        "room_id":     config.ID,
-                        "room_name":   config.RoomName,
-                        "period_no":   p.PeriodNo,
-                        "signup_time": p.SignupTime.UnixMilli(),
-                        "signup_fee":  p.SignupFee,
-                })
-                log.Printf("✅ [SignupStatus] 找到报名记录: roomID=%d, roomName=%s, periodNo=%s", config.ID, config.RoomName, p.PeriodNo)
-        }
-
-        return signedUpRooms, nil
+        return &player
 }
 
 // parseTimeWithToday 使用今天的日期解析时间字符串
