@@ -2358,6 +2358,8 @@ cc.Class({
     },
 
     // 🔧【新增】进入竞技场比赛
+    // 🔧【关键修改】跳转到独立的等待场景 ArenaMatchWaitingScene，而不是在大厅显示等待UI
+    // 这样倒计时结束后可以直接从等待场景进入游戏场景，体验更流畅
     _enterArenaMatch: function(data) {
         var self = this;
         var myglobal = window.myglobal;
@@ -2378,22 +2380,38 @@ cc.Class({
             window.arenaData.saveToLocal && window.arenaData.saveToLocal();
         }
         
-        // 🔧【关键修复】保存弹窗数据，供 _onArenaWaitingStatus 使用
-        // 不在本地计算倒计时，等服务端推送
-        this._pendingArenaEnterData = {
-            period_no: data.period_no || "",
-            room_id: data.room_id || 0,
-            room_name: data.room_name || "竞技场",
-            total_players: data.total_players || 0,
-            start_time: data.start_time,
-            message: data.message || "比赛即将开始！"
-        };
+        // 🔧【关键修改】保存等待数据到全局变量，供 ArenaMatchWaitingScene 使用
+        // 等待场景会从这个变量读取初始数据
+        if (myglobal) {
+            myglobal.arenaWaitingData = {
+                period_no: data.period_no || "",
+                room_id: data.room_id || 0,
+                room_name: data.room_name || "竞技场",
+                total_players: data.total_players || 0,
+                entered_players: 1,  // 当前玩家已进入
+                start_time: data.start_time || Date.now(),
+                countdown: data.countdown || 60,
+                players: [],  // 玩家列表会由服务端推送
+                message: data.message || "比赛即将开始！"
+            };
+            
+            // 同时保存房间配置
+            myglobal.currentRoomConfig = {
+                id: data.room_id,
+                room_name: data.room_name,
+                room_config_id: data.room_config_id,
+                room_category: 2,  // 竞技场
+                min_arena_coin: data.signup_fee,
+                match_rounds: data.match_rounds,
+                match_duration: data.match_duration
+            };
+            myglobal.currentRoomLevel = data.room_id;
+            myglobal.currentRoomName = data.room_name;
+            
+            console.log("🏟️ [Arena] 已保存等待数据到 myglobal.arenaWaitingData");
+        }
         
-        // 🔧【关键修复】提前注册事件监听器，确保能收到服务端推送
-        // 如果监听器还没有注册，先注册
-        this._ensureArenaWaitingEventsRegistered();
-        
-        // 🔧【修改】发送 arena_enter 请求，等待服务端推送 arena_waiting_status
+        // 🔧【关键修改】发送 arena_enter 请求
         var socket = myglobal && myglobal.socket;
         if (socket && socket.sendArenaEnter) {
             // 发送 arena_enter 请求
@@ -2402,31 +2420,13 @@ cc.Class({
                 room_id: data.room_id
             });
             
-            console.log("🏟️ [Arena] 已发送 arena_enter 请求，等待服务端推送等待状态...");
-            
-            // 🔧【关键修复】不立即显示等待界面，等服务端推送 arena_waiting_status
-            // 服务端会推送正确的倒计时
-        } else {
-            console.warn("🏟️ [Arena] socket 或 sendArenaEnter 方法不可用");
-            // 降级处理：直接进入游戏场景
-            var roomConfig = {
-                id: data.room_id,
-                room_name: data.room_name,
-                room_config_id: data.room_config_id,
-                room_category: 2,
-                min_arena_coin: data.signup_fee,
-                match_rounds: data.match_rounds,
-                match_duration: data.match_duration
-            };
-            
-            if (myglobal) {
-                myglobal.currentRoomConfig = roomConfig;
-                myglobal.currentRoomLevel = data.room_id;
-                myglobal.currentRoomName = data.room_name;
-            }
-            
-            this._enterArenaGameScene(data, roomConfig);
+            console.log("🏟️ [Arena] 已发送 arena_enter 请求");
         }
+        
+        // 🔧【关键修改】跳转到独立的等待场景
+        // 等待场景会监听服务端消息，倒计时结束后直接进入游戏场景
+        console.log("🏟️ [Arena] 跳转到等待场景 ArenaMatchWaitingScene");
+        cc.director.loadScene("ArenaMatchWaitingScene");
     },
     
     // ============================================================
