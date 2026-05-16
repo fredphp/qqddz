@@ -78,12 +78,19 @@ window.arenaData = function() {
      */
     that.signup = function(roomId, callback) {
         // 🔧【修改】使用 WebSocket 指令发送报名请求
-        if (!window.socketCtr) {
+        var socketCtr = window.socketCtr;
+        if (!socketCtr) {
             callback && callback('WebSocket未初始化', null);
             return;
         }
         
         // 检查 WebSocket 连接状态
+        if (!socketCtr.isConnected || typeof socketCtr.isConnected !== 'function') {
+            console.error("🏟️ [ArenaData] socketCtr.isConnected 不是函数，socketCtr:", socketCtr);
+            callback && callback('WebSocket连接状态异常，请刷新页面重试', null);
+            return;
+        }
+        
         if (!socketCtr.isConnected() || !socketCtr.isWebSocketOpen()) {
             callback && callback('WebSocket未连接，请稍后重试', null);
             return;
@@ -176,12 +183,19 @@ window.arenaData = function() {
      */
     that.cancelSignup = function(roomId, callback) {
         // 🔧【修改】使用 WebSocket 指令发送取消报名请求
-        if (!window.socketCtr) {
+        var socketCtr = window.socketCtr;
+        if (!socketCtr) {
             callback && callback('WebSocket未初始化', null);
             return;
         }
         
         // 检查 WebSocket 连接状态
+        if (!socketCtr.isConnected || typeof socketCtr.isConnected !== 'function') {
+            console.error("🏟️ [ArenaData] socketCtr.isConnected 不是函数，socketCtr:", socketCtr);
+            callback && callback('WebSocket连接状态异常，请刷新页面重试', null);
+            return;
+        }
+        
         if (!socketCtr.isConnected() || !socketCtr.isWebSocketOpen()) {
             callback && callback('WebSocket未连接，请稍后重试', null);
             return;
