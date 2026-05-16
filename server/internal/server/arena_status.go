@@ -1057,8 +1057,8 @@ func (b *ArenaStatusBroadcaster) createAndStartTableGame(enterPhase *EnterPhaseI
 }
 
 // 🔧【新增】处理进入阶段超时
-// 倒计时结束后，所有未取消的玩家自动进入游戏
-// 🔧【重构】倒计时结束时，所有报名玩家自动进入游戏（无论是否点击进入按钮）
+// 🔧【关键修复】倒计时结束后，只有点击了"进入"按钮的玩家才参与游戏
+// 未点击"进入"的玩家视为放弃，返还竞技币并取消报名
 func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
         b.enterPhasesMu.Lock()
         enterPhase, exists := b.enterPhases[periodNo]
@@ -1094,30 +1094,68 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
         // 🔧【新增】从 Redis 删除进入阶段信息
         b.deleteEnterPhaseFromRedis(periodNo)
 
-        // 🔧【重构】收集所有未取消的玩家（无论是否点击进入）
-        // 倒计时结束时，所有报名玩家自动进入游戏
-        var activePlayers []uint64
-        var cancelledPlayers []uint64
+        // 🔧【关键修复】收集玩家状态
+        // 1. 已点击"进入"的玩家 → 参与游戏
+        // 2. 已点击"取消"的玩家 → 已取消（不处理，竞技币已在取消时退还）
+        // 3. 未点击任何按钮的玩家 → 视为放弃，返还竞技币并取消报名
+        var enteredPlayers []uint64      // 已点击进入的玩家
+        var cancelledPlayers []uint64    // 已点击取消的玩家
+        var abandonedPlayers []uint64    // 未操作（放弃）的玩家
 
         for playerID, status := range enterPhase.PlayerStatuses {
                 if status.HasCancelled {
-                        // 已取消的玩家
+                        // 已点击取消的玩家
                         cancelledPlayers = append(cancelledPlayers, playerID)
+                } else if status.HasEntered {
+                        // 已点击进入的玩家 → 参与游戏
+                        enteredPlayers = append(enteredPlayers, playerID)
                 } else {
-                        // 未取消的玩家 → 自动进入游戏
-                        activePlayers = append(activePlayers, playerID)
-                        // 标记为已进入
-                        status.HasEntered = true
+                        // 未操作（放弃）的玩家 → 返还竞技币
+                        abandonedPlayers = append(abandonedPlayers, playerID)
                 }
         }
 
-        log.Printf("[ArenaStatus] ⏰ 进入阶段结束: periodNo=%s, 参与玩家=%d, 已取消=%d", 
-                periodNo, len(activePlayers), len(cancelledPlayers))
+        log.Printf("[ArenaStatus] ⏰ 进入阶段结束: periodNo=%s, 已进入=%d, 已取消=%d, 放弃=%d", 
+                periodNo, len(enteredPlayers), len(cancelledPlayers), len(abandonedPlayers))
 
-        // 🔧【关键】为所有参与玩家创建房间并开始游戏
-        if len(activePlayers) > 0 {
-                log.Printf("[ArenaStatus] 🚀 为参与玩家创建房间: periodNo=%s, 玩家数=%d", periodNo, len(activePlayers))
-                b.createRoomsForEnteredPlayers(enterPhase, activePlayers)
+        // 🔧【关键】处理放弃的玩家：返还竞技币并取消报名
+        for _, playerID := range abandonedPlayers {
+                status := enterPhase.PlayerStatuses[playerID]
+                if status == nil || status.IsRobot {
+                        // 机器人不需要返还竞技币
+                        continue
+                }
+                
+                // 返还竞技币
+                if status.SignupFee > 0 {
+                        err := database.UpdatePlayerArenaCoinWithLog(
+                                playerID,
+                                status.SignupFee,
+                                database.ArenaCoinChangeRefund,
+                                periodNo,
+                                fmt.Sprintf("竞技场超时未进入，返还报名费，期号:%s", periodNo),
+                        )
+                        if err != nil {
+                                log.Printf("[ArenaStatus] ⚠️ 返还竞技币失败: playerID=%d, err=%v", playerID, err)
+                        } else {
+                                log.Printf("[ArenaStatus] ✅ 返还竞技币: playerID=%d, amount=%d", playerID, status.SignupFee)
+                        }
+                }
+                
+                // 从数据库删除报名记录
+                if err := database.DeleteArenaPeriodPlayerByPeriodNoAndPlayerID(periodNo, playerID); err != nil {
+                        log.Printf("[ArenaStatus] ⚠️ 删除报名记录失败: playerID=%d, err=%v", playerID, err)
+                } else {
+                        log.Printf("[ArenaStatus] ✅ 删除报名记录: playerID=%d, periodNo=%s", playerID, periodNo)
+                }
+        }
+
+        // 🔧【关键】只为已点击进入的玩家创建房间并开始游戏
+        if len(enteredPlayers) > 0 {
+                log.Printf("[ArenaStatus] 🚀 为已进入玩家创建房间: periodNo=%s, 玩家数=%d", periodNo, len(enteredPlayers))
+                b.createRoomsForEnteredPlayers(enterPhase, enteredPlayers)
+        } else {
+                log.Printf("[ArenaStatus] ⚠️ 没有玩家点击进入，本局取消: periodNo=%s", periodNo)
         }
 
         // 发送关闭弹窗消息
