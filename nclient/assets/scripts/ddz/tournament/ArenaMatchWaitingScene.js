@@ -617,19 +617,6 @@ cc.Class({
         loadingLabel.parent = loadingContainer
         this._assigningLoadingLabel = label
         
-        // 显示分配信息
-        var infoLabel = new cc.Node("InfoLabel")
-        infoLabel.setPosition(0, -70)
-        var infoLabelComp = infoLabel.addComponent(cc.Label)
-        var totalTables = data.total_tables || 0
-        var totalPlayers = data.total_players || 0
-        infoLabelComp.string = "正在分配 " + totalPlayers + " 名玩家到 " + totalTables + " 桌"
-        infoLabelComp.fontSize = 18
-        infoLabelComp.lineHeight = 24
-        infoLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-        infoLabel.color = cc.color(200, 200, 220)
-        infoLabel.parent = loadingContainer
-        
         loadingOverlay.parent = this.node
         this._assigningLoadingOverlay = loadingOverlay
         
