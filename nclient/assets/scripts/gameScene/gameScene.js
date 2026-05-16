@@ -452,13 +452,13 @@ cc.Class({
 
         // 🔧【座位布局说明】
         // 场景座位位置（基于实际坐标）：
-        // - 位置 0 (seat_node_1): 左下角 (-539, -309) - 当前玩家
-        // - 位置 1 (seat_node_2): 右侧 (526, 79)
-        // - 位置 2 (seat_node_3): 左侧 (-539, 79)
+        // - 位置 0 (seat_node_1): 底部 (-539, -309) - 当前玩家
+        // - 位置 1 (seat_node_2): 右侧 (526, 79) - x 正数
+        // - 位置 2 (seat_node_3): 左侧 (-539, 79) - x 负数
         //
-        // 逆时针出牌布局：
-        // - 下家在左侧（位置 2）
+        // 逆时针出牌布局（用户要求）：
         // - 上家在右侧（位置 1）
+        // - 下家在左侧（位置 2）
         // - 出牌顺序：当前玩家 → 下家（左侧）→ 上家（右侧）→ 当前玩家
         switch (seat_index) {
             case 1:
@@ -479,6 +479,12 @@ cc.Class({
             default:
                 break
         }
+        
+        // 🔧【调试日志】确认座位映射
+        console.log("🎯 [setPlayerSeatPos] 当前玩家座位:", seat_index)
+        console.log("🎯 [setPlayerSeatPos] 座位映射:", JSON.stringify(this.playerdata_list_pos))
+        console.log("🎯 [setPlayerSeatPos] 座位2(下家)→位置" + this.playerdata_list_pos[2] + (this.playerdata_list_pos[2] === 2 ? "(左侧)" : "(右侧)"))
+        console.log("🎯 [setPlayerSeatPos] 座位3(上家)→位置" + this.playerdata_list_pos[3] + (this.playerdata_list_pos[3] === 1 ? "(右侧)" : "(左侧)"))
     },
     
     /**
