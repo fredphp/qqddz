@@ -1,0 +1,54 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password "nishiwode123ABC"
+set server "8.137.78.189"
+
+spawn ssh -o StrictHostKeyChecking=no root@$server
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "Password:" {
+        send "$password\r"
+    }
+}
+
+expect {
+    "#" {
+        send "cd /www/wwwroot/houtais && git pull origin main\r"
+    }
+    "$ " {
+        send "cd /www/wwwroot/houtais && git pull origin main\r"
+    }
+}
+
+expect {
+    "#" {
+        send "cd /www/wwwroot/houtais/server && go build -o admin\r"
+    }
+    "$ " {
+        send "cd /www/wwwroot/houtais/server && go build -o admin\r"
+    }
+}
+
+expect {
+    "#" {
+        send "supervisorctl restart houtais\r"
+    }
+    "$ " {
+        send "supervisorctl restart houtais\r"
+    }
+}
+
+expect {
+    "#" {
+        send "exit\r"
+    }
+    "$ " {
+        send "exit\r"
+    }
+}
+
+expect eof
