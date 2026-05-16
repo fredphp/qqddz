@@ -1,5 +1,9 @@
 node_modules/
 .env
+nclient/library/
+nclient/local/
+nclient/temp/
+server/bin/server
 
 # Next.js files (not used in this project)
 .next/
@@ -16,3 +20,4 @@ dev.log
 # OS files
 .DS_Store
 Thumbs.db
+
