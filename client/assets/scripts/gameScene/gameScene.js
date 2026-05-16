@@ -345,6 +345,25 @@ cc.Class({
             this._onPlayerOnline(data)
         }.bind(this))
         
+        // ============================================================
+        // 【新增】竞技场等待UI相关事件监听
+        // ============================================================
+        
+        // 监听竞技场等待进度更新
+        myglobal.socket.onTournamentWaitProgress(function(data) {
+            this._onArenaWaitProgress(data)
+        }.bind(this))
+        
+        // 监听竞技场轮次晋级
+        myglobal.socket.onTournamentRoundAdvance(function(data) {
+            this._onArenaRoundAdvance(data)
+        }.bind(this))
+        
+        // 监听竞技场最终榜单
+        myglobal.socket.onTournamentFinalRank(function(data) {
+            this._onArenaFinalRank(data)
+        }.bind(this))
+        
     },
 
     setPlayerSeatPos(seat_index) {
@@ -874,6 +893,528 @@ cc.Class({
                 myglobal.playerData.housemanageid = data.new_creator_id
                 console.log("👋 [_onPlayerLeft] 新房主ID:", data.new_creator_id)
             }
+        }
+    },
+    
+    // ============================================================
+    // 【新增】竞技场等待UI - 在游戏场景中显示
+    // 仅用于竞技场模式（room_category === 2）
+    // 普通场不使用此等待界面
+    // ============================================================
+    
+    /**
+     * 显示竞技场等待UI
+     * @param {Object} data - { period_no, round, total_rounds, finished_tables, total_tables, status }
+     */
+    _showArenaWaitingUI: function(data) {
+        // 仅在竞技场模式下显示
+        if (!this._isArenaMode) {
+            console.log("🏟️ [_showArenaWaitingUI] 非竞技场模式，不显示等待UI")
+            return
+        }
+        
+        console.log("🏟️ [_showArenaWaitingUI] 显示竞技场等待UI:", JSON.stringify(data))
+        
+        var self = this
+        
+        // 先隐藏已有的等待UI
+        this._hideArenaWaitingUI()
+        
+        // 获取画布尺寸
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas)
+        var screenHeight = canvas ? canvas.designResolution.height : 720
+        var screenWidth = canvas ? canvas.designResolution.width : 1280
+        
+        // 创建等待UI容器
+        var waitingNode = new cc.Node("ArenaWaitingUI")
+        waitingNode.setContentSize(cc.size(screenWidth, screenHeight))
+        waitingNode.anchorX = 0.5
+        waitingNode.anchorY = 0.5
+        waitingNode.x = 0
+        waitingNode.y = 0
+        waitingNode.zIndex = 2000  // 确保在最上层
+        waitingNode.parent = this.node
+        this._arenaWaitingUINode = waitingNode
+        
+        // 存储数据
+        this._arenaWaitingData = {
+            periodNo: data.period_no || "",
+            round: data.round || 1,
+            totalRounds: data.total_rounds || 1,
+            finishedTables: data.finished_tables || 0,
+            totalTables: data.total_tables || 0,
+            status: data.status || "WAITING"
+        }
+        
+        // ========== 1. 半透明背景 ==========
+        var bgNode = new cc.Node("Bg")
+        var bgGraphics = bgNode.addComponent(cc.Graphics)
+        bgGraphics.fillColor = cc.color(0, 0, 0, 180)
+        bgGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight)
+        bgGraphics.fill()
+        bgNode.parent = waitingNode
+        
+        // ========== 2. 中央卡片背景 ==========
+        var cardWidth = 400
+        var cardHeight = 280
+        var cardNode = new cc.Node("Card")
+        cardNode.setContentSize(cc.size(cardWidth, cardHeight))
+        cardNode.anchorX = 0.5
+        cardNode.anchorY = 0.5
+        cardNode.x = 0
+        cardNode.y = 0
+        
+        var cardBg = cardNode.addComponent(cc.Graphics)
+        cardBg.fillColor = cc.color(30, 60, 100, 230)
+        cardBg.roundRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15)
+        cardBg.fill()
+        cardBg.strokeColor = cc.color(255, 215, 0)
+        cardBg.lineWidth = 3
+        cardBg.roundRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15)
+        cardBg.stroke()
+        cardNode.parent = waitingNode
+        
+        // ========== 3. 标题 ==========
+        var titleNode = new cc.Node("Title")
+        titleNode.y = cardHeight/2 - 35
+        var titleLabel = titleNode.addComponent(cc.Label)
+        titleLabel.string = "🏆 竞技场等待中"
+        titleLabel.fontSize = 28
+        titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        titleNode.color = cc.color(255, 215, 0)
+        var titleOutline = titleNode.addComponent(cc.LabelOutline)
+        titleOutline.color = cc.color(0, 0, 0)
+        titleOutline.width = 2
+        titleNode.parent = cardNode
+        
+        // ========== 4. 期号标签 ==========
+        this._arenaPeriodLabel = new cc.Node("PeriodLabel")
+        this._arenaPeriodLabel.y = cardHeight/2 - 80
+        var periodLabel = this._arenaPeriodLabel.addComponent(cc.Label)
+        periodLabel.string = "第 " + (data.period_no || "--") + " 期"
+        periodLabel.fontSize = 20
+        periodLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        this._arenaPeriodLabel.color = cc.color(200, 200, 220)
+        this._arenaPeriodLabel.parent = cardNode
+        
+        // ========== 5. 轮次标签 ==========
+        this._arenaRoundLabel = new cc.Node("RoundLabel")
+        this._arenaRoundLabel.y = cardHeight/2 - 110
+        var roundLabel = this._arenaRoundLabel.addComponent(cc.Label)
+        roundLabel.string = "第 " + (data.round || 1) + " 轮 / 共 " + (data.total_rounds || 1) + " 轮"
+        roundLabel.fontSize = 18
+        roundLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        this._arenaRoundLabel.color = cc.color(180, 180, 200)
+        this._arenaRoundLabel.parent = cardNode
+        
+        // ========== 6. 进度条 ==========
+        this._arenaProgressBar = new cc.Node("ProgressBar")
+        this._arenaProgressBar.setContentSize(cc.size(320, 20))
+        this._arenaProgressBar.y = 0
+        
+        // 进度条背景
+        var progressBg = this._arenaProgressBar.addComponent(cc.Graphics)
+        progressBg.fillColor = cc.color(50, 50, 70, 200)
+        progressBg.roundRect(-160, -10, 320, 20, 5)
+        progressBg.fill()
+        this._arenaProgressBar.parent = cardNode
+        
+        // 进度条填充（初始为0）
+        this._arenaProgressFill = new cc.Node("ProgressFill")
+        this._arenaProgressFill.y = 0
+        var fillGraphics = this._arenaProgressFill.addComponent(cc.Graphics)
+        this._arenaProgressFill._graphics = fillGraphics
+        this._arenaProgressFill.parent = cardNode
+        
+        // ========== 7. 进度文字 ==========
+        this._arenaProgressLabel = new cc.Node("ProgressLabel")
+        this._arenaProgressLabel.y = -40
+        var progressLabel = this._arenaProgressLabel.addComponent(cc.Label)
+        progressLabel.string = (data.finished_tables || 0) + " / " + (data.total_tables || 0)
+        progressLabel.fontSize = 24
+        progressLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        this._arenaProgressLabel.color = cc.color(255, 255, 255)
+        this._arenaProgressLabel.parent = cardNode
+        
+        // ========== 8. 状态提示 ==========
+        this._arenaStatusLabel = new cc.Node("StatusLabel")
+        this._arenaStatusLabel.y = -80
+        var statusLabel = this._arenaStatusLabel.addComponent(cc.Label)
+        statusLabel.string = "正在等待其他玩家完成..."
+        statusLabel.fontSize = 16
+        statusLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        this._arenaStatusLabel.color = cc.color(150, 200, 255)
+        this._arenaStatusLabel.parent = cardNode
+        
+        // ========== 9. Loading动画（旋转扑克牌）==========
+        this._arenaLoadingNode = new cc.Node("LoadingNode")
+        this._arenaLoadingNode.y = -120
+        var loadingSprite = this._arenaLoadingNode.addComponent(cc.Sprite)
+        // 尝试加载扑克牌图片
+        cc.resources.load('UI/card_back', cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err && spriteFrame && loadingSprite) {
+                loadingSprite.spriteFrame = spriteFrame
+            }
+        })
+        this._arenaLoadingNode.scale = 0.5
+        this._arenaLoadingNode.parent = cardNode
+        
+        // 启动旋转动画
+        this._startArenaLoadingAnimation()
+        
+        // 更新UI
+        this._updateArenaWaitingUI(data)
+        
+        console.log("🏟️ [_showArenaWaitingUI] 竞技场等待UI已创建")
+    },
+    
+    /**
+     * 隐藏竞技场等待UI
+     */
+    _hideArenaWaitingUI: function() {
+        // 停止动画
+        this._stopArenaLoadingAnimation()
+        
+        // 销毁节点
+        if (this._arenaWaitingUINode) {
+            this._arenaWaitingUINode.destroy()
+            this._arenaWaitingUINode = null
+        }
+        
+        // 清理引用
+        this._arenaPeriodLabel = null
+        this._arenaRoundLabel = null
+        this._arenaProgressBar = null
+        this._arenaProgressFill = null
+        this._arenaProgressLabel = null
+        this._arenaStatusLabel = null
+        this._arenaLoadingNode = null
+        this._arenaWaitingData = null
+        
+        console.log("🏟️ [_hideArenaWaitingUI] 竞技场等待UI已隐藏")
+    },
+    
+    /**
+     * 更新竞技场等待UI
+     */
+    _updateArenaWaitingUI: function(data) {
+        if (!this._arenaWaitingUINode) return
+        
+        // 更新存储的数据
+        if (data) {
+            this._arenaWaitingData = {
+                periodNo: data.period_no || this._arenaWaitingData.periodNo,
+                round: data.round || this._arenaWaitingData.round,
+                totalRounds: data.total_rounds || this._arenaWaitingData.totalRounds,
+                finishedTables: data.finished_tables || this._arenaWaitingData.finishedTables,
+                totalTables: data.total_tables || this._arenaWaitingData.totalTables,
+                status: data.status || this._arenaWaitingData.status
+            }
+        }
+        
+        var d = this._arenaWaitingData
+        
+        // 更新期号
+        if (this._arenaPeriodLabel) {
+            var periodLabel = this._arenaPeriodLabel.getComponent(cc.Label)
+            if (periodLabel) {
+                periodLabel.string = "第 " + (d.periodNo || "--") + " 期"
+            }
+        }
+        
+        // 更新轮次
+        if (this._arenaRoundLabel) {
+            var roundLabel = this._arenaRoundLabel.getComponent(cc.Label)
+            if (roundLabel) {
+                roundLabel.string = "第 " + d.round + " 轮 / 共 " + d.totalRounds + " 轮"
+            }
+        }
+        
+        // 更新进度文字
+        if (this._arenaProgressLabel) {
+            var progressLabel = this._arenaProgressLabel.getComponent(cc.Label)
+            if (progressLabel) {
+                progressLabel.string = d.finishedTables + " / " + d.totalTables
+            }
+        }
+        
+        // 更新进度条
+        if (this._arenaProgressFill && d.totalTables > 0) {
+            var progress = Math.min(d.finishedTables / d.totalTables, 1.0)
+            var barWidth = 320 * progress
+            
+            var graphics = this._arenaProgressFill._graphics
+            if (graphics) {
+                graphics.clear()
+                if (barWidth > 0) {
+                    graphics.fillColor = cc.color(100, 200, 100, 255)
+                    graphics.roundRect(-160, -8, barWidth, 16, 3)
+                    graphics.fill()
+                }
+            }
+        }
+        
+        // 更新状态提示
+        if (this._arenaStatusLabel) {
+            var statusLabel = this._arenaStatusLabel.getComponent(cc.Label)
+            if (statusLabel) {
+                if (d.finishedTables >= d.totalTables) {
+                    statusLabel.string = "全部完成，即将进入下一轮..."
+                    this._arenaStatusLabel.color = cc.color(100, 255, 100)
+                } else {
+                    var remaining = d.totalTables - d.finishedTables
+                    statusLabel.string = "正在等待其他玩家完成... (剩余 " + remaining + " 桌)"
+                    this._arenaStatusLabel.color = cc.color(150, 200, 255)
+                }
+            }
+        }
+    },
+    
+    /**
+     * 启动Loading旋转动画
+     */
+    _startArenaLoadingAnimation: function() {
+        if (!this._arenaLoadingNode) return
+        
+        this._stopArenaLoadingAnimation()
+        
+        var self = this
+        this._arenaLoadingAnimation = true
+        
+        var rotate = function() {
+            if (!self._arenaLoadingAnimation || !self._arenaLoadingNode) return
+            self._arenaLoadingNode.angle += 3
+            setTimeout(rotate, 16)
+        }
+        rotate()
+    },
+    
+    /**
+     * 停止Loading旋转动画
+     */
+    _stopArenaLoadingAnimation: function() {
+        this._arenaLoadingAnimation = false
+        if (this._arenaLoadingNode) {
+            this._arenaLoadingNode.angle = 0
+        }
+    },
+    
+    /**
+     * 处理竞技场等待进度更新
+     */
+    _onArenaWaitProgress: function(data) {
+        console.log("🏟️ [_onArenaWaitProgress] 收到进度更新:", JSON.stringify(data))
+        
+        // 检查期号是否匹配
+        if (this._arenaWaitingData && this._arenaWaitingData.periodNo && 
+            data.period_no && data.period_no !== this._arenaWaitingData.periodNo) {
+            return
+        }
+        
+        // 如果等待UI不存在，先创建
+        if (!this._arenaWaitingUINode && this._isArenaMode) {
+            this._showArenaWaitingUI(data)
+        } else {
+            this._updateArenaWaitingUI(data)
+        }
+    },
+    
+    /**
+     * 处理竞技场轮次晋级
+     */
+    _onArenaRoundAdvance: function(data) {
+        console.log("🏟️ [_onArenaRoundAdvance] 进入下一轮:", JSON.stringify(data))
+        
+        // 检查期号是否匹配
+        if (this._arenaWaitingData && this._arenaWaitingData.periodNo && 
+            data.period_no && data.period_no !== this._arenaWaitingData.periodNo) {
+            return
+        }
+        
+        // 更新轮次信息
+        if (this._arenaWaitingData) {
+            this._arenaWaitingData.round = data.new_round || this._arenaWaitingData.round + 1
+            this._arenaWaitingData.totalRounds = data.total_rounds || this._arenaWaitingData.totalRounds
+            this._arenaWaitingData.finishedTables = 0
+        }
+        
+        // 更新UI
+        if (this._arenaRoundLabel) {
+            var roundLabel = this._arenaRoundLabel.getComponent(cc.Label)
+            if (roundLabel) {
+                roundLabel.string = "第 " + (data.new_round || 1) + " 轮 / 共 " + (data.total_rounds || 1) + " 轮"
+                
+                // 播放放大动画
+                var scaleUp = cc.scaleTo(0.2, 1.3)
+                var scaleDown = cc.scaleTo(0.2, 1.0)
+                var sequence = cc.sequence(scaleUp, scaleDown)
+                this._arenaRoundLabel.runAction(sequence)
+            }
+        }
+        
+        // 更新状态提示
+        if (this._arenaStatusLabel) {
+            var statusLabel = this._arenaStatusLabel.getComponent(cc.Label)
+            if (statusLabel) {
+                statusLabel.string = data.message || "晋级成功！正在匹配下一轮..."
+                this._arenaStatusLabel.color = cc.color(100, 255, 100)
+            }
+        }
+    },
+    
+    /**
+     * 处理竞技场最终榜单
+     */
+    _onArenaFinalRank: function(data) {
+        console.log("🏟️ [_onArenaFinalRank] 比赛结束，显示最终榜单:", JSON.stringify(data))
+        
+        // 检查期号是否匹配
+        if (this._arenaWaitingData && this._arenaWaitingData.periodNo && 
+            data.period_no && data.period_no !== this._arenaWaitingData.periodNo) {
+            return
+        }
+        
+        // 停止动画
+        this._stopArenaLoadingAnimation()
+        
+        // 隐藏等待UI
+        this._hideArenaWaitingUI()
+        
+        // 显示最终榜单弹窗
+        this._showArenaFinalRankDialog(data)
+    },
+    
+    /**
+     * 显示最终榜单弹窗
+     */
+    _showArenaFinalRankDialog: function(data) {
+        var self = this
+        
+        // 获取画布尺寸
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas)
+        var screenHeight = canvas ? canvas.designResolution.height : 720
+        var screenWidth = canvas ? canvas.designResolution.width : 1280
+        
+        // 创建弹窗容器
+        var dialogNode = new cc.Node("ArenaFinalRankDialog")
+        dialogNode.setContentSize(cc.size(screenWidth, screenHeight))
+        dialogNode.anchorX = 0.5
+        dialogNode.anchorY = 0.5
+        dialogNode.x = 0
+        dialogNode.y = 0
+        dialogNode.zIndex = 3000
+        dialogNode.parent = this.node
+        this._arenaFinalRankDialog = dialogNode
+        
+        // 半透明背景
+        var bgNode = new cc.Node("Bg")
+        var bgGraphics = bgNode.addComponent(cc.Graphics)
+        bgGraphics.fillColor = cc.color(0, 0, 0, 200)
+        bgGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight)
+        bgGraphics.fill()
+        bgNode.parent = dialogNode
+        
+        // 中央卡片
+        var cardWidth = 450
+        var cardHeight = 400
+        var cardNode = new cc.Node("Card")
+        cardNode.setContentSize(cc.size(cardWidth, cardHeight))
+        cardNode.anchorX = 0.5
+        cardNode.anchorY = 0.5
+        cardNode.x = 0
+        cardNode.y = 0
+        
+        var cardBg = cardNode.addComponent(cc.Graphics)
+        cardBg.fillColor = cc.color(40, 70, 120, 240)
+        cardBg.roundRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15)
+        cardBg.fill()
+        cardBg.strokeColor = cc.color(255, 215, 0)
+        cardBg.lineWidth = 4
+        cardBg.roundRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15)
+        cardBg.stroke()
+        cardNode.parent = dialogNode
+        
+        // 标题
+        var titleNode = new cc.Node("Title")
+        titleNode.y = cardHeight/2 - 40
+        var titleLabel = titleNode.addComponent(cc.Label)
+        titleLabel.string = "🏆 比赛结束"
+        titleLabel.fontSize = 32
+        titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        titleNode.color = cc.color(255, 215, 0)
+        var titleOutline = titleNode.addComponent(cc.LabelOutline)
+        titleOutline.color = cc.color(0, 0, 0)
+        titleOutline.width = 2
+        titleNode.parent = cardNode
+        
+        // 我的排名
+        var myRankNode = new cc.Node("MyRank")
+        myRankNode.y = cardHeight/2 - 100
+        var myRankLabel = myRankNode.addComponent(cc.Label)
+        myRankLabel.string = "您的排名: 第 " + (data.my_rank || "--") + " 名"
+        myRankLabel.fontSize = 28
+        myRankLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        myRankNode.color = cc.color(255, 255, 255)
+        myRankNode.parent = cardNode
+        
+        // 奖励信息
+        var rewardNode = new cc.Node("Reward")
+        rewardNode.y = cardHeight/2 - 150
+        var rewardLabel = rewardNode.addComponent(cc.Label)
+        rewardLabel.string = "获得竞技币: " + (data.my_match_coin || 0)
+        rewardLabel.fontSize = 24
+        rewardLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        rewardNode.color = cc.color(100, 255, 100)
+        rewardNode.parent = cardNode
+        
+        // 冠军信息
+        if (data.top3 && data.top3.length > 0) {
+            var championNode = new cc.Node("Champion")
+            championNode.y = cardHeight/2 - 210
+            var championLabel = championNode.addComponent(cc.Label)
+            championLabel.string = "🏆 冠军: " + (data.top3[0].player_name || "未知")
+            championLabel.fontSize = 20
+            championLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+            championNode.color = cc.color(255, 200, 100)
+            championNode.parent = cardNode
+        }
+        
+        // 确定按钮
+        var btnNode = new cc.Node("ConfirmBtn")
+        btnNode.y = -cardHeight/2 + 50
+        btnNode.setContentSize(cc.size(160, 45))
+        
+        var btnBg = btnNode.addComponent(cc.Graphics)
+        btnBg.fillColor = cc.color(80, 150, 80, 255)
+        btnBg.roundRect(-80, -22.5, 160, 45, 8)
+        btnBg.fill()
+        btnNode.parent = cardNode
+        
+        var btnLabel = new cc.Node("Label")
+        var label = btnLabel.addComponent(cc.Label)
+        label.string = "确定"
+        label.fontSize = 22
+        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        btnLabel.color = cc.color(255, 255, 255)
+        btnLabel.parent = btnNode
+        
+        // 点击事件
+        btnNode.on(cc.Node.EventType.TOUCH_END, function() {
+            self._hideArenaFinalRankDialog()
+            // 返回大厅
+            cc.director.loadScene("hallScene")
+        })
+        
+        console.log("🏟️ [_showArenaFinalRankDialog] 最终榜单弹窗已创建")
+    },
+    
+    /**
+     * 隐藏最终榜单弹窗
+     */
+    _hideArenaFinalRankDialog: function() {
+        if (this._arenaFinalRankDialog) {
+            this._arenaFinalRankDialog.destroy()
+            this._arenaFinalRankDialog = null
         }
     }
 });
