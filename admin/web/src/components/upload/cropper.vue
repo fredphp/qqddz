@@ -4,8 +4,9 @@
   <el-drawer v-model="showDrawer" title="裁剪上传" :size="500">
     <div class="p-4">
       <el-upload
-        :action="`${baseUrl}/fileUploadAndDownload/upload?noSave=1`"
+        :action="`${baseUrl}/fileUploadAndDownload/upload`"
         :headers="headers"
+        :data="uploadData"
         :show-file-list="false"
         :on-success="handleSuccess"
         accept="image/*"
@@ -35,6 +36,13 @@ defineProps({
   }
 })
 
+const props = defineProps({
+  classId: {
+    type: Number,
+    default: 0
+  }
+})
+
 const emits = defineEmits(['on-success'])
 
 const userStore = useUserStore()
@@ -43,6 +51,10 @@ const showDrawer = ref(false)
 
 const headers = computed(() => ({
   'x-token': userStore.token
+}))
+
+const uploadData = computed(() => ({
+  classId: props.classId
 }))
 
 const handleSuccess = (response) => {

@@ -1,7 +1,8 @@
 <template>
   <el-upload
-    :action="`${baseUrl}/fileUploadAndDownload/upload?noSave=1`"
+    :action="`${baseUrl}/fileUploadAndDownload/upload`"
     :headers="headers"
+    :data="uploadData"
     :show-file-list="false"
     :on-success="handleSuccess"
     :on-error="handleError"
@@ -21,7 +22,7 @@ defineOptions({
   name: 'UploadCommon'
 })
 
-defineProps({
+const props = defineProps({
   imageCommon: {
     type: String,
     default: ''
@@ -39,6 +40,10 @@ const baseUrl = getBaseUrl()
 
 const headers = computed(() => ({
   'x-token': userStore.token
+}))
+
+const uploadData = computed(() => ({
+  classId: props.classId
 }))
 
 const handleSuccess = (response) => {
