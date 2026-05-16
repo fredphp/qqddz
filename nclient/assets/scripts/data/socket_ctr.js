@@ -164,6 +164,14 @@ window.socketCtr = function(){
 
         // 🔧【新增】竞技场玩家加入广播（玩家点击进入后广播给所有本期玩家）
         ARENA_PLAYER_JOINED: "arena_player_joined",     // 玩家加入等待场景广播
+
+        // 🔧【新增】竞技场报名相关消息类型
+        ARENA_SIGNUP: "arena_signup",                   // 竞技场报名请求
+        ARENA_CANCEL_SIGNUP: "arena_cancel_signup",     // 取消报名请求
+        ARENA_SIGNUP_SUCCESS: "arena_signup_success",   // 报名成功响应
+        ARENA_SIGNUP_FAILED: "arena_signup_failed",     // 报名失败响应
+        ARENA_CANCEL_SUCCESS: "arena_cancel_success",   // 取消报名成功响应
+        ARENA_CANCEL_FAILED: "arena_cancel_failed",     // 取消报名失败响应
     }
 
     // 发送消息
@@ -827,6 +835,51 @@ window.socketCtr = function(){
                 
                 evt.fire("arena_player_joined_notify", playerJoinedData)
                 break
+
+            // ============================================================
+            // 【新增】竞技场报名响应处理
+            // ============================================================
+
+            // 报名成功响应
+            case MessageType.ARENA_SIGNUP_SUCCESS:
+                console.log("🏟️ [Arena] 报名成功:", JSON.stringify(data));
+                evt.fire("arena_signup_success_notify", {
+                    period_no: data.period_no || "",
+                    room_id: data.room_id || 0,
+                    signup_fee: data.signup_fee || 0,
+                    balance_after: data.balance_after || 0,
+                    signup_time: data.signup_time || Date.now()
+                })
+                break
+
+            // 报名失败响应
+            case MessageType.ARENA_SIGNUP_FAILED:
+                console.log("🏟️ [Arena] 报名失败:", JSON.stringify(data));
+                evt.fire("arena_signup_failed_notify", {
+                    code: data.code || 0,
+                    message: data.message || "报名失败"
+                })
+                break
+
+            // 取消报名成功响应
+            case MessageType.ARENA_CANCEL_SUCCESS:
+                console.log("🏟️ [Arena] 取消报名成功:", JSON.stringify(data));
+                evt.fire("arena_cancel_success_notify", {
+                    period_no: data.period_no || "",
+                    room_id: data.room_id || 0,
+                    refund_amount: data.refund_amount || 0,
+                    balance_after: data.balance_after || 0
+                })
+                break
+
+            // 取消报名失败响应
+            case MessageType.ARENA_CANCEL_FAILED:
+                console.log("🏟️ [Arena] 取消报名失败:", JSON.stringify(data));
+                evt.fire("arena_cancel_failed_notify", {
+                    code: data.code || 0,
+                    message: data.message || "取消报名失败"
+                })
+                break
             
             default:
                 evt.fire(type, data)
@@ -1390,14 +1443,64 @@ window.socketCtr = function(){
     }
 
     // ============================================================
+    // 【竞技场】报名相关事件监听
+    // ============================================================
+
+    /**
+     * 🔧【新增】监听报名成功通知
+     * @param {Function} callback - 回调函数，接收 { period_no, room_id, signup_fee, balance_after, signup_time }
+     */
+    that.onArenaSignupSuccess = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("arena_signup_success_notify", callback)
+    }
+
+    /**
+     * 🔧【新增】监听报名失败通知
+     * @param {Function} callback - 回调函数，接收 { code, message }
+     */
+    that.onArenaSignupFailed = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("arena_signup_failed_notify", callback)
+    }
+
+    /**
+     * 🔧【新增】监听取消报名成功通知
+     * @param {Function} callback - 回调函数，接收 { period_no, room_id, refund_amount, balance_after }
+     */
+    that.onArenaCancelSuccess = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("arena_cancel_success_notify", callback)
+    }
+
+    /**
+     * 🔧【新增】监听取消报名失败通知
+     * @param {Function} callback - 回调函数，接收 { code, message }
+     */
+    that.onArenaCancelFailed = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.on("arena_cancel_failed_notify", callback)
+    }
+
+    // ============================================================
     // 【竞技场】发送请求方法
     // ============================================================
+
+    /**
+     * 🔧【新增】发送竞技场报名请求
+     * @param {Object} data - 请求数据 { room_id: number }
+     */
+    that.sendArenaSignup = function(data){
+        console.log("🏟️ [Arena] 发送 arena_signup 请求:", JSON.stringify(data));
+        _sendmsg("arena_signup", data, null)
+    }
 
     /**
      * 🔧【新增】发送竞技场取消报名请求
      * @param {Object} data - 请求数据 { room_id: number }
      */
     that.sendArenaCancelSignup = function(data){
+        console.log("🏟️ [Arena] 发送 arena_cancel_signup 请求:", JSON.stringify(data));
         _sendmsg("arena_cancel_signup", data, null)
     }
 

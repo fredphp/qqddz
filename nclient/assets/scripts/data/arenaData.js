@@ -72,116 +72,183 @@ window.arenaData = function() {
     };
     
     /**
-     * 报名竞技场
+     * 报名竞技场（使用 WebSocket 指令）
      * @param {Number} roomId - 竞技场房间ID
      * @param {Function} callback - 回调函数 (err, result)
      */
     that.signup = function(roomId, callback) {
-        var apiUrl = window.defines ? window.defines.apiUrl : '';
-        var cryptoKey = window.defines ? window.defines.cryptoKey : '';
-        var token = window.myglobal && window.myglobal.playerData ? window.myglobal.playerData.token : '';
-        
-        if (!apiUrl || !window.HttpAPI) {
-            callback && callback('API未配置', null);
+        // 🔧【修改】使用 WebSocket 指令发送报名请求
+        if (!window.socketCtr) {
+            callback && callback('WebSocket未初始化', null);
             return;
         }
         
-        var requestData = {
-            room_id: roomId,
-            token: token
+        // 检查 WebSocket 连接状态
+        if (!socketCtr.isConnected() || !socketCtr.isWebSocketOpen()) {
+            callback && callback('WebSocket未连接，请稍后重试', null);
+            return;
+        }
+        
+        console.log("🏟️ [ArenaData] 通过 WebSocket 发送报名请求, roomId:", roomId);
+        
+        // 标记是否已响应（防止重复回调）
+        var responded = false;
+        var timeoutId = null;
+        
+        // 清理函数
+        var cleanup = function() {
+            if (timeoutId) clearTimeout(timeoutId);
         };
         
-        HttpAPI.post(
-            apiUrl + '/api/v1/arena/signup',
-            requestData,
-            cryptoKey,
-            function(err, result) {
-                if (err) {
-                    callback && callback(err, null);
-                    return;
-                }
-                
-                if (result && (result.code === 0 || result.success)) {
-                    // 记录报名成功
-                    var arenaConfig = that._arenaDetails[roomId] || {};
-                    that._signedUpArenas[roomId] = {
-                        signupTime: Date.now(),
-                        status: 'signed_up',
-                        countdownEnd: result.data ? result.data.start_time : null,
-                        arenaConfig: arenaConfig,
-                        periodNo: result.period_no || result.data?.period_no
-                    };
-                    
-                    // 🔧【新增】保存到本地存储
-                    that.saveToLocal();
-                    
-                    // 通知状态变更
-                    that._notifyStatusChange(roomId, 'signed_up');
-                    
-                    callback && callback(null, {
-                        success: true,
-                        message: result.message || '报名成功',
-                        start_time: result.data ? result.data.start_time : null
-                    });
-                } else {
-                    callback && callback(result ? result.message : '报名失败', null);
-                }
+        // 成功回调
+        var successHandler = function(data) {
+            if (responded) return;
+            if (data.room_id !== roomId) return; // 不是当前房间的响应
+            
+            responded = true;
+            cleanup();
+            
+            // 记录报名成功
+            var arenaConfig = that._arenaDetails[roomId] || {};
+            that._signedUpArenas[roomId] = {
+                signupTime: data.signup_time || Date.now(),
+                status: 'signed_up',
+                arenaConfig: arenaConfig,
+                periodNo: data.period_no,
+                signupFee: data.signup_fee
+            };
+            
+            // 保存到本地存储
+            that.saveToLocal();
+            
+            // 更新玩家竞技币余额
+            if (window.myglobal && window.myglobal.playerData && data.balance_after !== undefined) {
+                window.myglobal.playerData.arena_coin = data.balance_after;
+                window.myglobal.playerData.saveToLocal();
             }
-        );
+            
+            // 通知状态变更
+            that._notifyStatusChange(roomId, 'signed_up');
+            
+            callback && callback(null, {
+                success: true,
+                message: '报名成功',
+                period_no: data.period_no,
+                signup_fee: data.signup_fee,
+                balance_after: data.balance_after
+            });
+        };
+        
+        // 失败回调
+        var failedHandler = function(data) {
+            if (responded) return;
+            responded = true;
+            cleanup();
+            callback && callback(data.message || '报名失败', null);
+        };
+        
+        // 注册监听（注意：这些监听器会一直存在，但通过 responded 标记防止重复回调）
+        socketCtr.onArenaSignupSuccess(successHandler);
+        socketCtr.onArenaSignupFailed(failedHandler);
+        
+        // 设置超时（10秒）
+        timeoutId = setTimeout(function() {
+            if (responded) return;
+            responded = true;
+            callback && callback('报名请求超时，请重试', null);
+        }, 10000);
+        
+        // 发送报名请求
+        socketCtr.sendArenaSignup({ room_id: roomId });
     };
     
     /**
-     * 取消报名
+     * 取消报名（使用 WebSocket 指令）
      * @param {Number} roomId - 竞技场房间ID
      * @param {Function} callback - 回调函数 (err, result)
      */
     that.cancelSignup = function(roomId, callback) {
-        var apiUrl = window.defines ? window.defines.apiUrl : '';
-        var cryptoKey = window.defines ? window.defines.cryptoKey : '';
-        var token = window.myglobal && window.myglobal.playerData ? window.myglobal.playerData.token : '';
-        
-        if (!apiUrl || !window.HttpAPI) {
-            callback && callback('API未配置', null);
+        // 🔧【修改】使用 WebSocket 指令发送取消报名请求
+        if (!window.socketCtr) {
+            callback && callback('WebSocket未初始化', null);
             return;
         }
         
-        var requestData = {
-            room_id: roomId,
-            token: token
+        // 检查 WebSocket 连接状态
+        if (!socketCtr.isConnected() || !socketCtr.isWebSocketOpen()) {
+            callback && callback('WebSocket未连接，请稍后重试', null);
+            return;
+        }
+        
+        console.log("🏟️ [ArenaData] 通过 WebSocket 发送取消报名请求, roomId:", roomId);
+        
+        // 标记是否已响应（防止重复回调）
+        var responded = false;
+        var timeoutId = null;
+        
+        // 清理函数
+        var cleanup = function() {
+            if (timeoutId) clearTimeout(timeoutId);
         };
         
-        HttpAPI.post(
-            apiUrl + '/api/v1/arena/cancel',
-            requestData,
-            cryptoKey,
-            function(err, result) {
-                if (err) {
-                    callback && callback(err, null);
-                    return;
-                }
-                
-                if (result && (result.code === 0 || result.success)) {
-                    // 清除报名记录
-                    delete that._signedUpArenas[roomId];
-                    
-                    // 🔧【新增】保存到本地存储
-                    that.saveToLocal();
-                    
-                    // 清除倒计时定时器
-                    if (that._countdownTimers[roomId]) {
-                        clearInterval(that._countdownTimers[roomId]);
-                        delete that._countdownTimers[roomId];
-                    }
-                    
-                    // 通知状态变更
-                    that._notifyStatusChange(roomId, 'cancelled');
-                    
-                    callback && callback(null, { success: true, message: '取消报名成功' });
-                } else {
-                    callback && callback(result ? result.message : '取消报名失败', null);
-                }
+        // 成功回调
+        var successHandler = function(data) {
+            if (responded) return;
+            if (data.room_id !== roomId) return; // 不是当前房间的响应
+            
+            responded = true;
+            cleanup();
+            
+            // 清除报名记录
+            delete that._signedUpArenas[roomId];
+            
+            // 保存到本地存储
+            that.saveToLocal();
+            
+            // 更新玩家竞技币余额
+            if (window.myglobal && window.myglobal.playerData && data.balance_after !== undefined) {
+                window.myglobal.playerData.arena_coin = data.balance_after;
+                window.myglobal.playerData.saveToLocal();
             }
-        );
+            
+            // 清除倒计时定时器
+            if (that._countdownTimers[roomId]) {
+                clearInterval(that._countdownTimers[roomId]);
+                delete that._countdownTimers[roomId];
+            }
+            
+            // 通知状态变更
+            that._notifyStatusChange(roomId, 'cancelled');
+            
+            callback && callback(null, { 
+                success: true, 
+                message: '取消报名成功',
+                refund_amount: data.refund_amount,
+                balance_after: data.balance_after
+            });
+        };
+        
+        // 失败回调
+        var failedHandler = function(data) {
+            if (responded) return;
+            responded = true;
+            cleanup();
+            callback && callback(data.message || '取消报名失败', null);
+        };
+        
+        // 注册监听（注意：这些监听器会一直存在，但通过 responded 标记防止重复回调）
+        socketCtr.onArenaCancelSuccess(successHandler);
+        socketCtr.onArenaCancelFailed(failedHandler);
+        
+        // 设置超时（10秒）
+        timeoutId = setTimeout(function() {
+            if (responded) return;
+            responded = true;
+            callback && callback('取消报名请求超时，请重试', null);
+        }, 10000);
+        
+        // 发送取消报名请求
+        socketCtr.sendArenaCancelSignup({ room_id: roomId });
     };
     
     /**
