@@ -102,9 +102,12 @@ window.arenaData = function() {
         var responded = false;
         var timeoutId = null;
         
-        // 清理函数
+        // 清理函数（移除监听器和超时）
         var cleanup = function() {
             if (timeoutId) clearTimeout(timeoutId);
+            // 移除监听器，防止内存泄漏
+            socketCtrInstance.offArenaSignupSuccess(successHandler);
+            socketCtrInstance.offArenaSignupFailed(failedHandler);
         };
         
         // 成功回调
@@ -161,7 +164,7 @@ window.arenaData = function() {
             callback && callback(data.message || '报名失败', null);
         };
         
-        // 注册监听（注意：这些监听器会一直存在，但通过 responded 标记防止重复回调）
+        // 注册监听
         socketCtrInstance.onArenaSignupSuccess(successHandler);
         socketCtrInstance.onArenaSignupFailed(failedHandler);
         
@@ -207,9 +210,12 @@ window.arenaData = function() {
         var responded = false;
         var timeoutId = null;
         
-        // 清理函数
+        // 清理函数（移除监听器和超时）
         var cleanup = function() {
             if (timeoutId) clearTimeout(timeoutId);
+            // 移除监听器，防止内存泄漏
+            socketCtrInstance.offArenaCancelSuccess(successHandler);
+            socketCtrInstance.offArenaCancelFailed(failedHandler);
         };
         
         // 成功回调
@@ -264,7 +270,7 @@ window.arenaData = function() {
             callback && callback(data.message || '取消报名失败', null);
         };
         
-        // 注册监听（注意：这些监听器会一直存在，但通过 responded 标记防止重复回调）
+        // 注册监听
         socketCtrInstance.onArenaCancelSuccess(successHandler);
         socketCtrInstance.onArenaCancelFailed(failedHandler);
         

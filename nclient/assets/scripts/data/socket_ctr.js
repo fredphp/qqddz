@@ -1456,12 +1456,30 @@ window.socketCtr = function(){
     }
 
     /**
+     * 🔧【新增】移除报名成功监听
+     * @param {Function} callback - 要移除的回调函数
+     */
+    that.offArenaSignupSuccess = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.off("arena_signup_success_notify", callback)
+    }
+
+    /**
      * 🔧【新增】监听报名失败通知
      * @param {Function} callback - 回调函数，接收 { code, message }
      */
     that.onArenaSignupFailed = function(callback){
         var evt = _getEvent()
         if (evt) evt.on("arena_signup_failed_notify", callback)
+    }
+
+    /**
+     * 🔧【新增】移除报名失败监听
+     * @param {Function} callback - 要移除的回调函数
+     */
+    that.offArenaSignupFailed = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.off("arena_signup_failed_notify", callback)
     }
 
     /**
@@ -1474,12 +1492,30 @@ window.socketCtr = function(){
     }
 
     /**
+     * 🔧【新增】移除取消报名成功监听
+     * @param {Function} callback - 要移除的回调函数
+     */
+    that.offArenaCancelSuccess = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.off("arena_cancel_success_notify", callback)
+    }
+
+    /**
      * 🔧【新增】监听取消报名失败通知
      * @param {Function} callback - 回调函数，接收 { code, message }
      */
     that.onArenaCancelFailed = function(callback){
         var evt = _getEvent()
         if (evt) evt.on("arena_cancel_failed_notify", callback)
+    }
+
+    /**
+     * 🔧【新增】移除取消报名失败监听
+     * @param {Function} callback - 要移除的回调函数
+     */
+    that.offArenaCancelFailed = function(callback){
+        var evt = _getEvent()
+        if (evt) evt.off("arena_cancel_failed_notify", callback)
     }
 
     // ============================================================
