@@ -125,6 +125,13 @@ window.arenaData = function() {
             if (window.myglobal && window.myglobal.playerData && data.balance_after !== undefined) {
                 window.myglobal.playerData.arena_coin = data.balance_after;
                 window.myglobal.playerData.saveToLocal();
+                
+                // 🔧【新增】触发全局事件，通知大厅刷新UI
+                if (window.myglobal.eventlister) {
+                    window.myglobal.eventlister.fire('arena_coin_updated', {
+                        arena_coin: data.balance_after
+                    });
+                }
             }
             
             // 通知状态变更

@@ -173,6 +173,9 @@ cc.Class({
             // 获取最新的玩家余额（金币和竞技币）
             this._refreshPlayerBalance();
             
+            // 🔧【新增】监听竞技币更新事件（报名成功后刷新UI）
+            this._listenArenaCoinUpdate();
+            
             this._playHallBackgroundMusic();
             this._adjustBottomButtons();
             this._hideBackgroundCharacters();
@@ -7821,6 +7824,37 @@ cc.Class({
         
         // 确保新创建的货币显示节点也已更新
         this._updateBothCurrencyDisplay();
+    },
+    
+    // 🔧【新增】监听竞技币更新事件（报名成功后刷新UI）
+    _listenArenaCoinUpdate: function() {
+        var self = this;
+        var myglobal = window.myglobal;
+        
+        if (!myglobal || !myglobal.eventlister) {
+            console.warn("🏟️ [HallScene] eventlister 未初始化，无法监听竞技币更新");
+            return;
+        }
+        
+        // 监听竞技币更新事件
+        myglobal.eventlister.on('arena_coin_updated', function(data) {
+            console.log("🏟️ [HallScene] 收到竞技币更新事件:", data);
+            
+            // 更新玩家数据
+            if (data && data.arena_coin !== undefined && myglobal.playerData) {
+                myglobal.playerData.arena_coin = data.arena_coin;
+            }
+            
+            // 刷新UI显示
+            self._updateBothCurrencyDisplay();
+            
+            // 同时也更新竞技币 Label（如果有）
+            if (self.arena_coin_label && data && data.arena_coin !== undefined) {
+                self.arena_coin_label.string = "竞技币: " + self._formatGold(data.arena_coin);
+            }
+        });
+        
+        console.log("🏟️ [HallScene] 已注册竞技币更新事件监听");
     },
     
     // 获取最新的玩家余额（金币和竞技币）
