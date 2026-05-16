@@ -136,7 +136,7 @@ cc.Class({
         roomLabel.string = "竞技场"
         roomLabel.fontSize = 28
         roomLabel.lineHeight = 36
-        roomNode.color = cc.color(255, 255, 255)
+        roomNode.color = cc.color(255, 215, 0)  // 金色，与期号一致
         var roomOutline = roomNode.addComponent(cc.LabelOutline)
         roomOutline.color = cc.color(0, 0, 0)
         roomOutline.width = 2
@@ -925,11 +925,11 @@ cc.Class({
         nameNode.setContentSize(cc.size(90, 18))
         nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         
-        // 真人白色，机器人金色
+        // 真人浅绿色，机器人金色
         if (player.is_robot) {
             nameNode.color = cc.color(255, 215, 100)  // 金色
         } else {
-            nameNode.color = cc.color(255, 255, 255)  // 白色
+            nameNode.color = cc.color(150, 220, 255)  // 浅蓝色
         }
         nameNode.parent = itemNode
         
