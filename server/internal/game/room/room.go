@@ -10,7 +10,7 @@ import (
 )
 
 const (
-        roomCodeLength = 6            // 房间号长度
+        roomCodeLength = 8            // 🔧【修改】房间号长度改为8位，确保唯一性
         roomCodeChars  = "0123456789" // 房间号字符集
 )
 

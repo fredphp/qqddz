@@ -359,11 +359,10 @@ cc.Class({
         // 竞技场模式下，先进入游戏场景，后收到真正的房间号
         myglobal.socket.onRoomJoined(function(data) {
             if (data && data.room_code && this.roomid_label) {
-                // 检查当前显示的是否是期号（长度>10），如果是则更新为真正的房间号
-                var currentText = this.roomid_label.string;
+                var currentText = this.roomid_label.string || "";
                 var currentRoomCode = currentText.replace("房间号:", "");
-                if (currentRoomCode.length > 10) {
-                    // 当前显示的是期号，更新为真正的房间号
+                // 🔧【修复】如果当前房间号为空或看起来是期号（长度>10），更新为正确的房间号
+                if (currentRoomCode === "" || currentRoomCode.length > 10) {
                     this.roomid_label.string = "房间号:" + data.room_code;
                     console.log("🎮 [gameScene] 更新房间号: " + data.room_code);
                 }
@@ -526,7 +525,15 @@ cc.Class({
 
         
         if (this.roomid_label) {
-            this.roomid_label.string = "房间号:" + roomid
+            // 🔧【关键修复】竞技场模式下，如果房间号看起来像期号（超过10位），不显示
+            // 等待 ROOM_JOINED 消息更新正确的房间号
+            if (isArenaMode && roomid.length > 10) {
+                // 房间号看起来是期号，不显示，等待服务端返回正确的房间号
+                this.roomid_label.string = ""
+                console.log("🏟️ [_processRoomData] 竞技场模式：房间号为期号，等待正确的房间号...")
+            } else {
+                this.roomid_label.string = "房间号:" + roomid
+            }
         } else {
             console.error("🎮 [游戏场景] roomid_label 未绑定！")
         }
