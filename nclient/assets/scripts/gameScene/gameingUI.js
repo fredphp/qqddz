@@ -6659,10 +6659,9 @@ cc.Class({
         // 玩家名称
         var nameNode = new cc.Node("Name")
         var nameLabel = nameNode.addComponent(cc.Label)
+        // 🔧【修复】直接使用服务端发送的玩家昵称，不再根据 is_robot 覆盖
+        // 服务端已经正确发送了真实玩家昵称（包括机器人玩家的真实昵称）
         var playerName = rankData.player_name || "玩家"
-        if (rankData.is_robot) {
-            playerName = this._getRobotDisplayName(rankData.player_id, rankData.player_name)
-        }
         nameLabel.string = playerName
         nameLabel.fontSize = 16
         nameLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT
@@ -6801,11 +6800,9 @@ cc.Class({
         // ========== 玩家名称 ==========
         var nameLabelNode = new cc.Node("Name")
         var nameLabel = nameLabelNode.addComponent(cc.Label)
+        // 🔧【修复】直接使用服务端发送的玩家昵称，不再根据 is_robot 覆盖
+        // 服务端已经正确发送了真实玩家昵称（包括机器人玩家的真实昵称）
         var playerName = rankData.player_name || "玩家"
-        if (rankData.is_robot) {
-            // 机器人使用智能陪练名称
-            playerName = this._getRobotDisplayName(rankData.player_id, rankData.player_name)
-        }
         nameLabel.string = playerName
         nameLabel.fontSize = 18
         nameLabel.enableBold = true
@@ -6831,14 +6828,15 @@ cc.Class({
     },
     
     /**
-     * 获取机器人显示名称
+     * 获取机器人显示名称（已弃用 - 保留备用）
+     * 🔧【修复】服务端已经正确发送真实玩家昵称，不再需要此方法覆盖
      */
     _getRobotDisplayName: function(playerId, originalName) {
-        // 如果原始名称已经是"智能陪练X号"格式，直接返回
-        if (originalName && originalName.indexOf("智能陪练") === 0) {
+        // 直接返回原始名称，服务端已经发送正确的昵称
+        if (originalName) {
             return originalName
         }
-        // 否则，生成"智能陪练X号"格式的名称
+        // 如果没有名称，返回默认机器人名称
         var robotIndex = 1
         if (playerId) {
             var lastChar = playerId.toString().slice(-1)
@@ -6856,74 +6854,70 @@ cc.Class({
     _loadAvatarSprite: function(sprite, avatarUrl, isRobot) {
         if (!sprite) return
         
-        // 机器人使用默认头像（avatar_1 到 avatar_3 随机）
-        if (isRobot) {
-            var robotAvatarIndex = Math.floor(Math.random() * 3) + 1
-            var defaultPath = "UI/headimage/avatar_" + robotAvatarIndex
-            cc.resources.load(defaultPath, cc.SpriteFrame, function(err, spriteFrame) {
-                if (!err && spriteFrame && sprite.isValid) {
-                    sprite.spriteFrame = spriteFrame
-                }
-            })
-            return
-        }
+        // 🔧【修复】优先使用服务端发送的头像URL，无论 isRobot 值是什么
+        // 服务端已经正确发送了真实玩家的头像URL（包括机器人玩家的头像）
         
-        // 真人玩家
-        if (!avatarUrl || avatarUrl === "") {
-            // 使用默认头像
-            cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err, spriteFrame) {
-                if (!err && spriteFrame && sprite.isValid) {
-                    sprite.spriteFrame = spriteFrame
+        // 如果有有效的头像URL，使用服务端发送的URL
+        if (avatarUrl && avatarUrl !== "") {
+            // 判断是URL还是本地资源名
+            if (avatarUrl.indexOf("http") === 0 || avatarUrl.indexOf("//") === 0 || avatarUrl.indexOf("/uploads") === 0) {
+                // 远程URL - 处理相对路径
+                var fullUrl = avatarUrl
+                if (avatarUrl.indexOf("/uploads") === 0) {
+                    fullUrl = "https://houtais.hongxiu88.com" + avatarUrl
                 }
-            })
-            return
-        }
-        
-        // 判断是URL还是本地资源名
-        if (avatarUrl.indexOf("http") === 0 || avatarUrl.indexOf("//") === 0) {
-            // 远程URL
-            cc.assetManager.loadRemote(avatarUrl, { ext: '.png' }, function(err, texture) {
-                if (err || !texture) {
-                    // 加载失败，使用默认头像
-                    cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
-                        if (!err2 && fallbackSprite && sprite.isValid) {
-                            sprite.spriteFrame = fallbackSprite
-                        }
-                    })
-                    return
-                }
-                try {
-                    if (sprite.isValid) {
-                        var spriteFrame = new cc.SpriteFrame(texture)
-                        sprite.spriteFrame = spriteFrame
+                cc.assetManager.loadRemote(fullUrl, { ext: '.png' }, function(err, texture) {
+                    if (err || !texture) {
+                        // 加载失败，使用默认头像
+                        cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
+                            if (!err2 && fallbackSprite && sprite.isValid) {
+                                sprite.spriteFrame = fallbackSprite
+                            }
+                        })
+                        return
                     }
-                } catch (e) {
-                    // 使用默认头像
-                    cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
-                        if (!err2 && fallbackSprite && sprite.isValid) {
-                            sprite.spriteFrame = fallbackSprite
+                    try {
+                        if (sprite.isValid) {
+                            var spriteFrame = new cc.SpriteFrame(texture)
+                            sprite.spriteFrame = spriteFrame
                         }
-                    })
-                }
-            })
-        } else {
+                    } catch (e) {
+                        // 使用默认头像
+                        cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
+                            if (!err2 && fallbackSprite && sprite.isValid) {
+                                sprite.spriteFrame = fallbackSprite
+                            }
+                        })
+                    }
+                })
+                return
+            }
+            
             // 本地资源名
-            var localPath = "UI/headimage/" + avatarUrl
-            cc.resources.load(localPath, cc.SpriteFrame, function(err, spriteFrame) {
-                if (err || !spriteFrame) {
+            var resourcePath = "UI/headimage/" + avatarUrl
+            cc.resources.load(resourcePath, cc.SpriteFrame, function(err, spriteFrame) {
+                if (!err && spriteFrame && sprite.isValid) {
+                    sprite.spriteFrame = spriteFrame
+                } else {
                     // 加载失败，使用默认头像
                     cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
                         if (!err2 && fallbackSprite && sprite.isValid) {
                             sprite.spriteFrame = fallbackSprite
                         }
                     })
-                    return
-                }
-                if (sprite.isValid) {
-                    sprite.spriteFrame = spriteFrame
                 }
             })
+            return
         }
+        
+        // 没有头像URL，使用默认头像
+        var defaultIndex = isRobot ? (Math.floor(Math.random() * 3) + 1) : 1
+        var defaultPath = "UI/headimage/avatar_" + defaultIndex
+        cc.resources.load(defaultPath, cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err && spriteFrame && sprite.isValid) {
+                sprite.spriteFrame = spriteFrame
+            }
+        })
     },
     
     // ============================================================
