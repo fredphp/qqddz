@@ -39,7 +39,7 @@ cdn:
   # 如果为空，则不进行URL补全
   # 图片路径格式: /uploads/file/avatar/xxx.png 会被补全为 https://cdn.example.com/uploads/file/avatar/xxx.png
   # 内置头像格式: avatar_1, avatar_2 等会被补全为 https://cdn.example.com/avatar/avatar_1.png
-  url: "http://houtais.hongxiu88.com"
+  url: "https://houtais.hongxiu88.com"
 
 game:
   # 玩家回合超时时间（秒）
