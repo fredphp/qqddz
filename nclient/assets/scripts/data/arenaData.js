@@ -91,10 +91,77 @@ window.arenaData = function() {
             return;
         }
         
+        // 🔧【关键修复】WebSocket 未连接时，自动等待连接完成后重试
         if (!socketCtrInstance.isConnected() || !socketCtrInstance.isWebSocketOpen()) {
-            callback && callback('WebSocket未连接，请稍后重试', null);
-            return;
+            console.log("🏟️ [ArenaData] WebSocket 未连接，等待连接完成后重试...");
+            
+            // 检查是否正在连接中
+            var connectionState = socketCtrInstance.getConnectionState ? socketCtrInstance.getConnectionState() : "unknown";
+            console.log("🏟️ [ArenaData] 当前连接状态:", connectionState);
+            
+            if (connectionState === "connecting") {
+                // 正在连接中，等待连接完成后自动重试
+                var retryCount = 0;
+                var maxRetries = 10; // 最多等待 5 秒（每次 500ms）
+                var retryInterval = 500;
+                
+                var trySignup = function() {
+                    retryCount++;
+                    if (socketCtrInstance.isConnected() && socketCtrInstance.isWebSocketOpen()) {
+                        console.log("🏟️ [ArenaData] WebSocket 已连接，执行报名请求");
+                        // 连接成功，执行报名
+                        that._doSignup(socketCtrInstance, roomId, callback);
+                    } else if (retryCount < maxRetries) {
+                        console.log("🏟️ [ArenaData] 等待连接... 重试次数:", retryCount);
+                        setTimeout(trySignup, retryInterval);
+                    } else {
+                        // 等待超时
+                        console.warn("🏟️ [ArenaData] 等待 WebSocket 连接超时");
+                        callback && callback('连接超时，请稍后重试', null);
+                    }
+                };
+                
+                setTimeout(trySignup, retryInterval);
+                return;
+            } else {
+                // 未在连接中，尝试初始化连接
+                console.log("🏟️ [ArenaData] WebSocket 未连接，尝试初始化连接...");
+                if (socketCtrInstance.initSocket) {
+                    socketCtrInstance.initSocket();
+                }
+                // 等待连接完成后重试
+                var retryCount = 0;
+                var maxRetries = 10;
+                var retryInterval = 500;
+                
+                var trySignup = function() {
+                    retryCount++;
+                    if (socketCtrInstance.isConnected() && socketCtrInstance.isWebSocketOpen()) {
+                        console.log("🏟️ [ArenaData] WebSocket 已连接，执行报名请求");
+                        that._doSignup(socketCtrInstance, roomId, callback);
+                    } else if (retryCount < maxRetries) {
+                        setTimeout(trySignup, retryInterval);
+                    } else {
+                        callback && callback('连接超时，请稍后重试', null);
+                    }
+                };
+                
+                setTimeout(trySignup, retryInterval);
+                return;
+            }
         }
+        
+        // WebSocket 已连接，直接执行报名
+        that._doSignup(socketCtrInstance, roomId, callback);
+    };
+    
+    /**
+     * 执行报名请求（内部方法）
+     * @param {Object} socketCtrInstance - WebSocket 实例
+     * @param {Number} roomId - 竞技场房间ID
+     * @param {Function} callback - 回调函数
+     */
+    that._doSignup = function(socketCtrInstance, roomId, callback) {
         
         console.log("🏟️ [ArenaData] 通过 WebSocket 发送报名请求, roomId:", roomId);
         
@@ -199,10 +266,65 @@ window.arenaData = function() {
             return;
         }
         
+        // 🔧【关键修复】WebSocket 未连接时，自动等待连接完成后重试
         if (!socketCtrInstance.isConnected() || !socketCtrInstance.isWebSocketOpen()) {
-            callback && callback('WebSocket未连接，请稍后重试', null);
-            return;
+            console.log("🏟️ [ArenaData] WebSocket 未连接，等待连接完成后重试...");
+            
+            var connectionState = socketCtrInstance.getConnectionState ? socketCtrInstance.getConnectionState() : "unknown";
+            
+            if (connectionState === "connecting") {
+                var retryCount = 0;
+                var maxRetries = 10;
+                var retryInterval = 500;
+                
+                var tryCancel = function() {
+                    retryCount++;
+                    if (socketCtrInstance.isConnected() && socketCtrInstance.isWebSocketOpen()) {
+                        that._doCancelSignup(socketCtrInstance, roomId, callback);
+                    } else if (retryCount < maxRetries) {
+                        setTimeout(tryCancel, retryInterval);
+                    } else {
+                        callback && callback('连接超时，请稍后重试', null);
+                    }
+                };
+                
+                setTimeout(tryCancel, retryInterval);
+                return;
+            } else {
+                if (socketCtrInstance.initSocket) {
+                    socketCtrInstance.initSocket();
+                }
+                var retryCount = 0;
+                var maxRetries = 10;
+                var retryInterval = 500;
+                
+                var tryCancel = function() {
+                    retryCount++;
+                    if (socketCtrInstance.isConnected() && socketCtrInstance.isWebSocketOpen()) {
+                        that._doCancelSignup(socketCtrInstance, roomId, callback);
+                    } else if (retryCount < maxRetries) {
+                        setTimeout(tryCancel, retryInterval);
+                    } else {
+                        callback && callback('连接超时，请稍后重试', null);
+                    }
+                };
+                
+                setTimeout(tryCancel, retryInterval);
+                return;
+            }
         }
+        
+        // WebSocket 已连接，直接执行
+        that._doCancelSignup(socketCtrInstance, roomId, callback);
+    };
+    
+    /**
+     * 执行取消报名请求（内部方法）
+     * @param {Object} socketCtrInstance - WebSocket 实例
+     * @param {Number} roomId - 竞技场房间ID
+     * @param {Function} callback - 回调函数
+     */
+    that._doCancelSignup = function(socketCtrInstance, roomId, callback) {
         
         console.log("🏟️ [ArenaData] 通过 WebSocket 发送取消报名请求, roomId:", roomId);
         
