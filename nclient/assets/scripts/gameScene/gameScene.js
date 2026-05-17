@@ -1336,126 +1336,40 @@ cc.Class({
     
     /**
      * 显示最终榜单弹窗
+     * 🔧【修复】使用 TournamentFinalRankDialog 组件显示完整的TOP10排行榜
      */
     _showArenaFinalRankDialog: function(data) {
         var self = this
         
-        // 获取画布尺寸
-        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas)
-        var screenHeight = canvas ? canvas.designResolution.height : 720
-        var screenWidth = canvas ? canvas.designResolution.width : 1280
+        console.log("🏆 [_showArenaFinalRankDialog] 显示完整排行榜弹窗, data:", JSON.stringify(data))
         
-        // 创建弹窗容器
-        var dialogNode = new cc.Node("ArenaFinalRankDialog")
-        dialogNode.setContentSize(cc.size(screenWidth, screenHeight))
-        dialogNode.anchorX = 0.5
-        dialogNode.anchorY = 0.5
-        dialogNode.x = 0
-        dialogNode.y = 0
+        // 🔧【修改】使用 TournamentFinalRankDialog 组件
+        var dialogNode = new cc.Node("TournamentFinalRankDialog")
+        dialogNode.setPosition(0, 0)
+        dialogNode.setContentSize(cc.winSize.width, cc.winSize.height)
+        
+        // 添加脚本组件
+        var dialogComp = dialogNode.addComponent("TournamentFinalRankDialog")
+        
+        // 添加到当前场景
+        this.node.addChild(dialogNode)
         dialogNode.zIndex = 3000
-        dialogNode.parent = this.node
-        this._arenaFinalRankDialog = dialogNode
         
-        // 半透明背景
-        var bgNode = new cc.Node("Bg")
-        var bgGraphics = bgNode.addComponent(cc.Graphics)
-        bgGraphics.fillColor = cc.color(0, 0, 0, 200)
-        bgGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight)
-        bgGraphics.fill()
-        bgNode.parent = dialogNode
-        
-        // 中央卡片
-        var cardWidth = 450
-        var cardHeight = 400
-        var cardNode = new cc.Node("Card")
-        cardNode.setContentSize(cc.size(cardWidth, cardHeight))
-        cardNode.anchorX = 0.5
-        cardNode.anchorY = 0.5
-        cardNode.x = 0
-        cardNode.y = 0
-        
-        var cardBg = cardNode.addComponent(cc.Graphics)
-        cardBg.fillColor = cc.color(40, 70, 120, 240)
-        cardBg.roundRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15)
-        cardBg.fill()
-        cardBg.strokeColor = cc.color(255, 215, 0)
-        cardBg.lineWidth = 4
-        cardBg.roundRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15)
-        cardBg.stroke()
-        cardNode.parent = dialogNode
-        
-        // 标题
-        var titleNode = new cc.Node("Title")
-        titleNode.y = cardHeight/2 - 40
-        var titleLabel = titleNode.addComponent(cc.Label)
-        titleLabel.string = "🏆 比赛结束"
-        titleLabel.fontSize = 32
-        titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-        titleNode.color = cc.color(255, 215, 0)
-        var titleOutline = titleNode.addComponent(cc.LabelOutline)
-        titleOutline.color = cc.color(0, 0, 0)
-        titleOutline.width = 2
-        titleNode.parent = cardNode
-        
-        // 我的排名
-        var myRankNode = new cc.Node("MyRank")
-        myRankNode.y = cardHeight/2 - 100
-        var myRankLabel = myRankNode.addComponent(cc.Label)
-        myRankLabel.string = "您的排名: 第 " + (data.my_rank || "--") + " 名"
-        myRankLabel.fontSize = 28
-        myRankLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-        myRankNode.color = cc.color(255, 255, 255)
-        myRankNode.parent = cardNode
-        
-        // 奖励信息
-        var rewardNode = new cc.Node("Reward")
-        rewardNode.y = cardHeight/2 - 150
-        var rewardLabel = rewardNode.addComponent(cc.Label)
-        rewardLabel.string = "获得竞技币: " + (data.my_match_coin || 0)
-        rewardLabel.fontSize = 24
-        rewardLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-        rewardNode.color = cc.color(100, 255, 100)
-        rewardNode.parent = cardNode
-        
-        // 冠军信息
-        if (data.top3 && data.top3.length > 0) {
-            var championNode = new cc.Node("Champion")
-            championNode.y = cardHeight/2 - 210
-            var championLabel = championNode.addComponent(cc.Label)
-            championLabel.string = "🏆 冠军: " + (data.top3[0].player_name || "未知")
-            championLabel.fontSize = 20
-            championLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-            championNode.color = cc.color(255, 200, 100)
-            championNode.parent = cardNode
+        // 设置数据
+        if (dialogComp) {
+            dialogComp.setData({
+                period_no: data.period_no || "",
+                total_players: data.total_players || 0,
+                top3: data.top3 || [],
+                top20: data.top20 || [],
+                my_rank: data.my_rank || 0,
+                my_match_coin: data.my_match_coin || 0
+            })
         }
         
-        // 确定按钮
-        var btnNode = new cc.Node("ConfirmBtn")
-        btnNode.y = -cardHeight/2 + 50
-        btnNode.setContentSize(cc.size(160, 45))
+        this._arenaFinalRankDialog = dialogNode
         
-        var btnBg = btnNode.addComponent(cc.Graphics)
-        btnBg.fillColor = cc.color(80, 150, 80, 255)
-        btnBg.roundRect(-80, -22.5, 160, 45, 8)
-        btnBg.fill()
-        btnNode.parent = cardNode
-        
-        var btnLabel = new cc.Node("Label")
-        var label = btnLabel.addComponent(cc.Label)
-        label.string = "确定"
-        label.fontSize = 22
-        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-        btnLabel.color = cc.color(255, 255, 255)
-        btnLabel.parent = btnNode
-        
-        // 点击事件
-        btnNode.on(cc.Node.EventType.TOUCH_END, function() {
-            self._hideArenaFinalRankDialog()
-            // 返回大厅
-            cc.director.loadScene("hallScene")
-        })
-        
-        console.log("🏟️ [_showArenaFinalRankDialog] 最终榜单弹窗已创建")
+        console.log("🏆 [_showArenaFinalRankDialog] 完整排行榜弹窗已创建")
     },
     
     /**
