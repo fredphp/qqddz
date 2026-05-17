@@ -166,6 +166,18 @@ func (tm *TournamentProgressManager) GetProgress(periodNo string) *TournamentPro
         return tm.progressMap[periodNo]
 }
 
+// GetActivePlayerCount 获取剩余玩家数
+// 返回 PlayerTableStatus 中的玩家数量
+func (tm *TournamentProgressManager) GetActivePlayerCount(periodNo string) int {
+        tm.mu.RLock()
+        defer tm.mu.RUnlock()
+
+        if progress, exists := tm.progressMap[periodNo]; exists {
+                return len(progress.PlayerTableStatus)
+        }
+        return 0
+}
+
 // AdvanceRound 推进到下一轮
 // 返回值: 是否成功推进
 func (tm *TournamentProgressManager) AdvanceRound(periodNo string, newTotalTables int, playerIDs []string) bool {

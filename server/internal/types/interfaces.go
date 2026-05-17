@@ -111,6 +111,9 @@ type TournamentProgressAccessor interface {
         // AdvanceRound 推进到下一轮
         // 返回值: 是否成功推进
         AdvanceRound(periodNo string, newTotalTables int, playerIDs []string) bool
+        // GetActivePlayerCount 获取剩余玩家数
+        // 返回值: 剩余玩家数，如果期号不存在返回0
+        GetActivePlayerCount(periodNo string) int
 }
 
 // ArenaRoomCreator 竞技场房间创建器接口

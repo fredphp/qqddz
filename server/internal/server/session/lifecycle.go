@@ -451,10 +451,7 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 // 通过 TournamentProgressManager 获取剩余玩家数
                 tm := types.GetGlobalTournamentProgress()
                 if tm != nil {
-                        progress := tm.GetProgress(periodNo)
-                        if progress != nil {
-                                activePlayers = len(progress.PlayerTableStatus)
-                        }
+                        activePlayers = tm.GetActivePlayerCount(periodNo)
                 }
                 // 如果无法从 TournamentProgressManager 获取，尝试从数据库获取
                 if activePlayers == 0 {
@@ -553,10 +550,7 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 activePlayers := totalPlayers // 默认使用报名人数
                 tm2 := types.GetGlobalTournamentProgress()
                 if tm2 != nil {
-                        progress := tm2.GetProgress(periodNo)
-                        if progress != nil {
-                                activePlayers = len(progress.PlayerTableStatus)
-                        }
+                        activePlayers = tm2.GetActivePlayerCount(periodNo)
                 }
                 
                 log.Printf("🏟️ [endGame] 竞技场房间 %s 结算完成, 期号=%s, 当期报名人数=%d, 当前剩余人数=%d, 当前局数=%d/%d", 
