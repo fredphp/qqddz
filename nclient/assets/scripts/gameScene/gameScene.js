@@ -1336,40 +1336,363 @@ cc.Class({
     
     /**
      * 显示最终榜单弹窗
-     * 🔧【修复】使用 TournamentFinalRankDialog 组件显示完整的TOP10排行榜
+     * 🔧【修复】直接创建弹窗UI，避免依赖外部组件类注册问题
      */
     _showArenaFinalRankDialog: function(data) {
         var self = this
         
         console.log("🏆 [_showArenaFinalRankDialog] 显示完整排行榜弹窗, data:", JSON.stringify(data))
         
-        // 🔧【修改】使用 TournamentFinalRankDialog 组件
-        var dialogNode = new cc.Node("TournamentFinalRankDialog")
-        dialogNode.setPosition(0, 0)
-        dialogNode.setContentSize(cc.winSize.width, cc.winSize.height)
+        // 🔧【修复】直接创建弹窗UI，不使用 addComponent("TournamentFinalRankDialog")
+        // 因为 Cocos 在运行时可能无法正确找到注册的类
+        var dialogNode = this._createFinalRankDialog(data)
         
-        // 添加脚本组件
-        var dialogComp = dialogNode.addComponent("TournamentFinalRankDialog")
+        if (!dialogNode) {
+            console.error("🏆 [_showArenaFinalRankDialog] 创建弹窗失败")
+            return
+        }
         
         // 添加到当前场景
         this.node.addChild(dialogNode)
         dialogNode.zIndex = 3000
         
-        // 设置数据
-        if (dialogComp) {
-            dialogComp.setData({
-                period_no: data.period_no || "",
-                total_players: data.total_players || 0,
-                top3: data.top3 || [],
-                top20: data.top20 || [],
-                my_rank: data.my_rank || 0,
-                my_match_coin: data.my_match_coin || 0
-            })
-        }
-        
         this._arenaFinalRankDialog = dialogNode
         
         console.log("🏆 [_showArenaFinalRankDialog] 完整排行榜弹窗已创建")
+    },
+    
+    /**
+     * 🔧【新增】创建最终榜单弹窗UI
+     * 直接创建UI，避免组件类注册问题
+     */
+    _createFinalRankDialog: function(data) {
+        var screenWidth = 1280
+        var screenHeight = 720
+        
+        // 创建弹窗容器
+        var dialogNode = new cc.Node("TournamentFinalRankDialog")
+        dialogNode.setPosition(0, 0)
+        dialogNode.setContentSize(screenWidth, screenHeight)
+        
+        // 半透明背景遮罩
+        var bgNode = new cc.Node("Background")
+        bgNode.setContentSize(screenWidth, screenHeight)
+        var bgGraphics = bgNode.addComponent(cc.Graphics)
+        bgGraphics.fillColor = new cc.Color(0, 0, 0, 180)
+        bgGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight)
+        bgGraphics.fill()
+        bgNode.parent = dialogNode
+        
+        // 主弹窗容器
+        var dialogContainer = new cc.Node("DialogContainer")
+        dialogContainer.setContentSize(1000, 650)
+        dialogContainer.setPosition(0, 0)
+        
+        // 弹窗背景
+        var dialogBg = new cc.Node("DialogBg")
+        var dialogBgGraphics = dialogBg.addComponent(cc.Graphics)
+        dialogBgGraphics.fillColor = new cc.Color(25, 35, 60, 250)
+        dialogBgGraphics.roundRect(-500, -325, 1000, 650, 25)
+        dialogBgGraphics.fill()
+        dialogBgGraphics.strokeColor = new cc.Color(180, 140, 60)
+        dialogBgGraphics.lineWidth = 4
+        dialogBgGraphics.roundRect(-500, -325, 1000, 650, 25)
+        dialogBgGraphics.stroke()
+        dialogBg.parent = dialogContainer
+        dialogContainer.parent = dialogNode
+        
+        // 标题
+        var titleNode = new cc.Node("Title")
+        titleNode.setPosition(0, 270)
+        var titleLabel = titleNode.addComponent(cc.Label)
+        titleLabel.string = "🏆 比赛结束 🏆"
+        titleLabel.fontSize = 40
+        titleLabel.lineHeight = 48
+        titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        titleNode.color = new cc.Color(255, 215, 0)
+        var titleOutline = titleNode.addComponent(cc.LabelOutline)
+        titleOutline.color = new cc.Color(100, 60, 0)
+        titleOutline.width = 3
+        titleNode.parent = dialogContainer
+        
+        // 期号和参赛人数
+        var periodNo = data.period_no || "---"
+        var totalPlayers = data.total_players || 0
+        
+        var periodNode = new cc.Node("PeriodNo")
+        periodNode.setPosition(0, 220)
+        var periodLabel = periodNode.addComponent(cc.Label)
+        periodLabel.string = "第" + periodNo + "期赛事结束  共" + totalPlayers + "人参赛"
+        periodLabel.fontSize = 24
+        periodLabel.lineHeight = 30
+        periodLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        periodNode.color = new cc.Color(200, 200, 220)
+        periodNode.parent = dialogContainer
+        
+        // TOP3 领奖台
+        var top3 = data.top3 || []
+        var podiumY = 40
+        var spacingX = 280
+        
+        // 冠军
+        if (top3.length >= 1) {
+            this._createPodiumItem(dialogContainer, top3[0], 1, 0, podiumY + 40, 1.15)
+        }
+        // 亚军
+        if (top3.length >= 2) {
+            this._createPodiumItem(dialogContainer, top3[1], 2, -spacingX, podiumY, 1.0)
+        }
+        // 季军
+        if (top3.length >= 3) {
+            this._createPodiumItem(dialogContainer, top3[2], 3, spacingX, podiumY, 1.0)
+        }
+        
+        // 我的排名区域
+        var myRank = data.my_rank || 0
+        var myCoin = data.my_match_coin || 0
+        
+        var myRankContainer = new cc.Node("MyRankContainer")
+        myRankContainer.setPosition(0, -200)
+        myRankContainer.setContentSize(600, 50)
+        
+        var myRankBg = new cc.Node("Bg")
+        var myRankBgGraphics = myRankBg.addComponent(cc.Graphics)
+        myRankBgGraphics.fillColor = new cc.Color(40, 50, 80, 230)
+        myRankBgGraphics.roundRect(-300, -25, 600, 50, 12)
+        myRankBgGraphics.fill()
+        myRankBgGraphics.strokeColor = new cc.Color(100, 120, 160)
+        myRankBgGraphics.lineWidth = 2
+        myRankBgGraphics.roundRect(-300, -25, 600, 50, 12)
+        myRankBgGraphics.stroke()
+        myRankBg.parent = myRankContainer
+        
+        var myRankLabel = new cc.Node("MyRankLabel")
+        myRankLabel.setPosition(-140, 0)
+        var myRankText = myRankLabel.addComponent(cc.Label)
+        myRankText.string = myRank > 0 ? "我的排名：第" + myRank + "名" : "我的排名：未上榜"
+        myRankText.fontSize = 22
+        myRankText.lineHeight = 28
+        myRankText.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        myRankLabel.color = new cc.Color(100, 200, 255)
+        myRankLabel.parent = myRankContainer
+        
+        var myCoinLabel = new cc.Node("MyCoinLabel")
+        myCoinLabel.setPosition(140, 0)
+        var myCoinText = myCoinLabel.addComponent(cc.Label)
+        myCoinText.string = "比赛金币：" + myCoin
+        myCoinText.fontSize = 22
+        myCoinText.lineHeight = 28
+        myCoinText.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        myCoinLabel.color = new cc.Color(255, 200, 100)
+        myCoinLabel.parent = myRankContainer
+        
+        myRankContainer.parent = dialogContainer
+        
+        // 确认按钮
+        var confirmBtn = new cc.Node("ConfirmBtn")
+        confirmBtn.setPosition(0, -270)
+        confirmBtn.setContentSize(200, 50)
+        
+        var btnBg = confirmBtn.addComponent(cc.Graphics)
+        btnBg.fillColor = new cc.Color(80, 160, 80)
+        btnBg.roundRect(-100, -25, 200, 50, 12)
+        btnBg.fill()
+        btnBg.strokeColor = new cc.Color(120, 200, 120)
+        btnBg.lineWidth = 3
+        btnBg.roundRect(-100, -25, 200, 50, 12)
+        btnBg.stroke()
+        
+        var btnLabel = new cc.Node("Label")
+        var btnLabelText = btnLabel.addComponent(cc.Label)
+        btnLabelText.string = "确 定"
+        btnLabelText.fontSize = 26
+        btnLabelText.lineHeight = 32
+        btnLabelText.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        btnLabel.color = new cc.Color(255, 255, 255)
+        var btnOutline = btnLabel.addComponent(cc.LabelOutline)
+        btnOutline.color = new cc.Color(30, 80, 30)
+        btnOutline.width = 2
+        btnLabel.parent = confirmBtn
+        
+        var btn = confirmBtn.addComponent(cc.Button)
+        confirmBtn.on('click', function() {
+            console.log("🏆 [TournamentFinalRank] 点击确认，返回大厅")
+            dialogNode.destroy()
+            cc.director.loadScene("hallScene")
+        }, this)
+        
+        confirmBtn.parent = dialogContainer
+        
+        return dialogNode
+    },
+    
+    /**
+     * 🔧【新增】创建领奖台项目
+     */
+    _createPodiumItem: function(parentNode, playerData, rank, x, y, scale) {
+        var node = new cc.Node("PodiumItem_" + rank)
+        node.setPosition(x, y)
+        node.scale = scale || 1
+        
+        // 排名标签
+        var rankLabelNode = new cc.Node("RankLabel")
+        rankLabelNode.setPosition(0, 60)
+        var rankLabel = rankLabelNode.addComponent(cc.Label)
+        var rankTexts = { 1: "🥇 冠军", 2: "🥈 亚军", 3: "🥉 季军" }
+        rankLabel.string = rankTexts[rank] || ("第" + rank + "名")
+        rankLabel.fontSize = 22
+        rankLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        rankLabelNode.color = rank === 1 ? new cc.Color(255, 215, 0) : new cc.Color(200, 200, 220)
+        var rankOutline = rankLabelNode.addComponent(cc.LabelOutline)
+        rankOutline.color = new cc.Color(50, 50, 80)
+        rankOutline.width = 2
+        rankLabelNode.parent = node
+        
+        // 头像容器
+        var avatarSize = rank === 1 ? 70 : 60
+        var avatarContainer = new cc.Node("AvatarContainer")
+        avatarContainer.setPosition(0, 0)
+        avatarContainer.setContentSize(avatarSize, avatarSize)
+        
+        var avatarBg = new cc.Node("AvatarBg")
+        var avatarBgGraphics = avatarBg.addComponent(cc.Graphics)
+        avatarBgGraphics.fillColor = new cc.Color(60, 70, 100)
+        avatarBgGraphics.circle(0, 0, avatarSize/2 + 2)
+        avatarBgGraphics.fill()
+        avatarBgGraphics.strokeColor = rank === 1 ? new cc.Color(255, 215, 0) : new cc.Color(150, 150, 180)
+        avatarBgGraphics.lineWidth = rank === 1 ? 3 : 2
+        avatarBgGraphics.circle(0, 0, avatarSize/2 + 2)
+        avatarBgGraphics.stroke()
+        avatarBg.parent = avatarContainer
+        
+        // 头像精灵
+        var avatarSpriteNode = new cc.Node("AvatarSprite")
+        var avatarSprite = avatarSpriteNode.addComponent(cc.Sprite)
+        avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
+        avatarSpriteNode.setContentSize(avatarSize - 4, avatarSize - 4)
+        avatarSpriteNode.parent = avatarContainer
+        
+        // 加载头像
+        this._loadAvatarForPodium(avatarSprite, playerData.avatar, playerData.is_robot)
+        
+        avatarContainer.parent = node
+        
+        // 昵称
+        var nameLabelNode = new cc.Node("NameLabel")
+        nameLabelNode.setPosition(0, -55)
+        nameLabelNode.setContentSize(120, 30)
+        var nameLabel = nameLabelNode.addComponent(cc.Label)
+        var displayName = playerData.player_name || "玩家"
+        if (playerData.is_robot) {
+            displayName = this._getRobotDisplayName(playerData.player_id, playerData.player_name)
+        }
+        nameLabel.string = displayName
+        nameLabel.fontSize = rank === 1 ? 20 : 18
+        nameLabel.lineHeight = 24
+        nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        nameLabel.overflow = cc.Label.Overflow.CLAMP
+        nameLabelNode.color = new cc.Color(255, 255, 255)
+        var nameOutline = nameLabelNode.addComponent(cc.LabelOutline)
+        nameOutline.color = new cc.Color(30, 30, 50)
+        nameOutline.width = 1
+        nameLabelNode.parent = node
+        
+        // 金币
+        var coinLabelNode = new cc.Node("CoinLabel")
+        coinLabelNode.setPosition(0, -85)
+        var coinLabel = coinLabelNode.addComponent(cc.Label)
+        coinLabel.string = this._formatMatchCoin(playerData.match_coin || 0) + "金币"
+        coinLabel.fontSize = rank === 1 ? 18 : 16
+        coinLabel.lineHeight = 20
+        coinLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        coinLabelNode.color = rank === 1 ? new cc.Color(255, 215, 0) : new cc.Color(255, 200, 100)
+        var coinOutline = coinLabelNode.addComponent(cc.LabelOutline)
+        coinOutline.color = new cc.Color(80, 50, 0)
+        coinOutline.width = 1
+        coinLabelNode.parent = node
+        
+        node.parent = parentNode
+        return node
+    },
+    
+    /**
+     * 🔧【新增】为领奖台加载头像
+     */
+    _loadAvatarForPodium: function(sprite, avatarUrl, isRobot) {
+        if (!sprite) return
+        
+        if (isRobot) {
+            var robotAvatarIndex = Math.floor(Math.random() * 3) + 1
+            var defaultPath = "UI/headimage/avatar_" + robotAvatarIndex
+            cc.resources.load(defaultPath, cc.SpriteFrame, function(err, spriteFrame) {
+                if (!err && spriteFrame) {
+                    sprite.spriteFrame = spriteFrame
+                }
+            })
+            return
+        }
+        
+        if (!avatarUrl || avatarUrl === "") {
+            cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err, spriteFrame) {
+                if (!err && spriteFrame) {
+                    sprite.spriteFrame = spriteFrame
+                }
+            })
+            return
+        }
+        
+        if (avatarUrl.indexOf("http") === 0 || avatarUrl.indexOf("//") === 0) {
+            cc.assetManager.loadRemote(avatarUrl, { ext: '.png' }, function(err, texture) {
+                if (err || !texture) {
+                    cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
+                        if (!err2 && fallbackSprite) {
+                            sprite.spriteFrame = fallbackSprite
+                        }
+                    })
+                    return
+                }
+                var spriteFrame = new cc.SpriteFrame(texture)
+                sprite.spriteFrame = spriteFrame
+            })
+        } else {
+            var localPath = "UI/headimage/" + avatarUrl
+            cc.resources.load(localPath, cc.SpriteFrame, function(err, spriteFrame) {
+                if (err || !spriteFrame) {
+                    cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
+                        if (!err2 && fallbackSprite) {
+                            sprite.spriteFrame = fallbackSprite
+                        }
+                    })
+                    return
+                }
+                sprite.spriteFrame = spriteFrame
+            })
+        }
+    },
+    
+    /**
+     * 🔧【新增】获取机器人显示名称
+     */
+    _getRobotDisplayName: function(playerId, originalName) {
+        if (originalName && originalName.indexOf("智能陪练") === 0) {
+            return originalName
+        }
+        var robotIndex = 1
+        if (playerId) {
+            var lastChar = playerId.toString().slice(-1)
+            robotIndex = parseInt(lastChar) || 1
+        }
+        return "智能陪练" + robotIndex + "号"
+    },
+    
+    /**
+     * 🔧【新增】格式化金币显示
+     */
+    _formatMatchCoin: function(coin) {
+        if (coin >= 10000) {
+            return (coin / 10000).toFixed(1) + "万"
+        }
+        return coin.toString()
     },
     
     /**

@@ -891,13 +891,13 @@ func (gs *GameSession) startArenaRoundCountdown() {
         // 🔧【关键修复】复制必要数据后启动 goroutine，避免死锁
         // 因为调用者（HandlePlayCards 等）持有 gs.mu 锁，这里不能同步获取锁
         roomCode := gs.room.Code
-        gameCount := gs.room.GameCount
+        completedRounds := gs.room.GameCount // 🔧【关键】保存当前已完成的局数，用于后续判断
         periodNo := gs.room.PeriodNo
         roomConfigID := gs.room.RoomConfigID
-        nextRound := gameCount + 1
+        nextRound := completedRounds + 1
 
-        log.Printf("🏟️ [startArenaRoundCountdown] 房间 %s 启动30秒倒计时，下一轮: %d, 当前局数: %d",
-                roomCode, nextRound, gameCount)
+        log.Printf("🏟️ [startArenaRoundCountdown] 房间 %s 启动30秒倒计时，下一轮: %d, 已完成局数: %d",
+                roomCode, nextRound, completedRounds)
 
         // 广播倒计时开始消息（不需要锁）
         gs.room.Broadcast(codec.MustNewMessage(protocol.MsgArenaRoundCountdown, &protocol.ArenaRoundCountdownPayload{
@@ -910,7 +910,7 @@ func (gs *GameSession) startArenaRoundCountdown() {
 
         // 启动倒计时协程
         log.Printf("🏟️ [startArenaRoundCountdown] 启动倒计时协程...")
-        go gs.runArenaCountdown(ArenaCountdownDuration, nextRound)
+        go gs.runArenaCountdown(ArenaCountdownDuration, nextRound, completedRounds)
 }
 
 // startArenaRoundCountdownForWaiting 启动竞技场等待倒计时
@@ -993,7 +993,8 @@ func (gs *GameSession) runArenaCountdownForWaiting(totalSeconds int) {
 
 // runArenaCountdown 运行竞技场倒计时
 // 每秒广播一次倒计时更新
-func (gs *GameSession) runArenaCountdown(totalSeconds, nextRound int) {
+// 🔧【关键修复】添加 completedRounds 参数，记录倒计时开始时已完成的局数
+func (gs *GameSession) runArenaCountdown(totalSeconds, nextRound int, completedRounds int) {
         ticker := time.NewTicker(1 * time.Second)
         defer ticker.Stop()
 
@@ -1006,7 +1007,7 @@ func (gs *GameSession) runArenaCountdown(totalSeconds, nextRound int) {
         }()
 
         remaining := totalSeconds
-        log.Printf("🏟️ [runArenaCountdown] 房间 %s 开始倒计时, 总秒数=%d, 下一轮=%d", gs.room.Code, totalSeconds, nextRound)
+        log.Printf("🏟️ [runArenaCountdown] 房间 %s 开始倒计时, 总秒数=%d, 下一轮=%d, 已完成局数=%d", gs.room.Code, totalSeconds, nextRound, completedRounds)
 
         for {
                 select {
@@ -1025,7 +1026,7 @@ func (gs *GameSession) runArenaCountdown(totalSeconds, nextRound int) {
                         // 倒计时结束
                         if remaining <= 0 {
                                 log.Printf("🏟️ [runArenaCountdown] 房间 %s 倒计时归零，准备调用 onArenaCountdownEnd()", gs.room.Code)
-                                gs.onArenaCountdownEnd(nextRound)
+                                gs.onArenaCountdownEnd(nextRound, completedRounds)
                                 return
                         }
                 }
@@ -1034,18 +1035,23 @@ func (gs *GameSession) runArenaCountdown(totalSeconds, nextRound int) {
 
 // onArenaCountdownEnd 竞技场倒计时结束处理
 // 自动为所有玩家准备，然后开始新一轮游戏
-func (gs *GameSession) onArenaCountdownEnd(nextRound int) {
+// 🔧【关键修复】添加 completedRounds 参数，使用倒计时开始时记录的已完成局数进行判断
+func (gs *GameSession) onArenaCountdownEnd(nextRound int, completedRounds int) {
         log.Printf("🏟️ [onArenaCountdownEnd] ========== 开始处理 ==========")
-        log.Printf("🏟️ [onArenaCountdownEnd] 房间 %s 倒计时结束，准备开始第 %d 轮", gs.room.Code, nextRound)
+        log.Printf("🏟️ [onArenaCountdownEnd] 房间 %s 倒计时结束，准备开始第 %d 局", gs.room.Code, nextRound)
 
-        // 🔧【新增】检查是否达到最大轮次
+        // 🔧【关键修复】使用倒计时开始时保存的已完成局数进行判断
+        // 而不是使用当前实时的 GameCount（可能已经在 Start() 中被自增）
         maxRoundCount := gs.getMaxRoundCount()
-        currentRound := gs.room.GameCount // 当前已完成的局数
+        
+        log.Printf("🏟️ [onArenaCountdownEnd] 轮次检查: 倒计时开始时已完成 %d 局, 配置局数 %d, 当前 GameCount=%d", 
+                completedRounds, maxRoundCount, gs.room.GameCount)
 
-        log.Printf("🏟️ [onArenaCountdownEnd] 轮次检查: 当前已完成 %d 局, 最大轮次 %d, GameCount=%d", currentRound, maxRoundCount, gs.room.GameCount)
-
-        if currentRound >= maxRoundCount {
-                log.Printf("🏁 [onArenaCountdownEnd] 房间 %s 已完成 %d 轮，竞技场结束，发送最终榜单", gs.room.Code, currentRound)
+        // 🔧【关键修复】使用 completedRounds 进行判断
+        // completedRounds 是倒计时开始时已完成的局数
+        // 如果 completedRounds >= maxRoundCount，说明所有局都已完成，应该显示最终榜单
+        if completedRounds >= maxRoundCount {
+                log.Printf("🏁 [onArenaCountdownEnd] 房间 %s 已完成 %d 局 >= 配置 %d 局，竞技场结束，发送最终榜单", gs.room.Code, completedRounds, maxRoundCount)
                 
                 // 🔧【关键修复】发送最终榜单
                 gs.broadcastFinalRankings()
