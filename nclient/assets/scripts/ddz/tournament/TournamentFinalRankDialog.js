@@ -298,12 +298,20 @@ cc.Class({
         avatarBgGraphics.stroke()
         avatarBg.parent = avatarContainer
 
-        // 头像精灵
+        // 🔧【修复】添加圆形遮罩节点，实现头像圆形裁剪
+        var avatarMaskNode = new cc.Node("AvatarMask")
+        avatarMaskNode.setContentSize(avatarSize - 4, avatarSize - 4)
+        var avatarMask = avatarMaskNode.addComponent(cc.Mask)
+        avatarMask.type = cc.Mask.Type.ELLIPSE  // 椭圆形遮罩（圆形）
+        avatarMask.segements = 64  // 圆滑度
+        avatarMaskNode.parent = avatarContainer
+
+        // 头像精灵 - 放在遮罩节点下
         var avatarSpriteNode = new cc.Node("AvatarSprite")
         var avatarSprite = avatarSpriteNode.addComponent(cc.Sprite)
         avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
         avatarSpriteNode.setContentSize(avatarSize - 4, avatarSize - 4)
-        avatarSpriteNode.parent = avatarContainer
+        avatarSpriteNode.parent = avatarMaskNode  // 🔧【修复】放在遮罩节点下
 
         avatarContainer.parent = node
 
@@ -540,12 +548,20 @@ cc.Class({
         avatarBgGraphics.stroke()
         avatarBg.parent = avatarNode
 
-        // 头像精灵
+        // 🔧【修复】添加圆形遮罩节点，实现头像圆形裁剪
+        var avatarMaskNode = new cc.Node("AvatarMask")
+        avatarMaskNode.setContentSize(30, 30)
+        var avatarMask = avatarMaskNode.addComponent(cc.Mask)
+        avatarMask.type = cc.Mask.Type.ELLIPSE  // 椭圆形遮罩（圆形）
+        avatarMask.segements = 64  // 圆滑度
+        avatarMaskNode.parent = avatarNode
+
+        // 头像精灵 - 放在遮罩节点下
         var avatarSpriteNode = new cc.Node("AvatarSprite")
         var avatarSprite = avatarSpriteNode.addComponent(cc.Sprite)
         avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
         avatarSpriteNode.setContentSize(30, 30)
-        avatarSpriteNode.parent = avatarNode
+        avatarSpriteNode.parent = avatarMaskNode  // 🔧【修复】放在遮罩节点下
 
         // 加载头像
         this._loadAvatarForListItem(avatarSprite, data.avatar, data.is_robot)
@@ -869,10 +885,16 @@ cc.Class({
             }
         }
 
-        // 🔧【新增】加载头像
+        // 🔧【修复】加载头像 - 更新查找路径以适应新的节点结构
         var avatarContainer = node.getChildByName("AvatarContainer")
         if (avatarContainer) {
-            var avatarSpriteNode = avatarContainer.getChildByName("AvatarSprite")
+            // 🔧【修复】AvatarSprite 现在在 AvatarMask 节点下
+            var avatarMaskNode = avatarContainer.getChildByName("AvatarMask")
+            var avatarSpriteNode = avatarMaskNode ? avatarMaskNode.getChildByName("AvatarSprite") : null
+            if (!avatarSpriteNode) {
+                // 兼容旧结构：直接在 AvatarContainer 下
+                avatarSpriteNode = avatarContainer.getChildByName("AvatarSprite")
+            }
             if (avatarSpriteNode) {
                 var avatarSprite = avatarSpriteNode.getComponent(cc.Sprite)
                 if (avatarSprite) {
@@ -1033,18 +1055,19 @@ cc.Class({
     },
 
     /**
-     * 🔧【新增】获取机器人显示名称
+     * 🔧【修复】获取机器人显示名称
+     * 🔧【修复】服务端现在会优先发送真实玩家昵称，客户端直接使用
      * @param {String} playerId - 玩家ID
-     * @param {String} originalName - 原始昵称
+     * @param {String} originalName - 原始昵称（来自服务端）
      * @returns {String} 显示名称
      */
     _getRobotDisplayName: function(playerId, originalName) {
-        // 如果原始名称已经是"智能陪练X号"格式，直接返回
-        if (originalName && originalName.indexOf("智能陪练") === 0) {
+        // 🔧【修复】直接使用服务端发送的名称（服务端已经处理了真实玩家昵称）
+        if (originalName && originalName !== "") {
             return originalName
         }
         
-        // 否则，生成"智能陪练X号"格式的名称
+        // 回退：如果没有名称，生成默认机器人名称
         var robotIndex = 1
         if (playerId) {
             var lastChar = playerId.toString().slice(-1)

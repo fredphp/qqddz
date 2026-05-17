@@ -1437,8 +1437,15 @@ func countRealPlayers(participations []*database.ArenaParticipation) int {
 
 // getPlayerDisplayName 获取玩家显示名称
 // 🔧【新增】处理机器人名称显示
+// 🔧【修复】优先显示真实玩家昵称，即使 IsRobot==1 但有真实数据
 func getPlayerDisplayName(p *database.ArenaParticipation) string {
-        // 机器人显示为"智能陪练X号"
+        // 🔧【修复】优先检查是否有真实玩家昵称
+        // 如果有关联的 Player 信息且昵称不为空，使用真实昵称
+        if p.Player.ID != 0 && p.Player.Nickname != "" {
+                return p.Player.Nickname
+        }
+        
+        // 机器人（没有真实玩家数据）显示为"智能陪练X号"
         if p.IsRobot == 1 {
                 // 使用 PlayerID 最后一位数字作为编号
                 robotIndex := p.PlayerID % 10
@@ -1446,11 +1453,6 @@ func getPlayerDisplayName(p *database.ArenaParticipation) string {
                         robotIndex = 1
                 }
                 return fmt.Sprintf("智能陪练%d号", robotIndex)
-        }
-        
-        // 真人玩家使用关联的 Player 昵称
-        if p.Player.ID != 0 && p.Player.Nickname != "" {
-                return p.Player.Nickname
         }
         
         // 回退：使用 PlayerID 作为标识
