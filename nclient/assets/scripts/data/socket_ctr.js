@@ -20,6 +20,8 @@ window.socketCtr = function(){
     var event = null  // 延迟初始化
     var _isConnected = false
     var _connectionHasToken = false  // 🔧【新增】跟踪当前连接是否带Token
+    var _isReconnecting = false      // 🔧【新增】重连锁，防止重复重连
+    var _reconnectPending = false    // 🔧【新增】是否有待处理的重连请求
     var _playerId = ""
     var _playerName = ""
     var _reconnectToken = ""
@@ -935,6 +937,13 @@ window.socketCtr = function(){
         var myglobal = window.myglobal
         var hasToken = myglobal && myglobal.playerData && myglobal.playerData.token
         
+        // 🔧【新增】重连锁检查 - 防止重复重连
+        if (_isReconnecting) {
+            console.log("🔧 [initSocket] 正在重连中，跳过本次请求（设置pending标记）")
+            _reconnectPending = true
+            return
+        }
+        
         // 🔧【修复】正确判断是否需要重新连接
         // 情况1: 已连接且当前连接有Token -> 跳过
         // 情况2: 已连接但没有Token，现在有Token了 -> 需要重连
@@ -954,15 +963,34 @@ window.socketCtr = function(){
             }
         }
         
+        // 设置重连锁
+        _isReconnecting = true
+        
         // 如果要建立新连接，先关闭旧连接
         if (_socket && (_socket.readyState === WebSocket.OPEN || _socket.readyState === WebSocket.CONNECTING)) {
             console.log("🔧 [initSocket] 关闭旧连接...")
             _stopHeartbeat()
-            _socket.close()
-            _socket = null
-            _isConnected = false
-            _connectionHasToken = false
+            
+            // 🔧【关键修复】等待 onclose 回调后再创建新连接
+            var oldSocket = _socket
+            oldSocket.onclose = function(event) {
+                console.log("🔧 [initSocket] 旧连接已关闭，开始建立新连接")
+                _socket = null
+                _isConnected = false
+                _connectionHasToken = false
+                _createNewWebSocket(hasToken, evt)
+            }
+            oldSocket.close()
+            return  // 等待 onclose 回调
         }
+        
+        // 没有旧连接，直接创建新连接
+        _createNewWebSocket(hasToken, evt)
+    }
+    
+    // 🔧【新增】创建新的 WebSocket 连接（从 initSocket 提取出来）
+    var _createNewWebSocket = function(hasToken, evt) {
+        var myglobal = window.myglobal
         
         _setConnectionState("connecting")
         
@@ -986,6 +1014,8 @@ window.socketCtr = function(){
             _socket.onopen = function(){
                 _isConnected = true
                 _connectionHasToken = hasToken  // 🔧【新增】记录当前连接是否带Token
+                _isReconnecting = false         // 🔧【新增】重置重连锁
+                _reconnectPending = false       // 🔧【新增】重置pending标记
                 _setConnectionState("connected")
                 console.log("🔧 [initSocket] WebSocket 已连接, _connectionHasToken =", _connectionHasToken)
                 // 使用 setTimeout 确保 WebSocket 完全准备好后再发送
@@ -1025,19 +1055,38 @@ window.socketCtr = function(){
             
             _socket.onerror = function(error){
                 console.error("WebSocket 错误:", error)
+                _isReconnecting = false  // 🔧【新增】重置重连锁
                 _setConnectionState("disconnected")
                 evt.fire("connection_error", error)
+                
+                // 🔧【新增】如果有pending请求，尝试重新连接
+                if (_reconnectPending) {
+                    _reconnectPending = false
+                    setTimeout(function() {
+                        that.initSocket()
+                    }, 100)
+                }
             }
             
             _socket.onclose = function(event){
                 _isConnected = false
                 _connectionHasToken = false  // 🔧【新增】连接关闭时重置
+                _isReconnecting = false      // 🔧【新增】重置重连锁
                 _setConnectionState("disconnected")
                 _stopHeartbeat()
                 evt.fire("connection_closed", event)
+                
+                // 🔧【新增】如果有pending请求，尝试重新连接
+                if (_reconnectPending) {
+                    _reconnectPending = false
+                    setTimeout(function() {
+                        that.initSocket()
+                    }, 100)
+                }
             }
         } catch(e) {
             console.error("创建 WebSocket 失败:", e)
+            _isReconnecting = false  // 🔧【新增】重置重连锁
             _setConnectionState("disconnected")
         }
     }
