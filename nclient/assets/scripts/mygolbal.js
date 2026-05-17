@@ -75,6 +75,7 @@
         _initialized: false,
         _forceLogout: false,  // 是否被强制下线
         _forceLogoutReason: "",  // 强制下线原因
+        cdnUrl: "https://apis.hongxiu88.com",  // 🔧【新增】CDN地址，用于加载头像等静态资源
         
         // ========== 在线状态监听 ==========
         _onlineStatusListeners: [],     // 在线状态监听器列表
@@ -124,6 +125,11 @@
             this.playerData = window.playerData();
             this.eventlister = window.eventLister({});
             this._initialized = true;
+            
+            // 🔧【新增】从defines获取cdnUrl
+            if (window.defines && window.defines.cdnUrl) {
+                this.cdnUrl = window.defines.cdnUrl;
+            }
             
             // 尝试从本地存储恢复玩家数据
             if (this.playerData.loadFromLocal()) {

@@ -3344,12 +3344,8 @@ cc.Class({
         bgNode.setContentSize(cc.size(95, 115));
         var bgGraphics = bgNode.addComponent(cc.Graphics);
         
-        // 根据是否是机器人设置不同背景色
-        if (player.is_robot) {
-            bgGraphics.fillColor = cc.color(60, 50, 80, 230);  // 紫色调 - 机器人
-        } else {
-            bgGraphics.fillColor = cc.color(40, 60, 80, 230);  // 蓝色调 - 真人
-        }
+        // 🔧【修复】机器人和真人使用相同背景色，不再区分
+        bgGraphics.fillColor = cc.color(40, 60, 80, 230);  // 统一蓝色调
         bgGraphics.roundRect(-47.5, -57.5, 95, 115, 8);
         bgGraphics.fill();
         bgNode.parent = itemNode;
@@ -3396,12 +3392,8 @@ cc.Class({
         nameNode.setContentSize(cc.size(90, 18));
         nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
         
-        // 真人白色，机器人金色
-        if (player.is_robot) {
-            nameNode.color = cc.color(255, 215, 100);  // 金色
-        } else {
-            nameNode.color = cc.color(255, 255, 255);  // 白色
-        }
+        // 🔧【修复】机器人和真人使用相同颜色，不再区分
+        nameNode.color = cc.color(255, 255, 255);  // 统一白色
         nameNode.parent = itemNode;
         
         // 状态标签
@@ -3462,7 +3454,7 @@ cc.Class({
         // 服务端上传的头像路径处理
         // 支持两种格式: "/uploads/file/..." 和 "uploads/file/..."
         var myglobal = window.myglobal;
-        var cdnUrl = myglobal && myglobal.cdnUrl ? myglobal.cdnUrl : "https://houtais.hongxiu88.com";
+        var cdnUrl = myglobal && myglobal.cdnUrl ? myglobal.cdnUrl : "https://apis.hongxiu88.com";
         
         if (avatarUrl.indexOf('/uploads/') === 0) {
             // 格式: /uploads/file/...

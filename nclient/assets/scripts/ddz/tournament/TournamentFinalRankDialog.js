@@ -501,10 +501,7 @@ cc.Class({
         } else {
             bgColor = new cc.Color(40, 55, 75, 160)   // 7-10名
         }
-        // 机器人使用不同颜色
-        if (data.is_robot) {
-            bgColor = new cc.Color(70, 50, 80, 180)  // 机器人紫色背景
-        }
+        // 🔧【修复】机器人不再使用不同颜色，跟真人一样
         bgGraphics.fillColor = bgColor
         bgGraphics.roundRect(-itemWidth/2, -itemHeight/2, itemWidth, itemHeight, 8)
         bgGraphics.fill()

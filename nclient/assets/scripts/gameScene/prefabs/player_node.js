@@ -384,7 +384,8 @@ cc.Class({
         // 🔧【修复】处理以 / 开头的路径（服务器相对路径）
         if (avatarUrl.indexOf('/') === 0 && avatarUrl.indexOf('/uploads/') === 0) {
             // 拼接服务器地址
-            var serverUrl = 'https://houtais.hongxiu88.com' + avatarUrl
+            var cdnUrl = myglobal && myglobal.cdnUrl ? myglobal.cdnUrl : "https://apis.hongxiu88.com"
+            var serverUrl = cdnUrl + avatarUrl
             console.log("🖼️ [player_node] 加载服务器头像(格式1):", serverUrl)
             this._loadRemoteAvatar(serverUrl)
             return

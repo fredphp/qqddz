@@ -370,22 +370,13 @@ cc.Class({
         label.string = player.player_name || "玩家" + player.player_id
         label.fontSize = 18
         label.lineHeight = 24
-        nameLabel.color = player.is_robot ? new cc.Color(150, 150, 150) : new cc.Color(255, 255, 255)
+        // 🔧【修复】机器人和真人使用相同颜色，不再区分
+        nameLabel.color = new cc.Color(255, 255, 255)
         nameLabel.setPosition(-40, 0)
         nameLabel.anchorX = 0
         nameLabel.parent = itemNode
         
-        // 机器人标识
-        if (player.is_robot) {
-            var robotLabel = new cc.Node("RobotLabel")
-            var rLabel = robotLabel.addComponent(cc.Label)
-            rLabel.string = "[机器人]"
-            rLabel.fontSize = 14
-            rLabel.lineHeight = 18
-            robotLabel.color = new cc.Color(255, 200, 100)
-            robotLabel.setPosition(70, 0)
-            robotLabel.parent = itemNode
-        }
+        // 🔧【移除】不再显示机器人标识，让机器人看起来跟真人一样
         
         // 添加到容器
         var yPos = -index * 50

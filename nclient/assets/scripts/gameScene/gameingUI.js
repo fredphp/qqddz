@@ -6864,7 +6864,9 @@ cc.Class({
                 // 远程URL - 处理相对路径
                 var fullUrl = avatarUrl
                 if (avatarUrl.indexOf("/uploads") === 0) {
-                    fullUrl = "https://houtais.hongxiu88.com" + avatarUrl
+                    var myglobal = window.myglobal
+                    var cdnUrl = myglobal && myglobal.cdnUrl ? myglobal.cdnUrl : "https://apis.hongxiu88.com"
+                    fullUrl = cdnUrl + avatarUrl
                 }
                 cc.assetManager.loadRemote(fullUrl, { ext: '.png' }, function(err, texture) {
                     if (err || !texture) {

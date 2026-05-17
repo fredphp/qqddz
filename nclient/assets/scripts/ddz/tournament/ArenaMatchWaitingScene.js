@@ -889,12 +889,8 @@ cc.Class({
         bgNode.setContentSize(cc.size(95, 135))  // 🔧【修改】增加高度
         var bgGraphics = bgNode.addComponent(cc.Graphics)
         
-        // 根据是否是机器人设置不同背景色
-        if (player.is_robot) {
-            bgGraphics.fillColor = cc.color(60, 50, 80, 230)  // 紫色调 - 机器人
-        } else {
-            bgGraphics.fillColor = cc.color(40, 60, 80, 230)  // 蓝色调 - 真人
-        }
+        // 🔧【修复】机器人和真人使用相同背景色，不再区分
+        bgGraphics.fillColor = cc.color(40, 60, 80, 230)  // 统一蓝色调
         bgGraphics.roundRect(-47.5, -67.5, 95, 135, 8)  // 🔧【修改】调整圆角矩形
         bgGraphics.fill()
         bgNode.parent = itemNode
@@ -955,12 +951,8 @@ cc.Class({
         nameNode.setContentSize(cc.size(90, 16))
         nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
         
-        // 真人浅绿色，机器人金色
-        if (player.is_robot) {
-            nameNode.color = cc.color(255, 215, 100)  // 金色
-        } else {
-            nameNode.color = cc.color(150, 220, 255)  // 浅蓝色
-        }
+        // 🔧【修复】机器人和真人使用相同颜色，不再区分
+        nameNode.color = cc.color(150, 220, 255)  // 统一浅蓝色
         nameNode.parent = itemNode
         
         // ========== 金币显示 ==========
@@ -1033,7 +1025,7 @@ cc.Class({
         // 服务端上传的头像路径处理（相对路径）
         // 支持格式: "/uploads/file/avatar/..." 
         var myglobal = window.myglobal
-        var cdnUrl = myglobal && myglobal.cdnUrl ? myglobal.cdnUrl : "https://houtais.hongxiu88.com"
+        var cdnUrl = myglobal && myglobal.cdnUrl ? myglobal.cdnUrl : "https://apis.hongxiu88.com"
         
         if (avatarUrl.indexOf('/uploads/') === 0) {
             // 相对路径，需要添加域名前缀
