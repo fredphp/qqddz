@@ -286,9 +286,10 @@ cc.Class({
       }
 
       // 设置层级
+      // 🔧【修复】headimage（头像）应该在 room_touxiang（头像框）的上层
       if (this.room_touxiang && this.headimage) {
-          this.headimage.node.zIndex = 0
-          this.room_touxiang.node.zIndex = 100
+          this.room_touxiang.node.zIndex = 0   // 头像框在底层
+          this.headimage.node.zIndex = 100     // 头像在上层显示
           this.headimage.node.parent.sortAllChildren()
       }
 
