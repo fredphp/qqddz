@@ -313,6 +313,9 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         phoneInput.type = 'tel';
         phoneInput.placeholder = '请输入手机号';
         phoneInput.maxLength = 11;
+        phoneInput.setAttribute('autocomplete', 'off');  // 🔧【修复】禁用浏览器自动填充历史记录
+        phoneInput.setAttribute('autocapitalize', 'off'); // 禁用自动大写
+        phoneInput.setAttribute('autocorrect', 'off');    // 禁用自动纠正
         phoneInput.style.cssText = [
             'position: absolute',
             'left: ' + phoneScreen.left + 'px',
@@ -342,6 +345,9 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         codeInput.type = 'text';
         codeInput.placeholder = '验证码';
         codeInput.maxLength = 6;
+        codeInput.setAttribute('autocomplete', 'off');  // 🔧【修复】禁用浏览器自动填充历史记录
+        codeInput.setAttribute('autocapitalize', 'off'); // 禁用自动大写
+        codeInput.setAttribute('autocorrect', 'off');    // 禁用自动纠正
         codeInput.style.cssText = [
             'position: absolute',
             'left: ' + codeScreen.left + 'px',
