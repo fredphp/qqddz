@@ -1548,12 +1548,15 @@ cc.Class({
         rankOutline.width = 2
         rankLabelNode.parent = node
         
-        // 头像容器
+        // 头像容器 - 添加圆形遮罩实现 border-radius: 50%
         var avatarSize = rank === 1 ? 70 : 60
+        var avatarRadius = (avatarSize - 4) / 2  // 头像半径
+        
         var avatarContainer = new cc.Node("AvatarContainer")
         avatarContainer.setPosition(0, 0)
         avatarContainer.setContentSize(avatarSize, avatarSize)
         
+        // 头像背景（圆形边框）
         var avatarBg = new cc.Node("AvatarBg")
         var avatarBgGraphics = avatarBg.addComponent(cc.Graphics)
         avatarBgGraphics.fillColor = new cc.Color(60, 70, 100)
@@ -1575,6 +1578,7 @@ cc.Class({
         
         // 头像精灵（放在遮罩内）
         var avatarSpriteNode = new cc.Node("AvatarSprite")
+        avatarSpriteNode.setPosition(0, 0)
         var avatarSprite = avatarSpriteNode.addComponent(cc.Sprite)
         avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
         avatarSpriteNode.setContentSize(avatarSize - 4, avatarSize - 4)
@@ -1585,15 +1589,12 @@ cc.Class({
         
         avatarContainer.parent = node
         
-        // 昵称
+        // 昵称 - 直接使用玩家真实昵称，不做修改
         var nameLabelNode = new cc.Node("NameLabel")
         nameLabelNode.setPosition(0, -55)
         nameLabelNode.setContentSize(120, 30)
         var nameLabel = nameLabelNode.addComponent(cc.Label)
         var displayName = playerData.player_name || "玩家"
-        if (playerData.is_robot) {
-            displayName = this._getRobotDisplayName(playerData.player_id, playerData.player_name)
-        }
         nameLabel.string = displayName
         nameLabel.fontSize = rank === 1 ? 20 : 18
         nameLabel.lineHeight = 24
