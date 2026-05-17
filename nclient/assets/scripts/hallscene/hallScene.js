@@ -328,7 +328,8 @@ cc.Class({
         
         // 监听连接成功事件
         var self = this;
-        var evt = window.evt || (window.myglobal && window.myglobal.eventLister);
+        // 🔧【修复】使用正确的事件监听器变量名（eventlister 小写 l）
+        var evt = window.evt || (window.myglobal && window.myglobal.eventlister);
         if (evt) {
             // 使用一次性监听，连接成功后自动移除
             var connectionHandler = function(data) {
