@@ -192,6 +192,15 @@ cc.Class({
       }
 
       this.account_label.node.active = false
+      
+      // 🔧【修复】设置昵称标签溢出模式：超长名字用省略号显示
+      if (this.nickname_label) {
+          this.nickname_label.overflow = cc.Label.Overflow.CLAMP
+          this.nickname_label.enableEllipsis = true
+          // 设置最大宽度（根据UI设计调整）
+          this.nickname_label.node.width = 100
+      }
+      
       this.nickname_label.string = data.nick_name || ("玩家" + (index + 1))
 
       // 🔧【修复】区分普通场和竞技场的金币显示
@@ -286,9 +295,10 @@ cc.Class({
       }
 
       // 设置层级
+      // 🔧【修复】headimage（头像）应该在 room_touxiang（头像框）的上层
       if (this.room_touxiang && this.headimage) {
-          this.headimage.node.zIndex = 0
-          this.room_touxiang.node.zIndex = 100
+          this.room_touxiang.node.zIndex = 0   // 头像框在底层
+          this.headimage.node.zIndex = 100     // 头像在上层显示
           this.headimage.node.parent.sortAllChildren()
       }
 
