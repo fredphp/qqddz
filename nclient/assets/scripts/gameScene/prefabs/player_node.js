@@ -203,6 +203,15 @@ cc.Class({
       }
 
       this.account_label.node.active = false
+      
+      // 🔧【修复】设置昵称标签溢出模式：超长名字用省略号显示
+      if (this.nickname_label) {
+          this.nickname_label.overflow = cc.Label.Overflow.CLAMP
+          this.nickname_label.enableEllipsis = true
+          // 设置最大宽度（根据UI设计调整）
+          this.nickname_label.node.width = 100
+      }
+      
       this.nickname_label.string = data.nick_name || ("玩家" + (index + 1))
 
       // 🔧【修复】区分普通场和竞技场的金币显示

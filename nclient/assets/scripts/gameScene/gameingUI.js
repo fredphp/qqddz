@@ -1803,6 +1803,32 @@ cc.Class({
                 var cardsToPlay = this.choose_card_data.map(function(c) {
                     return c.card_data || c
                 })
+                
+                // 🔧【关键修复】检查是否有重复的牌（防止选牌bug）
+                var uniqueCards = {}
+                var hasDuplicate = false
+                for (var i = 0; i < cardsToPlay.length; i++) {
+                    var key = cardsToPlay[i].suit + "_" + cardsToPlay[i].rank
+                    if (uniqueCards[key]) {
+                        hasDuplicate = true
+                        console.error("🃏 [pushcard] 检测到重复的牌:", cardsToPlay[i])
+                        break
+                    }
+                    uniqueCards[key] = true
+                }
+                
+                if (hasDuplicate) {
+                    // 有重复牌，重置选牌状态
+                    this.tipsLabel.string = "选牌异常，请重新选牌"
+                    var self = this
+                    this._resetCardFlags()
+                    this.choose_card_data = []
+                    setTimeout(function() {
+                        self.tipsLabel.string = ""
+                    }, 2000)
+                    return
+                }
+                
                 var validationResult = this._validateHandType(cardsToPlay)
                 if (!validationResult.valid) {
                     this.tipsLabel.string = validationResult.message

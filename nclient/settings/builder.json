@@ -117,7 +117,7 @@
     "upsideDown": false
   },
   "inlineSpriteFrames_native": true,
-  "mainCompressionType": "default",
+  "mainCompressionType": "merge_all_json",
   "mainIsRemote": false,
   "optimizeHotUpdate": false,
   "nativeMd5Cache": true,
