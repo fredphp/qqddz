@@ -19,6 +19,7 @@ window.socketCtr = function(){
     var _socket = null
     var event = null  // 延迟初始化
     var _isConnected = false
+    var _connectionHasToken = false  // 🔧【新增】跟踪当前连接是否带Token
     var _playerId = ""
     var _playerName = ""
     var _reconnectToken = ""
@@ -930,20 +931,37 @@ window.socketCtr = function(){
             return
         }
         
-        // 🔧【关键修复】检查是否有Token，如果没有则延迟连接
+        // 🔧【关键修复】检查是否有Token
         var myglobal = window.myglobal
         var hasToken = myglobal && myglobal.playerData && myglobal.playerData.token
         
-        // 如果已连接但没有Token，现在有Token了，需要重新连接
-        if (_isConnected && !hasToken) {
-            console.log("🔧 [initSocket] 已连接但没有Token，保持现有连接")
-            return
+        // 🔧【修复】正确判断是否需要重新连接
+        // 情况1: 已连接且当前连接有Token -> 跳过
+        // 情况2: 已连接但没有Token，现在有Token了 -> 需要重连
+        // 情况3: 已连接但没有Token，现在也没有 -> 跳过
+        if (_isConnected) {
+            if (_connectionHasToken) {
+                console.log("🔧 [initSocket] 已连接且当前连接带Token，跳过重新连接")
+                return
+            }
+            // 当前连接没有Token
+            if (hasToken) {
+                console.log("🔧 [initSocket] 当前连接无Token，但现在有Token了，需要重新连接")
+                // 不return，继续执行建立新连接
+            } else {
+                console.log("🔧 [initSocket] 已连接且无Token，保持现有连接")
+                return
+            }
         }
         
-        // 如果已连接且有Token，不需要重新连接
-        if (_isConnected && hasToken) {
-            console.log("🔧 [initSocket] 已连接且有Token，跳过重新连接")
-            return
+        // 如果要建立新连接，先关闭旧连接
+        if (_socket && (_socket.readyState === WebSocket.OPEN || _socket.readyState === WebSocket.CONNECTING)) {
+            console.log("🔧 [initSocket] 关闭旧连接...")
+            _stopHeartbeat()
+            _socket.close()
+            _socket = null
+            _isConnected = false
+            _connectionHasToken = false
         }
         
         _setConnectionState("connecting")
@@ -967,7 +985,9 @@ window.socketCtr = function(){
             
             _socket.onopen = function(){
                 _isConnected = true
+                _connectionHasToken = hasToken  // 🔧【新增】记录当前连接是否带Token
                 _setConnectionState("connected")
+                console.log("🔧 [initSocket] WebSocket 已连接, _connectionHasToken =", _connectionHasToken)
                 // 使用 setTimeout 确保 WebSocket 完全准备好后再发送
                 setTimeout(function(){
                     if (_socket && _socket.readyState === WebSocket.OPEN) {
@@ -1011,6 +1031,7 @@ window.socketCtr = function(){
             
             _socket.onclose = function(event){
                 _isConnected = false
+                _connectionHasToken = false  // 🔧【新增】连接关闭时重置
                 _setConnectionState("disconnected")
                 _stopHeartbeat()
                 evt.fire("connection_closed", event)
@@ -1731,6 +1752,17 @@ window.socketCtr = function(){
     // 检查 WebSocket 物理连接是否打开（readyState === OPEN）
     that.isWebSocketOpen = function(){
         return _socket && _socket.readyState === WebSocket.OPEN
+    }
+    
+    // 🔧【新增】检查当前连接是否已认证（带Token且有有效PlayerID）
+    that.isAuthenticated = function(){
+        // 必须同时满足：连接已建立、连接带Token、有有效的PlayerID
+        return _isConnected && _connectionHasToken && _playerId && _playerId > 0
+    }
+    
+    // 🔧【新增】获取当前连接是否带Token
+    that.hasConnectionToken = function(){
+        return _connectionHasToken
     }
     
     // 🔧【新增】登录成功后重新建立带Token的WebSocket连接

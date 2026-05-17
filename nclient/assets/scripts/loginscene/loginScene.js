@@ -2062,6 +2062,11 @@ cc.Class({
                                 window.myglobal.playerData.saveToLocal();
                                 console.log("【微信登录】用户数据已保存, nickName =", window.myglobal.playerData.nickName);
                             }
+                            // 🔧【关键修复】登录成功后重新建立带Token的WebSocket连接
+                            if (window.myglobal && window.myglobal.socket && window.myglobal.socket.initSocket) {
+                                console.log("🔧 [微信登录] 登录成功后检查WebSocket连接状态...");
+                                window.myglobal.socket.initSocket();
+                            }
                             self.scheduleOnce(function() {
                                 _removeNativeInputElements();
                                 if (cc.isValid(popup)) {
@@ -2098,6 +2103,11 @@ cc.Class({
                                         // 保存到本地存储
                                         window.myglobal.playerData.saveToLocal();
                                         console.log("【微信登录XHR】用户数据已保存, nickName =", window.myglobal.playerData.nickName);
+                                    }
+                                    // 🔧【关键修复】登录成功后重新建立带Token的WebSocket连接
+                                    if (window.myglobal && window.myglobal.socket && window.myglobal.socket.initSocket) {
+                                        console.log("🔧 [微信登录XHR] 登录成功后检查WebSocket连接状态...");
+                                        window.myglobal.socket.initSocket();
                                     }
                                     self.scheduleOnce(function() {
                                         _removeNativeInputElements();

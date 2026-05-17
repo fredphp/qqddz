@@ -183,6 +183,14 @@
         }
         this._forceLogout = false;
         this._forceLogoutReason = "";
+        
+        // 🔧【关键修复】登录成功后，重新建立带Token的WebSocket连接
+        // 解决：WebSocket在登录前建立，没有Token导致服务端认为未登录的问题
+        if (this.socket && this.socket.initSocket) {
+            console.log("🔧 [myglobal] 登录成功后检查WebSocket连接状态...");
+            // initSocket 会自动判断是否需要重新连接
+            this.socket.initSocket();
+        }
     };
     
     // 登出

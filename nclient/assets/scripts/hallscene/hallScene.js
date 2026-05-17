@@ -313,8 +313,10 @@ cc.Class({
         // 检查WebSocket是否已连接
         var isWebSocketOpen = socket && socket.isWebSocketOpen && socket.isWebSocketOpen();
         var isConnected = socket && socket.isConnected && socket.isConnected();
+        var isAuthenticated = socket && socket.isAuthenticated && socket.isAuthenticated();
+        var hasConnectionToken = socket && socket.hasConnectionToken && socket.hasConnectionToken();
         
-        console.log("🔌 [WebSocket] 检查连接状态: isWebSocketOpen=" + isWebSocketOpen + ", isConnected=" + isConnected);
+        console.log("🔌 [WebSocket] 检查连接状态: isWebSocketOpen=" + isWebSocketOpen + ", isConnected=" + isConnected + ", isAuthenticated=" + isAuthenticated + ", hasConnectionToken=" + hasConnectionToken);
         
         // 🔧【修复】只要物理连接已建立，就认为连接可用
         // 因为服务端可能已经发送过 connected 消息，但大厅场景还没来得及监听
@@ -453,16 +455,17 @@ cc.Class({
             return;
         }
         
-        // 检查是否已连接
-        if (myglobal.socket.isWebSocketOpen && myglobal.socket.isWebSocketOpen()) {
+        // 🔧【修复】检查连接是否已认证（带Token且有PlayerID）
+        // 不仅仅是检查物理连接，还要确保连接带有Token
+        if (myglobal.socket.isAuthenticated && myglobal.socket.isAuthenticated()) {
             return;
         }
         
-        // 检查逻辑连接状态
-        if (myglobal.socket.isConnected && myglobal.socket.isConnected()) {
-            return;
+        // 检查是否需要重新连接（有Token但连接没有Token）
+        var hasToken = myglobal.playerData && myglobal.playerData.token;
+        if (hasToken && myglobal.socket.hasConnectionToken && !myglobal.socket.hasConnectionToken()) {
+            console.log("🔌 [HallScene] 检测到连接无Token，需要重新连接...");
         }
-        
         
         // 初始化 WebSocket
         if (myglobal.socket.initSocket) {
