@@ -3,6 +3,7 @@ package server
 import (
         "log"
         "math/rand/v2"
+        "strconv"
         "sync"
         "time"
 
@@ -169,8 +170,14 @@ func (c *Client) sendConnectedMessage() {
         if c.playerSession == nil {
                 return
         }
+        // 🔧【修复】使用 strconv.FormatUint 将 PlayerID (uint64) 转换为字符串
+        // 客户端期望 player_id 是数据库玩家ID（数字），而不是 UUID
+        playerIDStr := ""
+        if c.PlayerID > 0 {
+                playerIDStr = strconv.FormatUint(c.PlayerID, 10)
+        }
         c.SendMessage(codec.MustNewMessage(protocol.MsgConnected, &protocol.ConnectedPayload{
-                PlayerID:       c.ID,
+                PlayerID:       playerIDStr,
                 PlayerName:     c.Name,
                 ReconnectToken: c.playerSession.ReconnectToken,
         }))
