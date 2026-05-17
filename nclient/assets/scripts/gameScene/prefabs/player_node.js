@@ -48,6 +48,9 @@ cc.Class({
       this.node.on("gamestart_event", function(event) {
         this.readyimage.active = false
         if (this.masterIcon) this.masterIcon.active = false  // 🔧【修复】游戏开始时隐藏地主图标
+        // 🔧【修复】游戏重新开始时清理抢地主/不抢图标，避免重叠显示
+        if (this.robIcon_Sp) this.robIcon_Sp.active = false
+        if (this.robnoIcon_Sp) this.robnoIcon_Sp.active = false
         if (this.card_node) {
             this.card_node.active = false
             this.card_node.removeAllChildren(true)
