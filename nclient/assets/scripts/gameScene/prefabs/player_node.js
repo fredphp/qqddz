@@ -106,6 +106,14 @@ cc.Class({
           }
       }.bind(this))
 
+      // 🔧【新增】清理抢地主/不抢图标事件（重新发牌时调用）
+      this.node.on("clear_rob_state_event", function() {
+          console.log("🔄 [player_node] 清理抢地主/不抢图标, accountid:", this.accountid)
+          if (this.robIcon_Sp) this.robIcon_Sp.active = false
+          if (this.robnoIcon_Sp) this.robnoIcon_Sp.active = false
+          if (this.qiangdidzhu_node) this.qiangdidzhu_node.active = false
+      }.bind(this))
+
       // 成为地主事件
       this.node.on("playernode_changemaster_event", function(event) {
          var detail = event 

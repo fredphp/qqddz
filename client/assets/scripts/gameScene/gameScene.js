@@ -255,6 +255,18 @@ cc.Class({
             }
         }.bind(this))
 
+        // 🔧【新增】监听重新发牌（所有人都不叫地主）
+        myglobal.socket.onRestartGame(function(data) {
+            console.log("🔄 [gameScene] 收到重新发牌消息，清理玩家节点的抢地主/不抢图标")
+            // 清理所有玩家节点的抢地主/不抢图标
+            for (var i = 0; i < this.playerNodeList.length; i++) {
+                var node = this.playerNodeList[i]
+                if (node) {
+                    node.emit("clear_rob_state_event")
+                }
+            }
+        }.bind(this))
+
         myglobal.socket.onRobState(function(event) {
             // 🔧【修复】添加 round 字段，区分叫地主和抢地主
             var eventWithRound = Object.assign({}, event, { round: 2 })

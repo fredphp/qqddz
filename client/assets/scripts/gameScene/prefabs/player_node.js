@@ -85,7 +85,7 @@ cc.Class({
       // ⚠️【重要】音效播放统一由 gameingUI._playRobSound 处理，此处不再播放音效
       this.node.on("playernode_rob_state_event", function(event) {
           var detail = event
-          
+
           // 隐藏抢地主按钮（当前操作的玩家）
           if(detail.accountid == this.accountid){
             this.qiangdidzhu_node.active = false
@@ -96,7 +96,7 @@ cc.Class({
             // 🔧【新增】根据轮次区分"叫地主/不叫"和"抢地主/不抢"
             var round = detail.round || 1
             var isCall = detail.state == qian_state.qian || detail.state === true
-            
+
             if(isCall){
               this.robIcon_Sp.active = true
               // ⚠️【已删除】音效播放移至 gameingUI._playRobSound（服务端广播触发）
@@ -105,6 +105,14 @@ cc.Class({
               // ⚠️【已删除】音效播放移至 gameingUI._playRobSound（服务端广播触发）
             }
           }
+      }.bind(this))
+
+      // 🔧【新增】清理抢地主/不抢图标事件（重新发牌时调用）
+      this.node.on("clear_rob_state_event", function() {
+          console.log("🔄 [player_node] 清理抢地主/不抢图标, accountid:", this.accountid)
+          if (this.robIcon_Sp) this.robIcon_Sp.active = false
+          if (this.robnoIcon_Sp) this.robnoIcon_Sp.active = false
+          if (this.qiangdidzhu_node) this.qiangdidzhu_node.active = false
       }.bind(this))
 
       // 成为地主事件
