@@ -1548,15 +1548,12 @@ cc.Class({
         rankOutline.width = 2
         rankLabelNode.parent = node
         
-        // 头像容器 - 添加圆形遮罩实现 border-radius: 50%
+        // 头像容器
         var avatarSize = rank === 1 ? 70 : 60
-        var avatarRadius = (avatarSize - 4) / 2  // 头像半径
-        
         var avatarContainer = new cc.Node("AvatarContainer")
         avatarContainer.setPosition(0, 0)
         avatarContainer.setContentSize(avatarSize, avatarSize)
         
-        // 头像背景（圆形边框）
         var avatarBg = new cc.Node("AvatarBg")
         var avatarBgGraphics = avatarBg.addComponent(cc.Graphics)
         avatarBgGraphics.fillColor = new cc.Color(60, 70, 100)
@@ -1578,7 +1575,6 @@ cc.Class({
         
         // 头像精灵（放在遮罩内）
         var avatarSpriteNode = new cc.Node("AvatarSprite")
-        avatarSpriteNode.setPosition(0, 0)
         var avatarSprite = avatarSpriteNode.addComponent(cc.Sprite)
         avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
         avatarSpriteNode.setContentSize(avatarSize - 4, avatarSize - 4)
@@ -1589,12 +1585,20 @@ cc.Class({
         
         avatarContainer.parent = node
         
-        // 昵称 - 直接使用玩家真实昵称，不做修改
+        // 昵称 - 直接使用真实昵称，机器人也一样
         var nameLabelNode = new cc.Node("NameLabel")
         nameLabelNode.setPosition(0, -55)
         nameLabelNode.setContentSize(120, 30)
         var nameLabel = nameLabelNode.addComponent(cc.Label)
         var displayName = playerData.player_name || "玩家"
+        // 🔧【修复】机器人也使用真实昵称，不做特殊处理
+        
+        // 🔧【修复】昵称过长时截断显示，超出部分用"..."
+        var maxNameLength = 6  // 最多显示6个字符
+        if (displayName.length > maxNameLength) {
+            displayName = displayName.substring(0, maxNameLength) + "..."
+        }
+        
         nameLabel.string = displayName
         nameLabel.fontSize = rank === 1 ? 20 : 18
         nameLabel.lineHeight = 24
@@ -1631,9 +1635,12 @@ cc.Class({
     _loadAvatarForPodium: function(sprite, avatarUrl, isRobot) {
         if (!sprite) return
         
+        console.log("🖼️ [_loadAvatarForPodium] 开始加载头像, URL:", avatarUrl, "isRobot:", isRobot)
+        
         // 🔧【修复】统一处理头像加载，不再区分机器人和真人
         // 机器人也使用服务端传来的正确头像URL
         if (!avatarUrl || avatarUrl === "") {
+            console.log("🖼️ [_loadAvatarForPodium] 头像URL为空，使用默认头像")
             // 头像URL为空时使用默认头像
             cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err, spriteFrame) {
                 if (!err && spriteFrame) {
@@ -1644,22 +1651,39 @@ cc.Class({
         }
         
         if (avatarUrl.indexOf("http") === 0 || avatarUrl.indexOf("//") === 0) {
-            cc.assetManager.loadRemote(avatarUrl, { ext: '.png' }, function(err, texture) {
+            // 🔧【修复】根据URL扩展名确定图片格式
+            var ext = '.png'
+            if (avatarUrl.indexOf('.jpg') > 0 || avatarUrl.indexOf('.jpeg') > 0) {
+                ext = '.jpg'
+            } else if (avatarUrl.indexOf('.gif') > 0) {
+                ext = '.gif'
+            }
+            
+            console.log("🖼️ [_loadAvatarForPodium] 加载远程头像, ext:", ext)
+            
+            // 🔧【修复】不指定ext参数，让引擎自动检测
+            cc.assetManager.loadRemote(avatarUrl, function(err, texture) {
                 if (err || !texture) {
+                    console.error("🖼️ [_loadAvatarForPodium] 加载远程头像失败:", err)
+                    // 尝试使用内置头像
                     cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
                         if (!err2 && fallbackSprite) {
                             sprite.spriteFrame = fallbackSprite
+                            console.log("🖼️ [_loadAvatarForPodium] 使用默认头像")
                         }
                     })
                     return
                 }
+                console.log("🖼️ [_loadAvatarForPodium] 远程头像加载成功")
                 var spriteFrame = new cc.SpriteFrame(texture)
                 sprite.spriteFrame = spriteFrame
             })
         } else {
             var localPath = "UI/headimage/" + avatarUrl
+            console.log("🖼️ [_loadAvatarForPodium] 加载本地头像:", localPath)
             cc.resources.load(localPath, cc.SpriteFrame, function(err, spriteFrame) {
                 if (err || !spriteFrame) {
+                    console.error("🖼️ [_loadAvatarForPodium] 加载本地头像失败:", err)
                     cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
                         if (!err2 && fallbackSprite) {
                             sprite.spriteFrame = fallbackSprite
@@ -1667,6 +1691,7 @@ cc.Class({
                     })
                     return
                 }
+                console.log("🖼️ [_loadAvatarForPodium] 本地头像加载成功")
                 sprite.spriteFrame = spriteFrame
             })
         }
