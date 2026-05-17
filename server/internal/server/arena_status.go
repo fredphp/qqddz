@@ -12,6 +12,7 @@ import (
         "sync"
         "time"
 
+        "github.com/palemoky/fight-the-landlord/internal/cdnutil"
         "github.com/palemoky/fight-the-landlord/internal/game/database"
         "github.com/palemoky/fight-the-landlord/internal/game/room"
         "github.com/palemoky/fight-the-landlord/tournament"
@@ -1858,7 +1859,7 @@ func (b *ArenaStatusBroadcaster) sendWaitingStatusToPlayer(enterPhase *EnterPhas
                         players = append(players, protocol.WaitingPlayerInfo{
                                 PlayerID:   fmt.Sprintf("%d", pid),
                                 PlayerName: player.Nickname,
-                                Avatar:     player.Avatar,
+                                Avatar:     cdnutil.CompleteAvatar(player.Avatar), // 🔧【修复】使用 CDN 补全头像 URL
                                 IsRobot:    status.IsRobot,
                                 EnteredAt:  enteredAt,
                                 MatchCoin:  matchCoin,
@@ -1937,7 +1938,7 @@ func (b *ArenaStatusBroadcaster) broadcastWaitingStatus(enterPhase *EnterPhaseIn
                         players = append(players, protocol.WaitingPlayerInfo{
                                 PlayerID:   fmt.Sprintf("%d", playerID),
                                 PlayerName: player.Nickname,
-                                Avatar:     player.Avatar,
+                                Avatar:     cdnutil.CompleteAvatar(player.Avatar), // 🔧【修复】使用 CDN 补全头像 URL
                                 IsRobot:    status.IsRobot,
                                 EnteredAt:  enteredAt,
                                 MatchCoin:  matchCoin,
@@ -2055,7 +2056,7 @@ func (b *ArenaStatusBroadcaster) broadcastPlayerJoined(enterPhase *EnterPhaseInf
                                 players = append(players, protocol.ArenaWaitingPlayer{
                                         PlayerID:   fmt.Sprintf("%d", playerID),
                                         PlayerName: player.Nickname,
-                                        Avatar:     player.Avatar,
+                                        Avatar:     cdnutil.CompleteAvatar(player.Avatar), // 🔧【修复】使用 CDN 补全头像 URL
                                         IsRobot:    status.IsRobot,
                                         EnteredAt:  time.Now().UnixMilli(),
                                 })
@@ -2067,7 +2068,7 @@ func (b *ArenaStatusBroadcaster) broadcastPlayerJoined(enterPhase *EnterPhaseInf
         newPlayerInfo := protocol.ArenaWaitingPlayer{
                 PlayerID:   fmt.Sprintf("%d", newPlayerID),
                 PlayerName: newPlayer.Nickname,
-                Avatar:     newPlayer.Avatar,
+                Avatar:     cdnutil.CompleteAvatar(newPlayer.Avatar), // 🔧【修复】使用 CDN 补全头像 URL
                 IsRobot:    isRobot,
                 EnteredAt:  time.Now().UnixMilli(),
         }
