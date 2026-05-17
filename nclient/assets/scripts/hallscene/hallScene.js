@@ -8663,6 +8663,118 @@ cc.Class({
                 self._showMessageCenter("暂无新消息");
             });
         }
+        
+        // 分享按钮 - 场景中节点名为 "share"、"fenxiang" 或 "btn_share"
+        var shareBtn = this.node.getChildByName("share") || this.node.getChildByName("fenxiang") || this.node.getChildByName("btn_share");
+        if (shareBtn) {
+            shareBtn.off(cc.Node.EventType.TOUCH_END);
+            shareBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+                event.stopPropagation();
+                self._onShareButtonClick();
+            });
+            console.log('[HallScene] 分享按钮已初始化:', shareBtn.name);
+        } else {
+            console.log('[HallScene] 未找到分享按钮节点');
+        }
+    },
+    
+    // ============================================================
+    // 分享按钮点击事件
+    // ============================================================
+    _onShareButtonClick: function() {
+        console.log('[HallScene] 分享按钮点击');
+        
+        var self = this;
+        
+        // 获取玩家信息
+        var playerName = '玩家';
+        var roomId = '';
+        
+        if (window.myglobal && window.myglobal.playerData) {
+            playerName = window.myglobal.playerData.nickName || '玩家';
+        }
+        
+        // 构建分享内容
+        var shareTitle = '欢乐斗地主';
+        var shareText = playerName + ' 邀请你一起来玩欢乐斗地主！精彩刺激的棋牌游戏等你来挑战！';
+        var shareUrl = 'https://h5ss.hongxiu88.com/';
+        
+        // 检查分享工具是否可用
+        if (typeof ShareUtil === 'undefined') {
+            console.error('[HallScene] ShareUtil 未加载');
+            this._showToast('分享功能暂不可用');
+            return;
+        }
+        
+        // 调用分享
+        ShareUtil.share({
+            title: shareTitle,
+            text: shareText,
+            url: shareUrl,
+            success: function() {
+                console.log('[HallScene] 分享成功');
+                self._showToast('分享成功！');
+            },
+            fail: function(error) {
+                console.error('[HallScene] 分享失败:', error);
+                if (error && error.message) {
+                    self._showToast('分享失败: ' + error.message);
+                }
+            }
+        });
+    },
+    
+    // 显示 Toast 提示
+    _showToast: function(message) {
+        console.log('[Toast]', message);
+        
+        // 尝试使用全局 Toast
+        if (window.myglobal && window.myglobal.showToast) {
+            window.myglobal.showToast(message);
+            return;
+        }
+        
+        // 创建简单的 Toast 提示
+        var scene = cc.director.getScene();
+        if (!scene) return;
+        
+        var toast = new cc.Node('Toast');
+        toast.parent = scene;
+        toast.zIndex = 99999;
+        
+        // 背景
+        var bg = new cc.Node('Bg');
+        bg.parent = toast;
+        var bgSprite = bg.addComponent(cc.Sprite);
+        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        bg.setContentSize(300, 50);
+        bg.color = new cc.Color(0, 0, 0);
+        bg.opacity = 180;
+        
+        // 文字
+        var label = new cc.Node('Label');
+        label.parent = toast;
+        var labelComponent = label.addComponent(cc.Label);
+        labelComponent.string = message;
+        labelComponent.fontSize = 20;
+        labelComponent.lineHeight = 50;
+        labelComponent.fontColor = new cc.Color(255, 255, 255);
+        
+        // 位置
+        toast.setPosition(0, -200);
+        
+        // 动画
+        toast.opacity = 0;
+        toast.y = -250;
+        
+        cc.tween(toast)
+            .to(0.3, { opacity: 255, y: -200 })
+            .delay(2)
+            .to(0.3, { opacity: 0 })
+            .call(function() {
+                toast.destroy();
+            })
+            .start();
     },
     
     // ============================================================
