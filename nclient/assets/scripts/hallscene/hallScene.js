@@ -304,24 +304,26 @@ cc.Class({
     
     /**
      * 检查WebSocket连接状态，如果未连接则显示Loading界面
+     * 🔧【修复】只要物理连接已建立，就认为连接可用（服务端可能已发送过connected消息）
      */
     _checkAndShowWebSocketLoading: function() {
         var myglobal = window.myglobal;
         var socket = myglobal && myglobal.socket;
         
-        // 检查WebSocket是否已连接（物理连接和逻辑连接都要检查）
+        // 检查WebSocket是否已连接
         var isWebSocketOpen = socket && socket.isWebSocketOpen && socket.isWebSocketOpen();
         var isConnected = socket && socket.isConnected && socket.isConnected();
         
         console.log("🔌 [WebSocket] 检查连接状态: isWebSocketOpen=" + isWebSocketOpen + ", isConnected=" + isConnected);
         
-        if (isWebSocketOpen && isConnected) {
-            // 已连接，不需要显示Loading
-            console.log("🔌 [WebSocket] 已连接，跳过Loading界面");
+        // 🔧【修复】只要物理连接已建立，就认为连接可用
+        // 因为服务端可能已经发送过 connected 消息，但大厅场景还没来得及监听
+        if (isWebSocketOpen) {
+            console.log("🔌 [WebSocket] 物理连接已建立，跳过Loading界面");
             return;
         }
         
-        // 未连接，显示Loading界面
+        // 物理连接未建立，显示Loading界面
         this._showWebSocketLoading();
         
         // 监听连接成功事件
@@ -336,12 +338,12 @@ cc.Class({
             };
             evt.on("connection_success", connectionHandler);
             
-            // 设置超时保护，最多等待10秒
+            // 🔧【优化】缩短超时时间，物理连接通常很快建立
             this._wsLoadingTimeout = setTimeout(function() {
                 console.log("🔌 [WebSocket] 连接超时，关闭Loading界面");
                 self._hideWebSocketLoading();
                 evt.off("connection_success", connectionHandler);
-            }, 10000);
+            }, 5000);
         }
     },
     
