@@ -32,8 +32,8 @@
       "armeabi-v7a",
       "arm64-v8a"
     ],
-    "sdkPath": "",
-    "ndkPath": "",
+    "sdkPath": "D:\\Android\\Sdk",
+    "ndkPath": "D:\\android-ndk-r19c",
     "orientation": {
       "landscapeLeft": true,
       "landscapeRight": true,
