@@ -449,8 +449,9 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 
                 // 🔧【关键修复】获取当前剩余玩家数
                 // 通过 TournamentProgressManager 获取剩余玩家数
-                if gs.server != nil && gs.server.tournamentProgressManager != nil {
-                        progress := gs.server.tournamentProgressManager.GetProgress(periodNo)
+                tm := types.GetGlobalTournamentProgress()
+                if tm != nil {
+                        progress := tm.GetProgress(periodNo)
                         if progress != nil {
                                 activePlayers = len(progress.PlayerTableStatus)
                         }
@@ -550,8 +551,9 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 
                 // 🔧【关键修复】获取当前剩余玩家数
                 activePlayers := totalPlayers // 默认使用报名人数
-                if gs.server != nil && gs.server.tournamentProgressManager != nil {
-                        progress := gs.server.tournamentProgressManager.GetProgress(periodNo)
+                tm2 := types.GetGlobalTournamentProgress()
+                if tm2 != nil {
+                        progress := tm2.GetProgress(periodNo)
                         if progress != nil {
                                 activePlayers = len(progress.PlayerTableStatus)
                         }
