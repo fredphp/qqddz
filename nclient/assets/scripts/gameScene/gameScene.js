@@ -1565,14 +1565,22 @@ cc.Class({
         avatarBgGraphics.stroke()
         avatarBg.parent = avatarContainer
         
-        // 头像精灵
+        // 🔧【修复】创建圆形遮罩节点，实现圆形头像效果
+        var maskNode = new cc.Node("AvatarMask")
+        maskNode.setContentSize(avatarSize - 4, avatarSize - 4)
+        var mask = maskNode.addComponent(cc.Mask)
+        mask.type = cc.Mask.Type.CIRCLE
+        maskNode.setPosition(0, 0)
+        maskNode.parent = avatarContainer
+        
+        // 头像精灵（放在遮罩内）
         var avatarSpriteNode = new cc.Node("AvatarSprite")
         var avatarSprite = avatarSpriteNode.addComponent(cc.Sprite)
         avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
         avatarSpriteNode.setContentSize(avatarSize - 4, avatarSize - 4)
-        avatarSpriteNode.parent = avatarContainer
+        avatarSpriteNode.parent = maskNode
         
-        // 加载头像
+        // 加载头像（🔧【修复】机器人也使用服务端传来的正确头像）
         this._loadAvatarForPodium(avatarSprite, playerData.avatar, playerData.is_robot)
         
         avatarContainer.parent = node
@@ -1617,22 +1625,15 @@ cc.Class({
     
     /**
      * 🔧【新增】为领奖台加载头像
+     * 🔧【修复】机器人也使用服务端传来的正确头像，不再使用随机本地头像
      */
     _loadAvatarForPodium: function(sprite, avatarUrl, isRobot) {
         if (!sprite) return
         
-        if (isRobot) {
-            var robotAvatarIndex = Math.floor(Math.random() * 3) + 1
-            var defaultPath = "UI/headimage/avatar_" + robotAvatarIndex
-            cc.resources.load(defaultPath, cc.SpriteFrame, function(err, spriteFrame) {
-                if (!err && spriteFrame) {
-                    sprite.spriteFrame = spriteFrame
-                }
-            })
-            return
-        }
-        
+        // 🔧【修复】统一处理头像加载，不再区分机器人和真人
+        // 机器人也使用服务端传来的正确头像URL
         if (!avatarUrl || avatarUrl === "") {
+            // 头像URL为空时使用默认头像
             cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err, spriteFrame) {
                 if (!err && spriteFrame) {
                     sprite.spriteFrame = spriteFrame

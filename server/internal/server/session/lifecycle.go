@@ -1232,13 +1232,12 @@ func (gs *GameSession) sendFinalRankingsForSingleTable(periodNo string, players 
         // 构建排名列表
         rankEntries := make([]protocol.TournamentRankEntry, len(participations))
         for i, p := range participations {
-                // 🔧【修复】获取头像URL
+                // 🔧【修复】获取头像URL - 机器人也有关联的Player记录，应正确获取头像
                 avatarURL := ""
-                if p.IsRobot == 0 && p.Player.ID != 0 {
-                        // 真人玩家使用关联的 Player 头像
+                if p.Player.ID != 0 {
+                        // 使用关联的 Player 头像（包括机器人）
                         avatarURL = p.Player.Avatar
                 }
-                // 机器人使用默认头像（可以后续设置为特定的机器人头像）
 
                 // 🔧【修复】使用 CDN 补全头像 URL
                 avatarURL = cdnutil.CompleteAvatar(avatarURL)
@@ -1503,9 +1502,9 @@ func (gs *GameSession) broadcastFinalRankings() {
         top3 := make([]protocol.TournamentRankEntry, 0, 3)
         for i := 0; i < 3 && i < len(participations); i++ {
                 p := participations[i]
-                // 🔧【修复】获取并补全头像 URL
+                // 🔧【修复】获取并补全头像 URL - 机器人也有关联的Player记录，应正确获取头像
                 avatarURL := ""
-                if p.IsRobot == 0 && p.Player.ID != 0 {
+                if p.Player.ID != 0 {
                         avatarURL = p.Player.Avatar
                 }
                 avatarURL = cdnutil.CompleteAvatar(avatarURL)
@@ -1528,9 +1527,9 @@ func (gs *GameSession) broadcastFinalRankings() {
                 if i >= 20 {
                         break
                 }
-                // 🔧【修复】获取并补全头像 URL
+                // 🔧【修复】获取并补全头像 URL - 机器人也有关联的Player记录，应正确获取头像
                 avatarURL := ""
-                if p.IsRobot == 0 && p.Player.ID != 0 {
+                if p.Player.ID != 0 {
                         avatarURL = p.Player.Avatar
                 }
                 avatarURL = cdnutil.CompleteAvatar(avatarURL)
