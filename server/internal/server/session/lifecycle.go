@@ -437,6 +437,7 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
 
         // 🔧【新增】预先计算竞技场相关字段
         var totalPlayers int
+        var activePlayers int // 当前剩余玩家数
         var isFinalRound bool
         var arenaCountdown int
         
@@ -446,9 +447,22 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                 maxRoundCount := gs.getMaxRoundCount()
                 currentRound := gs.room.GameCount
                 
+                // 🔧【关键修复】获取当前剩余玩家数
+                // 通过 TournamentProgressManager 获取剩余玩家数
+                if gs.server != nil && gs.server.tournamentProgressManager != nil {
+                        progress := gs.server.tournamentProgressManager.GetProgress(periodNo)
+                        if progress != nil {
+                                activePlayers = len(progress.PlayerTableStatus)
+                        }
+                }
+                // 如果无法从 TournamentProgressManager 获取，尝试从数据库获取
+                if activePlayers == 0 {
+                        activePlayers = totalPlayers // 回退到报名人数
+                }
+                
                 // 🔧【关键】判断是否是最终结算
                 // 剩余 <= 3人 且 已完成配置的局数 → 最终结算
-                isFinalRound = totalPlayers > 0 && totalPlayers <= 3 && currentRound >= maxRoundCount
+                isFinalRound = activePlayers > 0 && activePlayers <= 3 && currentRound >= maxRoundCount
                 
                 // 🔧【关键】设置倒计时
                 // 每一局结束都是30秒倒计时
@@ -459,8 +473,8 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
                         arenaCountdown = 30 // 30秒倒计时
                 }
                 
-                log.Printf("🏟️ [endGame] 竞技场: 当期报名人数=%d, 当前局数=%d/%d, 是否最终结算=%v, 倒计时=%d秒", 
-                        totalPlayers, currentRound, maxRoundCount, isFinalRound, arenaCountdown)
+                log.Printf("🏟️ [endGame] 竞技场: 当期报名人数=%d, 当前剩余人数=%d, 当前局数=%d/%d, 是否最终结算=%v, 倒计时=%d秒", 
+                        totalPlayers, activePlayers, currentRound, maxRoundCount, isFinalRound, arenaCountdown)
         }
 
         // 广播游戏结束（包含完整结算信息）
@@ -528,27 +542,37 @@ func (gs *GameSession) endGame(winner *GamePlayer) {
         log.Printf("🎮 [endGame] 检查房间类型: RoomCategory=%d (2=竞技场)", gs.room.RoomCategory)
 
         if gs.room.RoomCategory == 2 {
-                // 🔧【新增】检查当期报名人数
+                // 🔧【新增】检查当期报名人数和剩余人数
                 periodNo := gs.room.PeriodNo
                 totalPlayers := gs.getArenaTotalPlayers(periodNo)
                 maxRoundCount := gs.getMaxRoundCount()
                 currentRound := gs.room.GameCount
-                log.Printf("🏟️ [endGame] 竞技场房间 %s 结算完成, 期号=%s, 当期报名人数=%d, 当前局数=%d/%d", 
-                        gs.room.Code, periodNo, totalPlayers, currentRound, maxRoundCount)
+                
+                // 🔧【关键修复】获取当前剩余玩家数
+                activePlayers := totalPlayers // 默认使用报名人数
+                if gs.server != nil && gs.server.tournamentProgressManager != nil {
+                        progress := gs.server.tournamentProgressManager.GetProgress(periodNo)
+                        if progress != nil {
+                                activePlayers = len(progress.PlayerTableStatus)
+                        }
+                }
+                
+                log.Printf("🏟️ [endGame] 竞技场房间 %s 结算完成, 期号=%s, 当期报名人数=%d, 当前剩余人数=%d, 当前局数=%d/%d", 
+                        gs.room.Code, periodNo, totalPlayers, activePlayers, currentRound, maxRoundCount)
 
                 // 🔧【关键修复】根据局数和剩余人数区分不同情况：
                 // 1. 未完成配置的局数（如只打了1局，配置要打5局）→ 30秒倒计时后继续在同一桌打下一局
                 // 2. 已完成配置的局数且剩余 <= 3人 → 直接显示排行榜（不需要倒计时，已在上面设置 arenaCountdown=0）
                 // 3. 已完成配置的局数且剩余 > 3人 → 30秒倒计时后注册桌完成状态（等待其他桌）
                 
-                if currentRound >= maxRoundCount && totalPlayers <= 3 {
+                if currentRound >= maxRoundCount && activePlayers <= 3 {
                         // 已完成配置的局数且剩余 <= 3人，直接显示排行榜
                         // 注意：这种情况 arenaCountdown 已经设为 0，客户端会直接显示排行榜
-                        log.Printf("🏆 [endGame] 已完成配置的局数且剩余 %d 人 <= 3，直接发送最终榜单", totalPlayers)
+                        log.Printf("🏆 [endGame] 已完成配置的局数且剩余 %d 人 <= 3，直接发送最终榜单", activePlayers)
                         gs.sendFinalRankingsForSingleTable(periodNo, players)
                 } else if currentRound >= maxRoundCount {
                         // 已完成配置的局数且剩余 > 3人，30秒倒计时后注册桌完成状态
-                        log.Printf("🏟️ [endGame] 已完成配置的局数 (当前=%d, 配置=%d)，剩余 %d 人 > 3，启动30秒倒计时后进入等待界面", currentRound, maxRoundCount, totalPlayers)
+                        log.Printf("🏟️ [endGame] 已完成配置的局数 (当前=%d, 配置=%d)，剩余 %d 人 > 3，启动30秒倒计时后进入等待界面", currentRound, maxRoundCount, activePlayers)
                         gs.startArenaRoundCountdownForWaiting()
                 } else {
                         // 未完成配置的局数，30秒倒计时后自动开始下一局（在同一桌继续打）
