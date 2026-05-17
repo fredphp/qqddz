@@ -60,6 +60,10 @@ cc.Class({
         if (this._quickEnterAnimating && this._quickEnterLoadingNode && this._quickEnterLoadingNode.isValid) {
             this._quickEnterLoadingNode.angle += dt * 180;
         }
+        // 🔧【新增】WebSocket连接Loading的旋转动画
+        if (this._wsLoadingAnimating && this._wsLoadingSpriteNode && this._wsLoadingSpriteNode.isValid) {
+            this._wsLoadingSpriteNode.angle += dt * 180;
+        }
     },
     
     _waitForMyglobal: function() {
@@ -129,6 +133,10 @@ cc.Class({
     _initUIAfterAuth: function() {
         
         try {
+            // ==================== 🔧【新增】WebSocket连接Loading界面 ====================
+            // 检查WebSocket是否已连接，如果未连接则显示Loading界面
+            this._checkAndShowWebSocketLoading();
+            
             // ==================== 初始化用户设置（从本地存储加载）====================
             this._initUserSettings();
             
@@ -290,6 +298,148 @@ cc.Class({
             // 🔧【新增】标记场景已预加载
             self._gameScenePreloaded = true;
         });
+    },
+    
+    // ==================== 🔧【新增】WebSocket连接Loading界面 ====================
+    
+    /**
+     * 检查WebSocket连接状态，如果未连接则显示Loading界面
+     */
+    _checkAndShowWebSocketLoading: function() {
+        var myglobal = window.myglobal;
+        var socket = myglobal && myglobal.socket;
+        
+        // 检查WebSocket是否已连接（物理连接和逻辑连接都要检查）
+        var isWebSocketOpen = socket && socket.isWebSocketOpen && socket.isWebSocketOpen();
+        var isConnected = socket && socket.isConnected && socket.isConnected();
+        
+        console.log("🔌 [WebSocket] 检查连接状态: isWebSocketOpen=" + isWebSocketOpen + ", isConnected=" + isConnected);
+        
+        if (isWebSocketOpen && isConnected) {
+            // 已连接，不需要显示Loading
+            console.log("🔌 [WebSocket] 已连接，跳过Loading界面");
+            return;
+        }
+        
+        // 未连接，显示Loading界面
+        this._showWebSocketLoading();
+        
+        // 监听连接成功事件
+        var self = this;
+        var evt = window.evt || (window.myglobal && window.myglobal.eventLister);
+        if (evt) {
+            // 使用一次性监听，连接成功后自动移除
+            var connectionHandler = function(data) {
+                console.log("🔌 [WebSocket] 连接成功，关闭Loading界面");
+                self._hideWebSocketLoading();
+                evt.off("connection_success", connectionHandler);
+            };
+            evt.on("connection_success", connectionHandler);
+            
+            // 设置超时保护，最多等待10秒
+            this._wsLoadingTimeout = setTimeout(function() {
+                console.log("🔌 [WebSocket] 连接超时，关闭Loading界面");
+                self._hideWebSocketLoading();
+                evt.off("connection_success", connectionHandler);
+            }, 10000);
+        }
+    },
+    
+    /**
+     * 显示WebSocket连接Loading界面
+     */
+    _showWebSocketLoading: function() {
+        if (this._wsLoadingNode && this._wsLoadingNode.isValid) {
+            return; // 已经显示
+        }
+        
+        console.log("🔌 [WebSocket] 显示Loading界面");
+        
+        var screenWidth = 1280;
+        var screenHeight = 720;
+        
+        // 创建Loading容器节点
+        var loadingNode = new cc.Node("WebSocketLoading");
+        loadingNode.setPosition(0, 0);
+        loadingNode.setContentSize(screenWidth, screenHeight);
+        
+        // 半透明遮罩背景
+        var bgNode = new cc.Node("Background");
+        bgNode.setContentSize(screenWidth, screenHeight);
+        var bgGraphics = bgNode.addComponent(cc.Graphics);
+        bgGraphics.fillColor = new cc.Color(0, 0, 0, 180);
+        bgGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight);
+        bgGraphics.fill();
+        bgNode.parent = loadingNode;
+        
+        // Loading图片容器
+        var containerNode = new cc.Node("Container");
+        containerNode.setPosition(0, 0);
+        containerNode.setContentSize(200, 200);
+        
+        // 加载并显示 loading_image.png
+        cc.resources.load("UI/loading_image", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.error("🔌 [WebSocket] 加载loading_image失败:", err);
+                return;
+            }
+            
+            if (loadingNode && loadingNode.isValid && containerNode && containerNode.isValid) {
+                var spriteNode = new cc.Node("LoadingSprite");
+                var sprite = spriteNode.addComponent(cc.Sprite);
+                sprite.spriteFrame = spriteFrame;
+                spriteNode.setPosition(0, 0);
+                spriteNode.parent = containerNode;
+                
+                // 设置初始角度，update中会旋转
+                spriteNode.angle = 0;
+                
+                // 保存引用，用于update中旋转
+                this._wsLoadingSpriteNode = spriteNode;
+            }
+        }.bind(this));
+        
+        // 提示文字
+        var tipNode = new cc.Node("TipLabel");
+        tipNode.setPosition(0, -120);
+        var tipLabel = tipNode.addComponent(cc.Label);
+        tipLabel.string = "正在连接服务器...";
+        tipLabel.fontSize = 24;
+        tipLabel.lineHeight = 30;
+        tipLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        tipNode.color = new cc.Color(255, 255, 255);
+        tipNode.parent = containerNode;
+        
+        containerNode.parent = loadingNode;
+        
+        // 添加到场景，设置最高层级
+        this.node.addChild(loadingNode);
+        loadingNode.zIndex = 9999;
+        
+        this._wsLoadingNode = loadingNode;
+        this._wsLoadingAnimating = true;
+    },
+    
+    /**
+     * 隐藏WebSocket连接Loading界面
+     */
+    _hideWebSocketLoading: function() {
+        // 清除超时定时器
+        if (this._wsLoadingTimeout) {
+            clearTimeout(this._wsLoadingTimeout);
+            this._wsLoadingTimeout = null;
+        }
+        
+        // 移除Loading节点
+        if (this._wsLoadingNode && this._wsLoadingNode.isValid) {
+            this._wsLoadingNode.destroy();
+            this._wsLoadingNode = null;
+        }
+        
+        this._wsLoadingAnimating = false;
+        this._wsLoadingSpriteNode = null;
+        
+        console.log("🔌 [WebSocket] Loading界面已关闭");
     },
     
     // 初始化 WebSocket 连接
