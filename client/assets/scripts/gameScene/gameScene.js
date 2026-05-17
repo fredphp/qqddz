@@ -6,7 +6,6 @@
 // 3. 不依赖 scheduleOnce 控制发牌节奏
 
 cc.Class({
-    name: 'gameScene',
     extends: cc.Component,
 
     properties: {
@@ -1349,126 +1348,432 @@ cc.Class({
     
     /**
      * 显示最终榜单弹窗
+     * 🔧【修复】直接创建弹窗UI，避免依赖外部组件类注册问题
      */
     _showArenaFinalRankDialog: function(data) {
         var self = this
         
-        // 获取画布尺寸
-        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas)
-        var screenHeight = canvas ? canvas.designResolution.height : 720
-        var screenWidth = canvas ? canvas.designResolution.width : 1280
+        console.log("🏆 [_showArenaFinalRankDialog] 显示完整排行榜弹窗, data:", JSON.stringify(data))
         
-        // 创建弹窗容器
-        var dialogNode = new cc.Node("ArenaFinalRankDialog")
-        dialogNode.setContentSize(cc.size(screenWidth, screenHeight))
-        dialogNode.anchorX = 0.5
-        dialogNode.anchorY = 0.5
-        dialogNode.x = 0
-        dialogNode.y = 0
+        // 🔧【修复】直接创建弹窗UI，不使用 addComponent("TournamentFinalRankDialog")
+        // 因为 Cocos 在运行时可能无法正确找到注册的类
+        var dialogNode = this._createFinalRankDialog(data)
+        
+        if (!dialogNode) {
+            console.error("🏆 [_showArenaFinalRankDialog] 创建弹窗失败")
+            return
+        }
+        
+        // 添加到当前场景
+        this.node.addChild(dialogNode)
         dialogNode.zIndex = 3000
-        dialogNode.parent = this.node
+        
         this._arenaFinalRankDialog = dialogNode
         
-        // 半透明背景
-        var bgNode = new cc.Node("Bg")
+        console.log("🏆 [_showArenaFinalRankDialog] 完整排行榜弹窗已创建")
+    },
+    
+    /**
+     * 🔧【新增】创建最终榜单弹窗UI
+     * 直接创建UI，避免组件类注册问题
+     */
+    _createFinalRankDialog: function(data) {
+        var screenWidth = 1280
+        var screenHeight = 720
+        
+        // 创建弹窗容器
+        var dialogNode = new cc.Node("TournamentFinalRankDialog")
+        dialogNode.setPosition(0, 0)
+        dialogNode.setContentSize(screenWidth, screenHeight)
+        
+        // 半透明背景遮罩
+        var bgNode = new cc.Node("Background")
+        bgNode.setContentSize(screenWidth, screenHeight)
         var bgGraphics = bgNode.addComponent(cc.Graphics)
-        bgGraphics.fillColor = cc.color(0, 0, 0, 200)
+        bgGraphics.fillColor = new cc.Color(0, 0, 0, 180)
         bgGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight)
         bgGraphics.fill()
         bgNode.parent = dialogNode
         
-        // 中央卡片
-        var cardWidth = 450
-        var cardHeight = 400
-        var cardNode = new cc.Node("Card")
-        cardNode.setContentSize(cc.size(cardWidth, cardHeight))
-        cardNode.anchorX = 0.5
-        cardNode.anchorY = 0.5
-        cardNode.x = 0
-        cardNode.y = 0
+        // 主弹窗容器
+        var dialogContainer = new cc.Node("DialogContainer")
+        dialogContainer.setContentSize(1000, 650)
+        dialogContainer.setPosition(0, 0)
         
-        var cardBg = cardNode.addComponent(cc.Graphics)
-        cardBg.fillColor = cc.color(40, 70, 120, 240)
-        cardBg.roundRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15)
-        cardBg.fill()
-        cardBg.strokeColor = cc.color(255, 215, 0)
-        cardBg.lineWidth = 4
-        cardBg.roundRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15)
-        cardBg.stroke()
-        cardNode.parent = dialogNode
+        // 弹窗背景
+        var dialogBg = new cc.Node("DialogBg")
+        var dialogBgGraphics = dialogBg.addComponent(cc.Graphics)
+        dialogBgGraphics.fillColor = new cc.Color(25, 35, 60, 250)
+        dialogBgGraphics.roundRect(-500, -325, 1000, 650, 25)
+        dialogBgGraphics.fill()
+        dialogBgGraphics.strokeColor = new cc.Color(180, 140, 60)
+        dialogBgGraphics.lineWidth = 4
+        dialogBgGraphics.roundRect(-500, -325, 1000, 650, 25)
+        dialogBgGraphics.stroke()
+        dialogBg.parent = dialogContainer
+        dialogContainer.parent = dialogNode
         
         // 标题
         var titleNode = new cc.Node("Title")
-        titleNode.y = cardHeight/2 - 40
+        titleNode.setPosition(0, 270)
         var titleLabel = titleNode.addComponent(cc.Label)
-        titleLabel.string = "🏆 比赛结束"
-        titleLabel.fontSize = 32
+        titleLabel.string = "🏆 比赛结束 🏆"
+        titleLabel.fontSize = 40
+        titleLabel.lineHeight = 48
         titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-        titleNode.color = cc.color(255, 215, 0)
+        titleNode.color = new cc.Color(255, 215, 0)
         var titleOutline = titleNode.addComponent(cc.LabelOutline)
-        titleOutline.color = cc.color(0, 0, 0)
-        titleOutline.width = 2
-        titleNode.parent = cardNode
+        titleOutline.color = new cc.Color(100, 60, 0)
+        titleOutline.width = 3
+        titleNode.parent = dialogContainer
         
-        // 我的排名
-        var myRankNode = new cc.Node("MyRank")
-        myRankNode.y = cardHeight/2 - 100
-        var myRankLabel = myRankNode.addComponent(cc.Label)
-        myRankLabel.string = "您的排名: 第 " + (data.my_rank || "--") + " 名"
-        myRankLabel.fontSize = 28
-        myRankLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-        myRankNode.color = cc.color(255, 255, 255)
-        myRankNode.parent = cardNode
+        // 期号和参赛人数
+        var periodNo = data.period_no || "---"
+        var totalPlayers = data.total_players || 0
         
-        // 奖励信息
-        var rewardNode = new cc.Node("Reward")
-        rewardNode.y = cardHeight/2 - 150
-        var rewardLabel = rewardNode.addComponent(cc.Label)
-        rewardLabel.string = "获得竞技币: " + (data.my_match_coin || 0)
-        rewardLabel.fontSize = 24
-        rewardLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-        rewardNode.color = cc.color(100, 255, 100)
-        rewardNode.parent = cardNode
+        var periodNode = new cc.Node("PeriodNo")
+        periodNode.setPosition(0, 220)
+        var periodLabel = periodNode.addComponent(cc.Label)
+        periodLabel.string = "第" + periodNo + "期赛事结束  共" + totalPlayers + "人参赛"
+        periodLabel.fontSize = 24
+        periodLabel.lineHeight = 30
+        periodLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        periodNode.color = new cc.Color(200, 200, 220)
+        periodNode.parent = dialogContainer
         
-        // 冠军信息
-        if (data.top3 && data.top3.length > 0) {
-            var championNode = new cc.Node("Champion")
-            championNode.y = cardHeight/2 - 210
-            var championLabel = championNode.addComponent(cc.Label)
-            championLabel.string = "🏆 冠军: " + (data.top3[0].player_name || "未知")
-            championLabel.fontSize = 20
-            championLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-            championNode.color = cc.color(255, 200, 100)
-            championNode.parent = cardNode
+        // TOP3 领奖台
+        var top3 = data.top3 || []
+        var podiumY = 40
+        var spacingX = 280
+        
+        // 冠军
+        if (top3.length >= 1) {
+            this._createPodiumItem(dialogContainer, top3[0], 1, 0, podiumY + 40, 1.15)
+        }
+        // 亚军
+        if (top3.length >= 2) {
+            this._createPodiumItem(dialogContainer, top3[1], 2, -spacingX, podiumY, 1.0)
+        }
+        // 季军
+        if (top3.length >= 3) {
+            this._createPodiumItem(dialogContainer, top3[2], 3, spacingX, podiumY, 1.0)
         }
         
-        // 确定按钮
-        var btnNode = new cc.Node("ConfirmBtn")
-        btnNode.y = -cardHeight/2 + 50
-        btnNode.setContentSize(cc.size(160, 45))
+        // 我的排名区域
+        var myRank = data.my_rank || 0
+        var myCoin = data.my_match_coin || 0
         
-        var btnBg = btnNode.addComponent(cc.Graphics)
-        btnBg.fillColor = cc.color(80, 150, 80, 255)
-        btnBg.roundRect(-80, -22.5, 160, 45, 8)
+        var myRankContainer = new cc.Node("MyRankContainer")
+        myRankContainer.setPosition(0, -200)
+        myRankContainer.setContentSize(600, 50)
+        
+        var myRankBg = new cc.Node("Bg")
+        var myRankBgGraphics = myRankBg.addComponent(cc.Graphics)
+        myRankBgGraphics.fillColor = new cc.Color(40, 50, 80, 230)
+        myRankBgGraphics.roundRect(-300, -25, 600, 50, 12)
+        myRankBgGraphics.fill()
+        myRankBgGraphics.strokeColor = new cc.Color(100, 120, 160)
+        myRankBgGraphics.lineWidth = 2
+        myRankBgGraphics.roundRect(-300, -25, 600, 50, 12)
+        myRankBgGraphics.stroke()
+        myRankBg.parent = myRankContainer
+        
+        var myRankLabel = new cc.Node("MyRankLabel")
+        myRankLabel.setPosition(-140, 0)
+        var myRankText = myRankLabel.addComponent(cc.Label)
+        myRankText.string = myRank > 0 ? "我的排名：第" + myRank + "名" : "我的排名：未上榜"
+        myRankText.fontSize = 22
+        myRankText.lineHeight = 28
+        myRankText.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        myRankLabel.color = new cc.Color(100, 200, 255)
+        myRankLabel.parent = myRankContainer
+        
+        var myCoinLabel = new cc.Node("MyCoinLabel")
+        myCoinLabel.setPosition(140, 0)
+        var myCoinText = myCoinLabel.addComponent(cc.Label)
+        myCoinText.string = "比赛金币：" + myCoin
+        myCoinText.fontSize = 22
+        myCoinText.lineHeight = 28
+        myCoinText.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        myCoinLabel.color = new cc.Color(255, 200, 100)
+        myCoinLabel.parent = myRankContainer
+        
+        myRankContainer.parent = dialogContainer
+        
+        // 确认按钮
+        var confirmBtn = new cc.Node("ConfirmBtn")
+        confirmBtn.setPosition(0, -270)
+        confirmBtn.setContentSize(200, 50)
+        
+        var btnBg = confirmBtn.addComponent(cc.Graphics)
+        btnBg.fillColor = new cc.Color(80, 160, 80)
+        btnBg.roundRect(-100, -25, 200, 50, 12)
         btnBg.fill()
-        btnNode.parent = cardNode
+        btnBg.strokeColor = new cc.Color(120, 200, 120)
+        btnBg.lineWidth = 3
+        btnBg.roundRect(-100, -25, 200, 50, 12)
+        btnBg.stroke()
         
         var btnLabel = new cc.Node("Label")
-        var label = btnLabel.addComponent(cc.Label)
-        label.string = "确定"
-        label.fontSize = 22
-        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER
-        btnLabel.color = cc.color(255, 255, 255)
-        btnLabel.parent = btnNode
+        var btnLabelText = btnLabel.addComponent(cc.Label)
+        btnLabelText.string = "确 定"
+        btnLabelText.fontSize = 26
+        btnLabelText.lineHeight = 32
+        btnLabelText.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        btnLabel.color = new cc.Color(255, 255, 255)
+        var btnOutline = btnLabel.addComponent(cc.LabelOutline)
+        btnOutline.color = new cc.Color(30, 80, 30)
+        btnOutline.width = 2
+        btnLabel.parent = confirmBtn
         
-        // 点击事件
-        btnNode.on(cc.Node.EventType.TOUCH_END, function() {
-            self._hideArenaFinalRankDialog()
-            // 返回大厅
+        var btn = confirmBtn.addComponent(cc.Button)
+        confirmBtn.on('click', function() {
+            console.log("🏆 [TournamentFinalRank] 点击确认，返回大厅")
+            dialogNode.destroy()
             cc.director.loadScene("hallScene")
-        })
+        }, this)
         
-        console.log("🏟️ [_showArenaFinalRankDialog] 最终榜单弹窗已创建")
+        confirmBtn.parent = dialogContainer
+        
+        return dialogNode
+    },
+    
+    /**
+     * 🔧【新增】创建领奖台项目
+     */
+    _createPodiumItem: function(parentNode, playerData, rank, x, y, scale) {
+        var node = new cc.Node("PodiumItem_" + rank)
+        node.setPosition(x, y)
+        node.scale = scale || 1
+        
+        // 排名标签
+        var rankLabelNode = new cc.Node("RankLabel")
+        rankLabelNode.setPosition(0, 60)
+        var rankLabel = rankLabelNode.addComponent(cc.Label)
+        var rankTexts = { 1: "🥇 冠军", 2: "🥈 亚军", 3: "🥉 季军" }
+        rankLabel.string = rankTexts[rank] || ("第" + rank + "名")
+        rankLabel.fontSize = 22
+        rankLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        rankLabelNode.color = rank === 1 ? new cc.Color(255, 215, 0) : new cc.Color(200, 200, 220)
+        var rankOutline = rankLabelNode.addComponent(cc.LabelOutline)
+        rankOutline.color = new cc.Color(50, 50, 80)
+        rankOutline.width = 2
+        rankLabelNode.parent = node
+        
+        // 头像容器
+        var avatarSize = rank === 1 ? 70 : 60
+        var avatarContainer = new cc.Node("AvatarContainer")
+        avatarContainer.setPosition(0, 0)
+        avatarContainer.setContentSize(avatarSize, avatarSize)
+        
+        var avatarBg = new cc.Node("AvatarBg")
+        var avatarBgGraphics = avatarBg.addComponent(cc.Graphics)
+        avatarBgGraphics.fillColor = new cc.Color(60, 70, 100)
+        avatarBgGraphics.circle(0, 0, avatarSize/2 + 2)
+        avatarBgGraphics.fill()
+        avatarBgGraphics.strokeColor = rank === 1 ? new cc.Color(255, 215, 0) : new cc.Color(150, 150, 180)
+        avatarBgGraphics.lineWidth = rank === 1 ? 3 : 2
+        avatarBgGraphics.circle(0, 0, avatarSize/2 + 2)
+        avatarBgGraphics.stroke()
+        avatarBg.parent = avatarContainer
+        
+        // 🔧【修复】不使用 Mask 组件，直接显示头像（避免遮罩导致的不显示问题）
+        // 头像精灵（直接放在容器内）
+        var avatarSpriteNode = new cc.Node("AvatarSprite")
+        avatarSpriteNode.setPosition(0, 0)
+        avatarSpriteNode.setContentSize(avatarSize - 4, avatarSize - 4)
+        var avatarSprite = avatarSpriteNode.addComponent(cc.Sprite)
+        avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
+        // 🔧【关键修复】显式设置节点颜色为白色，确保图片可见
+        avatarSpriteNode.color = new cc.Color(255, 255, 255)
+        avatarSpriteNode.parent = avatarContainer
+        
+        console.log("🖼️ [_createPodiumItem] 创建头像节点, rank:", rank, "avatarUrl:", playerData.avatar)
+        
+        // 加载头像（🔧【修复】机器人也使用服务端传来的正确头像）
+        this._loadAvatarForPodium(avatarSprite, avatarSpriteNode, playerData.avatar, playerData.is_robot, avatarSize - 4)
+        
+        avatarContainer.parent = node
+        
+        // 昵称 - 直接使用真实昵称，机器人也一样
+        var nameLabelNode = new cc.Node("NameLabel")
+        nameLabelNode.setPosition(0, -55)
+        nameLabelNode.setContentSize(120, 30)
+        var nameLabel = nameLabelNode.addComponent(cc.Label)
+        var displayName = playerData.player_name || "玩家"
+        // 🔧【修复】机器人也使用真实昵称，不做特殊处理
+        
+        // 🔧【修复】昵称过长时截断显示，超出部分用"..."
+        var maxNameLength = 6  // 最多显示6个字符
+        if (displayName.length > maxNameLength) {
+            displayName = displayName.substring(0, maxNameLength) + "..."
+        }
+        
+        nameLabel.string = displayName
+        nameLabel.fontSize = rank === 1 ? 20 : 18
+        nameLabel.lineHeight = 24
+        nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        nameLabel.overflow = cc.Label.Overflow.CLAMP
+        nameLabelNode.color = new cc.Color(255, 255, 255)
+        var nameOutline = nameLabelNode.addComponent(cc.LabelOutline)
+        nameOutline.color = new cc.Color(30, 30, 50)
+        nameOutline.width = 1
+        nameLabelNode.parent = node
+        
+        // 金币
+        var coinLabelNode = new cc.Node("CoinLabel")
+        coinLabelNode.setPosition(0, -85)
+        var coinLabel = coinLabelNode.addComponent(cc.Label)
+        coinLabel.string = this._formatMatchCoin(playerData.match_coin || 0) + "金币"
+        coinLabel.fontSize = rank === 1 ? 18 : 16
+        coinLabel.lineHeight = 20
+        coinLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER
+        coinLabelNode.color = rank === 1 ? new cc.Color(255, 215, 0) : new cc.Color(255, 200, 100)
+        var coinOutline = coinLabelNode.addComponent(cc.LabelOutline)
+        coinOutline.color = new cc.Color(80, 50, 0)
+        coinOutline.width = 1
+        coinLabelNode.parent = node
+        
+        node.parent = parentNode
+        return node
+    },
+    
+    /**
+     * 🔧【新增】为领奖台加载头像
+     * 🔧【修复】机器人也使用服务端传来的正确头像，不再使用随机本地头像
+     * @param {cc.Sprite} sprite - Sprite组件
+     * @param {cc.Node} spriteNode - Sprite节点
+     * @param {string} avatarUrl - 头像URL
+     * @param {boolean} isRobot - 是否机器人
+     * @param {number} size - 头像尺寸
+     */
+    _loadAvatarForPodium: function(sprite, spriteNode, avatarUrl, isRobot, size) {
+        if (!sprite) {
+            console.error("🖼️ [_loadAvatarForPodium] sprite 为空，无法加载头像")
+            return
+        }
+        
+        console.log("🖼️ [_loadAvatarForPodium] 开始加载头像, URL:", avatarUrl, "isRobot:", isRobot, "size:", size)
+        
+        var self = this
+        var nodeSize = size || 60
+        
+        // 🔧【关键】设置默认状态，确保节点可见
+        if (spriteNode) {
+            spriteNode.active = true
+            spriteNode.opacity = 255
+            spriteNode.color = new cc.Color(255, 255, 255)
+        }
+        
+        // 🔧【修复】统一处理头像加载，不再区分机器人和真人
+        // 机器人也使用服务端传来的正确头像URL
+        if (!avatarUrl || avatarUrl === "") {
+            console.log("🖼️ [_loadAvatarForPodium] 头像URL为空，使用默认头像")
+            // 头像URL为空时使用默认头像
+            cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err, spriteFrame) {
+                if (!err && spriteFrame && sprite && sprite.isValid) {
+                    sprite.spriteFrame = spriteFrame
+                    console.log("🖼️ [_loadAvatarForPodium] 默认头像设置成功")
+                }
+            })
+            return
+        }
+        
+        if (avatarUrl.indexOf("http") === 0 || avatarUrl.indexOf("//") === 0) {
+            console.log("🖼️ [_loadAvatarForPodium] 加载远程头像...")
+            
+            // 🔧【修复】使用 cc.assetManager.loadRemote 加载远程图片
+            cc.assetManager.loadRemote(avatarUrl, function(err, texture) {
+                if (err) {
+                    console.error("🖼️ [_loadAvatarForPodium] 加载远程头像失败:", err)
+                    // 尝试使用内置头像
+                    cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
+                        if (!err2 && fallbackSprite && sprite && sprite.isValid) {
+                            sprite.spriteFrame = fallbackSprite
+                            console.log("🖼️ [_loadAvatarForPodium] 使用默认头像")
+                        }
+                    })
+                    return
+                }
+                
+                if (!texture) {
+                    console.error("🖼️ [_loadAvatarForPodium] texture 为空")
+                    return
+                }
+                
+                // 🔧【关键检查】确保 sprite 组件仍然有效
+                if (!sprite || !sprite.isValid) {
+                    console.warn("🖼️ [_loadAvatarForPodium] sprite 组件已失效，跳过设置")
+                    return
+                }
+                
+                console.log("🖼️ [_loadAvatarForPodium] 远程头像加载成功, texture:", texture.width, "x", texture.height)
+                
+                // 🔧【关键修复】创建 SpriteFrame 并设置
+                var spriteFrame = new cc.SpriteFrame(texture)
+                
+                // 设置 spriteFrame
+                sprite.spriteFrame = spriteFrame
+                
+                // 🔧【关键修复】确保节点尺寸正确
+                if (spriteNode && spriteNode.isValid) {
+                    spriteNode.setContentSize(nodeSize, nodeSize)
+                    spriteNode.opacity = 255
+                    spriteNode.active = true
+                    console.log("🖼️ [_loadAvatarForPodium] 节点尺寸已设置为:", nodeSize)
+                }
+                
+                // 🔧【关键修复】强制刷新 Sprite 组件
+                sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
+                sprite.markForRender()
+                
+                console.log("🖼️ [_loadAvatarForPodium] 头像设置完成！")
+            })
+        } else {
+            var localPath = "UI/headimage/" + avatarUrl
+            console.log("🖼️ [_loadAvatarForPodium] 加载本地头像:", localPath)
+            cc.resources.load(localPath, cc.SpriteFrame, function(err, spriteFrame) {
+                if (err || !spriteFrame) {
+                    console.error("🖼️ [_loadAvatarForPodium] 加载本地头像失败:", err)
+                    cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
+                        if (!err2 && fallbackSprite && sprite && sprite.isValid) {
+                            sprite.spriteFrame = fallbackSprite
+                        }
+                    })
+                    return
+                }
+                
+                if (sprite && sprite.isValid) {
+                    sprite.spriteFrame = spriteFrame
+                    console.log("🖼️ [_loadAvatarForPodium] 本地头像设置成功")
+                }
+            })
+        }
+    },
+    
+    /**
+     * 🔧【新增】获取机器人显示名称
+     */
+    _getRobotDisplayName: function(playerId, originalName) {
+        if (originalName && originalName.indexOf("智能陪练") === 0) {
+            return originalName
+        }
+        var robotIndex = 1
+        if (playerId) {
+            var lastChar = playerId.toString().slice(-1)
+            robotIndex = parseInt(lastChar) || 1
+        }
+        return "智能陪练" + robotIndex + "号"
+    },
+    
+    /**
+     * 🔧【新增】格式化金币显示
+     */
+    _formatMatchCoin: function(coin) {
+        if (coin >= 10000) {
+            return (coin / 10000).toFixed(1) + "万"
+        }
+        return coin.toString()
     },
     
     /**

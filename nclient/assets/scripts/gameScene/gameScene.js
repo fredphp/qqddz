@@ -1577,23 +1577,21 @@ cc.Class({
         avatarBgGraphics.stroke()
         avatarBg.parent = avatarContainer
         
-        // 🔧【修复】创建圆形遮罩节点，实现圆形头像效果
-        var maskNode = new cc.Node("AvatarMask")
-        maskNode.setContentSize(avatarSize - 4, avatarSize - 4)
-        var mask = maskNode.addComponent(cc.Mask)
-        mask.type = cc.Mask.Type.CIRCLE
-        maskNode.setPosition(0, 0)
-        maskNode.parent = avatarContainer
-        
-        // 头像精灵（放在遮罩内）
+        // 🔧【修复】不使用 Mask 组件，直接显示头像（避免遮罩导致的不显示问题）
+        // 头像精灵（直接放在容器内）
         var avatarSpriteNode = new cc.Node("AvatarSprite")
+        avatarSpriteNode.setPosition(0, 0)
+        avatarSpriteNode.setContentSize(avatarSize - 4, avatarSize - 4)
         var avatarSprite = avatarSpriteNode.addComponent(cc.Sprite)
         avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
-        avatarSpriteNode.setContentSize(avatarSize - 4, avatarSize - 4)
-        avatarSpriteNode.parent = maskNode
+        // 🔧【关键修复】显式设置节点颜色为白色，确保图片可见
+        avatarSpriteNode.color = new cc.Color(255, 255, 255)
+        avatarSpriteNode.parent = avatarContainer
+        
+        console.log("🖼️ [_createPodiumItem] 创建头像节点, rank:", rank, "avatarUrl:", playerData.avatar)
         
         // 加载头像（🔧【修复】机器人也使用服务端传来的正确头像）
-        this._loadAvatarForPodium(avatarSprite, playerData.avatar, playerData.is_robot)
+        this._loadAvatarForPodium(avatarSprite, avatarSpriteNode, playerData.avatar, playerData.is_robot, avatarSize - 4)
         
         avatarContainer.parent = node
         
@@ -1643,11 +1641,29 @@ cc.Class({
     /**
      * 🔧【新增】为领奖台加载头像
      * 🔧【修复】机器人也使用服务端传来的正确头像，不再使用随机本地头像
+     * @param {cc.Sprite} sprite - Sprite组件
+     * @param {cc.Node} spriteNode - Sprite节点
+     * @param {string} avatarUrl - 头像URL
+     * @param {boolean} isRobot - 是否机器人
+     * @param {number} size - 头像尺寸
      */
-    _loadAvatarForPodium: function(sprite, avatarUrl, isRobot) {
-        if (!sprite) return
+    _loadAvatarForPodium: function(sprite, spriteNode, avatarUrl, isRobot, size) {
+        if (!sprite) {
+            console.error("🖼️ [_loadAvatarForPodium] sprite 为空，无法加载头像")
+            return
+        }
         
-        console.log("🖼️ [_loadAvatarForPodium] 开始加载头像, URL:", avatarUrl, "isRobot:", isRobot)
+        console.log("🖼️ [_loadAvatarForPodium] 开始加载头像, URL:", avatarUrl, "isRobot:", isRobot, "size:", size)
+        
+        var self = this
+        var nodeSize = size || 60
+        
+        // 🔧【关键】设置默认状态，确保节点可见
+        if (spriteNode) {
+            spriteNode.active = true
+            spriteNode.opacity = 255
+            spriteNode.color = new cc.Color(255, 255, 255)
+        }
         
         // 🔧【修复】统一处理头像加载，不再区分机器人和真人
         // 机器人也使用服务端传来的正确头像URL
@@ -1655,40 +1671,63 @@ cc.Class({
             console.log("🖼️ [_loadAvatarForPodium] 头像URL为空，使用默认头像")
             // 头像URL为空时使用默认头像
             cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err, spriteFrame) {
-                if (!err && spriteFrame) {
+                if (!err && spriteFrame && sprite && sprite.isValid) {
                     sprite.spriteFrame = spriteFrame
+                    console.log("🖼️ [_loadAvatarForPodium] 默认头像设置成功")
                 }
             })
             return
         }
         
         if (avatarUrl.indexOf("http") === 0 || avatarUrl.indexOf("//") === 0) {
-            // 🔧【修复】根据URL扩展名确定图片格式
-            var ext = '.png'
-            if (avatarUrl.indexOf('.jpg') > 0 || avatarUrl.indexOf('.jpeg') > 0) {
-                ext = '.jpg'
-            } else if (avatarUrl.indexOf('.gif') > 0) {
-                ext = '.gif'
-            }
+            console.log("🖼️ [_loadAvatarForPodium] 加载远程头像...")
             
-            console.log("🖼️ [_loadAvatarForPodium] 加载远程头像, ext:", ext)
-            
-            // 🔧【修复】不指定ext参数，让引擎自动检测
+            // 🔧【修复】使用 cc.assetManager.loadRemote 加载远程图片
             cc.assetManager.loadRemote(avatarUrl, function(err, texture) {
-                if (err || !texture) {
+                if (err) {
                     console.error("🖼️ [_loadAvatarForPodium] 加载远程头像失败:", err)
                     // 尝试使用内置头像
                     cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
-                        if (!err2 && fallbackSprite) {
+                        if (!err2 && fallbackSprite && sprite && sprite.isValid) {
                             sprite.spriteFrame = fallbackSprite
                             console.log("🖼️ [_loadAvatarForPodium] 使用默认头像")
                         }
                     })
                     return
                 }
-                console.log("🖼️ [_loadAvatarForPodium] 远程头像加载成功")
+                
+                if (!texture) {
+                    console.error("🖼️ [_loadAvatarForPodium] texture 为空")
+                    return
+                }
+                
+                // 🔧【关键检查】确保 sprite 组件仍然有效
+                if (!sprite || !sprite.isValid) {
+                    console.warn("🖼️ [_loadAvatarForPodium] sprite 组件已失效，跳过设置")
+                    return
+                }
+                
+                console.log("🖼️ [_loadAvatarForPodium] 远程头像加载成功, texture:", texture.width, "x", texture.height)
+                
+                // 🔧【关键修复】创建 SpriteFrame 并设置
                 var spriteFrame = new cc.SpriteFrame(texture)
+                
+                // 设置 spriteFrame
                 sprite.spriteFrame = spriteFrame
+                
+                // 🔧【关键修复】确保节点尺寸正确
+                if (spriteNode && spriteNode.isValid) {
+                    spriteNode.setContentSize(nodeSize, nodeSize)
+                    spriteNode.opacity = 255
+                    spriteNode.active = true
+                    console.log("🖼️ [_loadAvatarForPodium] 节点尺寸已设置为:", nodeSize)
+                }
+                
+                // 🔧【关键修复】强制刷新 Sprite 组件
+                sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM
+                sprite.markForRender()
+                
+                console.log("🖼️ [_loadAvatarForPodium] 头像设置完成！")
             })
         } else {
             var localPath = "UI/headimage/" + avatarUrl
@@ -1697,14 +1736,17 @@ cc.Class({
                 if (err || !spriteFrame) {
                     console.error("🖼️ [_loadAvatarForPodium] 加载本地头像失败:", err)
                     cc.resources.load("UI/headimage/avatar_1", cc.SpriteFrame, function(err2, fallbackSprite) {
-                        if (!err2 && fallbackSprite) {
+                        if (!err2 && fallbackSprite && sprite && sprite.isValid) {
                             sprite.spriteFrame = fallbackSprite
                         }
                     })
                     return
                 }
-                console.log("🖼️ [_loadAvatarForPodium] 本地头像加载成功")
-                sprite.spriteFrame = spriteFrame
+                
+                if (sprite && sprite.isValid) {
+                    sprite.spriteFrame = spriteFrame
+                    console.log("🖼️ [_loadAvatarForPodium] 本地头像设置成功")
+                }
             })
         }
     },
