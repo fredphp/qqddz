@@ -1980,9 +1980,11 @@ cc.Class({
             clearInterval(this._countdownTimer);
         }
 
-        // 🔧【新增】初始化本地倒计时状态缓存
-        // 格式: { roomId: { periodNo, countdown, canSignup, lastUpdate } }
-        this._localArenaStatus = {};
+        // 🔧【关键修复】不要重新初始化 _localArenaStatus，保留之前的默认值
+        // 如果还没有初始化，才创建空对象
+        if (!this._localArenaStatus) {
+            this._localArenaStatus = {};
+        }
 
         // 🔧【修复】将 socket 变量定义移到外面，确保整个函数可用
         var socket = window.myglobal && window.myglobal.socket;
@@ -4055,6 +4057,7 @@ cc.Class({
         if (!arenas) return;
         
         var now = Date.now();
+        var arenaCount = this._arenaRooms ? this._arenaRooms.length : 0;
         
         // 🔧 调试：打印收到的完整数据
         
@@ -4083,11 +4086,32 @@ cc.Class({
                 }
             }
             
-            // 🔧【新增】获取房间配置，检查是否有开赛配置
+            // 🔧【关键修复】获取房间配置，检查是否有开赛配置
             var config = this._getArenaConfigByRoomId(roomId);
             var matchTimeRanges = config && (config.match_time_ranges || config.matchTimeRanges);
             var matchDuration = config && (config.match_duration || config.matchDuration);
             var hasMatchConfig = matchTimeRanges && matchDuration;
+            
+            // 🔧【关键修复】如果没有配置，保持之前的默认值或按位置判断
+            if (!hasMatchConfig) {
+                // 优先保持之前的值
+                if (oldStatus && oldStatus.hasMatchConfig !== undefined) {
+                    hasMatchConfig = oldStatus.hasMatchConfig;
+                } else {
+                    // 按位置判断：找到这个房间在 _arenaRooms 中的位置
+                    var roomIndex = -1;
+                    if (this._arenaRooms) {
+                        for (var j = 0; j < this._arenaRooms.length; j++) {
+                            if (this._arenaRooms[j].config.id === roomId) {
+                                roomIndex = j;
+                                break;
+                            }
+                        }
+                    }
+                    // 前 N-1 个默认显示，最后一个不显示
+                    hasMatchConfig = (roomIndex >= 0 && roomIndex < arenaCount - 1);
+                }
+            }
             
             // 保存服务端推送的状态（支持新字段）
             this._localArenaStatus[roomId] = {
@@ -4119,6 +4143,9 @@ cc.Class({
         for (var roomId in this._localArenaStatus) {
             var status = this._localArenaStatus[roomId];
             
+            // 🔧【重要】保存当前的 hasMatchConfig 值
+            var savedHasMatchConfig = status.hasMatchConfig;
+            
             // 🔧【新增】容错机制：如果超过35秒没收到服务端推送，使用本地计算校准
             var timeSinceLastUpdate = (now - status.lastUpdate) / 1000;
             if (timeSinceLastUpdate > 35) {
@@ -4146,6 +4173,8 @@ cc.Class({
                     status.periodNo = phaseInfo.periodNo;
                     status.periodNoStr = phaseInfo.periodNoStr;
                     status.isLocalCalculated = true;
+                    // 🔧【重要】保持 hasMatchConfig 值不变
+                    status.hasMatchConfig = savedHasMatchConfig;
                     needUpdate = true;
                 }
                 continue;
@@ -4180,6 +4209,8 @@ cc.Class({
                         status.canSignup = phaseInfo.canSignup;
                         status.periodNo = phaseInfo.periodNo;
                         status.periodNoStr = phaseInfo.periodNoStr;
+                        // 🔧【重要】保持 hasMatchConfig 值不变
+                        status.hasMatchConfig = savedHasMatchConfig;
                     }
                 }
             }
