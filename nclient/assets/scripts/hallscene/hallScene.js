@@ -7573,7 +7573,13 @@ cc.Class({
         var nicknameNode = playerNode.getChildByName("nickname_label");
         var nicknameY = nicknameNode ? nicknameNode.y : 43;
         
-        // 昵称位置保持不变，货币显示在昵称下方
+        // 🔧【修改】将昵称往上移一点（+10px）
+        if (nicknameNode) {
+            nicknameNode.y = nicknameY + 10;
+            nicknameY = nicknameNode.y;  // 更新 nicknameY 供后续使用
+        }
+        
+        // 昵称位置已调整，货币显示在昵称下方
         // 昵称高度约40px，货币显示在昵称下方20px处
         
         // 隐藏原来的金豆图标、金框和原来的金币显示节点（避免重复显示）
@@ -7584,9 +7590,9 @@ cc.Class({
         if (goldFrame) goldFrame.active = false;
         if (oldGobalLabel) oldGobalLabel.active = false;  // 隐藏原来的金币显示，避免重复
         
-        // 创建货币显示容器（欢乐豆和竞技币放在同一行）
+        // 创建货币显示容器（只显示欢乐豆，竞技币已隐藏）
         // 位置：距离头像10px，在昵称下方
-        var currencyY = nicknameY - 28;  // 昵称下方28px，避免重叠
+        var currencyY = nicknameY - 35;  // 昵称下方35px
         var currencyContainer = this._createCurrencyContainerRow(
             playerNode, 
             "currency_display_row", 
@@ -7681,60 +7687,17 @@ cc.Class({
         outline2.width = 1;
         happyBeanValueLabel.parent = container;
         
-        // ========== 竞技币显示 ==========
-        var arenaStartX = iconSize + iconTextGap + 55 + currencyGap;  // 欢乐豆区域 + 间距
+        // ========== 竞技币显示（已隐藏）==========
+        // 🔧【修改】用户要求隐藏竞技币图标和数字
+        // var arenaStartX = iconSize + iconTextGap + 55 + currencyGap;
+        // ... 竞技币相关代码已注释 ...
         
-        // 竞技币图标 - 22px圆形带"币"字
-        var arenaCoinIcon = new cc.Node("arena_coin_icon");
-        arenaCoinIcon.anchorX = 0.5;   // 修改：锚点设在中心，方便文字居中
-        arenaCoinIcon.anchorY = 0.5;   // 垂直居中
-        arenaCoinIcon.x = arenaStartX + iconSize / 2; // 修改：调整位置使图标正确显示
-        arenaCoinIcon.y = 0;           // 容器中心
-        arenaCoinIcon.setContentSize(iconSize, iconSize);
-        
-        // 绘制图标背景 - 蓝色
-        var arenaCoinGraphics = arenaCoinIcon.addComponent(cc.Graphics);
-        arenaCoinGraphics.fillColor = cc.color(100, 180, 255);
-        arenaCoinGraphics.circle(0, 0, iconSize / 2);
-        arenaCoinGraphics.fill();
-        arenaCoinIcon.parent = container;
-        
-        // 图标上的"币"字 - 居中显示在圆形背景中
-        var arenaCoinTextNode = new cc.Node("text");
-        arenaCoinTextNode.anchorX = 0.5;
-        arenaCoinTextNode.anchorY = 0.5;
-        arenaCoinTextNode.x = 0;      // 修改：明确设置位置在图标中心
-        arenaCoinTextNode.y = 0;      // 修改：明确设置位置在图标中心
-        var arenaCoinText = arenaCoinTextNode.addComponent(cc.Label);
-        arenaCoinText.string = "币";
-        arenaCoinText.fontSize = 13;
-        arenaCoinText.lineHeight = iconSize;  // 修改：行高等于图标大小，确保垂直居中
-        arenaCoinText.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        arenaCoinText.verticalAlign = cc.Label.VerticalAlign.CENTER;  // 修改：添加垂直居中对齐
-        arenaCoinTextNode.color = cc.color(255, 255, 255);  // 白色
-        arenaCoinTextNode.parent = arenaCoinIcon;
-        
-        // 竞技币数值 - line-height=40px，垂直居中
-        var arenaCoinValueLabel = new cc.Node("arena_coin_value");
-        arenaCoinValueLabel.anchorX = 0;
-        arenaCoinValueLabel.anchorY = 0.5;  // 垂直居中
-        arenaCoinValueLabel.x = arenaStartX + iconSize + iconTextGap;  // 图标宽度 + 间距
-        arenaCoinValueLabel.y = 0;          // 容器中心
-        var arenaCoinValue = arenaCoinValueLabel.addComponent(cc.Label);
-        arenaCoinValue.string = "0";
-        arenaCoinValue.fontSize = valueFontSize;
-        arenaCoinValue.lineHeight = containerHeight;  // line-height = 40px
-        arenaCoinValue.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
-        arenaCoinValue.verticalAlign = cc.Label.VerticalAlign.CENTER;  // 垂直居中
-        arenaCoinValueLabel.color = cc.color(100, 200, 255);  // 蓝色
-        var outline4 = arenaCoinValueLabel.addComponent(cc.LabelOutline);
-        outline4.color = cc.color(0, 0, 0);
-        outline4.width = 1;
-        arenaCoinValueLabel.parent = container;
+        // 不创建竞技币显示，返回空的引用
+        var arenaCoinValueLabel = null;
         
         return {
             happyBeanLabel: happyBeanValueLabel,
-            arenaCoinLabel: arenaCoinValueLabel
+            arenaCoinLabel: arenaCoinValueLabel  // 返回null，不显示竞技币
         };
     },
     

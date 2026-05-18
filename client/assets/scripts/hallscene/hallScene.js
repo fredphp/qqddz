@@ -5550,6 +5550,12 @@ cc.Class({
         var playerNode = this.node.getChildByName("player_node");
         if (!playerNode) return;
         
+        // 🔧【修改】将昵称往上移一点
+        var nicknameNode = playerNode.getChildByName("nickname_label");
+        if (nicknameNode) {
+            nicknameNode.y = nicknameNode.y + 10;
+        }
+        
         var yuanbaoIcon = playerNode.getChildByName("yuanbaoIcon");
         var goldFrame = playerNode.getChildByName("gold_frame");
         
