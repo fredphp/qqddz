@@ -735,7 +735,7 @@ cc.Class({
                             if (myglobal.socket && myglobal.socket.initSocket) {
                                 myglobal.socket.initSocket();
                             }
-                            cc.director.loadScene("hallScene");
+                            cc.director.loadScene("gameSelectScene");
                         }, 0.5);
                     }
                 } else {
@@ -956,7 +956,15 @@ cc.Class({
     // 🚀【性能优化】预加载场景
     _preloadScenes: function() {
         
-        // 预加载大厅场景
+        // 预加载游戏选择场景
+        cc.director.preloadScene("gameSelectScene", function(err) {
+            if (err) {
+                console.error("🚀 [预加载] 游戏选择场景预加载失败:", err);
+                return;
+            }
+        });
+        
+        // 预加载大厅场景（游戏选择场景会跳转到这里）
         cc.director.preloadScene("hallScene", function(err) {
             if (err) {
                 console.error("🚀 [预加载] 大厅场景预加载失败:", err);
@@ -1254,7 +1262,7 @@ cc.Class({
             }
 
             myglobal.playerData.gobal_count = result.goldcount || 0;
-            cc.director.loadScene("hallScene");
+            cc.director.loadScene("gameSelectScene");
         });
     },
 
@@ -1886,7 +1894,7 @@ cc.Class({
                     if (cc.isValid(popup)) {
                         popup.destroy();
                     }
-                    cc.director.loadScene("hallScene");
+                    cc.director.loadScene("gameSelectScene");
                 }, 0.5);
                 return;
             }
@@ -1925,7 +1933,7 @@ cc.Class({
                                 if (cc.isValid(popup)) {
                                     popup.destroy();
                                 }
-                                cc.director.loadScene("hallScene");
+                                cc.director.loadScene("gameSelectScene");
                             }, 0.5);
                         } else {
                             showMessage(resp.message || "登录失败", true);
@@ -1966,7 +1974,7 @@ cc.Class({
                                         if (cc.isValid(popup)) {
                                             popup.destroy();
                                         }
-                                        cc.director.loadScene("hallScene");
+                                        cc.director.loadScene("gameSelectScene");
                                     }, 0.5);
                                 } else {
                                     showMessage(resp.message || "登录失败", true);
@@ -2009,7 +2017,7 @@ cc.Class({
                     if (cc.isValid(popup)) {
                         popup.destroy();
                     }
-                    cc.director.loadScene("hallScene");
+                    cc.director.loadScene("gameSelectScene");
                 }, 0.5);
                 return;
             }
@@ -2051,7 +2059,7 @@ cc.Class({
                                 if (cc.isValid(popup)) {
                                     popup.destroy();
                                 }
-                                cc.director.loadScene("hallScene");
+                                cc.director.loadScene("gameSelectScene");
                             }, 0.5);
                         } else {
                             showMessage(resp.message || "登录失败", true);
@@ -2093,7 +2101,7 @@ cc.Class({
                                         if (cc.isValid(popup)) {
                                             popup.destroy();
                                         }
-                                        cc.director.loadScene("hallScene");
+                                        cc.director.loadScene("gameSelectScene");
                                     }, 0.5);
                                 } else {
                                     showMessage(resp.message || "登录失败", true);
