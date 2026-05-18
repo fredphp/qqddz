@@ -118,3 +118,29 @@ func (sysUserAgreementService *SysUserAgreementService) GetLatestUserAgreement()
         }
         return
 }
+
+// RefreshCache 刷新缓存
+func (sysUserAgreementService *SysUserAgreementService) RefreshCache() (err error) {
+        // 刷新游戏服务器缓存
+        refreshGameServerCache()
+        return nil
+}
+
+// GetHelpArticleList 获取帮助文章列表
+func (sysUserAgreementService *SysUserAgreementService) GetHelpArticleList() (list []example.SysUserAgreement, err error) {
+        err = global.GVA_DB.Where("status = 1 AND type = ?", "help").
+                Order("sort ASC, created_at DESC").
+                Find(&list).Error
+        return
+}
+
+// GetLatestHelpArticle 获取最新帮助文章
+func (sysUserAgreementService *SysUserAgreementService) GetLatestHelpArticle() (article example.SysUserAgreement, err error) {
+        err = global.GVA_DB.Where("status = 1 AND type = ?", "help").
+                Order("sort ASC, created_at DESC").
+                First(&article).Error
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+                return example.SysUserAgreement{}, nil
+        }
+        return
+}
