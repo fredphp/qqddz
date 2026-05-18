@@ -1399,6 +1399,41 @@ cc.Class({
         var originalHeight = cardPanel.height;
         cardPanel.setContentSize(cardPanel.width, originalHeight + 70);
         
+        // 🔧【修复】先初始化本地状态，再加载图片和启动定时器
+        // 确保 _localArenaStatus 在 _loadSignupButtonImages 回调前已初始化
+        if (!this._localArenaStatus) {
+            this._localArenaStatus = {};
+        }
+        
+        // 🔧【修复】立即为所有竞技场房间设置默认状态
+        for (var j = 0; j < this._arenaRooms.length; j++) {
+            var roomInfo = this._arenaRooms[j];
+            var roomConfig = roomInfo.config;
+            var roomConfigId = roomConfig.id;
+            
+            // 检查是否有开赛时间配置（有配置的才显示期号和报名按钮）
+            var matchTimeRanges = roomConfig.match_time_ranges || roomConfig.matchTimeRanges;
+            var matchDuration = roomConfig.match_duration || roomConfig.matchDuration;
+            var hasMatchConfig = matchTimeRanges && matchDuration;
+            
+            // 设置默认状态
+            this._localArenaStatus[roomConfigId] = {
+                periodNo: 0,
+                periodNoStr: "",
+                phase: hasMatchConfig ? 2 : 0,  // 有配置默认报名阶段，无配置默认未开放
+                countdown: hasMatchConfig ? 300 : -1,  // 有配置默认5分钟，无配置-1
+                canSignup: hasMatchConfig,  // 有配置可以报名
+                totalPlayers: 0,
+                statusText: hasMatchConfig ? "报名中" : "暂未开放",
+                lastUpdate: Date.now(),
+                isLocalCalculated: true,
+                hasMatchConfig: hasMatchConfig  // 🔧【新增】标记是否有开赛配置
+            };
+        }
+        
+        // 🔧【修复】立即更新显示为默认状态
+        this._updateCountdownFromLocalCache();
+        
         // 加载按钮图片并更新状态
         this._loadSignupButtonImages();
         
@@ -3969,8 +4004,13 @@ cc.Class({
             var config = room.config;
             var roomId = config.id;
             
-            // 如果已经有服务端推送的数据，跳过
+            // 如果已经有数据，跳过
             if (this._localArenaStatus[roomId]) continue;
+            
+            // 🔧【新增】检查是否有开赛配置
+            var matchTimeRanges = config.match_time_ranges || config.matchTimeRanges;
+            var matchDuration = config.match_duration || config.matchDuration;
+            var hasMatchConfig = matchTimeRanges && matchDuration;
             
             // 使用本地计算作为初始值
             var phaseInfo = this._calculatePhaseInfo(config);
@@ -3984,7 +4024,8 @@ cc.Class({
                 totalPlayers: 0,  // 🔧【修复】初始化报名人数为0
                 statusText: "",
                 lastUpdate: now,
-                isLocalCalculated: true  // 标记为本地计算
+                isLocalCalculated: true,  // 标记为本地计算
+                hasMatchConfig: hasMatchConfig  // 🔧【新增】标记是否有开赛配置
             };
         }
         
@@ -4025,6 +4066,12 @@ cc.Class({
                 }
             }
             
+            // 🔧【新增】获取房间配置，检查是否有开赛配置
+            var config = this._getArenaConfigByRoomId(roomId);
+            var matchTimeRanges = config && (config.match_time_ranges || config.matchTimeRanges);
+            var matchDuration = config && (config.match_duration || config.matchDuration);
+            var hasMatchConfig = matchTimeRanges && matchDuration;
+            
             // 保存服务端推送的状态（支持新字段）
             this._localArenaStatus[roomId] = {
                 periodNo: arena.period_no,
@@ -4035,7 +4082,8 @@ cc.Class({
                 totalPlayers: arena.total_players || arena.totalPlayers || 0,
                 statusText: arena.status_text || arena.statusText || "",
                 lastUpdate: now,
-                isLocalCalculated: false  // 服务端推送
+                isLocalCalculated: false,  // 服务端推送
+                hasMatchConfig: hasMatchConfig  // 🔧【新增】标记是否有开赛配置
             };
         }
         
@@ -4246,6 +4294,7 @@ cc.Class({
     },
 
     // 🔧【新增】从本地缓存更新倒计时显示
+    // 🔧【修复】根据 hasMatchConfig 决定是否显示期号和报名按钮
     _updateCountdownFromLocalCache: function() {
         if (!this._arenaRooms || !this._localArenaStatus) return;
         
@@ -4262,23 +4311,55 @@ cc.Class({
             var localStatus = this._localArenaStatus[roomId];
             if (!localStatus) continue;
             
+            // 🔧【关键】检查是否有开赛配置
+            var hasMatchConfig = localStatus.hasMatchConfig;
+            if (hasMatchConfig === undefined) {
+                // 兼容旧数据：检查配置
+                var matchTimeRanges = config.match_time_ranges || config.matchTimeRanges;
+                var matchDuration = config.match_duration || config.matchDuration;
+                hasMatchConfig = matchTimeRanges && matchDuration;
+            }
+            
             // 获取状态项节点
             var roomStatusItem = countdownContainer ? countdownContainer.getChildByName("RoomStatusItem_" + roomId) : null;
             if (!roomStatusItem) continue;
             
             var periodLabel = roomStatusItem.getChildByName("PeriodLabel");
             var titleLabel = roomStatusItem.getChildByName("TitleLabel");
+            var bgNode = roomStatusItem.getChildByName("Bg");
             
             // 获取报名按钮
             var signupBtn = buttonContainer ? buttonContainer.getChildByName("SignupBtn_" + roomId) : null;
             
-            // 更新时期号显示（使用新的字符串格式期号）
+            // 🔧【关键修复】没有开赛配置的房间（大师房）：隐藏状态栏和报名按钮
+            if (!hasMatchConfig) {
+                // 隐藏整个状态项
+                roomStatusItem.active = false;
+                // 隐藏报名按钮
+                if (signupBtn) signupBtn.active = false;
+                continue;
+            }
+            
+            // 有开赛配置的房间：显示状态栏和报名按钮
+            roomStatusItem.active = true;
+            
+            // 更新时期号显示
             if (periodLabel) {
                 var periodLabelComp = periodLabel.getComponent(cc.Label);
                 var periodNoStr = localStatus.period_no_str || localStatus.periodNoStr || localStatus.periodNo;
-                if (periodNoStr && localStatus.phase !== 0) {
+                if (periodNoStr && periodNoStr !== "") {
                     periodLabelComp.string = "期号: " + periodNoStr;
                     periodLabel.color = cc.color(255, 215, 0);  // 金色
+                } else if (localStatus.phase === 2) {
+                    // 报名阶段但没有期号字符串，显示期号数字
+                    var periodNo = localStatus.periodNo || 0;
+                    if (periodNo > 0) {
+                        periodLabelComp.string = "期号: " + periodNo;
+                        periodLabel.color = cc.color(255, 215, 0);  // 金色
+                    } else {
+                        periodLabelComp.string = "期号: --";
+                        periodLabel.color = cc.color(180, 180, 180);  // 灰色
+                    }
                 } else {
                     periodLabelComp.string = "期号: --";
                     periodLabel.color = cc.color(180, 180, 180);  // 灰色
@@ -4312,6 +4393,7 @@ cc.Class({
             
             // 更新报名按钮状态
             if (signupBtn) {
+                signupBtn.active = true;  // 有配置的房间显示按钮
                 var sprite = signupBtn.getComponent(cc.Sprite);
                 var button = signupBtn.getComponent(cc.Button);
                 
@@ -4328,7 +4410,6 @@ cc.Class({
                     if (this._signupBtnFrames && this._signupBtnFrames['btn_no_baoming']) {
                         sprite.spriteFrame = this._signupBtnFrames['btn_no_baoming'];
                     }
-                    signupBtn.active = true;
                     if (button) button.enabled = false;
                 } else {
                     // 检查是否已报名
@@ -4339,14 +4420,12 @@ cc.Class({
                         if (this._signupBtnFrames && this._signupBtnFrames['btn_quxiaobaoming']) {
                             sprite.spriteFrame = this._signupBtnFrames['btn_quxiaobaoming'];
                         }
-                        signupBtn.active = true;
                         if (button) button.enabled = true;
                     } else {
                         // 未报名：显示报名按钮
                         if (this._signupBtnFrames && this._signupBtnFrames['btn_baoming']) {
                             sprite.spriteFrame = this._signupBtnFrames['btn_baoming'];
                         }
-                        signupBtn.active = true;
                         if (button) button.enabled = true;
                     }
                 }
