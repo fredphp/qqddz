@@ -529,10 +529,11 @@ func CreateRoomConfig(config *RoomConfig) error {
 }
 
 // GetRoomConfigByID 根据ID获取房间配置
-// 🔧【修复】显式添加 deleted_at IS NULL 条件，确保过滤软删除记录
+// 🔧【修复】GORM 会自动过滤软删除记录（因为 RoomConfig 包含 gorm.DeletedAt 字段）
+// 不需要手动添加 deleted_at IS NULL 条件
 func GetRoomConfigByID(id uint64) (*RoomConfig, error) {
         var config RoomConfig
-        err := DB().Where("deleted_at IS NULL").First(&config, id).Error
+        err := DB().First(&config, id).Error
         if err != nil {
                 return nil, err
         }
@@ -540,10 +541,10 @@ func GetRoomConfigByID(id uint64) (*RoomConfig, error) {
 }
 
 // GetRoomConfigByType 根据类型获取房间配置
-// 🔧【修复】添加 deleted_at IS NULL 条件，正确过滤软删除记录
+// 🔧【修复】GORM 会自动过滤软删除记录，只需过滤 status = 1
 func GetRoomConfigByType(roomType uint8) (*RoomConfig, error) {
         var config RoomConfig
-        err := DB().Where("room_type = ? AND status = ? AND deleted_at IS NULL", roomType, RoomConfigStatusOpen).
+        err := DB().Where("room_type = ? AND status = ?", roomType, RoomConfigStatusOpen).
                 First(&config).Error
         if err != nil {
                 return nil, err
@@ -552,15 +553,17 @@ func GetRoomConfigByType(roomType uint8) (*RoomConfig, error) {
 }
 
 // GetActiveRoomConfigs 获取所有启用的房间配置
-// 🔧【修复】添加 deleted_at IS NULL 条件，正确过滤软删除记录
+// 🔧【修复】GORM 会自动过滤软删除记录，只需过滤 status = 1
+// 注意：RoomConfig 模型包含 gorm.DeletedAt 字段，GORM 会自动添加 deleted_at IS NULL 条件
 func GetActiveRoomConfigs() ([]RoomConfig, error) {
         var configs []RoomConfig
-        err := DB().Where("status = ? AND deleted_at IS NULL", RoomConfigStatusOpen).
+        err := DB().Where("status = ?", RoomConfigStatusOpen).
                 Order("sort_order ASC").
                 Find(&configs).Error
         if err != nil {
                 return nil, err
         }
+        log.Printf("📋 [GetActiveRoomConfigs] 查询到 %d 条启用且未删除的房间配置", len(configs))
         return configs, nil
 }
 
