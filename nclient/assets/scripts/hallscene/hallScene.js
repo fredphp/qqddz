@@ -4135,11 +4135,11 @@ cc.Class({
                 }
             }
             
-            // 🔧【关键修复】按位置判断 hasMatchConfig：
-            // 前 N-1 个显示，最后一个不显示
-            var hasMatchConfig = (matchedRoomIndex < arenaCount - 1);
+            // 🔧【关键修复】按服务端推送的位置判断 hasMatchConfig：
+            // 前 N-1 个显示，最后一个不显示（N 是服务端推送的竞技场数量）
+            var hasMatchConfig = (i < serverArenaCount - 1);
             
-            console.log("🏟️ [Arena] 客户端房间 " + clientRoomId + " hasMatchConfig=" + hasMatchConfig + ", matchedRoomIndex=" + matchedRoomIndex + ", arenaCount=" + arenaCount);
+            console.log("🏟️ [Arena] 客户端房间 " + clientRoomId + " hasMatchConfig=" + hasMatchConfig + ", i=" + i + ", serverArenaCount=" + serverArenaCount);
             
             // 保存服务端推送的状态（使用客户端房间 ID 作为 key）
             this._localArenaStatus[clientRoomId] = {
