@@ -4172,11 +4172,11 @@ cc.Class({
                 }
             }
             
-            // 🔧【关键修复】所有服务端推送的竞技场都显示期号和报名按钮
-            // 只有客户端的最后一个房间（非竞技场）不显示
-            var hasMatchConfig = true;  // 服务端推送的都是竞技场，都显示
+            // 🔧【关键修复】只有 room_category=2 的房间才显示期号和报名按钮
+            // 根据匹配到的客户端房间的 room_category 判断
+            var hasMatchConfig = (matchedRoomCategory === 2);
             
-            console.log("🏟️ [Arena] 客户端房间 " + clientRoomId + " hasMatchConfig=" + hasMatchConfig + ", i=" + i + ", serverArenaCount=" + serverArenaCount);
+            console.log("🏟️ [Arena] 客户端房间 " + clientRoomId + " hasMatchConfig=" + hasMatchConfig + ", room_category=" + matchedRoomCategory + ", i=" + i + ", serverArenaCount=" + serverArenaCount);
             
             // 保存服务端推送的状态（使用客户端房间 ID 作为 key）
             this._localArenaStatus[clientRoomId] = {
