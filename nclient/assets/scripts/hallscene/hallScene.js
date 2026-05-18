@@ -855,14 +855,15 @@ cc.Class({
             if (!self._allRooms) self._allRooms = [];
             self._allRooms.push(room);
             
-            // 🔧【兼容】仍然收集 room_category=2 的房间到 _arenaRooms
-            // 但这只用于兼容旧逻辑，新的判断逻辑使用服务端推送的数量
-            if (room.roomCategory === 2) {
+            // 🔧【修复】使用 room_type 判断是否是竞技场
+            // room_type 2,3,4 是竞技场
+            var isArenaByType = (room.roomType >= 2 && room.roomType <= 4);
+            if (isArenaByType) {
                 if (!self._arenaRooms) self._arenaRooms = [];
                 self._arenaRooms.push(room);
-                console.log("🏟️ [Arena] ✅ 收集竞技场房间(room_category=2): ID=" + room.config.id + ", room_type=" + room.roomType + ", roomCategory=" + room.roomCategory);
+                console.log("🏟️ [Arena] ✅ 收集竞技场房间(room_type=" + room.roomType + "): ID=" + room.config.id);
             } else {
-                console.log("🏟️ [Arena] 📋 普通房间: ID=" + room.config.id + ", room_type=" + room.roomType + ", roomCategory=" + room.roomCategory);
+                console.log("🏟️ [Arena] 📋 普通房间: ID=" + room.config.id + ", room_type=" + room.roomType);
             }
             
             // 🔧【新增】同时收集前N个房间作为竞技场房间的候选
@@ -870,17 +871,18 @@ cc.Class({
             if (!self._arenaCandidateRooms) self._arenaCandidateRooms = [];
             self._arenaCandidateRooms.push(room);
             
-            (function(config, node, roomName, roomCategory) {
+            (function(config, node, roomName, roomType) {
                 node.off(cc.Node.EventType.TOUCH_END);
                 node.on(cc.Node.EventType.TOUCH_END, function(event) {
                     event.stopPropagation();
-                    // 竞技场房间：不再响应整个卡片的点击，由报名按钮处理
-                    if (roomCategory === 2) {
+                    // 竞技场房间(room_type 2,3,4)：不再响应整个卡片的点击，由报名按钮处理
+                    var isArena = (roomType >= 2 && roomType <= 4);
+                    if (isArena) {
                         return;
                     }
                     self._onRoomButtonClick(config);
                 });
-            })(room.config, room.node, room.roomName, room.roomCategory);
+            })(room.config, room.node, room.roomName, room.roomType);
         }
         
         // 渲染布局 - 所有卡片排成一行
@@ -1076,13 +1078,16 @@ cc.Class({
         });
     },
     
-    // 更新最低豆子/竞技币显示（根据 room_category 判断）
-    // room_category: 1-普通场(使用min_gold字段显示豆), 2-竞技场(使用min_arena_coin字段显示竞技币)
+    // 更新最低豆子/竞技币显示
+    // 🔧【修复】根据服务端推送的竞技场 room_type 判断
+    // room_type 2,3,4 是竞技场(显示 min_arena_coin)，其他是普通场(显示 min_gold)
     _updateMinGoldLabel: function(btnNode, config) {
         var goldLabelNode = btnNode.getChildByName("min_gold_label");
         
-        // 获取房间分类，默认为普通场(1)
-        var roomCategory = config.room_category || config.roomCategory || 1;
+        // 🔧【修复】使用 room_type 判断是否是竞技场
+        // 服务端推送的竞技场 room_type 是 2,3,4
+        var roomType = config.room_type || config.roomType || 2;
+        var isArena = (roomType >= 2 && roomType <= 4);  // room_type 2,3,4 是竞技场
         
         if (!goldLabelNode) {
             goldLabelNode = new cc.Node("min_gold_label");
@@ -1106,11 +1111,10 @@ cc.Class({
         var label = goldLabelNode.getComponent(cc.Label);
         
         // 根据房间类型获取不同的字段值
-        // room_category: 1-普通场(使用min_gold), 2-竞技场(使用min_arena_coin)
         var minValue;
         var currencyName;
         
-        if (roomCategory === 2) {
+        if (isArena) {
             // 竞技场 - 使用 min_arena_coin 字段
             minValue = config.min_arena_coin || config.minArenaCoin || 0;
             currencyName = "币";
@@ -1138,18 +1142,20 @@ cc.Class({
     },
     
     // 房间按钮点击处理 - 根据房间类型区分处理
-    // room_category: 1-普通场(欢乐豆), 2-竞技场(竞技币)
+    // 🔧【修复】使用 room_type 判断是否是竞技场
+    // room_type 2,3,4 是竞技场，其他是普通场
     _onRoomButtonClick: function(roomConfig) {
         var self = this;
         var myglobal = window.myglobal;
-        var roomCategory = roomConfig.room_category || roomConfig.roomCategory || 1;
+        var roomType = roomConfig.room_type || roomConfig.roomType || 2;
+        var isArena = (roomType >= 2 && roomType <= 4);
         
         // 更新货币显示
-        this._currentRoomCategory = roomCategory;
+        this._currentRoomCategory = isArena ? 2 : 1;
         this._updateCurrencyDisplay();
         
         // 根据房间类型处理
-        if (roomCategory === 2) {
+        if (isArena) {
             // 竞技场房间 - 显示报名弹窗
             this._onArenaRoomButtonClick(roomConfig);
         } else {
