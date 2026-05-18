@@ -16,6 +16,17 @@ node_modules
 # next.js
 /.next/
 /out/
+next-env.d.ts
+postcss.config.mjs
+tailwind.config.ts
+package.json
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# Next.js src directory (not needed for this project)
+/src/
 
 # production
 /build
@@ -39,7 +50,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 local-*
 .claude
 .z-ai-config
