@@ -850,14 +850,25 @@ cc.Class({
                 button.zoomScale = 1.1;
             }
             
-            // 收集竞技场房间
+            // 🔧【修复】收集所有房间到 _allRooms 数组
+            // 竞技场房间的判断改用服务端推送的数量，不再依赖 room_category
+            if (!self._allRooms) self._allRooms = [];
+            self._allRooms.push(room);
+            
+            // 🔧【兼容】仍然收集 room_category=2 的房间到 _arenaRooms
+            // 但这只用于兼容旧逻辑，新的判断逻辑使用服务端推送的数量
             if (room.roomCategory === 2) {
                 if (!self._arenaRooms) self._arenaRooms = [];
                 self._arenaRooms.push(room);
-                console.log("🏟️ [Arena] ✅ 收集竞技场房间: ID=" + room.config.id + ", room_type=" + room.roomType + ", roomCategory=" + room.roomCategory);
+                console.log("🏟️ [Arena] ✅ 收集竞技场房间(room_category=2): ID=" + room.config.id + ", room_type=" + room.roomType + ", roomCategory=" + room.roomCategory);
             } else {
-                console.log("🏟️ [Arena] ⏭️ 跳过非竞技场房间: ID=" + room.config.id + ", room_type=" + room.roomType + ", roomCategory=" + room.roomCategory);
+                console.log("🏟️ [Arena] 📋 普通房间: ID=" + room.config.id + ", room_type=" + room.roomType + ", roomCategory=" + room.roomCategory);
             }
+            
+            // 🔧【新增】同时收集前N个房间作为竞技场房间的候选
+            // 服务端会推送竞技场数量，用于判断哪些房间需要显示期号和报名按钮
+            if (!self._arenaCandidateRooms) self._arenaCandidateRooms = [];
+            self._arenaCandidateRooms.push(room);
             
             (function(config, node, roomName, roomCategory) {
                 node.off(cc.Node.EventType.TOUCH_END);
@@ -1206,10 +1217,12 @@ cc.Class({
     
     // 检查是否已报名其他竞技场（初级、中级、高级场只能报一个）
     _hasSignedUpOtherArena: function(currentRoomId) {
-        if (!window.arenaData || !this._arenaRooms) return false;
+        // 🔧【修复】使用所有候选房间进行检查
+        var targetRooms = this._arenaCandidateRooms || this._arenaRooms;
+        if (!window.arenaData || !targetRooms) return false;
         
-        for (var i = 0; i < this._arenaRooms.length; i++) {
-            var room = this._arenaRooms[i];
+        for (var i = 0; i < targetRooms.length; i++) {
+            var room = targetRooms[i];
             var roomId = room.config.id;
             if (roomId !== currentRoomId && window.arenaData.isSignedUp(roomId)) {
                 return true;
@@ -1249,9 +1262,12 @@ cc.Class({
     
     // 为竞技场房间添加报名按钮（使用图片资源）
     // 报名按钮放在房间卡片的外部下方，紧贴卡片底部
+    // 🔧【修复】使用 _arenaCandidateRooms（所有房间），根据服务端推送的数量决定显示哪些
     _addArenaSignupButtons: function() {
         var self = this;
-        if (!this._arenaRooms) return;
+        // 🔧【修复】使用 _arenaCandidateRooms（所有房间），不再只使用 _arenaRooms
+        var targetRooms = this._arenaCandidateRooms || this._arenaRooms;
+        if (!targetRooms || targetRooms.length === 0) return;
         
         // 获取卡片容器
         var cardPanel = this.node.getChildByName("CardContainer");
@@ -1274,8 +1290,9 @@ cc.Class({
         var countdownContainer = new cc.Node("ArenaCountdowns");
         countdownContainer.parent = cardPanel;
         
-        for (var i = 0; i < this._arenaRooms.length; i++) {
-            var room = this._arenaRooms[i];
+        // 🔧【修复】遍历所有候选房间
+        for (var i = 0; i < targetRooms.length; i++) {
+            var room = targetRooms[i];
             var btnNode = room.node;
             var config = room.config;
             
@@ -1416,11 +1433,12 @@ cc.Class({
             this._localArenaStatus = {};
         }
         
-        // 🔧【修复】立即为所有竞技场房间设置默认状态
-        // 🔧【重要】前N-1个竞技场房间默认显示期号和报名按钮，最后一个不显示
-        var arenaCount = this._arenaRooms.length;
+        // 🔧【修复】立即为所有房间设置默认状态
+        // 🔧【重要】前N-1个房间默认显示期号和报名按钮，最后一个不显示
+        // 🔧【修复】使用 targetRooms（所有候选房间）
+        var arenaCount = targetRooms.length;
         for (var j = 0; j < arenaCount; j++) {
-            var roomInfo = this._arenaRooms[j];
+            var roomInfo = targetRooms[j];
             var roomConfig = roomInfo.config;
             var roomConfigId = roomConfig.id;
             
@@ -4017,16 +4035,19 @@ cc.Class({
     },
 
     // 🔧【新增】从配置初始化本地状态（作为备用）
+    // 🔧【修复】使用 _arenaCandidateRooms（所有房间），根据服务端推送的数量决定显示哪些
     _initLocalArenaStatusFromConfig: function() {
-        if (!this._arenaRooms) return;
+        // 🔧【修复】使用所有候选房间
+        var targetRooms = this._arenaCandidateRooms || this._arenaRooms;
+        if (!targetRooms) return;
         
         var now = Date.now();
-        var arenaCount = this._arenaRooms.length;
+        var arenaCount = targetRooms.length;
         
         console.log("🏟️ [Arena] _initLocalArenaStatusFromConfig 开始, arenaCount=" + arenaCount);
         
         for (var i = 0; i < arenaCount; i++) {
-            var room = this._arenaRooms[i];
+            var room = targetRooms[i];
             var config = room.config;
             var roomId = config.id;
             
@@ -4089,25 +4110,27 @@ cc.Class({
         if (!arenas) return;
         
         var now = Date.now();
-        var arenaCount = this._arenaRooms ? this._arenaRooms.length : 0;
+        // 🔧【修复】使用所有候选房间进行匹配
+        var targetRooms = this._arenaCandidateRooms || this._arenaRooms;
+        var arenaCount = targetRooms ? targetRooms.length : 0;
         var serverArenaCount = arenas.length;
         
         // 🔧 调试：打印收到的完整数据
         console.log("🏟️ [Arena] ========== 收到服务端推送 ==========");
-        console.log("🏟️ [Arena] arenas.length=" + serverArenaCount + ", 客户端 arenaCount=" + arenaCount);
+        console.log("🏟️ [Arena] arenas.length=" + serverArenaCount + ", 客户端 targetRooms.length=" + arenaCount);
         
-        // 🔧【调试】打印客户端的 _arenaRooms ID 列表
-        if (this._arenaRooms) {
+        // 🔧【调试】打印客户端的所有房间 ID 列表
+        if (targetRooms) {
             var clientRoomIds = [];
-            for (var k = 0; k < this._arenaRooms.length; k++) {
-                clientRoomIds.push(this._arenaRooms[k].config.id);
+            for (var k = 0; k < targetRooms.length; k++) {
+                clientRoomIds.push(targetRooms[k].config.id);
             }
-            console.log("🏟️ [Arena] 客户端竞技场房间 ID 列表: " + JSON.stringify(clientRoomIds));
+            console.log("🏟️ [Arena] 客户端所有房间 ID 列表: " + JSON.stringify(clientRoomIds));
         }
         
-        // 🔧【关键修复】按顺序索引匹配服务端数据到客户端竞技场房间
+        // 🔧【关键修复】按顺序索引匹配服务端数据到客户端房间
         // 因为服务端和客户端都是按 sort_order 排序的，所以顺序一致
-        // 服务端第 1 个 → 客户端第 1 个，服务端第 2 个 → 客户端第 2 个...
+        // 服务端第 1 个竞技场 → 客户端第 1 个房间，服务端第 2 个竞技场 → 客户端第 2 个房间...
         
         for (var i = 0; i < arenas.length; i++) {
             var arena = arenas[i];
@@ -4118,13 +4141,13 @@ cc.Class({
             // 🔧 调试：打印每个竞技场的详细信息
             console.log("🏟️ [Arena] 推送房间 room_id=" + serverRoomId + ", room_type=" + serverRoomType + ", phase=" + arena.phase + ", countdown=" + arena.countdown);
             
-            // 🔧【关键修复】按索引顺序匹配到客户端竞技场房间
-            // 服务端第 i 个竞技场 → 客户端 _arenaRooms[i]
+            // 🔧【关键修复】按索引顺序匹配到客户端房间
+            // 服务端第 i 个竞技场 → 客户端 targetRooms[i]
             var clientRoomId = null;
             var matchedRoomIndex = -1;
             
-            if (this._arenaRooms && i < this._arenaRooms.length) {
-                var clientRoom = this._arenaRooms[i];
+            if (targetRooms && i < targetRooms.length) {
+                var clientRoom = targetRooms[i];
                 clientRoomId = clientRoom.config.id;
                 matchedRoomIndex = i;
                 console.log("🏟️ [Arena] 服务端第" + (i+1) + "个竞技场 匹配到客户端房间 ID=" + clientRoomId);
@@ -4132,7 +4155,7 @@ cc.Class({
             
             // 如果客户端没有对应的房间，跳过
             if (clientRoomId === null) {
-                console.log("🏟️ [Arena] 客户端没有第 " + (i + 1) + " 个竞技场房间，跳过");
+                console.log("🏟️ [Arena] 客户端没有第 " + (i + 1) + " 个房间，跳过");
                 continue;
             }
             
@@ -4167,14 +4190,15 @@ cc.Class({
             };
         }
         
-        // 🔧【关键修复】确保所有竞技场房间都有状态（包括服务端没有推送的）
-        if (this._arenaRooms) {
-            for (var k = 0; k < this._arenaRooms.length; k++) {
-                var r = this._arenaRooms[k];
+        // 🔧【关键修复】确保所有房间都有状态（包括服务端没有推送的）
+        // 🔧【修复】使用所有候选房间
+        if (targetRooms) {
+            for (var k = 0; k < targetRooms.length; k++) {
+                var r = targetRooms[k];
                 var rid = r.config.id;
                 if (!this._localArenaStatus[rid]) {
                     // 如果服务端没有推送这个房间的状态，使用默认值
-                    var defaultHasMatchConfig = (k < this._arenaRooms.length - 1);
+                    var defaultHasMatchConfig = (k < targetRooms.length - 1);
                     this._localArenaStatus[rid] = {
                         periodNo: 0,
                         periodNoStr: "",
@@ -4395,11 +4419,13 @@ cc.Class({
 
     // 🔧【新增】根据roomId获取竞技场配置
     _getArenaConfigByRoomId: function(roomId) {
-        if (!this._arenaRooms) return null;
+        // 🔧【修复】使用所有候选房间
+        var targetRooms = this._arenaCandidateRooms || this._arenaRooms;
+        if (!targetRooms) return null;
         
-        for (var i = 0; i < this._arenaRooms.length; i++) {
-            if (this._arenaRooms[i].config.id === roomId) {
-                return this._arenaRooms[i].config;
+        for (var i = 0; i < targetRooms.length; i++) {
+            if (targetRooms[i].config.id === roomId) {
+                return targetRooms[i].config;
             }
         }
         return null;
@@ -4408,14 +4434,16 @@ cc.Class({
     // 🔧【新增】从本地缓存更新倒计时显示
     // 🔧【修复】根据 hasMatchConfig 决定是否显示期号和报名按钮
     _updateCountdownFromLocalCache: function() {
-        if (!this._arenaRooms || !this._localArenaStatus) return;
+        // 🔧【修复】使用所有候选房间
+        var targetRooms = this._arenaCandidateRooms || this._arenaRooms;
+        if (!targetRooms || !this._localArenaStatus) return;
         
         var cardPanel = this.node.getChildByName("CardContainer");
         var countdownContainer = cardPanel ? cardPanel.getChildByName("ArenaCountdowns") : null;
         var buttonContainer = cardPanel ? cardPanel.getChildByName("ArenaSignupButtons") : null;
         
-        for (var i = 0; i < this._arenaRooms.length; i++) {
-            var room = this._arenaRooms[i];
+        for (var i = 0; i < targetRooms.length; i++) {
+            var room = targetRooms[i];
             var config = room.config;
             var roomId = config.id;
             
@@ -4434,13 +4462,13 @@ cc.Class({
                 // 🔧【关键修复】如果配置中没有开赛时间，根据索引位置判断
                 // 前 N-1 个房间默认显示，最后一个不显示
                 if (!hasMatchConfig) {
-                    var arenaCount = this._arenaRooms.length;
+                    var arenaCount = targetRooms.length;
                     hasMatchConfig = (i < arenaCount - 1);
                 }
             }
             
             // 🔧【调试日志】打印每个房间的状态
-            console.log("🏟️ [Arena] 房间 " + roomId + " hasMatchConfig=" + hasMatchConfig + ", i=" + i + ", arenaCount=" + (this._arenaRooms ? this._arenaRooms.length : 0));
+            console.log("🏟️ [Arena] 房间 " + roomId + " hasMatchConfig=" + hasMatchConfig + ", i=" + i + ", arenaCount=" + (targetRooms ? targetRooms.length : 0));
             
             // 获取状态项节点
             var roomStatusItem = countdownContainer ? countdownContainer.getChildByName("RoomStatusItem_" + roomId) : null;
