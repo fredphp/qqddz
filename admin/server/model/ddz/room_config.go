@@ -47,7 +47,8 @@ func (DDZRoomConfig) TableName() string {
 }
 
 // DDZRoomConfigs 菜单房间配置（对应 ddz_room_configs 表）
-// 用于管理后台的菜单房间配置管理
+// ⚠️【废弃】此模型已废弃，请使用 DDZRoomConfig（ddz_room_config 表）
+// 所有房间配置统一使用 ddz_room_config 表，与游戏服务端保持一致
 type DDZRoomConfigs struct {
         global.GVA_MODEL
         Name        string `json:"name" gorm:"type:varchar(64);not null;comment:房间名称"`

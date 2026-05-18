@@ -14,7 +14,8 @@ type DDZConfigApi struct{}
 
 var ddzConfigService = service.ServiceGroupApp.DDZServiceGroup.DDZConfigService
 
-// GetRoomConfigList 获取菜单房间配置列表（ddz_room_configs 表）
+// GetRoomConfigList 获取菜单房间配置列表（ddz_room_config 表）
+// 🔧【修复】统一使用 ddz_room_config 表
 // @Tags     DDZ菜单房间配置
 // @Summary  分页获取菜单房间配置列表
 // @Security ApiKeyAuth
@@ -51,7 +52,8 @@ func (api *DDZConfigApi) GetRoomConfigList(c *gin.Context) {
         }, "获取成功", c)
 }
 
-// CreateRoomConfig 创建菜单房间配置（ddz_room_configs 表）
+// CreateRoomConfig 创建菜单房间配置（ddz_room_config 表）
+// 🔧【修复】统一使用 ddz_room_config 表
 // @Tags     DDZ菜单房间配置
 // @Summary  创建菜单房间配置
 // @Security ApiKeyAuth
@@ -78,7 +80,8 @@ func (api *DDZConfigApi) CreateRoomConfig(c *gin.Context) {
         response.OkWithMessage("创建成功", c)
 }
 
-// UpdateRoomConfig 更新菜单房间配置（ddz_room_configs 表）
+// UpdateRoomConfig 更新菜单房间配置（ddz_room_config 表）
+// 🔧【修复】统一使用 ddz_room_config 表
 // @Tags     DDZ菜单房间配置
 // @Summary  更新菜单房间配置
 // @Security ApiKeyAuth
@@ -105,7 +108,8 @@ func (api *DDZConfigApi) UpdateRoomConfig(c *gin.Context) {
         response.OkWithMessage("更新成功", c)
 }
 
-// DeleteRoomConfig 删除菜单房间配置（ddz_room_configs 表）
+// DeleteRoomConfig 删除菜单房间配置（ddz_room_config 表）
+// 🔧【修复】统一使用 ddz_room_config 表
 // @Tags     DDZ菜单房间配置
 // @Summary  删除菜单房间配置
 // @Security ApiKeyAuth

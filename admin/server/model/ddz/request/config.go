@@ -5,7 +5,8 @@ import (
         "github.com/flipped-aurora/gin-vue-admin/server/model/common/request"
 )
 
-// ==================== 菜单房间配置（ddz_room_configs 表）====================
+// ==================== 菜单房间配置（ddz_room_config 表）====================
+// 🔧【修复】统一使用 ddz_room_config 表（与游戏服务端一致）
 
 // DDZRoomConfigSearch 菜单房间配置搜索请求
 type DDZRoomConfigSearch struct {
