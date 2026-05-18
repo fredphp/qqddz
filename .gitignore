@@ -58,6 +58,9 @@ dev.log
 dev.out.log
 test
 prompt
+Caddyfile
+postcss.config.mjs
+tailwind.config.ts
 
 server.log
 # Skills directory
