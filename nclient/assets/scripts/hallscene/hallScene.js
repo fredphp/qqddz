@@ -4094,29 +4094,36 @@ cc.Class({
             console.log("🏟️ [Arena] 客户端竞技场房间 ID 列表: " + JSON.stringify(clientRoomIds));
         }
         
-        // 🔧【关键修复】按顺序索引匹配服务端数据到客户端竞技场房间
-        // 服务端的竞技场 ID (1, 2, 3...) 与客户端房间 ID (3, 4, 5...) 是不同的系统
-        // 我们按顺序匹配：服务端第1个 → 客户端第1个，服务端第2个 → 客户端第2个...
+        // 🔧【关键修复】根据 room_type 匹配服务端数据到客户端竞技场房间
+        // room_type：2=初级场, 3=中级场, 4=高级场, 5=大师场, 6=至尊场
         
         for (var i = 0; i < arenas.length; i++) {
             var arena = arenas[i];
             var serverRoomId = arena.room_id;
+            var serverRoomType = arena.room_type;  // 🔧【新增】服务端推送的房间类型
             var newPeriodNoStr = arena.period_no_str || arena.periodNoStr || "";
             
             // 🔧 调试：打印每个竞技场的详细信息
-            console.log("🏟️ [Arena] 推送房间 " + serverRoomId + ": phase=" + arena.phase + ", countdown=" + arena.countdown + ", periodNoStr=" + newPeriodNoStr);
+            console.log("🏟️ [Arena] 推送房间 room_id=" + serverRoomId + ", room_type=" + serverRoomType + ", phase=" + arena.phase + ", countdown=" + arena.countdown);
             
-            // 🔧【关键修复】按索引顺序匹配到客户端竞技场房间
-            // 服务端第 i 个竞技场 → 客户端 _arenaRooms[i]
+            // 🔧【关键修复】根据 room_type 匹配客户端竞技场房间
             var clientRoomId = null;
-            if (this._arenaRooms && i < this._arenaRooms.length) {
-                clientRoomId = this._arenaRooms[i].config.id;
-                console.log("🏟️ [Arena] 服务端竞技场 " + serverRoomId + " 映射到客户端房间 " + clientRoomId);
+            var matchedRoomIndex = -1;
+            if (this._arenaRooms && serverRoomType) {
+                for (var j = 0; j < this._arenaRooms.length; j++) {
+                    var clientRoom = this._arenaRooms[j];
+                    if (clientRoom.config.room_type === serverRoomType || clientRoom.config.roomType === serverRoomType) {
+                        clientRoomId = clientRoom.config.id;
+                        matchedRoomIndex = j;
+                        console.log("🏟️ [Arena] 服务端 room_type=" + serverRoomType + " 匹配到客户端房间 ID=" + clientRoomId);
+                        break;
+                    }
+                }
             }
             
-            // 如果没有对应的客户端房间，跳过
+            // 如果没有找到匹配的房间，跳过
             if (clientRoomId === null) {
-                console.log("🏟️ [Arena] 客户端没有第 " + (i + 1) + " 个竞技场房间，跳过");
+                console.log("🏟️ [Arena] 客户端没有 room_type=" + serverRoomType + " 的竞技场房间，跳过");
                 continue;
             }
             
@@ -4132,9 +4139,9 @@ cc.Class({
             
             // 🔧【关键修复】按位置判断 hasMatchConfig：
             // 前 N-1 个显示，最后一个不显示
-            var hasMatchConfig = (i < arenaCount - 1);
+            var hasMatchConfig = (matchedRoomIndex < arenaCount - 1);
             
-            console.log("🏟️ [Arena] 客户端房间 " + clientRoomId + " hasMatchConfig=" + hasMatchConfig + ", i=" + i + ", arenaCount=" + arenaCount);
+            console.log("🏟️ [Arena] 客户端房间 " + clientRoomId + " hasMatchConfig=" + hasMatchConfig + ", matchedRoomIndex=" + matchedRoomIndex + ", arenaCount=" + arenaCount);
             
             // 保存服务端推送的状态（使用客户端房间 ID 作为 key）
             this._localArenaStatus[clientRoomId] = {

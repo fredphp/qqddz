@@ -2674,6 +2674,7 @@ func (b *ArenaStatusBroadcaster) calculateRoomArenaStatus(roomID uint64, roomNam
         status := protocol.ArenaRoomStatus{
                 RoomID:   roomID,
                 RoomName: roomName,
+                RoomType: roomType, // 🔧【新增】房间类型：2=初级场, 3=中级场, 4=高级场, 5=大师场, 6=至尊场
         }
 
         // 解析开赛时间段

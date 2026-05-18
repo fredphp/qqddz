@@ -616,6 +616,7 @@ type ArenaStatusPayload struct {
 type ArenaRoomStatus struct {
         RoomID       uint64 `json:"room_id"`       // 房间配置ID
         RoomName     string `json:"room_name"`     // 房间名称
+        RoomType     int    `json:"room_type"`     // 房间类型：2=初级场, 3=中级场, 4=高级场, 5=大师场, 6=至尊场
         PeriodNo     int    `json:"period_no"`     // 当前期号（数字，兼容旧版）
         PeriodNoStr  string `json:"period_no_str"` // 当前期号（字符串格式，如 C2605050001）
         Phase        int    `json:"phase"`         // 当前阶段: 0=不可用, 1=准备中, 2=报名中
