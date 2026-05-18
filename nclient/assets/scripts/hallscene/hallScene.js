@@ -4086,32 +4086,20 @@ cc.Class({
                 }
             }
             
-            // 🔧【关键修复】获取房间配置，检查是否有开赛配置
-            var config = this._getArenaConfigByRoomId(roomId);
-            var matchTimeRanges = config && (config.match_time_ranges || config.matchTimeRanges);
-            var matchDuration = config && (config.match_duration || config.matchDuration);
-            var hasMatchConfig = matchTimeRanges && matchDuration;
-            
-            // 🔧【关键修复】如果没有配置，保持之前的默认值或按位置判断
-            if (!hasMatchConfig) {
-                // 优先保持之前的值
-                if (oldStatus && oldStatus.hasMatchConfig !== undefined) {
-                    hasMatchConfig = oldStatus.hasMatchConfig;
-                } else {
-                    // 按位置判断：找到这个房间在 _arenaRooms 中的位置
-                    var roomIndex = -1;
-                    if (this._arenaRooms) {
-                        for (var j = 0; j < this._arenaRooms.length; j++) {
-                            if (this._arenaRooms[j].config.id === roomId) {
-                                roomIndex = j;
-                                break;
-                            }
-                        }
+            // 🔧【关键修复】按位置判断 hasMatchConfig：
+            // 找到这个房间在 _arenaRooms 中的位置
+            var roomIndex = -1;
+            if (this._arenaRooms) {
+                for (var j = 0; j < this._arenaRooms.length; j++) {
+                    if (this._arenaRooms[j].config.id === roomId) {
+                        roomIndex = j;
+                        break;
                     }
-                    // 前 N-1 个默认显示，最后一个不显示
-                    hasMatchConfig = (roomIndex >= 0 && roomIndex < arenaCount - 1);
                 }
             }
+            
+            // 前 N-1 个默认显示，最后一个不显示
+            var hasMatchConfig = (roomIndex >= 0 && roomIndex < arenaCount - 1);
             
             // 保存服务端推送的状态（支持新字段）
             this._localArenaStatus[roomId] = {
