@@ -1406,15 +1406,25 @@ cc.Class({
         }
         
         // 🔧【修复】立即为所有竞技场房间设置默认状态
-        for (var j = 0; j < this._arenaRooms.length; j++) {
+        // 🔧【重要】前N-1个竞技场房间默认显示期号和报名按钮，最后一个不显示
+        var arenaCount = this._arenaRooms.length;
+        for (var j = 0; j < arenaCount; j++) {
             var roomInfo = this._arenaRooms[j];
             var roomConfig = roomInfo.config;
             var roomConfigId = roomConfig.id;
             
-            // 检查是否有开赛时间配置（有配置的才显示期号和报名按钮）
+            // 检查是否有开赛时间配置（从配置中读取）
             var matchTimeRanges = roomConfig.match_time_ranges || roomConfig.matchTimeRanges;
             var matchDuration = roomConfig.match_duration || roomConfig.matchDuration;
             var hasMatchConfig = matchTimeRanges && matchDuration;
+            
+            // 🔧【关键修复】如果没有配置，则按位置判断：
+            // 前 N-1 个房间默认显示（有开赛配置），最后一个不显示
+            // 这样服务端返回数据后，会根据实际配置更新
+            if (!hasMatchConfig) {
+                // 没有配置时，前 N-1 个默认显示，最后一个不显示
+                hasMatchConfig = (j < arenaCount - 1);
+            }
             
             // 设置默认状态
             this._localArenaStatus[roomConfigId] = {
@@ -3998,8 +4008,9 @@ cc.Class({
         if (!this._arenaRooms) return;
         
         var now = Date.now();
+        var arenaCount = this._arenaRooms.length;
         
-        for (var i = 0; i < this._arenaRooms.length; i++) {
+        for (var i = 0; i < arenaCount; i++) {
             var room = this._arenaRooms[i];
             var config = room.config;
             var roomId = config.id;
@@ -4011,6 +4022,12 @@ cc.Class({
             var matchTimeRanges = config.match_time_ranges || config.matchTimeRanges;
             var matchDuration = config.match_duration || config.matchDuration;
             var hasMatchConfig = matchTimeRanges && matchDuration;
+            
+            // 🔧【关键修复】如果没有配置，则按位置判断：
+            // 前 N-1 个房间默认显示（有开赛配置），最后一个不显示
+            if (!hasMatchConfig) {
+                hasMatchConfig = (i < arenaCount - 1);
+            }
             
             // 使用本地计算作为初始值
             var phaseInfo = this._calculatePhaseInfo(config);
