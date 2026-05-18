@@ -240,15 +240,15 @@ window.arenaData = function() {
             // 保存到本地存储
             that.saveToLocal();
             
-            // 更新玩家竞技币余额
+            // 更新玩家金币余额（欢乐豆）
             if (window.myglobal && window.myglobal.playerData && data.balance_after !== undefined) {
-                window.myglobal.playerData.arena_coin = data.balance_after;
+                window.myglobal.playerData.gobal_count = data.balance_after;
                 window.myglobal.playerData.saveToLocal();
                 
                 // 🔧【新增】触发全局事件，通知大厅刷新UI
                 if (window.myglobal.eventlister) {
-                    window.myglobal.eventlister.fire('arena_coin_updated', {
-                        arena_coin: data.balance_after
+                    window.myglobal.eventlister.fire('gold_updated', {
+                        gold: data.balance_after
                     });
                 }
             }
@@ -396,15 +396,15 @@ window.arenaData = function() {
             // 保存到本地存储
             that.saveToLocal();
             
-            // 更新玩家竞技币余额
+            // 更新玩家金币余额（欢乐豆）
             if (window.myglobal && window.myglobal.playerData && data.balance_after !== undefined) {
-                window.myglobal.playerData.arena_coin = data.balance_after;
+                window.myglobal.playerData.gobal_count = data.balance_after;
                 window.myglobal.playerData.saveToLocal();
                 
                 // 🔧【新增】触发全局事件，通知大厅刷新UI
                 if (window.myglobal.eventlister) {
-                    window.myglobal.eventlister.fire('arena_coin_updated', {
-                        arena_coin: data.balance_after
+                    window.myglobal.eventlister.fire('gold_updated', {
+                        gold: data.balance_after
                     });
                 }
             }

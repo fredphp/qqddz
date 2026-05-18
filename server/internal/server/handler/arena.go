@@ -107,13 +107,22 @@ func (h *Handler) handleArenaSignup(client types.ClientInterface, msg *protocol.
                 return
         }
 
+        // 检查星级是否满足要求
+        if player.Level < roomConfig.MinLevel {
+                client.SendMessage(codec.MustNewMessage("arena_signup_failed", map[string]interface{}{
+                        "code":    4,
+                        "message": fmt.Sprintf("会员星级不足，需达到%d星。请前往普通场升级", roomConfig.MinLevel),
+                }))
+                return
+        }
+
         // 使用房间配置中的 EntryGold 作为报名费
         signupFee := roomConfig.EntryGold
 
         // 检查报名费是否足够
         if signupFee > 0 && player.Gold < signupFee {
                 client.SendMessage(codec.MustNewMessage("arena_signup_failed", map[string]interface{}{
-                        "code":    4,
+                        "code":    5,
                         "message": fmt.Sprintf("报名费不足，需要%d金币", signupFee),
                 }))
                 return
