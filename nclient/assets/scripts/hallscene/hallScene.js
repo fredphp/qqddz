@@ -851,19 +851,20 @@ cc.Class({
             }
             
             // 🔧【修复】收集所有房间到 _allRooms 数组
-            // 竞技场房间的判断改用服务端推送的数量，不再依赖 room_category
+            // 竞技场房间的判断使用 room_category
             if (!self._allRooms) self._allRooms = [];
             self._allRooms.push(room);
             
-            // 🔧【修复】使用 room_type 判断是否是竞技场
-            // room_type 2,3,4 是竞技场
-            var isArenaByType = (room.roomType >= 2 && room.roomType <= 4);
-            if (isArenaByType) {
+            // 🔧【修复】使用 room_category 判断是否是竞技场
+            // room_category=1 是普通场，room_category=2 是竞技场
+            var roomCategory = room.config.room_category || room.config.roomCategory || 1;
+            var isArenaByCategory = (roomCategory === 2);
+            if (isArenaByCategory) {
                 if (!self._arenaRooms) self._arenaRooms = [];
                 self._arenaRooms.push(room);
-                console.log("🏟️ [Arena] ✅ 收集竞技场房间(room_type=" + room.roomType + "): ID=" + room.config.id);
+                console.log("🏟️ [Arena] ✅ 收集竞技场房间(room_category=" + roomCategory + "): ID=" + room.config.id);
             } else {
-                console.log("🏟️ [Arena] 📋 普通房间: ID=" + room.config.id + ", room_type=" + room.roomType);
+                console.log("🏟️ [Arena] 📋 普通房间: ID=" + room.config.id + ", room_category=" + roomCategory);
             }
             
             // 🔧【新增】同时收集前N个房间作为竞技场房间的候选
@@ -871,18 +872,18 @@ cc.Class({
             if (!self._arenaCandidateRooms) self._arenaCandidateRooms = [];
             self._arenaCandidateRooms.push(room);
             
-            (function(config, node, roomName, roomType) {
+            (function(config, node, roomName, roomCategory) {
                 node.off(cc.Node.EventType.TOUCH_END);
                 node.on(cc.Node.EventType.TOUCH_END, function(event) {
                     event.stopPropagation();
-                    // 竞技场房间(room_type 2,3,4)：不再响应整个卡片的点击，由报名按钮处理
-                    var isArena = (roomType >= 2 && roomType <= 4);
+                    // 竞技场房间(room_category=2)：不再响应整个卡片的点击，由报名按钮处理
+                    var isArena = (roomCategory === 2);
                     if (isArena) {
                         return;
                     }
                     self._onRoomButtonClick(config);
                 });
-            })(room.config, room.node, room.roomName, room.roomType);
+            })(room.config, room.node, room.roomName, roomCategory);
         }
         
         // 渲染布局 - 所有卡片排成一行
@@ -1079,15 +1080,15 @@ cc.Class({
     },
     
     // 更新最低豆子/竞技币显示
-    // 🔧【修复】根据服务端推送的竞技场 room_type 判断
-    // room_type 2,3,4 是竞技场(显示 min_arena_coin)，其他是普通场(显示 min_gold)
+    // 🔧【修复】根据 room_category 判断
+    // room_category=1 是普通场(显示 min_gold)，room_category=2 是竞技场(显示 min_arena_coin)
     _updateMinGoldLabel: function(btnNode, config) {
         var goldLabelNode = btnNode.getChildByName("min_gold_label");
         
-        // 🔧【修复】使用 room_type 判断是否是竞技场
-        // 服务端推送的竞技场 room_type 是 2,3,4
-        var roomType = config.room_type || config.roomType || 2;
-        var isArena = (roomType >= 2 && roomType <= 4);  // room_type 2,3,4 是竞技场
+        // 🔧【修复】使用 room_category 判断是否是竞技场
+        // room_category=1 是普通场，room_category=2 是竞技场
+        var roomCategory = config.room_category || config.roomCategory || 1;
+        var isArena = (roomCategory === 2);  // room_category=2 是竞技场
         
         if (!goldLabelNode) {
             goldLabelNode = new cc.Node("min_gold_label");
@@ -1142,13 +1143,13 @@ cc.Class({
     },
     
     // 房间按钮点击处理 - 根据房间类型区分处理
-    // 🔧【修复】使用 room_type 判断是否是竞技场
-    // room_type 2,3,4 是竞技场，其他是普通场
+    // 🔧【修复】使用 room_category 判断是否是竞技场
+    // room_category=1 是普通场，room_category=2 是竞技场
     _onRoomButtonClick: function(roomConfig) {
         var self = this;
         var myglobal = window.myglobal;
-        var roomType = roomConfig.room_type || roomConfig.roomType || 2;
-        var isArena = (roomType >= 2 && roomType <= 4);
+        var roomCategory = roomConfig.room_category || roomConfig.roomCategory || 1;
+        var isArena = (roomCategory === 2);  // room_category=2 是竞技场
         
         // 更新货币显示
         this._currentRoomCategory = isArena ? 2 : 1;
@@ -1440,7 +1441,9 @@ cc.Class({
         }
         
         // 🔧【修复】立即为所有房间设置默认状态
-        // 🔧【重要】前N-1个房间默认显示期号和报名按钮，最后一个不显示
+        // 🔧【重要】使用 room_category 判断是否是竞技场
+        // room_category=1 是普通场（不显示期号和报名按钮）
+        // room_category=2 是竞技场（显示期号和报名按钮）
         // 🔧【修复】使用 targetRooms（所有候选房间）
         var arenaCount = targetRooms.length;
         for (var j = 0; j < arenaCount; j++) {
@@ -1448,31 +1451,23 @@ cc.Class({
             var roomConfig = roomInfo.config;
             var roomConfigId = roomConfig.id;
             
-            // 检查是否有开赛时间配置（从配置中读取）
-            var matchTimeRanges = roomConfig.match_time_ranges || roomConfig.matchTimeRanges;
-            var matchDuration = roomConfig.match_duration || roomConfig.matchDuration;
-            var hasMatchConfig = matchTimeRanges && matchDuration;
-            
-            // 🔧【关键修复】如果没有配置，则按位置判断：
-            // 前 N-1 个房间默认显示（有开赛配置），最后一个不显示
-            // 这样服务端返回数据后，会根据实际配置更新
-            if (!hasMatchConfig) {
-                // 没有配置时，前 N-1 个默认显示，最后一个不显示
-                hasMatchConfig = (j < arenaCount - 1);
-            }
+            // 🔧【关键修复】使用 room_category 判断是否是竞技场
+            var roomCategory = roomConfig.room_category || roomConfig.roomCategory || 1;
+            var isArena = (roomCategory === 2);
             
             // 设置默认状态
             this._localArenaStatus[roomConfigId] = {
                 periodNo: 0,
                 periodNoStr: "",
-                phase: hasMatchConfig ? 2 : 0,  // 有配置默认报名阶段，无配置默认未开放
-                countdown: hasMatchConfig ? 300 : -1,  // 有配置默认5分钟，无配置-1
-                canSignup: hasMatchConfig,  // 有配置可以报名
+                phase: isArena ? 2 : 0,  // 竞技场默认报名阶段，普通场默认未开放
+                countdown: isArena ? 300 : -1,  // 竞技场默认5分钟，普通场-1
+                canSignup: isArena,  // 竞技场可以报名
                 totalPlayers: 0,
-                statusText: hasMatchConfig ? "报名中" : "暂未开放",
+                statusText: isArena ? "报名中" : "暂未开放",
                 lastUpdate: Date.now(),
                 isLocalCalculated: true,
-                hasMatchConfig: hasMatchConfig  // 🔧【新增】标记是否有开赛配置
+                hasMatchConfig: isArena,  // 🔧【修复】使用 room_category 判断
+                roomCategory: roomCategory  // 🔧【新增】保存 room_category
             };
         }
         
@@ -4041,7 +4036,7 @@ cc.Class({
     },
 
     // 🔧【新增】从配置初始化本地状态（作为备用）
-    // 🔧【修复】使用 _arenaCandidateRooms（所有房间），根据服务端推送的数量决定显示哪些
+    // 🔧【修复】使用 _arenaCandidateRooms（所有房间），根据 room_category 判断
     _initLocalArenaStatusFromConfig: function() {
         // 🔧【修复】使用所有候选房间
         var targetRooms = this._arenaCandidateRooms || this._arenaRooms;
@@ -4057,25 +4052,18 @@ cc.Class({
             var config = room.config;
             var roomId = config.id;
             
-            // 🔧【新增】检查是否有开赛配置
-            var matchTimeRanges = config.match_time_ranges || config.matchTimeRanges;
-            var matchDuration = config.match_duration || config.matchDuration;
-            var hasMatchConfig = matchTimeRanges && matchDuration;
+            // 🔧【关键修复】使用 room_category 判断是否是竞技场
+            var roomCategory = config.room_category || config.roomCategory || 1;
+            var isArena = (roomCategory === 2);
             
-            // 🔧【关键修复】如果没有配置，则按位置判断：
-            // 前 N-1 个房间默认显示（有开赛配置），最后一个不显示
-            if (!hasMatchConfig) {
-                hasMatchConfig = (i < arenaCount - 1);
-            }
-            
-            console.log("🏟️ [Arena] 房间 " + roomId + " i=" + i + " hasMatchConfig=" + hasMatchConfig);
+            console.log("🏟️ [Arena] 房间 " + roomId + " i=" + i + " isArena=" + isArena + ", room_category=" + roomCategory);
             
             // 如果已经有数据，只更新 hasMatchConfig（如果未设置）
             if (this._localArenaStatus[roomId]) {
                 // 🔧【关键修复】确保 hasMatchConfig 被正确设置
                 if (this._localArenaStatus[roomId].hasMatchConfig === undefined) {
-                    this._localArenaStatus[roomId].hasMatchConfig = hasMatchConfig;
-                    console.log("🏟️ [Arena] 更新房间 " + roomId + " 的 hasMatchConfig=" + hasMatchConfig);
+                    this._localArenaStatus[roomId].hasMatchConfig = isArena;
+                    console.log("🏟️ [Arena] 更新房间 " + roomId + " 的 hasMatchConfig=" + isArena);
                 }
                 continue;
             }
@@ -4083,9 +4071,9 @@ cc.Class({
             // 使用本地计算作为初始值
             var phaseInfo = this._calculatePhaseInfo(config);
             
-            // 🔧【关键修复】如果没有开赛时间配置，使用默认值
+            // 🔧【关键修复】如果是竞技场，使用默认值
             // 默认显示报名阶段，倒计时5分钟
-            if (hasMatchConfig && phaseInfo.phase === 0) {
+            if (isArena && phaseInfo.phase === 0) {
                 phaseInfo.phase = 2;  // 报名阶段
                 phaseInfo.countdown = 300;  // 5分钟
                 phaseInfo.canSignup = true;
@@ -4094,17 +4082,18 @@ cc.Class({
             this._localArenaStatus[roomId] = {
                 periodNo: phaseInfo.periodNo,
                 periodNoStr: phaseInfo.periodNoStr,  // 新增：字符串格式期号
-                phase: phaseInfo.phase,
-                countdown: phaseInfo.countdown,
-                canSignup: phaseInfo.canSignup,
+                phase: isArena ? phaseInfo.phase : 0,
+                countdown: isArena ? phaseInfo.countdown : -1,
+                canSignup: isArena ? phaseInfo.canSignup : false,
                 totalPlayers: 0,  // 🔧【修复】初始化报名人数为0
                 statusText: "",
                 lastUpdate: now,
                 isLocalCalculated: true,  // 标记为本地计算
-                hasMatchConfig: hasMatchConfig  // 🔧【新增】标记是否有开赛配置
+                hasMatchConfig: isArena,  // 🔧【修复】使用 room_category 判断
+                roomCategory: roomCategory  // 🔧【新增】保存 room_category
             };
             
-            console.log("🏟️ [Arena] 创建房间 " + roomId + " 状态: phase=" + phaseInfo.phase + ", countdown=" + phaseInfo.countdown + ", hasMatchConfig=" + hasMatchConfig);
+            console.log("🏟️ [Arena] 创建房间 " + roomId + " 状态: phase=" + (isArena ? phaseInfo.phase : 0) + ", countdown=" + (isArena ? phaseInfo.countdown : -1) + ", isArena=" + isArena);
         }
         
         // 更新显示
@@ -4150,6 +4139,7 @@ cc.Class({
             // 🔧【关键修复】按 room_type 匹配到客户端房间
             var clientRoomId = null;
             var matchedRoomIndex = -1;
+            var matchedRoomConfig = null;
             
             for (var j = 0; j < targetRooms.length; j++) {
                 var clientRoom = targetRooms[j];
@@ -4157,6 +4147,7 @@ cc.Class({
                 if (clientRoomType === serverRoomType) {
                     clientRoomId = clientRoom.config.id;
                     matchedRoomIndex = j;
+                    matchedRoomConfig = clientRoom.config;
                     console.log("🏟️ [Arena] 服务端 room_type=" + serverRoomType + " 匹配到客户端房间 ID=" + clientRoomId + ", room_type=" + clientRoomType);
                     break;
                 }
@@ -4167,6 +4158,9 @@ cc.Class({
                 console.log("🏟️ [Arena] 客户端没有 room_type=" + serverRoomType + " 的房间，跳过");
                 continue;
             }
+            
+            // 🔧【新增】获取房间的 room_category
+            var matchedRoomCategory = matchedRoomConfig ? (matchedRoomConfig.room_category || matchedRoomConfig.roomCategory || 2) : 2;
             
             // 🔧【关键修复】检查期号是否变化，如果变化则清除用户报名状态
             var oldStatus = this._localArenaStatus[clientRoomId];
@@ -4195,32 +4189,37 @@ cc.Class({
                 statusText: arena.status_text || arena.statusText || "",
                 lastUpdate: now,
                 isLocalCalculated: false,  // 服务端推送
-                hasMatchConfig: hasMatchConfig  // 🔧【新增】标记是否有开赛配置
+                hasMatchConfig: hasMatchConfig,  // 🔧【新增】标记是否有开赛配置
+                roomCategory: matchedRoomCategory  // 🔧【新增】保存 room_category
             };
         }
         
         // 🔧【关键修复】确保所有房间都有状态（包括服务端没有推送的）
-        // 🔧【修复】使用所有候选房间
+        // 🔧【修复】使用 room_category 判断是否是竞技场
         if (targetRooms) {
             for (var k = 0; k < targetRooms.length; k++) {
                 var r = targetRooms[k];
                 var rid = r.config.id;
                 if (!this._localArenaStatus[rid]) {
                     // 如果服务端没有推送这个房间的状态，使用默认值
-                    var defaultHasMatchConfig = (k < targetRooms.length - 1);
+                    // 🔧【关键修复】使用 room_category 判断
+                    var rCategory = r.config.room_category || r.config.roomCategory || 1;
+                    var rIsArena = (rCategory === 2);
+                    
                     this._localArenaStatus[rid] = {
                         periodNo: 0,
                         periodNoStr: "",
-                        phase: defaultHasMatchConfig ? 2 : 0,
-                        countdown: defaultHasMatchConfig ? 300 : -1,
-                        canSignup: defaultHasMatchConfig,
+                        phase: rIsArena ? 2 : 0,
+                        countdown: rIsArena ? 300 : -1,
+                        canSignup: rIsArena,
                         totalPlayers: 0,
-                        statusText: defaultHasMatchConfig ? "报名中" : "暂未开放",
+                        statusText: rIsArena ? "报名中" : "暂未开放",
                         lastUpdate: now,
                         isLocalCalculated: true,
-                        hasMatchConfig: defaultHasMatchConfig
+                        hasMatchConfig: rIsArena,
+                        roomCategory: rCategory
                     };
-                    console.log("🏟️ [Arena] 补充房间 " + rid + " 默认状态: hasMatchConfig=" + defaultHasMatchConfig);
+                    console.log("🏟️ [Arena] 补充房间 " + rid + " 默认状态: isArena=" + rIsArena + ", room_category=" + rCategory);
                 }
             }
         }
@@ -4463,17 +4462,9 @@ cc.Class({
             // 🔧【关键】检查是否有开赛配置
             var hasMatchConfig = localStatus.hasMatchConfig;
             if (hasMatchConfig === undefined) {
-                // 兼容旧数据：检查配置
-                var matchTimeRanges = config.match_time_ranges || config.matchTimeRanges;
-                var matchDuration = config.match_duration || config.matchDuration;
-                hasMatchConfig = matchTimeRanges && matchDuration;
-                
-                // 🔧【关键修复】如果配置中没有开赛时间，根据索引位置判断
-                // 前 N-1 个房间默认显示，最后一个不显示
-                if (!hasMatchConfig) {
-                    var arenaCount = targetRooms.length;
-                    hasMatchConfig = (i < arenaCount - 1);
-                }
+                // 🔧【关键修复】使用 room_category 判断是否是竞技场
+                var roomCategory = config.room_category || config.roomCategory || localStatus.roomCategory || 1;
+                hasMatchConfig = (roomCategory === 2);
             }
             
             // 🔧【调试日志】打印每个房间的状态
