@@ -21,15 +21,14 @@ const (
 
 // 奖励配置常量
 const (
-	RewardAmountBean      = 1000 // 欢乐豆奖励数量
-	RewardAmountArenaCoin = 100  // 竞技币奖励数量
-	LockExpireSeconds     = 60   // Redis锁过期时间（秒）
+	RewardAmountGold       = 1000 // 金币奖励数量
+	LockExpireSeconds      = 60   // Redis锁过期时间（秒）
 )
 
 // AdRewardRequest 广告奖励请求
 type AdRewardRequest struct {
 	UID    uint64 `json:"uid"`    // 用户ID（必填，正整数）
-	AdType string `json:"adType"` // 广告类型：bean 或 arena_coin
+	AdType string `json:"adType"` // 广告类型：bean
 }
 
 // AdRewardResponse 广告奖励响应
@@ -37,7 +36,7 @@ type AdRewardResponse struct {
 	RewardAmount  int64  `json:"rewardAmount"`  // 奖励数量
 	BalanceBefore int64  `json:"balanceBefore"` // 发放前余额
 	BalanceAfter  int64  `json:"balanceAfter"`  // 发放后余额
-	CurrencyType  string `json:"currencyType"`  // 货币类型：gold 或 arena_coin
+	CurrencyType  string `json:"currencyType"`  // 货币类型：gold
 }
 
 // AdRewardHandler 广告奖励处理器
@@ -57,14 +56,13 @@ func (h *AdRewardHandler) SetRedis(client RedisClient) {
 
 // RewardResult 奖励发放结果
 type RewardResult struct {
-	Success        bool
-	Error          error
-	Code           int
-	Message        string
-	Response       *AdRewardResponse
-	PlayerID       uint64
-	GoldAfter      int64
-	ArenaCoinAfter int64
+	Success   bool
+	Error     error
+	Code      int
+	Message   string
+	Response  *AdRewardResponse
+	PlayerID  uint64
+	GoldAfter int64
 }
 
 // ClaimReward 领取广告奖励
@@ -89,8 +87,9 @@ func (h *AdRewardHandler) ClaimReward(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.AdType != "bean" && req.AdType != "arena_coin" {
-		writeJSONError(w, http.StatusBadRequest, "adType必须是 bean 或 arena_coin")
+	// 广告类型只支持 bean（金币）
+	if req.AdType != "bean" {
+		writeJSONError(w, http.StatusBadRequest, "adType必须是 bean")
 		return
 	}
 
@@ -170,65 +169,31 @@ func (h *AdRewardHandler) processRewardAsync(req AdRewardRequest, lockKey string
 		return
 	}
 
-	// 确定奖励类型和数量
-	var rewardAmount int64
-	var currencyType string
-	var balanceBefore int64
-
-	if req.AdType == "bean" {
-		rewardAmount = RewardAmountBean
-		currencyType = "gold"
-		balanceBefore = player.Gold
-	} else {
-		rewardAmount = RewardAmountArenaCoin
-		currencyType = "arena_coin"
-		balanceBefore = player.ArenaCoin
-	}
+	// 奖励金币
+	rewardAmount := RewardAmountGold
+	currencyType := "gold"
+	balanceBefore := player.Gold
 
 	// 开启事务处理
 	err = database.Transaction(func(tx *gorm.DB) error {
-		// 更新玩家余额
-		if req.AdType == "bean" {
-			if err := tx.Model(&database.Player{}).
-				Where("id = ?", req.UID).
-				Update("gold", gorm.Expr("gold + ?", rewardAmount)).Error; err != nil {
-				return err
-			}
-		} else {
-			if err := tx.Model(&database.Player{}).
-				Where("id = ?", req.UID).
-				Update("arena_coin", gorm.Expr("arena_coin + ?", rewardAmount)).Error; err != nil {
-				return err
-			}
+		// 更新玩家金币
+		if err := tx.Model(&database.Player{}).
+			Where("id = ?", req.UID).
+			Update("gold", gorm.Expr("gold + ?", rewardAmount)).Error; err != nil {
+			return err
 		}
 
-		// 记录流水
-		if req.AdType == "bean" {
-			// 记录金币流水（gold_logs表）
-			goldLog := &database.GoldLog{
-				PlayerID:     req.UID,
-				ChangeAmount: rewardAmount,
-				BalanceAfter: balanceBefore + rewardAmount,
-				ChangeType:   database.GoldChangeTypeAdReward,
-				Remark:       "广告奖励-欢乐豆",
-			}
-			if err := tx.Create(goldLog).Error; err != nil {
-				log.Printf("⚠️ 记录金币流水失败: %v", err)
-				// 流水记录失败不影响主流程
-			}
-		} else {
-			// 记录竞技币流水
-			arenaCoinLog := &database.ArenaCoinLog{
-				PlayerID:     req.UID,
-				ChangeAmount: rewardAmount,
-				BalanceAfter: balanceBefore + rewardAmount,
-				ChangeType:   database.ArenaCoinChangeGift,
-				Remark:       "广告奖励-竞技币",
-			}
-			if err := tx.Create(arenaCoinLog).Error; err != nil {
-				log.Printf("⚠️ 记录竞技币流水失败: %v", err)
-				// 流水记录失败不影响主流程
-			}
+		// 记录金币流水
+		goldLog := &database.GoldLog{
+			PlayerID:     req.UID,
+			ChangeAmount: rewardAmount,
+			BalanceAfter: balanceBefore + rewardAmount,
+			ChangeType:   database.GoldChangeTypeAdReward,
+			Remark:       "广告奖励-金币",
+		}
+		if err := tx.Create(goldLog).Error; err != nil {
+			log.Printf("⚠️ 记录金币流水失败: %v", err)
+			// 流水记录失败不影响主流程
 		}
 
 		// 记录广告奖励日志
@@ -259,20 +224,12 @@ func (h *AdRewardHandler) processRewardAsync(req AdRewardRequest, lockKey string
 	result.Code = 0
 	result.Message = "success"
 	result.PlayerID = req.UID
+	result.GoldAfter = balanceBefore + rewardAmount
 	result.Response = &AdRewardResponse{
 		RewardAmount:  rewardAmount,
 		BalanceBefore: balanceBefore,
 		BalanceAfter:  balanceBefore + rewardAmount,
 		CurrencyType:  currencyType,
-	}
-
-	// 设置更新后的余额（用于推送）
-	if req.AdType == "bean" {
-		result.GoldAfter = balanceBefore + rewardAmount
-		result.ArenaCoinAfter = player.ArenaCoin
-	} else {
-		result.GoldAfter = player.Gold
-		result.ArenaCoinAfter = balanceBefore + rewardAmount
 	}
 
 	log.Printf("✅ 玩家 %d 成功领取广告奖励: %s +%d", req.UID, req.AdType, rewardAmount)
@@ -332,7 +289,6 @@ func (h *AdRewardHandler) pushAssetUpdate(result RewardResult) {
 	// 构造资产更新消息
 	assetPayload := &protocol.AssetUpdatePayload{
 		Gold:       result.GoldAfter,
-		ArenaCoin:  result.ArenaCoinAfter,
 		UpdateType: "ad_reward",
 		Timestamp:  time.Now().UnixMilli(),
 	}
@@ -345,5 +301,5 @@ func (h *AdRewardHandler) pushAssetUpdate(result RewardResult) {
 	}
 
 	client.SendMessage(msg)
-	log.Printf("✅ 已推送资产更新给玩家 %d: 金币=%d, 竞技币=%d", result.PlayerID, result.GoldAfter, result.ArenaCoinAfter)
+	log.Printf("✅ 已推送资产更新给玩家 %d: 金币=%d", result.PlayerID, result.GoldAfter)
 }

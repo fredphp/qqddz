@@ -705,10 +705,13 @@ func (GoldLog) TableName() string {
 // =============================================
 
 const (
-        GoldChangeTypeGame     uint8 = 1 // 游戏结算
-        GoldChangeTypeGift     uint8 = 2 // 系统赠送
-        GoldChangeTypeAdReward uint8 = 3 // 广告奖励
-        GoldChangeTypeOther    uint8 = 4 // 其他
+        GoldChangeTypeGame        uint8 = 1 // 游戏结算
+        GoldChangeTypeGift        uint8 = 2 // 系统赠送
+        GoldChangeTypeAdReward    uint8 = 3 // 广告奖励
+        GoldChangeTypeOther       uint8 = 4 // 其他
+        GoldChangeArenaSignup     uint8 = 5 // 竞技场报名扣除
+        GoldChangeArenaRefund     uint8 = 6 // 竞技场取消报名/超时返还
+        GoldChangeArenaReward     uint8 = 7 // 竞技场奖励
 )
 
 // IsGain 是否获得（正数）

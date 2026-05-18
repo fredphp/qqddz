@@ -408,6 +408,60 @@ func UpdatePlayerArenaCoinWithLog(playerID uint64, coinChange int64, changeType 
         })
 }
 
+// 🔧【新增】UpdatePlayerGoldWithLog 更新玩家金币并记录流水
+// changeType: 变化类型，参考 GoldChange* 常量
+// relatedID: 关联ID（如期号、游戏ID等）
+// remark: 备注说明
+func UpdatePlayerGoldWithLog(playerID uint64, goldChange int64, changeType uint8, relatedID, remark string) error {
+        if playerID == 0 {
+                log.Printf("⚠️ [UpdatePlayerGoldWithLog] playerID 为 0，跳过更新")
+                return nil
+        }
+
+        // 使用事务确保原子性
+        return DB().Transaction(func(tx *gorm.DB) error {
+                // 1. 更新玩家金币
+                result := tx.Model(&Player{}).
+                        Where("id = ?", playerID).
+                        Update("gold", gorm.Expr("gold + ?", goldChange))
+
+                if result.Error != nil {
+                        return result.Error
+                }
+
+                if result.RowsAffected == 0 {
+                        return fmt.Errorf("玩家 %d 不存在", playerID)
+                }
+
+                // 2. 获取更新后的余额
+                var player Player
+                if err := tx.Select("gold").Where("id = ?", playerID).First(&player).Error; err != nil {
+                        return err
+                }
+
+                // 3. 创建流水记录
+                goldLog := &GoldLog{
+                        PlayerID:     playerID,
+                        ChangeAmount: goldChange,
+                        BalanceAfter: player.Gold,
+                        ChangeType:   changeType,
+                        RelatedID:    relatedID,
+                        Remark:       remark,
+                        CreatedAt:    time.Now(),
+                }
+
+                if err := tx.Create(goldLog).Error; err != nil {
+                        log.Printf("❌ [UpdatePlayerGoldWithLog] 创建金币流水失败: %v", err)
+                        return err
+                }
+
+                log.Printf("✅ [UpdatePlayerGoldWithLog] 玩家 %d 金币更新成功，变化: %d，余额: %d，流水ID: %d",
+                        playerID, goldChange, player.Gold, goldLog.ID)
+
+                return nil
+        })
+}
+
 // UpdatePlayerStats 更新玩家统计数据
 func UpdatePlayerStats(playerID uint64, win bool, isLandlord bool) error {
         return UpdatePlayerStatsWithTx(nil, playerID, win, isLandlord)

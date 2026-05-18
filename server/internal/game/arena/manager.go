@@ -31,7 +31,7 @@ var (
         ErrPlayerAlreadySignedUp = errors.New("玩家已报名")
         ErrPlayerNotSignedUp     = errors.New("玩家未报名")
         ErrPlayerInOtherSession  = errors.New("玩家正在其他比赛中")
-        ErrInsufficientArenaCoin = errors.New("竞技币不足")
+        ErrInsufficientGold = errors.New("金币不足")
         ErrMinPlayersNotReached  = errors.New("未达到最小开赛人数")
         ErrRoundNotComplete      = errors.New("本轮比赛未完成")
 )
@@ -198,17 +198,17 @@ func (am *ArenaManager) Signup(sessionID, playerID uint64) (*SignupResult, error
                 }, err
         }
 
-        if player.ArenaCoin < session.SignupFee {
+        if player.Gold < session.SignupFee {
                 return &SignupResult{
                         Success: false,
-                        Message: fmt.Sprintf("竞技币不足，需要 %d，当前 %d", session.SignupFee, player.ArenaCoin),
-                }, ErrInsufficientArenaCoin
+                        Message: fmt.Sprintf("金币不足，需要 %d，当前 %d", session.SignupFee, player.Gold),
+                }, ErrInsufficientGold
         }
 
         // 7. 使用事务完成报名
         err = database.Transaction(func(tx *gorm.DB) error {
                 // 扣除报名费
-                if err := am.deductArenaCoinTx(tx, playerID, session.SignupFee, "报名费", sessionID); err != nil {
+                if err := am.deductGoldTx(tx, playerID, session.SignupFee, "报名费", sessionID); err != nil {
                         return err
                 }
 
@@ -311,7 +311,7 @@ func (am *ArenaManager) CancelSignup(sessionID, playerID uint64) error {
         err = database.Transaction(func(tx *gorm.DB) error {
                 // 退还报名费
                 if signupFee > 0 {
-                        if err := am.addArenaCoinTx(tx, playerID, signupFee, "取消报名退还", sessionID); err != nil {
+                        if err := am.addGoldTx(tx, playerID, signupFee, "取消报名退还", sessionID); err != nil {
                                 return err
                         }
                 }
@@ -1475,66 +1475,66 @@ func (am *ArenaManager) removeSessionFromRedis(sessionID uint64) {
 }
 
 // =============================================
-// 竞技币相关方法
+// 金币相关方法
 // =============================================
 
-// deductArenaCoinTx 扣除竞技币（事务中）
-func (am *ArenaManager) deductArenaCoinTx(tx *gorm.DB, playerID uint64, amount int64, remark string, sessionID uint64) error {
-        // 更新玩家竞技币
+// deductGoldTx 扣除金币（事务中）
+func (am *ArenaManager) deductGoldTx(tx *gorm.DB, playerID uint64, amount int64, remark string, sessionID uint64) error {
+        // 更新玩家金币
         result := tx.Model(&database.Player{}).
-                Where("id = ? AND arena_coin >= ?", playerID, amount).
-                Update("arena_coin", gorm.Expr("arena_coin - ?", amount))
+                Where("id = ? AND gold >= ?", playerID, amount).
+                Update("gold", gorm.Expr("gold - ?", amount))
 
         if result.Error != nil {
                 return result.Error
         }
 
         if result.RowsAffected == 0 {
-                return ErrInsufficientArenaCoin
+                return ErrInsufficientGold
         }
 
         // 创建流水记录
-        logRecord := &database.ArenaCoinLog{
+        logRecord := &database.GoldLog{
                 PlayerID:     playerID,
                 ChangeAmount: -amount,
-                ChangeType:   database.ArenaCoinChangeOther,
+                ChangeType:   database.GoldChangeArenaSignup,
                 RelatedID:    fmt.Sprintf("%d", sessionID),
                 Remark:       remark,
         }
 
         // 获取更新后的余额
         var player database.Player
-        if err := tx.Select("arena_coin").First(&player, playerID).Error; err == nil {
-                logRecord.BalanceAfter = player.ArenaCoin
+        if err := tx.Select("gold").First(&player, playerID).Error; err == nil {
+                logRecord.BalanceAfter = player.Gold
         }
 
         return tx.Create(logRecord).Error
 }
 
-// addArenaCoinTx 增加竞技币（事务中）
-func (am *ArenaManager) addArenaCoinTx(tx *gorm.DB, playerID uint64, amount int64, remark string, sessionID uint64) error {
-        // 更新玩家竞技币
+// addGoldTx 增加金币（事务中）
+func (am *ArenaManager) addGoldTx(tx *gorm.DB, playerID uint64, amount int64, remark string, sessionID uint64) error {
+        // 更新玩家金币
         result := tx.Model(&database.Player{}).
                 Where("id = ?", playerID).
-                Update("arena_coin", gorm.Expr("arena_coin + ?", amount))
+                Update("gold", gorm.Expr("gold + ?", amount))
 
         if result.Error != nil {
                 return result.Error
         }
 
         // 创建流水记录
-        logRecord := &database.ArenaCoinLog{
+        logRecord := &database.GoldLog{
                 PlayerID:     playerID,
                 ChangeAmount: amount,
-                ChangeType:   database.ArenaCoinChangeOther,
+                ChangeType:   database.GoldChangeArenaRefund,
                 RelatedID:    fmt.Sprintf("%d", sessionID),
                 Remark:       remark,
         }
 
         // 获取更新后的余额
         var player database.Player
-        if err := tx.Select("arena_coin").First(&player, playerID).Error; err == nil {
-                logRecord.BalanceAfter = player.ArenaCoin
+        if err := tx.Select("gold").First(&player, playerID).Error; err == nil {
+                logRecord.BalanceAfter = player.Gold
         }
 
         return tx.Create(logRecord).Error

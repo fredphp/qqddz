@@ -98,37 +98,36 @@ func (h *Handler) handleArenaSignup(client types.ClientInterface, msg *protocol.
                 return
         }
 
-        // 检查竞技币是否足够
-        if player.ArenaCoin < roomConfig.MinArenaCoin {
+        // 检查金币是否足够
+        if player.Gold < roomConfig.EntryGold {
                 client.SendMessage(codec.MustNewMessage("arena_signup_failed", map[string]interface{}{
                         "code":    3,
-                        "message": fmt.Sprintf("竞技币不足，需要%d，当前%d", roomConfig.MinArenaCoin, player.ArenaCoin),
+                        "message": fmt.Sprintf("金币不足，需要%d，当前%d", roomConfig.EntryGold, player.Gold),
                 }))
                 return
         }
 
-        // 使用房间配置中的 MinArenaCoin 作为报名费
-        // 注意：管理后台将报名费配置在 ddz_room_config.min_arena_coin 字段
-        signupFee := roomConfig.MinArenaCoin
+        // 使用房间配置中的 EntryGold 作为报名费
+        signupFee := roomConfig.EntryGold
 
         // 检查报名费是否足够
-        if signupFee > 0 && player.ArenaCoin < signupFee {
+        if signupFee > 0 && player.Gold < signupFee {
                 client.SendMessage(codec.MustNewMessage("arena_signup_failed", map[string]interface{}{
                         "code":    4,
-                        "message": fmt.Sprintf("报名费不足，需要%d竞技币", signupFee),
+                        "message": fmt.Sprintf("报名费不足，需要%d金币", signupFee),
                 }))
                 return
         }
 
         // 记录报名前余额
-        balanceBefore := player.ArenaCoin
+        balanceBefore := player.Gold
 
         // 扣除报名费（如果有）并记录流水
         if signupFee > 0 {
-                err := database.UpdatePlayerArenaCoinWithLog(
+                err := database.UpdatePlayerGoldWithLog(
                         playerID,
                         -signupFee,
-                        database.ArenaCoinChangeSignup,
+                        database.GoldChangeArenaSignup,
                         periodInfo.PeriodNo,
                         fmt.Sprintf("竞技场报名，期号:%s", periodInfo.PeriodNo),
                 )
@@ -142,10 +141,10 @@ func (h *Handler) handleArenaSignup(client types.ClientInterface, msg *protocol.
         if err := arena.AddPlayerToSignupList(periodInfo.PeriodNo, playerID); err != nil {
                 // 回滚报名费
                 if signupFee > 0 {
-                        database.UpdatePlayerArenaCoinWithLog(
+                        database.UpdatePlayerGoldWithLog(
                                 playerID,
                                 signupFee,
-                                database.ArenaCoinChangeRefund,
+                                database.GoldChangeArenaRefund,
                                 periodInfo.PeriodNo,
                                 fmt.Sprintf("报名失败回滚，期号:%s", periodInfo.PeriodNo),
                         )
@@ -251,24 +250,23 @@ func (h *Handler) handleArenaCancelSignup(client types.ClientInterface, msg *pro
                 return
         }
 
-        // 使用房间配置中的 MinArenaCoin 作为报名费
-        // 注意：管理后台将报名费配置在 ddz_room_config.min_arena_coin 字段
-        signupFee := roomConfig.MinArenaCoin
+        // 使用房间配置中的 EntryGold 作为报名费
+        signupFee := roomConfig.EntryGold
 
         // 记录取消前余额
-        balanceBefore := player.ArenaCoin
+        balanceBefore := player.Gold
 
         // 退还报名费（如果有）并记录流水
         if signupFee > 0 {
-                err := database.UpdatePlayerArenaCoinWithLog(
+                err := database.UpdatePlayerGoldWithLog(
                         playerID,
                         signupFee,
-                        database.ArenaCoinChangeRefund,
+                        database.GoldChangeArenaRefund,
                         periodInfo.PeriodNo,
                         fmt.Sprintf("取消报名返还，期号:%s", periodInfo.PeriodNo),
                 )
                 if err != nil {
-                        log.Printf("[ArenaCancel] 返还竞技币失败: %v", err)
+                        log.Printf("[ArenaCancel] 返还金币失败: %v", err)
                 }
         }
 
@@ -410,7 +408,7 @@ func (h *Handler) handleArenaCancelEnter(client types.ClientInterface, msg *prot
         player, err := database.GetPlayerByID(playerID)
         var balanceAfter int64
         if err == nil {
-                balanceAfter = player.ArenaCoin
+                balanceAfter = player.Gold
         }
 
         // 发送取消成功消息
@@ -419,10 +417,10 @@ func (h *Handler) handleArenaCancelEnter(client types.ClientInterface, msg *prot
                 RoomID:       payload.RoomID,
                 RefundAmount: refundAmount,
                 BalanceAfter: balanceAfter,
-                Message:      fmt.Sprintf("已取消进入游戏，返还 %d 竞技币", refundAmount),
+                Message:      fmt.Sprintf("已取消进入游戏，返还 %d 金币", refundAmount),
         }))
 
-        log.Printf("[ArenaCancelEnter] 玩家 %d 取消进入游戏，期号=%s，返还竞技币=%d", playerID, payload.PeriodNo, refundAmount)
+        log.Printf("[ArenaCancelEnter] 玩家 %d 取消进入游戏，期号=%s，返还金币=%d", playerID, payload.PeriodNo, refundAmount)
 }
 
 // =============================================

@@ -68,10 +68,9 @@ func (h *ArenaHandler) List(w http.ResponseWriter, r *http.Request) {
                         "room_category":  config.RoomCategory,
                         "base_score":     config.BaseScore,
                         "multiplier":     config.Multiplier,
-                        "min_gold":       config.MinGold,
-                        "max_gold":       config.MaxGold,
-                        "min_arena_coin": config.MinArenaCoin,
-                        "max_arena_coin": config.MaxArenaCoin,
+                        "min_gold":       config.MinGold,    // 最低入场金币
+                        "max_gold":       config.MaxGold,    // 最高入场金币
+                        "entry_gold":     config.EntryGold,  // 报名费/入场金币
                         "description":    config.Description,
                         "bg_image_num":   config.BgImageNum,
                 })
@@ -161,8 +160,8 @@ func (h *ArenaHandler) Signup(w http.ResponseWriter, r *http.Request) {
                 return
         }
 
-        // 🔧【调试】打印玩家竞技币余额
-        log.Printf("🔍 [报名调试] 玩家ID: %d, 竞技币余额: %d, 金币余额: %d", player.ID, player.ArenaCoin, player.Gold)
+        // 🔧【调试】打印玩家金币余额
+        log.Printf("🔍 [报名调试] 玩家ID: %d, 金币余额: %d", player.ID, player.Gold)
 
         // 检查玩家状态
         if player.Status != database.PlayerStatusNormal {
@@ -217,27 +216,27 @@ func (h *ArenaHandler) Signup(w http.ResponseWriter, r *http.Request) {
                 return
         }
 
-        // 使用房间配置中的 MinArenaCoin 作为报名费
-        // 注意：管理后台将报名费配置在 ddz_room_config.min_arena_coin 字段
-        signupFee := roomConfig.MinArenaCoin
+        // 使用房间配置中的 EntryGold 作为报名费
+        // 注意：报名费使用 ddz_room_config.entry_gold 字段
+        signupFee := roomConfig.EntryGold
 
         // 🔧【调试】打印报名门槛信息
-        log.Printf("🔍 [报名调试] 房间ID: %d, 房间名: %s, 报名门槛(min_arena_coin): %d, 玩家竞技币: %d", 
-                roomConfig.ID, roomConfig.RoomName, signupFee, player.ArenaCoin)
+        log.Printf("🔍 [报名调试] 房间ID: %d, 房间名: %s, 报名门槛(entry_gold): %d, 玩家金币: %d", 
+                roomConfig.ID, roomConfig.RoomName, signupFee, player.Gold)
 
-        // 检查竞技币是否足够（入场门槛和报名费是同一个值）
-        if player.ArenaCoin < signupFee {
-                log.Printf("❌ [报名调试] 竞技币不足: 玩家 %d, 需要 %d, 当前 %d", player.ID, signupFee, player.ArenaCoin)
-                writeJSONError(w, http.StatusBadRequest, fmt.Sprintf("竞技币不足，需要%d，当前%d", signupFee, player.ArenaCoin))
+        // 检查金币是否足够
+        if player.Gold < signupFee {
+                log.Printf("❌ [报名调试] 金币不足: 玩家 %d, 需要 %d, 当前 %d", player.ID, signupFee, player.Gold)
+                writeJSONError(w, http.StatusBadRequest, fmt.Sprintf("金币不足，需要%d，当前%d", signupFee, player.Gold))
                 return
         }
 
         // 记录报名前余额
-        balanceBefore := player.ArenaCoin
+        balanceBefore := player.Gold
 
         // 扣除报名费（如果有）- 使用带流水的函数
         if signupFee > 0 {
-                if err := database.UpdatePlayerArenaCoinWithLog(player.ID, -signupFee, database.ArenaCoinChangeSignup, periodInfo.PeriodNo, "竞技场报名扣除"); err != nil {
+                if err := database.UpdatePlayerGoldWithLog(player.ID, -signupFee, database.GoldChangeArenaSignup, periodInfo.PeriodNo, "竞技场报名扣除"); err != nil {
                         writeJSONError(w, http.StatusInternalServerError, "扣除报名费失败")
                         return
                 }
@@ -271,7 +270,7 @@ func (h *ArenaHandler) Signup(w http.ResponseWriter, r *http.Request) {
                 }
                 // 回滚报名费 - 使用带流水的函数
                 if signupFee > 0 {
-                        database.UpdatePlayerArenaCoinWithLog(player.ID, signupFee, database.ArenaCoinChangeRefund, periodInfo.PeriodNo, "报名失败回滚")
+                        database.UpdatePlayerGoldWithLog(player.ID, signupFee, database.GoldChangeArenaRefund, periodInfo.PeriodNo, "报名失败回滚")
                 }
                 writeJSONError(w, http.StatusInternalServerError, "报名失败，请重试")
                 return
@@ -436,7 +435,7 @@ func (h *ArenaHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 
         // 退还报名费 - 使用带流水的函数
         if periodPlayer.SignupFee > 0 {
-                if err := database.UpdatePlayerArenaCoinWithLog(player.ID, periodPlayer.SignupFee, database.ArenaCoinChangeRefund, periodInfo.PeriodNo, "取消报名退还"); err != nil {
+                if err := database.UpdatePlayerGoldWithLog(player.ID, periodPlayer.SignupFee, database.GoldChangeArenaRefund, periodInfo.PeriodNo, "取消报名退还"); err != nil {
                         log.Printf("⚠️ 退还报名费失败: %v", err)
                 }
         }
@@ -473,8 +472,8 @@ func (h *ArenaHandler) Cancel(w http.ResponseWriter, r *http.Request) {
                 PlayerID:      player.ID,
                 ActionType:    database.ArenaSignupActionCancel,
                 SignupFee:     periodPlayer.SignupFee,
-                BalanceBefore: player.ArenaCoin - periodPlayer.SignupFee,
-                BalanceAfter:  player.ArenaCoin,
+                BalanceBefore: player.Gold - periodPlayer.SignupFee,
+                BalanceAfter:  player.Gold,
         }
         database.CreateArenaSignupLog(signupLog)
 
@@ -489,7 +488,7 @@ func (h *ArenaHandler) Cancel(w http.ResponseWriter, r *http.Request) {
                 "period_no":     periodInfo.PeriodNo,
                 "room_id":       req.RoomID,
                 "refund_amount": periodPlayer.SignupFee,
-                "balance_after": player.ArenaCoin,
+                "balance_after": player.Gold,
         })
 }
 

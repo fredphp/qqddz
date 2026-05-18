@@ -740,7 +740,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
         enterPhase := &EnterPhaseInfo{
                 PeriodNo:       periodNo,
                 RoomID:         roomID,
-                SignupFee:      roomConfig.MinArenaCoin,
+                SignupFee:      roomConfig.EntryGold,
                 PlayerStatuses: make(map[uint64]*PlayerEnterStatus),
                 StartTime:      time.Now(),
                 Countdown:      EnterPhaseCountdown,
@@ -752,7 +752,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
         for _, playerID := range playerIDs {
                 player, exists := playerMap[playerID]
                 isRobot := exists && player.PlayerType == database.PlayerTypeRobot
-                signupFee := roomConfig.MinArenaCoin
+                signupFee := roomConfig.EntryGold
                 if isRobot {
                         signupFee = 0
                 }
@@ -788,7 +788,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartNotification(roomID uint64, perio
                 b.savePlayerEnterPhaseToRedis(playerID, &EnterPhaseRedisData{
                         PeriodNo:  periodNo,
                         RoomID:    roomID,
-                        SignupFee: roomConfig.MinArenaCoin,
+                        SignupFee: roomConfig.EntryGold,
                         TableID:   tableID,
                         Countdown: EnterPhaseCountdown,
                         StartTime: startTimeUnix,
@@ -842,7 +842,7 @@ func (b *ArenaStatusBroadcaster) sendMatchStartPopup(roomID uint64, periodNo str
                 RoomID:        roomID,
                 RoomName:      roomConfig.RoomName,
                 RoomConfigID:  roomID,
-                SignupFee:     roomConfig.MinArenaCoin,
+                SignupFee:     roomConfig.EntryGold,
                 TotalPlayers:  totalPlayers,
                 MatchDuration: PeriodTotalMinutes,
                 MatchRounds:   roomConfig.MatchRoundCount, // 🔧【修复】使用房间配置的每桌局数
@@ -1130,10 +1130,10 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeout(periodNo string) {
                 
                 // 返还竞技币
                 if status.SignupFee > 0 {
-                        err := database.UpdatePlayerArenaCoinWithLog(
+                        err := database.UpdatePlayerGoldWithLog(
                                 playerID,
                                 status.SignupFee,
-                                database.ArenaCoinChangeRefund,
+                                database.GoldChangeArenaRefund,
                                 periodNo,
                                 fmt.Sprintf("竞技场超时未进入，返还报名费，期号:%s", periodNo),
                         )
@@ -2272,10 +2272,10 @@ func (b *ArenaStatusBroadcaster) HandlePlayerCancelEnter(periodNo string, player
         // 返还报名费并记录流水
         var refundAmount int64
         if status.SignupFee > 0 {
-                err := database.UpdatePlayerArenaCoinWithLog(
+                err := database.UpdatePlayerGoldWithLog(
                         playerID,
                         status.SignupFee,
-                        database.ArenaCoinChangeRefund,
+                        database.GoldChangeArenaRefund,
                         periodNo,
                         fmt.Sprintf("玩家取消进入返还，期号:%s", periodNo),
                 )
@@ -3249,8 +3249,6 @@ func (b *ArenaStatusBroadcaster) refreshRedisCacheFromDB() {
                 Multiplier         int    `json:"multiplier"`
                 MinGold            int64  `json:"min_gold"`
                 MaxGold            int64  `json:"max_gold"`
-                MinArenaCoin       int64  `json:"min_arena_coin"`
-                MaxArenaCoin       int64  `json:"max_arena_coin"`
                 EntryGold          int64  `json:"entry_gold"`
                 BgImageNum         int    `json:"bg_image_num"`
                 Description        string `json:"description"`
@@ -3275,9 +3273,7 @@ func (b *ArenaStatusBroadcaster) refreshRedisCacheFromDB() {
                         Multiplier:         c.Multiplier,
                         MinGold:            c.MinGold,
                         MaxGold:            c.MaxGold,
-                        MinArenaCoin:       c.MinArenaCoin,
-                        MaxArenaCoin:       c.MaxArenaCoin,
-                        EntryGold:          c.MinGold,
+                        EntryGold:          c.EntryGold,
                         BgImageNum:         int(c.BgImageNum),
                         Description:        c.Description,
                         Status:             int(c.Status),
@@ -3769,10 +3765,10 @@ func (b *ArenaStatusBroadcaster) handleEnterPhaseTimeoutImproved(periodNo string
         for _, playerID := range timeoutPlayers {
                 status := enterPhase.PlayerStatuses[playerID]
                 if status.SignupFee > 0 {
-                        database.UpdatePlayerArenaCoinWithLog(
+                        database.UpdatePlayerGoldWithLog(
                                 playerID,
                                 status.SignupFee,
-                                database.ArenaCoinChangeRefund,
+                                database.GoldChangeArenaRefund,
                                 periodNo,
                                 fmt.Sprintf("Enter phase timeout refund, period:%s", periodNo),
                         )
