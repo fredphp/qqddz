@@ -65,3 +65,6 @@ tailwind.config.ts
 server.log
 # Skills directory
 /skills/
+
+# Admin web build output
+admin/web/dist/
