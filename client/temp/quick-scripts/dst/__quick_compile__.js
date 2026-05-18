@@ -1,6 +1,10 @@
 
 (function () {
+<<<<<<< Updated upstream:client/temp/quick-scripts/dst/__quick_compile__.js
 var scripts = [{"deps":{"./assets/scripts/hallscene/prefabs_script/creatroom":3,"./assets/scripts/hallscene/prefabs_script/joinroom":7,"./assets/scripts/data/arenaData":1},"path":"preview-scripts/__qc_index__.js"},{"deps":{},"path":"preview-scripts/assets/scripts/data/arenaData.js"},{"deps":{},"path":"preview-scripts/assets/scripts/gameScene/prefabs/player_node.js"},{"deps":{},"path":"preview-scripts/assets/scripts/hallscene/prefabs_script/creatroom.js"},{"deps":{},"path":"preview-scripts/assets/scripts/ddz/tournament/TournamentWaitingScene.js"},{"deps":{},"path":"preview-scripts/assets/scripts/ddz/tournament/TournamentFinalRankDialog.js"},{"deps":{},"path":"preview-scripts/assets/scripts/gameScene/prefabs/card.js"},{"deps":{},"path":"preview-scripts/assets/scripts/hallscene/prefabs_script/joinroom.js"}];
+=======
+var scripts = [{"deps":{"./assets/scripts/data/arenaData":1,"./assets/scripts/ddz/tournament/TournamentWaitingScene":2,"./assets/scripts/hallscene/prefabs_script/creatroom":3,"./assets/scripts/hallscene/prefabs_script/joinroom":4,"./assets/scripts/ddz/tournament/TournamentFinalRankDialog":5},"path":"preview-scripts/__qc_index__.js"},{"deps":{},"path":"preview-scripts/assets/scripts/data/arenaData.js"},{"deps":{},"path":"preview-scripts/assets/scripts/ddz/tournament/TournamentWaitingScene.js"},{"deps":{},"path":"preview-scripts/assets/scripts/hallscene/prefabs_script/creatroom.js"},{"deps":{},"path":"preview-scripts/assets/scripts/hallscene/prefabs_script/joinroom.js"},{"deps":{},"path":"preview-scripts/assets/scripts/ddz/tournament/TournamentFinalRankDialog.js"}];
+>>>>>>> Stashed changes:nclient/temp/quick-scripts/dst/__quick_compile__.js
 var entries = ["preview-scripts/__qc_index__.js"];
 var bundleScript = 'preview-scripts/__qc_bundle__.js';
 

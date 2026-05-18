@@ -11,7 +11,11 @@
  Target Server Version : 80045 (8.0.45-0ubuntu0.24.04.1)
  File Encoding         : 65001
 
+<<<<<<< Updated upstream
  Date: 13/05/2026 22:30:23
+=======
+ Date: 11/05/2026 21:15:00
+>>>>>>> Stashed changes
 */
 
 SET NAMES utf8mb4;
@@ -162,7 +166,7 @@ CREATE TABLE `ddz_arena_coin_logs_202604`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技币流水表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技币流水表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_coin_logs_202604
@@ -184,7 +188,7 @@ CREATE TABLE `ddz_arena_coin_logs_202605`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技币流水表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技币流水表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_coin_logs_202605
@@ -206,7 +210,7 @@ CREATE TABLE `ddz_arena_coin_logs_202606`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技币流水表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技币流水表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_coin_logs_202606
@@ -611,7 +615,7 @@ CREATE TABLE `ddz_arena_gold_logs_202606`  (
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_match_id`(`match_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场金币流水表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场金币流水表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_gold_logs_202606
@@ -691,7 +695,7 @@ CREATE TABLE `ddz_arena_participations`  (
   INDEX `idx_participations_session_rank`(`session_id` ASC, `rank` ASC) USING BTREE,
   INDEX `idx_is_robot`(`session_id` ASC, `is_robot` ASC) USING BTREE,
   INDEX `idx_period_no`(`period_no` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '参赛记录表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '参赛记录表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_participations
@@ -1176,7 +1180,7 @@ CREATE TABLE `ddz_arena_period_players_202606`  (
   INDEX `idx_room_id`(`room_id` ASC) USING BTREE,
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场期号玩家表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场期号玩家表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_period_players_202606
@@ -1363,7 +1367,11 @@ CREATE TABLE `ddz_arena_periods_202605`  (
   INDEX `idx_status`(`status` ASC) USING BTREE,
   INDEX `idx_start_time`(`start_time` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
+<<<<<<< Updated upstream
 ) ENGINE = InnoDB AUTO_INCREMENT = 1327 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场期号表(月份分表)' ROW_FORMAT = Dynamic;
+=======
+) ENGINE = InnoDB AUTO_INCREMENT = 1222 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场期号表(月份分表)' ROW_FORMAT = Dynamic;
+>>>>>>> Stashed changes
 
 -- ----------------------------
 -- Records of ddz_arena_periods_202605
@@ -2512,6 +2520,7 @@ INSERT INTO `ddz_arena_periods_202605` VALUES (1216, '260511010252', 1, 1, 252, 
 INSERT INTO `ddz_arena_periods_202605` VALUES (1217, '260511010253', 1, 1, 253, '2026-05-11 21:00:00', '2026-05-11 21:01:00', '2026-05-11 21:05:00', '2026-05-11 21:05:00', 0, 0, 0, 2, NULL, '2026-05-11 21:05:00', '2026-05-11 21:00:00', '2026-05-11 21:05:00');
 INSERT INTO `ddz_arena_periods_202605` VALUES (1218, '260511020025', 2, 2, 25, '2026-05-11 21:00:00', '2026-05-11 21:01:00', '2026-05-11 21:10:00', '2026-05-11 21:05:00', 0, 0, 0, 2, NULL, '2026-05-11 21:10:00', '2026-05-11 21:00:00', '2026-05-11 21:10:00');
 INSERT INTO `ddz_arena_periods_202605` VALUES (1219, '260511010254', 1, 1, 254, '2026-05-11 21:05:00', '2026-05-11 21:06:00', '2026-05-11 21:10:00', '2026-05-11 21:10:00', 0, 0, 0, 2, NULL, '2026-05-11 21:10:00', '2026-05-11 21:05:00', '2026-05-11 21:10:00');
+<<<<<<< Updated upstream
 INSERT INTO `ddz_arena_periods_202605` VALUES (1220, '260511010255', 1, 1, 255, '2026-05-11 21:10:00', '2026-05-11 21:11:00', '2026-05-11 21:15:00', '2026-05-11 21:15:00', 0, 0, 0, 2, NULL, '2026-05-11 21:15:01', '2026-05-11 21:10:00', '2026-05-11 21:15:00');
 INSERT INTO `ddz_arena_periods_202605` VALUES (1221, '260511020026', 2, 2, 26, '2026-05-11 21:10:00', '2026-05-11 21:11:00', '2026-05-11 21:20:00', '2026-05-11 21:15:00', 0, 0, 0, 2, NULL, '2026-05-11 21:20:00', '2026-05-11 21:10:00', '2026-05-11 21:20:00');
 INSERT INTO `ddz_arena_periods_202605` VALUES (1222, '260511010256', 1, 1, 256, '2026-05-11 21:15:00', '2026-05-11 21:16:00', '2026-05-11 21:20:00', '2026-05-11 21:20:00', 0, 0, 0, 2, NULL, '2026-05-11 21:20:00', '2026-05-11 21:15:00', '2026-05-11 21:20:00');
@@ -2613,6 +2622,10 @@ INSERT INTO `ddz_arena_periods_202605` VALUES (1323, '260513020033', 2, 2, 33, '
 INSERT INTO `ddz_arena_periods_202605` VALUES (1324, '260513010270', 1, 1, 270, '2026-05-13 22:25:00', '2026-05-13 22:26:00', '2026-05-13 22:30:00', '2026-05-13 22:30:00', 0, 0, 0, 2, NULL, '2026-05-13 22:30:00', '2026-05-13 22:25:00', '2026-05-13 22:30:00');
 INSERT INTO `ddz_arena_periods_202605` VALUES (1325, '260513010271', 1, 1, 271, '2026-05-13 22:30:00', '2026-05-13 22:31:00', '2026-05-13 22:35:00', '2026-05-13 22:35:00', 0, 0, 0, 0, NULL, NULL, '2026-05-13 22:30:00', '2026-05-13 22:30:00');
 INSERT INTO `ddz_arena_periods_202605` VALUES (1326, '260513020034', 2, 2, 34, '2026-05-13 22:30:00', '2026-05-13 22:31:00', '2026-05-13 22:40:00', '2026-05-13 22:35:00', 0, 0, 0, 0, NULL, NULL, '2026-05-13 22:30:00', '2026-05-13 22:30:00');
+=======
+INSERT INTO `ddz_arena_periods_202605` VALUES (1220, '260511010255', 1, 1, 255, '2026-05-11 21:10:00', '2026-05-11 21:11:00', '2026-05-11 21:15:00', '2026-05-11 21:15:00', 0, 0, 0, 1, NULL, NULL, '2026-05-11 21:10:00', '2026-05-11 21:11:00');
+INSERT INTO `ddz_arena_periods_202605` VALUES (1221, '260511020026', 2, 2, 26, '2026-05-11 21:10:00', '2026-05-11 21:11:00', '2026-05-11 21:20:00', '2026-05-11 21:15:00', 0, 0, 0, 1, NULL, NULL, '2026-05-11 21:10:00', '2026-05-11 21:11:00');
+>>>>>>> Stashed changes
 
 -- ----------------------------
 -- Table structure for ddz_arena_periods_202606
@@ -2643,7 +2656,7 @@ CREATE TABLE `ddz_arena_periods_202606`  (
   INDEX `idx_status`(`status` ASC) USING BTREE,
   INDEX `idx_start_time`(`start_time` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场期号表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场期号表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_periods_202606
@@ -2949,7 +2962,7 @@ CREATE TABLE `ddz_arena_signup_logs_202606`  (
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_action_type`(`action_type` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场报名日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '竞技场报名日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_arena_signup_logs_202606
@@ -3086,7 +3099,7 @@ CREATE TABLE `ddz_bid_logs_202606`  (
   INDEX `idx_game_id`(`game_id` ASC) USING BTREE,
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '叫地主日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '叫地主日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_bid_logs_202606
@@ -3115,13 +3128,20 @@ CREATE TABLE `ddz_daily_stats`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_ddz_daily_stats_deleted_at`(`deleted_at` ASC) USING BTREE,
   UNIQUE INDEX `idx_ddz_daily_stats_stat_date`(`stat_date` ASC) USING BTREE
+<<<<<<< Updated upstream
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+=======
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+>>>>>>> Stashed changes
 
 -- ----------------------------
 -- Records of ddz_daily_stats
 -- ----------------------------
 INSERT INTO `ddz_daily_stats` VALUES (1, '2026-05-11 20:33:21', '2026-05-11 20:33:21', NULL, NULL, 36, 0, 1, 0, 0, 0, 0, NULL, '2026-05-11', 0);
+<<<<<<< Updated upstream
 INSERT INTO `ddz_daily_stats` VALUES (2, '2026-05-13 18:49:02', '2026-05-13 18:49:02', NULL, NULL, 36, 0, 1, 0, 0, 0, 0, NULL, '2026-05-13', 0);
+=======
+>>>>>>> Stashed changes
 
 -- ----------------------------
 -- Table structure for ddz_deal_logs
@@ -3389,7 +3409,7 @@ CREATE TABLE `ddz_deal_logs_202604`  (
   INDEX `idx_game_id`(`game_id` ASC) USING BTREE,
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '发牌日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '发牌日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_deal_logs_202604
@@ -3612,7 +3632,7 @@ CREATE TABLE `ddz_deal_logs_202606`  (
   INDEX `idx_game_id`(`game_id` ASC) USING BTREE,
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '发牌日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '发牌日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_deal_logs_202606
@@ -3857,7 +3877,7 @@ CREATE TABLE `ddz_game_records_202604`  (
   INDEX `idx_farmer2_id`(`farmer2_id` ASC) USING BTREE,
   INDEX `idx_started_at`(`started_at` ASC) USING BTREE,
   INDEX `idx_result`(`result` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '游戏记录表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '游戏记录表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_game_records_202604
@@ -4002,7 +4022,7 @@ CREATE TABLE `ddz_game_records_202606`  (
   INDEX `idx_farmer2_id`(`farmer2_id` ASC) USING BTREE,
   INDEX `idx_started_at`(`started_at` ASC) USING BTREE,
   INDEX `idx_result`(`result` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '游戏记录表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '游戏记录表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_game_records_202606
@@ -4080,7 +4100,11 @@ CREATE TABLE `ddz_login_logs`  (
   INDEX `idx_ddz_login_logs_created_at`(`created_at` ASC) USING BTREE,
   CONSTRAINT `fk_ddz_login_logs_account` FOREIGN KEY (`account_id`) REFERENCES `ddz_user_accounts` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_ddz_login_logs_player` FOREIGN KEY (`player_id`) REFERENCES `ddz_players` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+<<<<<<< Updated upstream
 ) ENGINE = InnoDB AUTO_INCREMENT = 47 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+=======
+) ENGINE = InnoDB AUTO_INCREMENT = 46 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+>>>>>>> Stashed changes
 
 -- ----------------------------
 -- Records of ddz_login_logs
@@ -4127,7 +4151,10 @@ INSERT INTO `ddz_login_logs` VALUES (42, 7, 6, 1, 1, '', '127.0.0.1', '', 'Andro
 INSERT INTO `ddz_login_logs` VALUES (43, 4, 4, 1, 1, '', '127.0.0.1', '', 'iPhone', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '', '2026-05-03 21:18:24');
 INSERT INTO `ddz_login_logs` VALUES (44, 8, 7, 1, 1, '', '127.0.0.1', '', 'Android', 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36 Edg/146.0.0.0', '', '2026-05-06 21:37:35');
 INSERT INTO `ddz_login_logs` VALUES (45, 4, 4, 1, 1, '', '127.0.0.1', '', 'iPhone', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '', '2026-05-11 20:33:22');
+<<<<<<< Updated upstream
 INSERT INTO `ddz_login_logs` VALUES (46, 5, 5, 1, 1, '', '127.0.0.1', '', 'iPhone', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '', '2026-05-13 18:49:03');
+=======
+>>>>>>> Stashed changes
 
 -- ----------------------------
 -- Table structure for ddz_login_logs_202604
@@ -4150,7 +4177,7 @@ CREATE TABLE `ddz_login_logs_202604`  (
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_account_id`(`account_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '登录日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '登录日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_login_logs_202604
@@ -4177,7 +4204,7 @@ CREATE TABLE `ddz_login_logs_202605`  (
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_account_id`(`account_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '登录日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '登录日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_login_logs_202605
@@ -4204,7 +4231,7 @@ CREATE TABLE `ddz_login_logs_202606`  (
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_account_id`(`account_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '登录日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '登录日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_login_logs_202606
@@ -4796,7 +4823,7 @@ CREATE TABLE `ddz_play_logs_202604`  (
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_round_num`(`round_num` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '出牌日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '出牌日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_play_logs_202604
@@ -6076,7 +6103,7 @@ CREATE TABLE `ddz_play_logs_202606`  (
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_round_num`(`round_num` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '出牌日志表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '出牌日志表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_play_logs_202606
@@ -6225,7 +6252,11 @@ INSERT INTO `ddz_players` VALUES (1, 'phone_13800138000', '用户80000147', '', 
 INSERT INTO `ddz_players` VALUES (2, 'phone_13800138001', '用户80018735', '', 0, 1, 0, NULL, NULL, 1000, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, '2026-04-25 12:11:15', '[::1]', '2026-04-25 12:11:06', '2026-04-25 12:11:15', NULL, 0, '', NULL);
 INSERT INTO `ddz_players` VALUES (3, 'phone_13800138003', '用户80032758', '', 0, 1, 0, NULL, NULL, 1000, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, '2026-04-25 12:11:20', '[::1]', '2026-04-25 12:11:20', '2026-04-25 12:11:20', NULL, 0, '', NULL);
 INSERT INTO `ddz_players` VALUES (4, 'phone_15888888888', '李宁', 'uploads/file/2026/05/06/b6f61982-aae1-4d61-afd2-fbab61193356.jpg', 0, 1, 0, NULL, NULL, 15980, 5200, 0, 0, 1, 0, 59, 23, 57, 25, 1, '2026-05-11 20:33:22', '127.0.0.1', '2026-04-25 15:53:53', '2026-05-11 20:33:22', NULL, 0, '', NULL);
+<<<<<<< Updated upstream
 INSERT INTO `ddz_players` VALUES (5, 'phone_15208384146', '用户41461120', '', 0, 1, 0, NULL, NULL, 10380, 0, 0, 0, 1, 0, 4, 5, 3, 6, 1, '2026-05-13 18:49:03', '127.0.0.1', '2026-04-25 16:05:56', '2026-05-13 18:49:03', NULL, 0, '', NULL);
+=======
+INSERT INTO `ddz_players` VALUES (5, 'phone_15208384146', '用户41461120', '', 0, 1, 0, NULL, NULL, 10380, 0, 0, 0, 1, 0, 4, 5, 3, 6, 1, '2026-04-27 21:16:37', '127.0.0.1', '2026-04-25 16:05:56', '2026-05-03 19:04:18', NULL, 0, '', NULL);
+>>>>>>> Stashed changes
 INSERT INTO `ddz_players` VALUES (7, 'phone_13999999999', '用户99995055', 'uploads/file/2026/05/06/b6f61982-aae1-4d61-afd2-fbab61193356.jpg', 2, 1, 0, NULL, NULL, 9760, 0, 0, 0, 1, 0, 2, 7, 3, 6, 1, '2026-04-29 10:42:23', '127.0.0.1', '2026-04-29 10:42:23', '2026-05-10 19:04:29', NULL, 0, '', NULL);
 INSERT INTO `ddz_players` VALUES (8, 'phone_13888888888', '用户88886547', '', 0, 1, 0, NULL, NULL, 1000, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, '2026-05-06 21:37:35', '127.0.0.1', '2026-05-06 21:37:35', '2026-05-06 21:37:35', NULL, 0, '', NULL);
 INSERT INTO `ddz_players` VALUES (9, 'robot_1778117063805_6545', '活泼松鼠', '/uploads/file/avatar/avatar_28.jpg', 1, 2, 0, NULL, NULL, 8993, 0, 0, 0, 1, 0, 2, 8, 3, 7, 1, NULL, '', '2026-05-07 09:24:24', '2026-05-10 16:18:16', NULL, 0, '', NULL);
@@ -6542,7 +6573,11 @@ CREATE TABLE `ddz_room_players_202606`  (
   INDEX `idx_room_code`(`room_code` ASC) USING BTREE,
   INDEX `idx_player_id`(`player_id` ASC) USING BTREE,
   INDEX `idx_joined_at`(`joined_at` ASC) USING BTREE
+<<<<<<< Updated upstream
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '房间玩家表(月份分表)' ROW_FORMAT = Dynamic;
+=======
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '房间玩家表(月份分表)' ROW_FORMAT = Dynamic;
+>>>>>>> Stashed changes
 
 -- ----------------------------
 -- Records of ddz_room_players_202606
@@ -6777,7 +6812,7 @@ CREATE TABLE `ddz_rooms_202606`  (
   INDEX `idx_creator_id`(`creator_id` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '房间表(月份分表)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '房间表(月份分表)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ddz_rooms_202606
@@ -7017,7 +7052,11 @@ INSERT INTO `ddz_user_accounts` VALUES (1, 1, '13800138000', '', NULL, NULL, '',
 INSERT INTO `ddz_user_accounts` VALUES (2, 2, '13800138001', '', NULL, NULL, '', '', '', 1, 'qA7bInyI9iVJeJ4ZTA5fjIaMrVwbFKTQ', '2026-05-02 12:11:15', '', NULL, '', 'Unknown', '2026-04-25 12:11:15', '[::1]', 2, 1, '2026-04-25 12:11:06', '2026-04-25 12:11:15', NULL);
 INSERT INTO `ddz_user_accounts` VALUES (3, 3, '13800138003', '', NULL, NULL, '', '', '', 1, 'jNNq8rDPAs7MyuxqymDEJpMPlk8Fl5Nk', '2026-05-02 12:11:20', '', NULL, '', 'Unknown', '2026-04-25 12:11:20', '[::1]', 1, 1, '2026-04-25 12:11:20', '2026-04-25 12:11:20', NULL);
 INSERT INTO `ddz_user_accounts` VALUES (4, 4, '15888888888', '', NULL, NULL, '', '', '', 1, '4lTeqfNxZh3y79yQ8S8x0TLtkiLcfvJ6', '2026-05-18 20:33:22', '', NULL, '', 'iPhone', '2026-05-11 20:33:22', '127.0.0.1', 21, 1, '2026-04-25 15:53:53', '2026-05-11 20:33:22', NULL);
+<<<<<<< Updated upstream
 INSERT INTO `ddz_user_accounts` VALUES (5, 5, '15208384146', '', NULL, NULL, '', '', '', 1, 'YDr5d9mxfnqox5FZgqyHY2UGBuRT7lLo', '2026-05-20 18:49:03', '', NULL, '', 'iPhone', '2026-05-13 18:49:03', '127.0.0.1', 16, 1, '2026-04-25 16:05:56', '2026-05-13 18:49:03', NULL);
+=======
+INSERT INTO `ddz_user_accounts` VALUES (5, 5, '15208384146', '', NULL, NULL, '', '', '', 1, 'K0fLKImDSNABfVAv5HNgf8CZ3AOwj80A', '2026-05-04 21:16:37', '', NULL, '', 'Windows', '2026-04-27 21:16:37', '127.0.0.1', 15, 1, '2026-04-25 16:05:56', '2026-04-27 21:16:37', NULL);
+>>>>>>> Stashed changes
 INSERT INTO `ddz_user_accounts` VALUES (6, 7, '13999999999', '', NULL, NULL, '', '', '', 1, 'tTPp0v2CJkFVxEjGnn1L4KYxIdwWJga3', '2026-05-06 10:42:23', '', NULL, '', 'Android', '2026-04-29 10:42:23', '127.0.0.1', 1, 1, '2026-04-29 10:42:23', '2026-04-29 10:42:23', NULL);
 INSERT INTO `ddz_user_accounts` VALUES (7, 8, '13888888888', '', NULL, NULL, '', '', '', 1, 'JVgvFtD7U9T7O4oUMM9XDUgPGNvQJx46', '2026-05-13 21:37:35', '', NULL, '', 'Android', '2026-05-06 21:37:35', '127.0.0.1', 1, 1, '2026-05-06 21:37:35', '2026-05-06 21:37:35', NULL);
 INSERT INTO `ddz_user_accounts` VALUES (8, 9, NULL, '', 'robot_ffdf151f42fb85e3', 'union_e056998b2152a51a', '', '活泼松鼠', '/uploads/file/avatar/avatar_28.jpg', 2, 'WdpuL6OjkfSrC501', '2026-05-14 09:24:24', '', NULL, '', 'robot', '2026-05-07 09:24:24', '', 1, 1, '2026-05-07 09:24:24', '2026-05-07 09:24:24', NULL);
