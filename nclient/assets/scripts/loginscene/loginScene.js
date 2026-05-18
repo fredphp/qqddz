@@ -2332,56 +2332,14 @@ cc.Class({
             }
         });
         
-        // 玩家信息 - 左上角
-        var playerData = window.myglobal ? window.myglobal.playerData : null;
-        if (playerData) {
-            var infoNode = new cc.Node("PlayerInfo");
-            infoNode.setPosition(-cc.winSize.width / 2 + 100, cc.winSize.height / 2 - 50);
-            
-            var nickLabel = infoNode.addComponent(cc.Label);
-            nickLabel.string = playerData.nickName || "玩家";
-            nickLabel.fontSize = 22;
-            nickLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
-            infoNode.color = cc.color(255, 255, 255);
-            
-            var outline = infoNode.addComponent(cc.LabelOutline);
-            outline.color = cc.color(0, 0, 0);
-            outline.width = 2;
-            
-            infoNode.parent = overlay;
-            
-            // 欢乐豆
-            var goldNode = new cc.Node("Gold");
-            goldNode.setPosition(0, -30);
-            var goldLabel = goldNode.addComponent(cc.Label);
-            goldLabel.string = "欢乐豆: " + (playerData.gobal_count || 0);
-            goldLabel.fontSize = 18;
-            goldLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
-            goldNode.color = cc.color(255, 215, 0);
-            goldNode.parent = infoNode;
-        }
-        
-        // 标题
-        var titleNode = new cc.Node("Title");
-        titleNode.setPosition(0, cc.winSize.height / 2 - 150);
-        var titleLabel = titleNode.addComponent(cc.Label);
-        titleLabel.string = "选择游戏";
-        titleLabel.fontSize = 42;
-        titleLabel.fontFamily = "Arial, Microsoft YaHei";
-        titleNode.color = cc.color(255, 215, 0);
-        var titleOutline = titleNode.addComponent(cc.LabelOutline);
-        titleOutline.color = cc.color(0, 0, 0);
-        titleOutline.width = 3;
-        titleNode.parent = overlay;
-        
         // 按钮容器
         var buttonContainer = new cc.Node("ButtonContainer");
         buttonContainer.setPosition(0, 0);
         buttonContainer.parent = overlay;
         
-        // 计算按钮位置
-        var buttonSpacing = 200;
-        var buttonSize = 150;
+        // 计算按钮位置和大小
+        var buttonSpacing = 220;  // 按钮间距
+        var buttonSize = 200;     // 按钮大小（调大）
         
         // 斗地主按钮
         var ddzBtn = new cc.Node("DDZButton");
@@ -2400,7 +2358,7 @@ cc.Class({
         
         var ddzBtnComp = ddzBtn.addComponent(cc.Button);
         ddzBtnComp.transition = cc.Button.Transition.SCALE;
-        ddzBtnComp.zoomScale = 1.1;
+        ddzBtnComp.zoomScale = 1.08;
         
         ddzBtn.on(cc.Node.EventType.TOUCH_END, function() {
             console.log("=== 点击斗地主 ===");
@@ -2409,18 +2367,6 @@ cc.Class({
         }, this);
         
         ddzBtn.parent = buttonContainer;
-        
-        // 斗地主标签
-        var ddzLabel = new cc.Node("DDZLabel");
-        ddzLabel.setPosition(-buttonSpacing, -buttonSize / 2 - 25);
-        var ddzLbl = ddzLabel.addComponent(cc.Label);
-        ddzLbl.string = "斗地主";
-        ddzLbl.fontSize = 24;
-        ddzLabel.color = cc.color(255, 200, 100);
-        var ddzOutline = ddzLabel.addComponent(cc.LabelOutline);
-        ddzOutline.color = cc.color(0, 0, 0);
-        ddzOutline.width = 2;
-        ddzLabel.parent = buttonContainer;
         
         // 农场按钮
         var farmBtn = new cc.Node("FarmButton");
@@ -2439,7 +2385,7 @@ cc.Class({
         
         var farmBtnComp = farmBtn.addComponent(cc.Button);
         farmBtnComp.transition = cc.Button.Transition.SCALE;
-        farmBtnComp.zoomScale = 1.1;
+        farmBtnComp.zoomScale = 1.08;
         
         farmBtn.on(cc.Node.EventType.TOUCH_END, function() {
             console.log("=== 点击农场（敬请期待）===");
@@ -2447,18 +2393,6 @@ cc.Class({
         }, this);
         
         farmBtn.parent = buttonContainer;
-        
-        // 农场标签
-        var farmLabel = new cc.Node("FarmLabel");
-        farmLabel.setPosition(buttonSpacing, -buttonSize / 2 - 25);
-        var farmLbl = farmLabel.addComponent(cc.Label);
-        farmLbl.string = "农场 (敬请期待)";
-        farmLbl.fontSize = 20;
-        farmLabel.color = cc.color(150, 200, 150);
-        var farmOutline = farmLabel.addComponent(cc.LabelOutline);
-        farmOutline.color = cc.color(0, 0, 0);
-        farmOutline.width = 2;
-        farmLabel.parent = buttonContainer;
         
         // 添加到场景
         this.node.addChild(overlay);
