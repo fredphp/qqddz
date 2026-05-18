@@ -79,7 +79,7 @@
           </template>
         </el-table-column>
         <!-- 钻石列暂时隐藏 -->
-        <el-table-column align="center" label="等级" min-width="60" prop="level" />
+        <el-table-column align="center" label="星级" min-width="60" prop="level" />
         <el-table-column align="center" label="VIP" min-width="70">
           <template #default="scope">
             <el-tag v-if="scope.row.vipLevel > 0" type="warning" size="small">VIP{{ scope.row.vipLevel }}</el-tag>
@@ -180,7 +180,7 @@
           <span class="currency-value arena">{{ formatNumber(currentPlayer.arenaCoin) }}</span>
         </el-descriptions-item>
         <!-- 钻石暂时隐藏 -->
-        <el-descriptions-item label="等级">{{ currentPlayer.level }}</el-descriptions-item>
+        <el-descriptions-item label="星级">{{ currentPlayer.level }}</el-descriptions-item>
         <el-descriptions-item label="VIP等级">VIP{{ currentPlayer.vipLevel }}</el-descriptions-item>
         <el-descriptions-item label="胜场">{{ currentPlayer.winCount }}</el-descriptions-item>
         <el-descriptions-item label="败场">{{ currentPlayer.loseCount }}</el-descriptions-item>

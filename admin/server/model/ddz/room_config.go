@@ -29,6 +29,7 @@ type DDZRoomConfig struct {
         SortOrder       int     `json:"sortOrder" gorm:"type:int;not null;default:0;comment:排序权重"`
         Description     string  `json:"description" gorm:"type:varchar(256);default:'';comment:房间描述"`
         // 竞技场专属字段
+        MinLevel           int            `json:"minLevel" gorm:"type:int;not null;default:0;comment:所需星级(会员等级)"`
         MatchTimeRanges    datatypes.JSON `json:"matchTimeRanges" gorm:"type:json;comment:开赛时间段"` // 如: [{"start":"20:00","end":"24:00"}]
         MatchRoundDuration int            `json:"matchRoundDuration" gorm:"type:int;not null;default:5;comment:每场时长(分钟)"`
         MatchRoundCount    int    `json:"matchRoundCount" gorm:"type:int;not null;default:3;comment:轮次"`

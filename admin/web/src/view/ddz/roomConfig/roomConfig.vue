@@ -121,6 +121,15 @@
             <span v-else class="text-gray-400">-</span>
           </template>
         </el-table-column>
+        <el-table-column align="center" label="所需星级" min-width="80">
+          <template #default="scope">
+            <span v-if="scope.row.roomCategory === 2">
+              <el-tag v-if="scope.row.minLevel > 0" type="warning" size="small">{{ scope.row.minLevel }}星</el-tag>
+              <span v-else class="text-gray-400">不限</span>
+            </span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+        </el-table-column>
         <el-table-column align="center" label="人数限制" min-width="100">
           <template #default="scope">
             <span v-if="scope.row.roomCategory === 2">{{ scope.row.minPlayers || 3 }}-{{ scope.row.maxPlayers || 9 }}人</span>
@@ -294,44 +303,52 @@
           <el-divider content-position="left">竞技场配置</el-divider>
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item label="报名费" prop="minArenaCoin" required>
+              <el-form-item label="报名费(金币)" prop="minArenaCoin" required>
                 <el-input-number v-model="formData.minArenaCoin" :min="0" :step="100" style="width: 100%" />
               </el-form-item>
             </el-col>
-			<el-col :span="12">
-			  <el-form-item label="每场时长(分)" prop="matchRoundDuration">
-			    <el-input-number v-model="formData.matchRoundDuration" :min="1" :max="60" style="width: 100%" />
-			  </el-form-item>
-			</el-col>
+            <el-col :span="12">
+              <el-form-item label="所需星级" prop="minLevel">
+                <el-input-number v-model="formData.minLevel" :min="0" :max="100" style="width: 100%" />
+                <div class="text-xs text-gray-500 mt-1">0表示不限制星级</div>
+              </el-form-item>
+            </el-col>
           </el-row>
           <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="每场时长(分)" prop="matchRoundDuration">
+                <el-input-number v-model="formData.matchRoundDuration" :min="1" :max="60" style="width: 100%" />
+              </el-form-item>
+            </el-col>
             <el-col :span="12">
               <el-form-item label="轮次" prop="matchRoundCount">
                 <el-input-number v-model="formData.matchRoundCount" :min="1" :max="20" style="width: 100%" />
               </el-form-item>
             </el-col>
-			<el-col :span="12">
-			  <el-form-item label="冠军奖励" prop="championRewardId">
-			    <el-select v-model="formData.championRewardId" placeholder="请选择冠军奖励" clearable style="width: 100%">
-			      <el-option 
-			        v-for="item in rewardGoodsOptions" 
-			        :key="item.ID" 
-			        :label="item.goodsName" 
-			        :value="item.ID"
-			      />
-			    </el-select>
-			  </el-form-item>
-			</el-col>
           </el-row>
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item label="最小开赛人数" prop="minPlayers">
-                <el-input-number v-model="formData.minPlayers" :min="2" :max="100" style="width: 100%" />
+              <el-form-item label="冠军奖励" prop="championRewardId">
+                <el-select v-model="formData.championRewardId" placeholder="请选择冠军奖励" clearable style="width: 100%">
+                  <el-option 
+                    v-for="item in rewardGoodsOptions" 
+                    :key="item.ID" 
+                    :label="item.goodsName" 
+                    :value="item.ID"
+                  />
+                </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="最大人数" prop="maxPlayers">
                 <el-input-number v-model="formData.maxPlayers" :min="3" :max="100" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="最小开赛人数" prop="minPlayers">
+                <el-input-number v-model="formData.minPlayers" :min="2" :max="100" style="width: 100%" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -483,6 +500,7 @@ const formData = ref({
   sortOrder: 0,
   description: '',
   // 竞技场专属字段
+  minLevel: 0,  // 所需星级
   matchTimeRanges: [],  // 开赛时间段
   matchRoundDuration: 5,  // 每场时长（分钟）
   matchRoundCount: 3,  // 轮次
@@ -621,6 +639,10 @@ const openDialog = (type, row = null) => {
     if (formData.value.minMatchPlayers === undefined || formData.value.minMatchPlayers === null) {
       formData.value.minMatchPlayers = 1
     }
+    // 所需星级默认值
+    if (formData.value.minLevel === undefined || formData.value.minLevel === null) {
+      formData.value.minLevel = 0
+    }
 
   } else {
     formData.value = {
@@ -644,6 +666,7 @@ const openDialog = (type, row = null) => {
       sortOrder: 0,
       description: '',
       // 竞技场专属字段
+      minLevel: 0,  // 所需星级
       matchTimeRanges: [],
       matchRoundDuration: 5,
       matchRoundCount: 3,
