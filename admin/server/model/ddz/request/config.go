@@ -88,12 +88,16 @@ type DDZGameRoomConfigCreate struct {
         SortOrder         int     `json:"sortOrder"`
         Description       string  `json:"description"`
         // 竞技场专属字段
+        MinLevel           int    `json:"minLevel"`           // 所需星级(会员等级)
         MatchTimeRanges    string `json:"matchTimeRanges"`    // 开赛时间段(JSON)
         MatchRoundDuration int    `json:"matchRoundDuration"` // 每场时长(分钟)
         MatchRoundCount    int    `json:"matchRoundCount"`    // 轮次
         MaxPlayers         int    `json:"maxPlayers"`         // 最大人数
         MinPlayers         int    `json:"minPlayers"`         // 最小开赛人数
         ChampionRewardID   uint   `json:"championRewardId"`   // 冠军奖励ID
+        EliminationRules   string `json:"eliminationRules"`   // 淘汰规则JSON数组
+        RankWaitSeconds    int    `json:"rankWaitSeconds"`    // 排行榜等待秒数
+        MinMatchPlayers    int    `json:"minMatchPlayers"`    // 最小匹配人数
 }
 
 // DDZGameRoomConfigUpdate 更新游戏房间配置请求
@@ -118,6 +122,8 @@ type DDZGameRoomConfigUpdate struct {
         SortOrder         int     `json:"sortOrder"`
         Description       string  `json:"description"`
         // 竞技场专属字段
+        MinLevel           int             `json:"minLevel"`           // 所需星级(会员等级)
+        MinLevelAlt        int             `json:"min_level"`          // 蛇形命名(兼容前端)
         MatchTimeRanges    string          `json:"matchTimeRanges"`    // 开赛时间段(JSON) - 驼峰命名
         MatchTimeRangesAlt json.RawMessage `json:"match_time_ranges"`  // 开赛时间段(JSON) - 蛇形命名(兼容前端，可以是数组或字符串)
         MatchRoundDuration int             `json:"matchRoundDuration"`
@@ -130,6 +136,9 @@ type DDZGameRoomConfigUpdate struct {
         MinPlayersAlt      int             `json:"min_players"`         // 蛇形命名(兼容前端)
         ChampionRewardID   uint            `json:"championRewardId"`
         ChampionRewardIDAlt *uint          `json:"champion_reward_id"`  // 蛇形命名(兼容前端)
+        EliminationRules   string          `json:"eliminationRules"`   // 淘汰规则JSON数组
+        RankWaitSeconds    int             `json:"rankWaitSeconds"`    // 排行榜等待秒数
+        MinMatchPlayers    int             `json:"minMatchPlayers"`    // 最小匹配人数
 }
 
 // ==================== 游戏房间实例（ddz_rooms 表）====================

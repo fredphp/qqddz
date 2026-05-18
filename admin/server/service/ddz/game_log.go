@@ -494,12 +494,16 @@ func (s *DDZGameLogService) CreateRoomConfig(req ddzReq.DDZGameRoomConfigCreate)
                 Status:             req.Status,
                 SortOrder:          req.SortOrder,
                 Description:        req.Description,
+                MinLevel:           req.MinLevel,
                 MatchTimeRanges:    datatypes.JSON([]byte(req.MatchTimeRanges)), // string 转换为 []byte 再转为 datatypes.JSON
                 MatchRoundDuration: req.MatchRoundDuration,
                 MatchRoundCount:    req.MatchRoundCount,
                 MaxPlayers:         req.MaxPlayers,
                 MinPlayers:         req.MinPlayers,
                 ChampionRewardID:   req.ChampionRewardID,
+                EliminationRules:   req.EliminationRules,
+                RankWaitSeconds:    req.RankWaitSeconds,
+                MinMatchPlayers:    req.MinMatchPlayers,
         }
 
         return db.Create(&config).Error
@@ -632,6 +636,18 @@ func (s *DDZGameLogService) UpdateRoomConfig(req ddzReq.DDZGameRoomConfigUpdate)
         }
         updates["min_players"] = minPlayers
         
+        // MinLevel 星级字段
+        minLevel := req.MinLevelAlt
+        if minLevel == 0 {
+                minLevel = req.MinLevel
+        }
+        updates["min_level"] = minLevel
+
+        // 其他竞技场字段
+        updates["elimination_rules"] = req.EliminationRules
+        updates["rank_wait_seconds"] = req.RankWaitSeconds
+        updates["min_match_players"] = req.MinMatchPlayers
+        
         // ChampionRewardID 需要特殊处理
         if req.ChampionRewardIDAlt != nil {
                 updates["champion_reward_id"] = req.ChampionRewardIDAlt
@@ -689,12 +705,16 @@ func (s *DDZGameLogService) SyncRoomConfigCacheToRedis() error {
                 Description        string `json:"description"`
                 Status             int    `json:"status"`
                 SortOrder          int    `json:"sort_order"`
+                MinLevel           int    `json:"minLevel"`           // 所需星级
                 MatchTimeRanges    string `json:"matchTimeRanges"`    // 驼峰命名，server端期望
                 MatchRoundDuration int    `json:"matchDuration"`      // 驼峰命名，server端期望
                 MatchRoundCount    int    `json:"matchRoundCount"`
                 MaxPlayers         int    `json:"maxPlayers"`
                 MinPlayers         int    `json:"minPlayers"`
                 ChampionRewardID   uint   `json:"championRewardId"`
+                EliminationRules   string `json:"eliminationRules"`
+                RankWaitSeconds    int    `json:"rankWaitSeconds"`
+                MinMatchPlayers    int    `json:"minMatchPlayers"`
         }
 
         serverConfigs := make([]ServerRoomConfig, 0, len(configs))
@@ -730,12 +750,16 @@ func (s *DDZGameLogService) SyncRoomConfigCacheToRedis() error {
                         Description:        c.Description,
                         Status:             c.Status,
                         SortOrder:          c.SortOrder,
+                        MinLevel:           c.MinLevel,
                         MatchTimeRanges:    matchTimeRangesStr,
                         MatchRoundDuration: c.MatchRoundDuration,
                         MatchRoundCount:    c.MatchRoundCount,
                         MaxPlayers:         c.MaxPlayers,
                         MinPlayers:         c.MinPlayers,
                         ChampionRewardID:   c.ChampionRewardID,
+                        EliminationRules:   c.EliminationRules,
+                        RankWaitSeconds:    c.RankWaitSeconds,
+                        MinMatchPlayers:    c.MinMatchPlayers,
                 })
         }
 
