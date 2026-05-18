@@ -74,3 +74,4 @@ admin/web/dist/
 nclient/library/
 nclient/local/
 nclient/temp/
+client/.vscode/

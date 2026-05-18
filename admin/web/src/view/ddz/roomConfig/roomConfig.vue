@@ -294,51 +294,44 @@
           <el-divider content-position="left">竞技场配置</el-divider>
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item label="初始金币" prop="minGold" required>
-                <el-input-number v-model="formData.minGold" :min="0" :step="1000" style="width: 100%" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="报名费(竞技币)" prop="minArenaCoin" required>
+              <el-form-item label="报名费" prop="minArenaCoin" required>
                 <el-input-number v-model="formData.minArenaCoin" :min="0" :step="100" style="width: 100%" />
               </el-form-item>
             </el-col>
+			<el-col :span="12">
+			  <el-form-item label="每场时长(分)" prop="matchRoundDuration">
+			    <el-input-number v-model="formData.matchRoundDuration" :min="1" :max="60" style="width: 100%" />
+			  </el-form-item>
+			</el-col>
           </el-row>
           <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="每场时长(分)" prop="matchRoundDuration">
-                <el-input-number v-model="formData.matchRoundDuration" :min="1" :max="60" style="width: 100%" />
-              </el-form-item>
-            </el-col>
             <el-col :span="12">
               <el-form-item label="轮次" prop="matchRoundCount">
                 <el-input-number v-model="formData.matchRoundCount" :min="1" :max="20" style="width: 100%" />
               </el-form-item>
             </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="冠军奖励" prop="championRewardId">
-                <el-select v-model="formData.championRewardId" placeholder="请选择冠军奖励" clearable style="width: 100%">
-                  <el-option 
-                    v-for="item in rewardGoodsOptions" 
-                    :key="item.ID" 
-                    :label="item.goodsName" 
-                    :value="item.ID"
-                  />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="最大人数" prop="maxPlayers">
-                <el-input-number v-model="formData.maxPlayers" :min="3" :max="100" style="width: 100%" />
-              </el-form-item>
-            </el-col>
+			<el-col :span="12">
+			  <el-form-item label="冠军奖励" prop="championRewardId">
+			    <el-select v-model="formData.championRewardId" placeholder="请选择冠军奖励" clearable style="width: 100%">
+			      <el-option 
+			        v-for="item in rewardGoodsOptions" 
+			        :key="item.ID" 
+			        :label="item.goodsName" 
+			        :value="item.ID"
+			      />
+			    </el-select>
+			  </el-form-item>
+			</el-col>
           </el-row>
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="最小开赛人数" prop="minPlayers">
                 <el-input-number v-model="formData.minPlayers" :min="2" :max="100" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="最大人数" prop="maxPlayers">
+                <el-input-number v-model="formData.maxPlayers" :min="3" :max="100" style="width: 100%" />
               </el-form-item>
             </el-col>
           </el-row>
