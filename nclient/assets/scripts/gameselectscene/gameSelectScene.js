@@ -5,7 +5,21 @@ cc.Class({
     extends: cc.Component,
 
     properties: {
-        // 没有预设属性，UI 动态创建
+        // 背景图Sprite - 可在编辑器中拖拽绑定
+        bgSprite: {
+            default: null,
+            type: cc.Sprite
+        },
+        // 斗地主入口按钮Sprite
+        ddzSprite: {
+            default: null,
+            type: cc.Sprite
+        },
+        // 农场入口按钮Sprite
+        farmSprite: {
+            default: null,
+            type: cc.Sprite
+        }
     },
 
     onLoad () {
@@ -74,185 +88,175 @@ cc.Class({
 
     // 动态创建 UI
     _createUI: function() {
-        var screenWidth = 1280;
-        var screenHeight = 720;
+        var self = this;
+        
+        // 获取画布尺寸
+        var canvas = this.node.getComponent(cc.Canvas);
+        var designWidth = canvas ? canvas.designResolution.width : 1280;
+        var designHeight = canvas ? canvas.designResolution.height : 720;
+        
+        console.log("设计尺寸: " + designWidth + " x " + designHeight);
         
         // ==================== 创建背景 ====================
-        this._createBackground();
-        
-        // ==================== 创建标题 ====================
-        this._createTitle();
+        this._createBackground(designWidth, designHeight);
         
         // ==================== 创建游戏入口按钮 ====================
-        this._createGameButtons();
+        this._createGameButtons(designWidth, designHeight);
         
         // ==================== 创建玩家信息 ====================
-        this._createPlayerInfo();
+        this._createPlayerInfo(designWidth, designHeight);
     },
 
     // 创建背景
-    _createBackground: function() {
+    _createBackground: function(designWidth, designHeight) {
+        var self = this;
+        
+        // 创建背景节点
         var bgNode = new cc.Node("Background");
-        bgNode.setContentSize(1280, 720);
+        bgNode.setContentSize(designWidth, designHeight);
         bgNode.setPosition(0, 0);
         
-        // 使用渐变色背景
-        var graphics = bgNode.addComponent(cc.Graphics);
+        // 添加Sprite组件
+        var sprite = bgNode.addComponent(cc.Sprite);
+        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        sprite.type = cc.Sprite.Type.SIMPLE;
         
-        // 绘制渐变背景
-        graphics.fillColor = new cc.Color(25, 25, 112);  // 深蓝色
-        graphics.rect(-640, -360, 1280, 720);
-        graphics.fill();
+        // 加载背景图片
+        cc.resources.load("login_rukou_bg", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.error("加载背景图片失败:", err);
+                // 失败时使用纯色背景
+                self._createColorBackground(bgNode, designWidth, designHeight);
+                return;
+            }
+            sprite.spriteFrame = spriteFrame;
+            bgNode.setContentSize(designWidth, designHeight);
+            console.log("背景图片加载成功");
+        });
+        
+        // 添加Widget组件实现自适应
+        var widget = bgNode.addComponent(cc.Widget);
+        widget.isAlignTop = true;
+        widget.isAlignBottom = true;
+        widget.isAlignLeft = true;
+        widget.isAlignRight = true;
+        widget.top = 0;
+        widget.bottom = 0;
+        widget.left = 0;
+        widget.right = 0;
         
         bgNode.parent = this.node;
         bgNode.zIndex = 0;
+        
+        this.bgNode = bgNode;
     },
-
-    // 创建标题
-    _createTitle: function() {
-        var titleNode = new cc.Node("Title");
-        titleNode.setPosition(0, 250);
-        
-        var label = titleNode.addComponent(cc.Label);
-        label.string = "选择游戏";
-        label.fontSize = 48;
-        label.lineHeight = 60;
-        label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        label.fontFamily = "Arial, Microsoft YaHei";
-        
-        // 添加描边效果
-        var outline = titleNode.addComponent(cc.LabelOutline);
-        outline.color = cc.color(0, 0, 0);
-        outline.width = 3;
-        
-        titleNode.color = cc.color(255, 215, 0);  // 金色
-        titleNode.parent = this.node;
-        titleNode.zIndex = 10;
-        
-        // 副标题
-        var subtitleNode = new cc.Node("Subtitle");
-        subtitleNode.setPosition(0, 190);
-        
-        var subtitleLabel = subtitleNode.addComponent(cc.Label);
-        subtitleLabel.string = "请选择您想要进入的游戏";
-        subtitleLabel.fontSize = 24;
-        subtitleLabel.lineHeight = 32;
-        subtitleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        
-        var subtitleOutline = subtitleNode.addComponent(cc.LabelOutline);
-        subtitleOutline.color = cc.color(0, 0, 0);
-        subtitleOutline.width = 2;
-        
-        subtitleNode.color = cc.color(200, 200, 200);
-        subtitleNode.parent = this.node;
-        subtitleNode.zIndex = 10;
+    
+    // 创建纯色背景（备用）
+    _createColorBackground: function(bgNode, width, height) {
+        var graphics = bgNode.addComponent(cc.Graphics);
+        graphics.fillColor = new cc.Color(25, 25, 112);
+        graphics.rect(-width/2, -height/2, width, height);
+        graphics.fill();
     },
 
     // 创建游戏入口按钮
-    _createGameButtons: function() {
+    _createGameButtons: function(designWidth, designHeight) {
         var self = this;
         
-        // 按钮容器
+        // 按钮容器 - 居中偏下
         var containerNode = new cc.Node("ButtonContainer");
-        containerNode.setPosition(0, 20);
+        containerNode.setPosition(0, -20);
         containerNode.parent = this.node;
         containerNode.zIndex = 20;
         
+        // 计算按钮间距（基于设计宽度适配）
+        var buttonSpacing = designWidth * 0.22; // 间距约为设计宽度的22%
+        var buttonSize = Math.min(200, designWidth * 0.15); // 按钮大小适配
+        
+        console.log("按钮间距: " + buttonSpacing + ", 按钮大小: " + buttonSize);
+        
         // ========== 斗地主按钮 ==========
-        var ddzButton = this._createGameButton(
-            "斗地主",
-            "经典扑克游戏",
-            cc.color(255, 165, 0),  // 橙色
+        var ddzButton = this._createImageButton(
+            "entrance_doudizhu",
+            buttonSize,
             function() {
                 self._onDDZClick();
             }
         );
-        ddzButton.setPosition(-200, 0);
+        ddzButton.setPosition(-buttonSpacing, 0);
         ddzButton.parent = containerNode;
         
         // ========== 农场按钮（预留）==========
-        var farmButton = this._createGameButton(
-            "农场",
-            "敬请期待",
-            cc.color(76, 175, 80),  // 绿色
+        var farmButton = this._createImageButton(
+            "entrance_farm",
+            buttonSize,
             function() {
                 self._onFarmClick();
             }
         );
-        farmButton.setPosition(200, 0);
+        farmButton.setPosition(buttonSpacing, 0);
         farmButton.parent = containerNode;
         
-        // 预留标签
-        var comingSoonNode = new cc.Node("ComingSoon");
-        comingSoonNode.setPosition(200, -100);
+        // 提示文字 - 斗地主
+        var ddzTipNode = new cc.Node("DDZTip");
+        ddzTipNode.setPosition(-buttonSpacing, -buttonSize/2 - 30);
+        var ddzTipLabel = ddzTipNode.addComponent(cc.Label);
+        ddzTipLabel.string = "斗地主";
+        ddzTipLabel.fontSize = 28;
+        ddzTipLabel.lineHeight = 36;
+        ddzTipLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        ddzTipLabel.fontFamily = "Arial, Microsoft YaHei";
+        var ddzOutline = ddzTipNode.addComponent(cc.LabelOutline);
+        ddzOutline.color = cc.color(0, 0, 0);
+        ddzOutline.width = 2;
+        ddzTipNode.color = cc.color(255, 200, 100);
+        ddzTipNode.parent = containerNode;
         
-        var csLabel = comingSoonNode.addComponent(cc.Label);
-        csLabel.string = "(即将开放)";
-        csLabel.fontSize = 18;
-        csLabel.lineHeight = 24;
-        
-        comingSoonNode.color = cc.color(150, 150, 150);
-        comingSoonNode.parent = containerNode;
+        // 提示文字 - 农场
+        var farmTipNode = new cc.Node("FarmTip");
+        farmTipNode.setPosition(buttonSpacing, -buttonSize/2 - 30);
+        var farmTipLabel = farmTipNode.addComponent(cc.Label);
+        farmTipLabel.string = "农场 (敬请期待)";
+        farmTipLabel.fontSize = 24;
+        farmTipLabel.lineHeight = 32;
+        farmTipLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        farmTipLabel.fontFamily = "Arial, Microsoft YaHei";
+        var farmOutline = farmTipNode.addComponent(cc.LabelOutline);
+        farmOutline.color = cc.color(0, 0, 0);
+        farmOutline.width = 2;
+        farmTipNode.color = cc.color(150, 200, 150);
+        farmTipNode.parent = containerNode;
     },
 
-    // 创建单个游戏按钮
-    _createGameButton: function(title, subtitle, color, clickHandler) {
-        var buttonNode = new cc.Node("GameButton_" + title);
-        buttonNode.setContentSize(280, 200);
+    // 创建图片按钮
+    _createImageButton: function(imageName, size, clickHandler) {
+        var self = this;
         
-        // 按钮背景
-        var bgNode = new cc.Node("ButtonBg");
-        bgNode.setContentSize(280, 200);
+        var buttonNode = new cc.Node("ImageButton_" + imageName);
+        buttonNode.setContentSize(size, size);
         
-        var graphics = bgNode.addComponent(cc.Graphics);
-        graphics.fillColor = new cc.Color(color.r, color.g, color.b, 200);
-        graphics.roundRect(-140, -100, 280, 200, 15);
-        graphics.fill();
+        // 添加Sprite组件
+        var sprite = buttonNode.addComponent(cc.Sprite);
+        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        sprite.type = cc.Sprite.Type.SIMPLE;
         
-        // 边框
-        graphics.strokeColor = new cc.Color(255, 255, 255, 150);
-        graphics.lineWidth = 3;
-        graphics.roundRect(-140, -100, 280, 200, 15);
-        graphics.stroke();
-        
-        bgNode.parent = buttonNode;
-        
-        // 游戏图标/标题
-        var titleNode = new cc.Node("Title");
-        titleNode.setPosition(0, 30);
-        
-        var titleLabel = titleNode.addComponent(cc.Label);
-        titleLabel.string = title;
-        titleLabel.fontSize = 42;
-        titleLabel.lineHeight = 52;
-        titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        titleLabel.fontFamily = "Arial, Microsoft YaHei";
-        
-        var outline = titleNode.addComponent(cc.LabelOutline);
-        outline.color = cc.color(0, 0, 0);
-        outline.width = 2;
-        
-        titleNode.color = cc.color(255, 255, 255);
-        titleNode.parent = buttonNode;
-        
-        // 副标题
-        var subtitleNode = new cc.Node("Subtitle");
-        subtitleNode.setPosition(0, -30);
-        
-        var subtitleLabel = subtitleNode.addComponent(cc.Label);
-        subtitleLabel.string = subtitle;
-        subtitleLabel.fontSize = 20;
-        subtitleLabel.lineHeight = 28;
-        subtitleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        
-        subtitleNode.color = cc.color(220, 220, 220);
-        subtitleNode.parent = buttonNode;
+        // 加载图片
+        cc.resources.load(imageName, cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.error("加载按钮图片失败:", imageName, err);
+                // 失败时创建占位图形
+                self._createPlaceholderButton(buttonNode, size);
+                return;
+            }
+            sprite.spriteFrame = spriteFrame;
+            console.log("按钮图片加载成功: " + imageName);
+        });
         
         // 添加按钮组件
         var button = buttonNode.addComponent(cc.Button);
         button.transition = cc.Button.Transition.SCALE;
         button.duration = 0.1;
-        button.zoomScale = 1.08;
+        button.zoomScale = 1.1;
         
         // 添加点击事件
         buttonNode.off(cc.Node.EventType.TOUCH_END);
@@ -273,23 +277,35 @@ cc.Class({
         
         return buttonNode;
     },
+    
+    // 创建占位按钮（图片加载失败时使用）
+    _createPlaceholderButton: function(buttonNode, size) {
+        var graphics = buttonNode.addComponent(cc.Graphics);
+        graphics.fillColor = new cc.Color(100, 100, 100, 200);
+        graphics.circle(0, 0, size/2);
+        graphics.fill();
+        graphics.strokeColor = new cc.Color(255, 255, 255, 150);
+        graphics.lineWidth = 2;
+        graphics.circle(0, 0, size/2);
+        graphics.stroke();
+    },
 
     // 创建玩家信息
-    _createPlayerInfo: function() {
+    _createPlayerInfo: function(designWidth, designHeight) {
         var myglobal = window.myglobal;
         var playerData = myglobal ? myglobal.playerData : null;
         
         if (!playerData) return;
         
-        // 玩家信息容器
+        // 玩家信息容器 - 左上角
         var infoNode = new cc.Node("PlayerInfo");
-        infoNode.setPosition(-500, 300);
+        infoNode.setPosition(-designWidth/2 + 120, designHeight/2 - 60);
         infoNode.parent = this.node;
         infoNode.zIndex = 30;
         
         // 玩家昵称
         var nicknameNode = new cc.Node("Nickname");
-        nicknameNode.setPosition(50, 0);
+        nicknameNode.setPosition(0, 0);
         
         var nicknameLabel = nicknameNode.addComponent(cc.Label);
         nicknameLabel.string = playerData.nickName || "游客";
@@ -306,7 +322,7 @@ cc.Class({
         
         // 欢乐豆
         var goldNode = new cc.Node("Gold");
-        goldNode.setPosition(50, -35);
+        goldNode.setPosition(0, -35);
         
         var goldLabel = goldNode.addComponent(cc.Label);
         goldLabel.string = "欢乐豆: " + (playerData.gobal_count || 0);
