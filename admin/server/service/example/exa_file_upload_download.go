@@ -1,15 +1,16 @@
 package example
 
 import (
-	"errors"
-	"mime/multipart"
-	"strings"
+        "errors"
+        "mime/multipart"
+        "strings"
 
-	"github.com/flipped-aurora/gin-vue-admin/server/global"
-	"github.com/flipped-aurora/gin-vue-admin/server/model/example"
-	"github.com/flipped-aurora/gin-vue-admin/server/model/example/request"
-	"github.com/flipped-aurora/gin-vue-admin/server/utils/upload"
-	"gorm.io/gorm"
+        "github.com/flipped-aurora/gin-vue-admin/server/global"
+        "github.com/flipped-aurora/gin-vue-admin/server/model/example"
+        "github.com/flipped-aurora/gin-vue-admin/server/model/example/request"
+        "github.com/flipped-aurora/gin-vue-admin/server/utils/upload"
+        "go.uber.org/zap"
+        "gorm.io/gorm"
 )
 
 //@author: [piexlmax](https://github.com/piexlmax)
@@ -19,7 +20,7 @@ import (
 //@return: error
 
 func (e *FileUploadAndDownloadService) Upload(file example.ExaFileUploadAndDownload) error {
-	return global.GVA_DB.Create(&file).Error
+        return global.GVA_DB.Create(&file).Error
 }
 
 //@author: [piexlmax](https://github.com/piexlmax)
@@ -29,9 +30,9 @@ func (e *FileUploadAndDownloadService) Upload(file example.ExaFileUploadAndDownl
 //@return: model.ExaFileUploadAndDownload, error
 
 func (e *FileUploadAndDownloadService) FindFile(id uint) (example.ExaFileUploadAndDownload, error) {
-	var file example.ExaFileUploadAndDownload
-	err := global.GVA_DB.Where("id = ?", id).First(&file).Error
-	return file, err
+        var file example.ExaFileUploadAndDownload
+        err := global.GVA_DB.Where("id = ?", id).First(&file).Error
+        return file, err
 }
 
 //@author: [piexlmax](https://github.com/piexlmax)
@@ -41,23 +42,28 @@ func (e *FileUploadAndDownloadService) FindFile(id uint) (example.ExaFileUploadA
 //@return: err error
 
 func (e *FileUploadAndDownloadService) DeleteFile(file example.ExaFileUploadAndDownload) (err error) {
-	var fileFromDb example.ExaFileUploadAndDownload
-	fileFromDb, err = e.FindFile(file.ID)
-	if err != nil {
-		return
-	}
-	oss := upload.NewOss()
-	if err = oss.DeleteFile(fileFromDb.Key); err != nil {
-		return errors.New("文件删除失败")
-	}
-	err = global.GVA_DB.Where("id = ?", file.ID).Unscoped().Delete(&file).Error
-	return err
+        var fileFromDb example.ExaFileUploadAndDownload
+        fileFromDb, err = e.FindFile(file.ID)
+        if err != nil {
+                return
+        }
+        oss := upload.NewOss()
+        if err = oss.DeleteFile(fileFromDb.Key); err != nil {
+                // 如果文件不存在，仍然删除数据库记录
+                if !strings.Contains(err.Error(), "文件不存在") {
+                        return errors.New("文件删除失败")
+                }
+                // 文件不存在，记录日志但继续删除数据库记录
+                global.GVA_LOG.Warn("文件不存在，仅删除数据库记录", zap.String("key", fileFromDb.Key))
+        }
+        err = global.GVA_DB.Where("id = ?", file.ID).Unscoped().Delete(&file).Error
+        return err
 }
 
 // EditFileName 编辑文件名或者备注
 func (e *FileUploadAndDownloadService) EditFileName(file example.ExaFileUploadAndDownload) (err error) {
-	var fileFromDb example.ExaFileUploadAndDownload
-	return global.GVA_DB.Where("id = ?", file.ID).First(&fileFromDb).Update("name", file.Name).Error
+        var fileFromDb example.ExaFileUploadAndDownload
+        return global.GVA_DB.Where("id = ?", file.ID).First(&fileFromDb).Update("name", file.Name).Error
 }
 
 //@author: [piexlmax](https://github.com/piexlmax)
@@ -67,24 +73,24 @@ func (e *FileUploadAndDownloadService) EditFileName(file example.ExaFileUploadAn
 //@return: list interface{}, total int64, err error
 
 func (e *FileUploadAndDownloadService) GetFileRecordInfoList(info request.ExaAttachmentCategorySearch) (list []example.ExaFileUploadAndDownload, total int64, err error) {
-	limit := info.PageSize
-	offset := info.PageSize * (info.Page - 1)
-	db := global.GVA_DB.Model(&example.ExaFileUploadAndDownload{})
+        limit := info.PageSize
+        offset := info.PageSize * (info.Page - 1)
+        db := global.GVA_DB.Model(&example.ExaFileUploadAndDownload{})
 
-	if len(info.Keyword) > 0 {
-		db = db.Where("name LIKE ?", "%"+info.Keyword+"%")
-	}
+        if len(info.Keyword) > 0 {
+                db = db.Where("name LIKE ?", "%"+info.Keyword+"%")
+        }
 
-	if info.ClassId > 0 {
-		db = db.Where("class_id = ?", info.ClassId)
-	}
+        if info.ClassId > 0 {
+                db = db.Where("class_id = ?", info.ClassId)
+        }
 
-	err = db.Count(&total).Error
-	if err != nil {
-		return
-	}
-	err = db.Limit(limit).Offset(offset).Order("id desc").Find(&list).Error
-	return list, total, err
+        err = db.Count(&total).Error
+        if err != nil {
+                return
+        }
+        err = db.Limit(limit).Offset(offset).Order("id desc").Find(&list).Error
+        return list, total, err
 }
 
 //@author: [piexlmax](https://github.com/piexlmax)
@@ -94,29 +100,29 @@ func (e *FileUploadAndDownloadService) GetFileRecordInfoList(info request.ExaAtt
 //@return: file model.ExaFileUploadAndDownload, err error
 
 func (e *FileUploadAndDownloadService) UploadFile(header *multipart.FileHeader, noSave string, classId int) (file example.ExaFileUploadAndDownload, err error) {
-	oss := upload.NewOss()
-	filePath, key, uploadErr := oss.UploadFile(header)
-	if uploadErr != nil {
-		return file, uploadErr
-	}
-	s := strings.Split(header.Filename, ".")
-	f := example.ExaFileUploadAndDownload{
-		Url:     filePath,
-		Name:    header.Filename,
-		ClassId: classId,
-		Tag:     s[len(s)-1],
-		Key:     key,
-	}
-	if noSave == "0" {
-		// 检查是否已存在相同key的记录
-		var existingFile example.ExaFileUploadAndDownload
-		err = global.GVA_DB.Where(&example.ExaFileUploadAndDownload{Key: key}).First(&existingFile).Error
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return f, e.Upload(f)
-		}
-		return f, err
-	}
-	return f, nil
+        oss := upload.NewOss()
+        filePath, key, uploadErr := oss.UploadFile(header)
+        if uploadErr != nil {
+                return file, uploadErr
+        }
+        s := strings.Split(header.Filename, ".")
+        f := example.ExaFileUploadAndDownload{
+                Url:     filePath,
+                Name:    header.Filename,
+                ClassId: classId,
+                Tag:     s[len(s)-1],
+                Key:     key,
+        }
+        if noSave == "0" {
+                // 检查是否已存在相同key的记录
+                var existingFile example.ExaFileUploadAndDownload
+                err = global.GVA_DB.Where(&example.ExaFileUploadAndDownload{Key: key}).First(&existingFile).Error
+                if errors.Is(err, gorm.ErrRecordNotFound) {
+                        return f, e.Upload(f)
+                }
+                return f, err
+        }
+        return f, nil
 }
 
 //@author: [piexlmax](https://github.com/piexlmax)
@@ -126,5 +132,5 @@ func (e *FileUploadAndDownloadService) UploadFile(header *multipart.FileHeader, 
 //@return: error
 
 func (e *FileUploadAndDownloadService) ImportURL(file *[]example.ExaFileUploadAndDownload) error {
-	return global.GVA_DB.Create(&file).Error
+        return global.GVA_DB.Create(&file).Error
 }
