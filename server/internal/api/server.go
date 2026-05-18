@@ -177,10 +177,6 @@ func RegisterRoutes(mux *http.ServeMux, h *Handler) {
         mux.HandleFunc("/api/ad/reward", h.EncryptMiddleware(h.adReward.ClaimReward))
 
         // 竞技场接口（加密响应）
-        log.Println("📝 注册路由: /api/v1/arena/signup")
-        mux.HandleFunc("/api/v1/arena/signup", h.EncryptMiddleware(h.arena.Signup))
-        log.Println("📝 注册路由: /api/v1/arena/cancel")
-        mux.HandleFunc("/api/v1/arena/cancel", h.EncryptMiddleware(h.arena.Cancel))
         log.Println("📝 注册路由: /api/v1/arena/list")
         mux.HandleFunc("/api/v1/arena/list", h.EncryptMiddleware(h.arena.List))
         log.Println("📝 注册路由: /api/v1/arena/signup-status")
