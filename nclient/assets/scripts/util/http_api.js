@@ -309,12 +309,31 @@ HttpAPI.clearUserAgreementCache = function() {
     }
 };
 
-// 获取房间配置列表（带缓存）
+// 🔧【修复】房间配置缓存版本号，当后台刷新缓存时更新
+// 如果 localStorage 中的版本号小于此值，则清除旧缓存
+HttpAPI.ROOM_CONFIG_CACHE_VERSION = 2;
+
+// 获取房间配置列表（带缓存和版本控制）
 HttpAPI.getRoomConfigList = function(apiUrl, cryptoKey, callback) {
     // 检查内存缓存
     if (HttpAPI._roomConfigCache) {
         callback(null, HttpAPI._roomConfigCache);
         return;
+    }
+    
+    // 🔧【修复】检查缓存版本，如果版本过旧则清除
+    try {
+        var cacheVersion = localStorage.getItem('room_config_cache_version');
+        if (cacheVersion) {
+            var version = parseInt(cacheVersion, 10);
+            if (version < HttpAPI.ROOM_CONFIG_CACHE_VERSION) {
+                console.log("🔄 房间配置缓存版本过旧，清除旧缓存");
+                localStorage.removeItem('room_config_cache');
+                localStorage.removeItem('room_config_cache_version');
+            }
+        }
+    } catch (e) {
+        // 忽略错误
     }
     
     // 尝试从localStorage加载缓存
@@ -344,10 +363,11 @@ HttpAPI.getRoomConfigList = function(apiUrl, cryptoKey, callback) {
             
             // result 已经是解密后的数据
             if (result && result.code === 0 && result.data) {
-                // 缓存结果
+                // 缓存结果（带版本号）
                 HttpAPI._roomConfigCache = result.data;
                 try {
                     localStorage.setItem('room_config_cache', JSON.stringify(result.data));
+                    localStorage.setItem('room_config_cache_version', HttpAPI.ROOM_CONFIG_CACHE_VERSION.toString());
                 } catch (e) {
                     // 忽略缓存错误
                 }
@@ -357,6 +377,7 @@ HttpAPI.getRoomConfigList = function(apiUrl, cryptoKey, callback) {
                 HttpAPI._roomConfigCache = result;
                 try {
                     localStorage.setItem('room_config_cache', JSON.stringify(result));
+                    localStorage.setItem('room_config_cache_version', HttpAPI.ROOM_CONFIG_CACHE_VERSION.toString());
                 } catch (e) {
                     // 忽略缓存错误
                 }

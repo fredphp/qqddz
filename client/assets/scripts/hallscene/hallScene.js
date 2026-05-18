@@ -493,13 +493,14 @@ cc.Class({
         }
     },
     
+    // 🔧【修复】默认配置与数据库保持一致（4条有效数据）
+    // 注意：当后台数据变化时，客户端会通过API获取最新数据
     _getDefaultRoomConfigs: function() {
         return [
-            { id: 1, room_name: "初级房", room_type: 2, base_score: 1, multiplier: 1, min_gold: 0, max_gold: 50000, description: "底分1", status: 1, sort_order: 0, room_category: 1 },
-            { id: 2, room_name: "中级房", room_type: 3, base_score: 2, multiplier: 1, min_gold: 50000, max_gold: 200000, description: "底分2", status: 1, sort_order: 1, room_category: 1 },
-            { id: 3, room_name: "高级房", room_type: 4, base_score: 5, multiplier: 2, min_gold: 200000, max_gold: 1000000, description: "底分5", status: 1, sort_order: 2, room_category: 2 },
-            { id: 4, room_name: "娱乐房", room_type: 5, base_score: 10, multiplier: 3, min_gold: 1000000, max_gold: 5000000, description: "底分10", status: 1, sort_order: 3, room_category: 2 },
-            { id: 5, room_name: "娱乐房", room_type: 6, base_score: 20, multiplier: 5, min_gold: 5000000, max_gold: 0, description: "底分20", status: 1, sort_order: 4, room_category: 2 }
+            { id: 1, room_name: "新手村", room_type: 2, base_score: 1, multiplier: 1, min_gold: 0, max_gold: 50000, min_arena_coin: 500, description: "适合新手玩家,底分1,最低1000金币入场", status: 1, sort_order: 1, room_category: 2, matchTimeRanges: '[{"end": "23:59", "start": "00:00"}]', matchDuration: 5, matchRoundCount: 3, maxPlayers: 90, minPlayers: 3 },
+            { id: 2, room_name: "大师级", room_type: 3, base_score: 2, multiplier: 1, min_gold: 0, max_gold: 200000, min_arena_coin: 1000, description: "底分2,适合有一定经验的玩家", status: 1, sort_order: 2, room_category: 2, matchTimeRanges: '[{"end": "23:59", "start": "17:00"}]', matchDuration: 10, matchRoundCount: 3, maxPlayers: 9, minPlayers: 3 },
+            { id: 3, room_name: "龙虎榜", room_type: 4, base_score: 5, multiplier: 2, min_gold: 0, max_gold: 1000000, min_arena_coin: 5000, description: "底分5,倍数2,高手对决", status: 1, sort_order: 3, room_category: 2, matchTimeRanges: '[{"end": "21:00", "start": "17:00"}]', matchDuration: 30, matchRoundCount: 3, maxPlayers: 9, minPlayers: 3 },
+            { id: 4, room_name: "练级区", room_type: 5, base_score: 10, multiplier: 3, min_gold: 1000, max_gold: 0, min_arena_coin: 0, description: "底分10,倍数3,富豪专属", status: 1, sort_order: 4, room_category: 1, matchTimeRanges: null, matchDuration: 5, matchRoundCount: 3, maxPlayers: 9, minPlayers: 3 }
         ];
     },
     
