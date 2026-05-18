@@ -4081,7 +4081,17 @@ cc.Class({
         var arenaCount = this._arenaRooms ? this._arenaRooms.length : 0;
         
         // 🔧 调试：打印收到的完整数据
-        console.log("🏟️ [Arena] 收到服务端推送, arenas.length=" + arenas.length + ", arenaCount=" + arenaCount);
+        console.log("🏟️ [Arena] ========== 收到服务端推送 ==========");
+        console.log("🏟️ [Arena] arenas.length=" + arenas.length + ", 客户端 arenaCount=" + arenaCount);
+        
+        // 🔧【调试】打印客户端的 _arenaRooms ID 列表
+        if (this._arenaRooms) {
+            var clientRoomIds = [];
+            for (var k = 0; k < this._arenaRooms.length; k++) {
+                clientRoomIds.push(this._arenaRooms[k].config.id);
+            }
+            console.log("🏟️ [Arena] 客户端竞技场房间 ID 列表: " + JSON.stringify(clientRoomIds));
+        }
         
         // 更新本地状态缓存
         for (var i = 0; i < arenas.length; i++) {
@@ -4089,8 +4099,8 @@ cc.Class({
             var roomId = arena.room_id;
             var newPeriodNoStr = arena.period_no_str || arena.periodNoStr || "";
             
-            // 🔧 调试：打印每个竞技场的 total_players
-            console.log("🏟️ [Arena] 推送房间 " + roomId + ": phase=" + arena.phase + ", countdown=" + arena.countdown);
+            // 🔧 调试：打印每个竞技场的详细信息
+            console.log("🏟️ [Arena] 推送房间 " + roomId + ": phase=" + arena.phase + ", countdown=" + arena.countdown + ", periodNoStr=" + newPeriodNoStr);
             
             // 🔧【新增】检查期号是否变化，如果变化则清除用户报名状态
             var oldStatus = this._localArenaStatus[roomId];
@@ -4121,10 +4131,23 @@ cc.Class({
                 }
             }
             
-            // 前 N-1 个默认显示，最后一个不显示
-            var hasMatchConfig = (roomIndex >= 0 && roomIndex < arenaCount - 1);
+            // 🔧【关键修复】如果服务端推送了更多房间，需要动态判断
+            // 当前规则：前 N-1 个显示，最后一个不显示
+            // 如果服务端推送了 4 个房间，则前 3 个显示，第 4 个不显示
+            // 使用 arenas.length（服务端推送的数量）而不是 arenaCount（客户端配置的数量）
+            var serverArenaCount = arenas.length;
+            var hasMatchConfig;
             
-            console.log("🏟️ [Arena] 推送房间 " + roomId + " roomIndex=" + roomIndex + ", hasMatchConfig=" + hasMatchConfig);
+            if (roomIndex >= 0) {
+                // 房间在客户端配置中找到，使用客户端的索引判断
+                hasMatchConfig = (roomIndex < arenaCount - 1);
+            } else {
+                // 房间在客户端配置中没找到，使用服务端推送的索引判断
+                // 服务端推送的索引 i 从 0 开始
+                hasMatchConfig = (i < serverArenaCount - 1);
+            }
+            
+            console.log("🏟️ [Arena] 推送房间 " + roomId + " roomIndex=" + roomIndex + ", i=" + i + ", serverArenaCount=" + serverArenaCount + ", hasMatchConfig=" + hasMatchConfig);
             
             // 保存服务端推送的状态（支持新字段）
             this._localArenaStatus[roomId] = {
