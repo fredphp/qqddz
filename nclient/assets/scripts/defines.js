@@ -3,24 +3,16 @@
 
 var defines = {};
 
-<<<<<<< Updated upstream
 // Go 后端 WebSocket 地址（生产环境）
 // 开发环境请改为: ws://localhost:1780/ws
-=======
-// Go 后端 WebSocket 地址
->>>>>>> Stashed changes
 defines.serverUrl = "wss://apis.hongxiu88.com/ws";
 
 // Go 后端 HTTP API 地址（生产环境）
 defines.apiUrl = "https://apis.hongxiu88.com";
 
-<<<<<<< Updated upstream
 // CDN 地址（用于加载头像等静态资源）
 // 🔧【修复】使用与apiUrl相同的域名，因为静态文件由后端服务器提供
 defines.cdnUrl = "https://apis.hongxiu88.com";
-=======
-defines.apiUrl = "https://apis.hongxiu88.com";
->>>>>>> Stashed changes
 
 // API 数据加密密钥（与服务端配置一致，必须是32字节）
 defines.cryptoKey = "qqddz2026gameaes256secretkey123!";
@@ -80,4 +72,3 @@ window.CardsValue = {
 
 // 音效开关
 window.isopen_sound = 1;
-
