@@ -4159,8 +4159,8 @@ cc.Class({
                 continue;
             }
             
-            // 🔧【新增】获取房间的 room_category
-            var matchedRoomCategory = matchedRoomConfig ? (matchedRoomConfig.room_category || matchedRoomConfig.roomCategory || 2) : 2;
+            // 🔧【新增】获取房间的 room_category，默认值是 1（普通场）
+            var matchedRoomCategory = matchedRoomConfig ? (matchedRoomConfig.room_category || matchedRoomConfig.roomCategory || 1) : 1;
             
             // 🔧【关键修复】检查期号是否变化，如果变化则清除用户报名状态
             var oldStatus = this._localArenaStatus[clientRoomId];
