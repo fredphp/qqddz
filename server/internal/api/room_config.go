@@ -210,8 +210,11 @@ func (h *RoomConfigHandler) ClearCache() {
 
 // GetActiveRoomConfigs 获取所有启用的房间配置（使用Redis共享缓存）
 func (h *RoomConfigHandler) GetActiveRoomConfigs(w http.ResponseWriter, r *http.Request) {
+        log.Println("🔍 [GetActiveRoomConfigs] 开始获取房间配置...")
+        
         // 1. 尝试从Redis共享缓存获取（与admin后台共用）
         if h.redis != nil {
+                log.Println("✅ [GetActiveRoomConfigs] Redis 客户端已初始化")
                 ctx := context.Background()
                 cached, err := h.redis.Get(ctx, RedisCacheKeyRoomConfigList)
                 if err == nil && cached != "" {
@@ -220,10 +223,12 @@ func (h *RoomConfigHandler) GetActiveRoomConfigs(w http.ResponseWriter, r *http.
                         if len(cachePreview) > 500 {
                                 cachePreview = cachePreview[:500]
                         }
-                        log.Printf("📦 Redis缓存数据: %s", cachePreview)
+                        log.Printf("📦 [GetActiveRoomConfigs] Redis缓存命中, key=%s, 数据预览: %s", RedisCacheKeyRoomConfigList, cachePreview)
 
                         var configs []RoomConfigResponse
                         if jsonErr := json.Unmarshal([]byte(cached), &configs); jsonErr == nil {
+                                log.Printf("📋 [GetActiveRoomConfigs] 从Redis解析到 %d 条配置", len(configs))
+                                
                                 // 检查竞技场房间是否有正确的竞技场字段
                                 needRefresh := false
                                 for _, c := range configs {
@@ -238,7 +243,7 @@ func (h *RoomConfigHandler) GetActiveRoomConfigs(w http.ResponseWriter, r *http.
                                 }
 
                                 if !needRefresh {
-                                        log.Println("✅ 从Redis共享缓存获取房间配置")
+                                        log.Println("✅ [GetActiveRoomConfigs] 从Redis共享缓存获取房间配置成功")
                                         writeJSONSuccess(w, configs)
                                         return
                                 }
@@ -247,9 +252,13 @@ func (h *RoomConfigHandler) GetActiveRoomConfigs(w http.ResponseWriter, r *http.
                                 log.Println("⚠️ 缓存数据格式无效，删除缓存并从数据库重新获取")
                                 h.redis.Del(ctx, RedisCacheKeyRoomConfigList)
                         } else {
-                                log.Printf("⚠️ Redis缓存JSON解析失败: %v", jsonErr)
+                                log.Printf("⚠️ [GetActiveRoomConfigs] Redis缓存JSON解析失败: %v", jsonErr)
                         }
+                } else {
+                        log.Printf("⚠️ [GetActiveRoomConfigs] Redis缓存未命中, key=%s, err=%v", RedisCacheKeyRoomConfigList, err)
                 }
+        } else {
+                log.Println("⚠️ [GetActiveRoomConfigs] Redis客户端未初始化，将直接从数据库查询")
         }
 
         // 2. Redis缓存未命中，从数据库查询
