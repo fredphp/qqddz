@@ -68,3 +68,9 @@ server.log
 
 # Admin web build output
 admin/web/dist/
+
+# nclient
+
+nclient/library/
+nclient/local/
+nclient/temp/
