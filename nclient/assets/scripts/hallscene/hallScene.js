@@ -785,6 +785,14 @@ cc.Class({
             6: "btn_room_supreme"
         };
         
+        // 🔧【调试】打印从服务端获取的房间配置
+        console.log("🏟️ [Arena] ========== 房间配置调试 ==========");
+        console.log("🏟️ [Arena] 从服务端获取的房间数量: " + rooms.length);
+        for (var idx = 0; idx < rooms.length; idx++) {
+            var rc = rooms[idx];
+            console.log("🏟️ [Arena] 房间" + (idx+1) + ": id=" + rc.id + ", room_type=" + (rc.room_type || rc.roomType) + ", room_category=" + (rc.room_category || rc.roomCategory) + ", room_name=" + (rc.room_name || rc.roomName));
+        }
+        
         // 先隐藏所有房间按钮
         for (var key in buttonNameMap) {
             var btnNode = this.node.getChildByName(buttonNameMap[key]);
@@ -846,6 +854,9 @@ cc.Class({
             if (room.roomCategory === 2) {
                 if (!self._arenaRooms) self._arenaRooms = [];
                 self._arenaRooms.push(room);
+                console.log("🏟️ [Arena] ✅ 收集竞技场房间: ID=" + room.config.id + ", room_type=" + room.roomType + ", roomCategory=" + room.roomCategory);
+            } else {
+                console.log("🏟️ [Arena] ⏭️ 跳过非竞技场房间: ID=" + room.config.id + ", room_type=" + room.roomType + ", roomCategory=" + room.roomCategory);
             }
             
             (function(config, node, roomName, roomCategory) {
