@@ -671,12 +671,17 @@ cc.Class({
         var apiUrl = window.defines ? window.defines.apiUrl : '';
         var cryptoKey = window.defines ? window.defines.cryptoKey : '';
         
-        // 如果没有配置 API，使用默认配置
+        // 🚀【优化】先使用默认配置初始化UI，确保用户立即看到界面
+        var defaultConfigs = self._getDefaultRoomConfigs();
+        self.roomConfigs = defaultConfigs;
+        self._initRoomButtons(defaultConfigs);
+        
+        // 如果没有配置 API，直接返回
         if (!apiUrl || !window.HttpAPI) {
-            self._initRoomButtons(self._getDefaultRoomConfigs());
             return;
         }
         
+        // 异步获取最新配置并更新UI
         try {
             // 清除缓存
             if (HttpAPI._roomConfigCache) {
@@ -684,14 +689,13 @@ cc.Class({
             }
             try { localStorage.removeItem('room_config_cache'); } catch (e) {}
             
-            // 请求 API
+            // 请求 API（异步，不阻塞UI渲染）
             HttpAPI.get(
                 apiUrl + '/api/v1/room/config/list',
                 cryptoKey,
                 function(err, result) {
                     if (err) {
-                        console.warn("API请求失败:", err);
-                        self._initRoomButtons(self._getDefaultRoomConfigs());
+                        console.warn("API请求失败，使用默认配置:", err);
                         return;
                     }
                     
@@ -702,25 +706,50 @@ cc.Class({
                         configs = result;
                     }
                     
-                    // 🔧【调试】输出获取到的房间配置
-                    if (configs) {
-                        for (var i = 0; i < configs.length; i++) {
-                            var c = configs[i];
-                        }
-                    }
-                    
                     if (configs && configs.length > 0) {
+                        // 🚀【更新】用最新配置更新UI
                         self.roomConfigs = configs;
-                        self._initRoomButtons(configs);
-                    } else {
-                        self._initRoomButtons(self._getDefaultRoomConfigs());
+                        self._updateRoomButtonsData(configs);
                     }
                 }
             );
         } catch (e) {
             console.error("_fetchRoomConfigs 异常:", e);
-            self._initRoomButtons(self._getDefaultRoomConfigs());
         }
+    },
+    
+    // 🚀【新增】更新房间按钮数据（不重新创建，只更新显示）
+    _updateRoomButtonsData: function(configs) {
+        var self = this;
+        
+        // 按钮名称映射
+        var buttonNameMap = {
+            2: "btn_room_junior",
+            3: "btn_room_middle",
+            4: "btn_room_senior",
+            5: "btn_room_master",
+            6: "btn_room_supreme"
+        };
+        
+        // 更新每个房间的配置和显示
+        for (var i = 0; i < configs.length; i++) {
+            var config = configs[i];
+            var roomType = config.room_type || config.roomType;
+            var buttonName = buttonNameMap[roomType];
+            
+            if (!buttonName) continue;
+            
+            var btnNode = this.node.getChildByName(buttonName);
+            if (!btnNode) continue;
+            
+            // 更新节点上的配置
+            btnNode.roomConfig = config;
+            
+            // 更新最低金币显示
+            self._updateMinGoldLabel(btnNode, config);
+        }
+        
+        console.log("✅ 房间配置已从服务器更新");
     },
     
     _getDefaultRoomConfigs: function() {
@@ -838,12 +867,13 @@ cc.Class({
         // 为竞技场房间添加报名按钮
         this._addArenaSignupButtons();
         
-        // 🔧【新增】先从服务端获取报名状态，再更新UI
-        this._fetchSignupStatusAndUpdateUI();
+        // 🚀【优化】先使用本地缓存更新UI，再异步从服务端获取最新状态
+        this._updateArenaSignupStatus();  // 先用本地缓存
+        this._fetchSignupStatusAsync();   // 异步更新
     },
     
-    // 🔧【新增】从服务端获取报名状态并更新UI
-    _fetchSignupStatusAndUpdateUI: function() {
+    // 🚀【优化】异步获取报名状态（不阻塞UI）
+    _fetchSignupStatusAsync: function() {
         var self = this;
         
         if (window.arenaData && window.arenaData.fetchSignupStatusFromServer) {
@@ -851,13 +881,11 @@ cc.Class({
                 if (err) {
                     console.warn("🏟️ 获取报名状态失败，使用本地缓存:", err);
                 } else {
+                    console.log("🏟️ 报名状态已从服务器更新");
                 }
-                // 无论成功失败，都更新UI（使用本地缓存）
+                // 用最新数据更新UI
                 self._updateArenaSignupStatus();
             });
-        } else {
-            // 没有API支持，直接使用本地缓存
-            this._updateArenaSignupStatus();
         }
     },
     
