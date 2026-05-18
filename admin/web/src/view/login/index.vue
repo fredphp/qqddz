@@ -206,8 +206,4 @@
       return true
     })
   }
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 </script>

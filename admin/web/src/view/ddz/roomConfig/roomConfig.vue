@@ -121,6 +121,12 @@
             <span v-else class="text-gray-400">-</span>
           </template>
         </el-table-column>
+        <el-table-column align="center" label="初始金币" min-width="100">
+          <template #default="scope">
+            <span v-if="scope.row.roomCategory === 2" class="text-primary">{{ formatGold(scope.row.minGold || 1000) }}</span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+        </el-table-column>
         <el-table-column align="center" label="所需星级" min-width="80">
           <template #default="scope">
             <span v-if="scope.row.roomCategory === 2">
@@ -307,6 +313,14 @@
                 <el-input-number v-model="formData.minArenaCoin" :min="0" :step="100" style="width: 100%" />
               </el-form-item>
             </el-col>
+            <el-col :span="12">
+              <el-form-item label="初始金币" prop="minGold" required>
+                <el-input-number v-model="formData.minGold" :min="100" :step="100" style="width: 100%" />
+                <div class="text-xs text-gray-500 mt-1">玩家进入比赛时的初始金币</div>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="所需星级" prop="minLevel">
                 <el-input-number v-model="formData.minLevel" :min="0" :max="100" style="width: 100%" />
@@ -796,5 +810,8 @@ fetchRewardGoodsList()
 }
 .mb-2 {
   margin-bottom: 8px;
+}
+.text-primary {
+  color: #409eff;
 }
 </style>
