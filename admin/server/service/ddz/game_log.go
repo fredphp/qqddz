@@ -636,11 +636,15 @@ func (s *DDZGameLogService) UpdateRoomConfig(req ddzReq.DDZGameRoomConfigUpdate)
         }
         updates["min_players"] = minPlayers
         
-        // MinLevel 星级字段
+        // MinLevel 星级字段 - 添加调试日志
+        global.GVA_LOG.Info("星级字段调试",
+                zap.Int("req.MinLevel", req.MinLevel),
+                zap.Int("req.MinLevelAlt", req.MinLevelAlt))
         minLevel := req.MinLevelAlt
         if minLevel == 0 {
                 minLevel = req.MinLevel
         }
+        global.GVA_LOG.Info("星级字段最终值", zap.Int("min_level", minLevel))
         updates["min_level"] = minLevel
 
         // 其他竞技场字段
@@ -1197,12 +1201,16 @@ func (s *DDZGameLogService) toRoomConfigResponse(c ddz.DDZRoomConfig) ddzRes.DDZ
                 StatusText:         statusText,
                 SortOrder:          c.SortOrder,
                 Description:        c.Description,
+                MinLevel:           c.MinLevel,
                 MatchTimeRanges:    string(c.MatchTimeRanges), // datatypes.JSON 转换为 string
                 MatchRoundDuration: c.MatchRoundDuration,
                 MatchRoundCount:    c.MatchRoundCount,
                 MaxPlayers:         c.MaxPlayers,
                 MinPlayers:         c.MinPlayers,
                 ChampionRewardID:   c.ChampionRewardID,
+                EliminationRules:   c.EliminationRules,
+                RankWaitSeconds:    c.RankWaitSeconds,
+                MinMatchPlayers:    c.MinMatchPlayers,
                 CreatedAt:          c.CreatedAt.Format("2006-01-02 15:04:05"),
                 UpdatedAt:          c.UpdatedAt.Format("2006-01-02 15:04:05"),
         }

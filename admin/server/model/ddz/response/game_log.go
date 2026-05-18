@@ -107,12 +107,16 @@ type DDZRoomConfigResponse struct {
         CreatedAt         string  `json:"createdAt"`
         UpdatedAt         string  `json:"updatedAt"`
         // 竞技场专属字段
+        MinLevel           int    `json:"minLevel"`           // 所需星级
         MatchTimeRanges    string `json:"matchTimeRanges"`    // 开赛时间段(JSON字符串)
         MatchRoundDuration int    `json:"matchRoundDuration"` // 每场时长(分钟)
         MatchRoundCount    int    `json:"matchRoundCount"`    // 轮次
         MaxPlayers         int    `json:"maxPlayers"`         // 最大人数
         MinPlayers         int    `json:"minPlayers"`         // 最小开赛人数
         ChampionRewardID   uint   `json:"championRewardId"`   // 冠军奖励ID
+        EliminationRules   string `json:"eliminationRules"`   // 淘汰规则JSON数组
+        RankWaitSeconds    int    `json:"rankWaitSeconds"`    // 排行榜等待秒数
+        MinMatchPlayers    int    `json:"minMatchPlayers"`    // 最小匹配人数
 }
 
 // DDZRoomResponse 游戏房间实例响应
