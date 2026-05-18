@@ -1,4 +1,0 @@
-/*! 
- 柴米油盐后台管理系统 
- Time : 1778801530000 */
-import{a}from"./087AC4D233B64EB0adminRequest.CvtLT3uw.js";const d=d=>a({url:"/ddz/player/list",method:"post",data:d}),t=d=>a({url:"/ddz/player/info",method:"get",params:{id:d}}),e=d=>a({url:"/ddz/player/ban",method:"post",data:d}),r=d=>a({url:"/ddz/player/unban",method:"post",data:d}),s=d=>a({url:"/ddz/player/freeze",method:"post",data:d}),o=d=>a({url:"/ddz/player/unfreeze",method:"post",data:d}),p=d=>a({url:"/ddz/player/statusLogs",method:"post",data:d}),l=d=>a({url:"/ddz/player/update",method:"put",data:d}),u=d=>a({url:"/ddz/player/currency",method:"post",data:d}),m=d=>a({url:"/ddz/player/coinLogs",method:"post",data:d}),z=d=>a({url:"/ddz/player/generateRobots",method:"post",data:d});export{d as a,u as b,m as c,o as d,e,s as f,t as g,r as h,p as i,z as j,l as u};

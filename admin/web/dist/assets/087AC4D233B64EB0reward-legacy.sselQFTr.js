@@ -1,4 +1,0 @@
-/*! 
- 柴米油盐后台管理系统 
- Time : 1778801530000 */
-System.register(["./087AC4D233B64EB0adminRequest-legacy.BGXAjX0N.js"],function(t,r){"use strict";var e;return{setters:[function(t){e=t.a}],execute:function(){t("g",function(t){return e({url:"/ddz/rewardGoods/list",method:"post",data:t})}),t("c",function(t){return e({url:"/ddz/rewardGoods/create",method:"post",data:t})}),t("u",function(t){return e({url:"/ddz/rewardGoods/update",method:"put",data:t})}),t("d",function(t){return e({url:"/ddz/rewardGoods/delete",method:"delete",data:t})}),t("b",function(t){return e({url:"/ddz/rewardOrders/list",method:"post",data:t})}),t("e",function(t){return e({url:"/ddz/rewardOrders/detail",method:"get",params:{id:t}})}),t("f",function(t){return e({url:"/ddz/rewardOrders/ship",method:"put",data:t})}),t("a",function(){return e({url:"/ddz/roomConfig/options",method:"get"})})}}});

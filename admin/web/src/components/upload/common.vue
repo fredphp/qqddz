@@ -1,6 +1,6 @@
 <template>
   <el-upload
-    :action="`${baseUrl}/fileUploadAndDownload/upload?noSave=1`"
+    :action="`${baseUrl}/fileUploadAndDownload/upload?noSave=${noSave ? 1 : 0}&classId=${classId}`"
     :headers="headers"
     :show-file-list="false"
     :on-success="handleSuccess"
@@ -29,6 +29,10 @@ defineProps({
   classId: {
     type: Number,
     default: 0
+  },
+  noSave: {
+    type: Boolean,
+    default: true
   }
 })
 

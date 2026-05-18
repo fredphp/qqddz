@@ -5,7 +5,7 @@
     <div class="text-center p-4">
       <p class="text-gray-500 mb-4">此功能需要后端支持，当前为简化版本</p>
       <el-upload
-        :action="`${baseUrl}/fileUploadAndDownload/upload?noSave=1`"
+        :action="`${baseUrl}/fileUploadAndDownload/upload?noSave=${noSave ? 1 : 0}&classId=${classId}`"
         :headers="headers"
         :show-file-list="false"
         :on-success="handleSuccess"
@@ -32,6 +32,10 @@ defineProps({
   classId: {
     type: Number,
     default: 0
+  },
+  noSave: {
+    type: Boolean,
+    default: true
   }
 })
 
