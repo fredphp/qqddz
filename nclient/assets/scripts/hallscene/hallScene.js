@@ -4094,36 +4094,34 @@ cc.Class({
             console.log("🏟️ [Arena] 客户端竞技场房间 ID 列表: " + JSON.stringify(clientRoomIds));
         }
         
-        // 🔧【关键修复】根据 room_type 匹配服务端数据到客户端竞技场房间
-        // room_type：2=初级场, 3=中级场, 4=高级场, 5=大师场, 6=至尊场
+        // 🔧【关键修复】按顺序索引匹配服务端数据到客户端竞技场房间
+        // 因为服务端和客户端都是按 sort_order 排序的，所以顺序一致
+        // 服务端第 1 个 → 客户端第 1 个，服务端第 2 个 → 客户端第 2 个...
         
         for (var i = 0; i < arenas.length; i++) {
             var arena = arenas[i];
             var serverRoomId = arena.room_id;
-            var serverRoomType = arena.room_type;  // 🔧【新增】服务端推送的房间类型
+            var serverRoomType = arena.room_type;
             var newPeriodNoStr = arena.period_no_str || arena.periodNoStr || "";
             
             // 🔧 调试：打印每个竞技场的详细信息
             console.log("🏟️ [Arena] 推送房间 room_id=" + serverRoomId + ", room_type=" + serverRoomType + ", phase=" + arena.phase + ", countdown=" + arena.countdown);
             
-            // 🔧【关键修复】根据 room_type 匹配客户端竞技场房间
+            // 🔧【关键修复】按索引顺序匹配到客户端竞技场房间
+            // 服务端第 i 个竞技场 → 客户端 _arenaRooms[i]
             var clientRoomId = null;
             var matchedRoomIndex = -1;
-            if (this._arenaRooms && serverRoomType) {
-                for (var j = 0; j < this._arenaRooms.length; j++) {
-                    var clientRoom = this._arenaRooms[j];
-                    if (clientRoom.config.room_type === serverRoomType || clientRoom.config.roomType === serverRoomType) {
-                        clientRoomId = clientRoom.config.id;
-                        matchedRoomIndex = j;
-                        console.log("🏟️ [Arena] 服务端 room_type=" + serverRoomType + " 匹配到客户端房间 ID=" + clientRoomId);
-                        break;
-                    }
-                }
+            
+            if (this._arenaRooms && i < this._arenaRooms.length) {
+                var clientRoom = this._arenaRooms[i];
+                clientRoomId = clientRoom.config.id;
+                matchedRoomIndex = i;
+                console.log("🏟️ [Arena] 服务端第" + (i+1) + "个竞技场 匹配到客户端房间 ID=" + clientRoomId);
             }
             
-            // 如果没有找到匹配的房间，跳过
+            // 如果客户端没有对应的房间，跳过
             if (clientRoomId === null) {
-                console.log("🏟️ [Arena] 客户端没有 room_type=" + serverRoomType + " 的竞技场房间，跳过");
+                console.log("🏟️ [Arena] 客户端没有第 " + (i + 1) + " 个竞技场房间，跳过");
                 continue;
             }
             
