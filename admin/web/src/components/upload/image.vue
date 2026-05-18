@@ -42,7 +42,7 @@ const props = defineProps({
   },
   noSave: {
     type: Boolean,
-    default: true
+    default: false
   }
 })
 
