@@ -529,9 +529,10 @@ func CreateRoomConfig(config *RoomConfig) error {
 }
 
 // GetRoomConfigByID 根据ID获取房间配置
+// 🔧【修复】显式添加 deleted_at IS NULL 条件，确保过滤软删除记录
 func GetRoomConfigByID(id uint64) (*RoomConfig, error) {
         var config RoomConfig
-        err := DB().First(&config, id).Error
+        err := DB().Where("deleted_at IS NULL").First(&config, id).Error
         if err != nil {
                 return nil, err
         }
@@ -539,9 +540,10 @@ func GetRoomConfigByID(id uint64) (*RoomConfig, error) {
 }
 
 // GetRoomConfigByType 根据类型获取房间配置
+// 🔧【修复】添加 deleted_at IS NULL 条件，正确过滤软删除记录
 func GetRoomConfigByType(roomType uint8) (*RoomConfig, error) {
         var config RoomConfig
-        err := DB().Where("room_type = ? AND status = ?", roomType, RoomConfigStatusOpen).
+        err := DB().Where("room_type = ? AND status = ? AND deleted_at IS NULL", roomType, RoomConfigStatusOpen).
                 First(&config).Error
         if err != nil {
                 return nil, err
@@ -550,9 +552,10 @@ func GetRoomConfigByType(roomType uint8) (*RoomConfig, error) {
 }
 
 // GetActiveRoomConfigs 获取所有启用的房间配置
+// 🔧【修复】添加 deleted_at IS NULL 条件，正确过滤软删除记录
 func GetActiveRoomConfigs() ([]RoomConfig, error) {
         var configs []RoomConfig
-        err := DB().Where("status = ?", RoomConfigStatusOpen).
+        err := DB().Where("status = ? AND deleted_at IS NULL", RoomConfigStatusOpen).
                 Order("sort_order ASC").
                 Find(&configs).Error
         if err != nil {
