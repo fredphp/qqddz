@@ -735,7 +735,8 @@ cc.Class({
                             if (myglobal.socket && myglobal.socket.initSocket) {
                                 myglobal.socket.initSocket();
                             }
-                            cc.director.loadScene("gameSelectScene");
+                            // 显示游戏选择界面（动态创建，不需要加载新场景）
+                            self._showGameSelectUI();
                         }, 0.5);
                     }
                 } else {
@@ -2292,6 +2293,238 @@ cc.Class({
             this._userAgreementPopup.destroy();
             this._userAgreementPopup = null;
         }
+    },
+    
+    // 显示游戏选择界面（动态创建）
+    _showGameSelectUI: function() {
+        var self = this;
+        
+        console.log("=== 显示游戏选择界面 ===");
+        
+        // 创建全屏遮罩
+        var overlay = new cc.Node("GameSelectOverlay");
+        overlay.setContentSize(cc.winSize.width, cc.winSize.height);
+        overlay.setPosition(cc.winSize.width / 2, cc.winSize.height / 2);
+        overlay.zIndex = 10000;
+        
+        // 添加Widget组件实现全屏适配
+        var widget = overlay.addComponent(cc.Widget);
+        widget.isAlignTop = widget.isAlignBottom = widget.isAlignLeft = widget.isAlignRight = true;
+        widget.top = widget.bottom = widget.left = widget.right = 0;
+        
+        // 背景 - 使用纯色或加载背景图
+        var bgNode = new cc.Node("Bg");
+        bgNode.setContentSize(cc.winSize.width, cc.winSize.height);
+        var graphics = bgNode.addComponent(cc.Graphics);
+        graphics.fillColor = new cc.Color(25, 25, 80, 255);
+        graphics.rect(-cc.winSize.width / 2, -cc.winSize.height / 2, cc.winSize.width, cc.winSize.height);
+        graphics.fill();
+        bgNode.parent = overlay;
+        
+        // 尝试加载背景图片
+        cc.resources.load("login_rukou_bg", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err && spriteFrame) {
+                var bgSprite = bgNode.addComponent(cc.Sprite);
+                bgSprite.spriteFrame = spriteFrame;
+                bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+                bgNode.setContentSize(cc.winSize.width, cc.winSize.height);
+                graphics.enabled = false; // 禁用纯色背景
+            }
+        });
+        
+        // 玩家信息 - 左上角
+        var playerData = window.myglobal ? window.myglobal.playerData : null;
+        if (playerData) {
+            var infoNode = new cc.Node("PlayerInfo");
+            infoNode.setPosition(-cc.winSize.width / 2 + 100, cc.winSize.height / 2 - 50);
+            
+            var nickLabel = infoNode.addComponent(cc.Label);
+            nickLabel.string = playerData.nickName || "玩家";
+            nickLabel.fontSize = 22;
+            nickLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+            infoNode.color = cc.color(255, 255, 255);
+            
+            var outline = infoNode.addComponent(cc.LabelOutline);
+            outline.color = cc.color(0, 0, 0);
+            outline.width = 2;
+            
+            infoNode.parent = overlay;
+            
+            // 欢乐豆
+            var goldNode = new cc.Node("Gold");
+            goldNode.setPosition(0, -30);
+            var goldLabel = goldNode.addComponent(cc.Label);
+            goldLabel.string = "欢乐豆: " + (playerData.gobal_count || 0);
+            goldLabel.fontSize = 18;
+            goldLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+            goldNode.color = cc.color(255, 215, 0);
+            goldNode.parent = infoNode;
+        }
+        
+        // 标题
+        var titleNode = new cc.Node("Title");
+        titleNode.setPosition(0, cc.winSize.height / 2 - 150);
+        var titleLabel = titleNode.addComponent(cc.Label);
+        titleLabel.string = "选择游戏";
+        titleLabel.fontSize = 42;
+        titleLabel.fontFamily = "Arial, Microsoft YaHei";
+        titleNode.color = cc.color(255, 215, 0);
+        var titleOutline = titleNode.addComponent(cc.LabelOutline);
+        titleOutline.color = cc.color(0, 0, 0);
+        titleOutline.width = 3;
+        titleNode.parent = overlay;
+        
+        // 按钮容器
+        var buttonContainer = new cc.Node("ButtonContainer");
+        buttonContainer.setPosition(0, 0);
+        buttonContainer.parent = overlay;
+        
+        // 计算按钮位置
+        var buttonSpacing = 200;
+        var buttonSize = 150;
+        
+        // 斗地主按钮
+        var ddzBtn = new cc.Node("DDZButton");
+        ddzBtn.setPosition(-buttonSpacing, 0);
+        ddzBtn.setContentSize(buttonSize, buttonSize);
+        
+        var ddzSprite = ddzBtn.addComponent(cc.Sprite);
+        ddzSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        
+        // 加载斗地主图标
+        cc.resources.load("entrance_doudizhu", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err && spriteFrame) {
+                ddzSprite.spriteFrame = spriteFrame;
+            }
+        });
+        
+        var ddzBtnComp = ddzBtn.addComponent(cc.Button);
+        ddzBtnComp.transition = cc.Button.Transition.SCALE;
+        ddzBtnComp.zoomScale = 1.1;
+        
+        ddzBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            console.log("=== 点击斗地主 ===");
+            overlay.destroy();
+            cc.director.loadScene("hallScene");
+        }, this);
+        
+        ddzBtn.parent = buttonContainer;
+        
+        // 斗地主标签
+        var ddzLabel = new cc.Node("DDZLabel");
+        ddzLabel.setPosition(-buttonSpacing, -buttonSize / 2 - 25);
+        var ddzLbl = ddzLabel.addComponent(cc.Label);
+        ddzLbl.string = "斗地主";
+        ddzLbl.fontSize = 24;
+        ddzLabel.color = cc.color(255, 200, 100);
+        var ddzOutline = ddzLabel.addComponent(cc.LabelOutline);
+        ddzOutline.color = cc.color(0, 0, 0);
+        ddzOutline.width = 2;
+        ddzLabel.parent = buttonContainer;
+        
+        // 农场按钮
+        var farmBtn = new cc.Node("FarmButton");
+        farmBtn.setPosition(buttonSpacing, 0);
+        farmBtn.setContentSize(buttonSize, buttonSize);
+        
+        var farmSprite = farmBtn.addComponent(cc.Sprite);
+        farmSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        
+        // 加载农场图标
+        cc.resources.load("entrance_farm", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err && spriteFrame) {
+                farmSprite.spriteFrame = spriteFrame;
+            }
+        });
+        
+        var farmBtnComp = farmBtn.addComponent(cc.Button);
+        farmBtnComp.transition = cc.Button.Transition.SCALE;
+        farmBtnComp.zoomScale = 1.1;
+        
+        farmBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            console.log("=== 点击农场（敬请期待）===");
+            self._showGameSelectTip("农场游戏", "敬请期待！");
+        }, this);
+        
+        farmBtn.parent = buttonContainer;
+        
+        // 农场标签
+        var farmLabel = new cc.Node("FarmLabel");
+        farmLabel.setPosition(buttonSpacing, -buttonSize / 2 - 25);
+        var farmLbl = farmLabel.addComponent(cc.Label);
+        farmLbl.string = "农场 (敬请期待)";
+        farmLbl.fontSize = 20;
+        farmLabel.color = cc.color(150, 200, 150);
+        var farmOutline = farmLabel.addComponent(cc.LabelOutline);
+        farmOutline.color = cc.color(0, 0, 0);
+        farmOutline.width = 2;
+        farmLabel.parent = buttonContainer;
+        
+        // 添加到场景
+        this.node.addChild(overlay);
+        this._gameSelectOverlay = overlay;
+    },
+    
+    // 显示游戏选择提示
+    _showGameSelectTip: function(title, message) {
+        var tipNode = new cc.Node("GameSelectTip");
+        tipNode.setPosition(0, 0);
+        tipNode.setContentSize(350, 180);
+        tipNode.zIndex = 10001;
+        
+        // 背景
+        var bgNode = new cc.Node("Bg");
+        bgNode.setContentSize(350, 180);
+        var graphics = bgNode.addComponent(cc.Graphics);
+        graphics.fillColor = new cc.Color(0, 0, 0, 230);
+        graphics.roundRect(-175, -90, 350, 180, 15);
+        graphics.fill();
+        bgNode.parent = tipNode;
+        
+        // 标题
+        var titleNode = new cc.Node("Title");
+        titleNode.setPosition(0, 50);
+        var titleLabel = titleNode.addComponent(cc.Label);
+        titleLabel.string = title;
+        titleLabel.fontSize = 28;
+        titleNode.color = cc.color(255, 215, 0);
+        titleNode.parent = tipNode;
+        
+        // 内容
+        var contentNode = new cc.Node("Content");
+        contentNode.setPosition(0, 0);
+        var contentLabel = contentNode.addComponent(cc.Label);
+        contentLabel.string = message;
+        contentLabel.fontSize = 22;
+        contentNode.color = cc.color(255, 255, 255);
+        contentNode.parent = tipNode;
+        
+        // 确定按钮
+        var btnNode = new cc.Node("OKBtn");
+        btnNode.setPosition(0, -55);
+        btnNode.setContentSize(100, 36);
+        var btnGraphics = btnNode.addComponent(cc.Graphics);
+        btnGraphics.fillColor = new cc.Color(76, 175, 80);
+        btnGraphics.roundRect(-50, -18, 100, 36, 5);
+        btnGraphics.fill();
+        var btnLabel = btnNode.addComponent(cc.Label);
+        btnLabel.string = "确定";
+        btnLabel.fontSize = 18;
+        btnNode.color = cc.color(255, 255, 255);
+        btnNode.parent = tipNode;
+        
+        btnNode.on(cc.Node.EventType.TOUCH_END, function() {
+            tipNode.destroy();
+        }, this);
+        
+        this.node.addChild(tipNode);
+        
+        // 3秒后自动关闭
+        this.scheduleOnce(function() {
+            if (tipNode && tipNode.isValid) {
+                tipNode.destroy();
+            }
+        }, 3);
     },
     
     // 销毁时清理
