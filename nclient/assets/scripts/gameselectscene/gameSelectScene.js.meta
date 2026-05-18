@@ -1,9 +1,10 @@
 {
-  "ver": "4.0.24",
-  "importer": "javascript",
-  "imported": true,
+  "ver": "1.1.0",
   "uuid": "d11c24d9-f06d-4c6f-a594-d90fe57c3a93",
-  "files": [],
-  "subMetas": {},
-  "userData": {}
+  "importer": "javascript",
+  "isPlugin": false,
+  "loadPluginInWeb": true,
+  "loadPluginInNative": true,
+  "loadPluginInEditor": false,
+  "subMetas": {}
 }
