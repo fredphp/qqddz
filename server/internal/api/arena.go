@@ -231,6 +231,14 @@ func (h *ArenaHandler) Signup(w http.ResponseWriter, r *http.Request) {
                 return
         }
 
+        // 检查星级是否满足要求
+        requiredLevel := roomConfig.MinLevel
+        if player.Level < requiredLevel {
+                log.Printf("❌ [报名调试] 星级不足: 玩家 %d, 需要 %d 星, 当前 %d 星", player.ID, requiredLevel, player.Level)
+                writeJSONError(w, http.StatusBadRequest, fmt.Sprintf("会员星级不足，需达到%d星。请前往普通场升级", requiredLevel))
+                return
+        }
+
         // 记录报名前余额
         balanceBefore := player.Gold
 

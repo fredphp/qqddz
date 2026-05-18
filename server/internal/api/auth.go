@@ -63,6 +63,7 @@ type LoginResponse struct {
         NickName  string `json:"nickName"`
         AvatarUrl string `json:"avatarUrl"`
         GoldCount int    `json:"goldcount"`
+        Level     int    `json:"level"`     // 玩家等级/星级
         Token     string `json:"token"`
         IsNewUser bool   `json:"isNewUser"`
 }
@@ -290,6 +291,7 @@ func (h *AuthHandler) PhoneLogin(w http.ResponseWriter, r *http.Request) {
                 NickName:  player.Nickname,
                 AvatarUrl: avatarUrl,
                 GoldCount: int(player.Gold),
+                Level:     player.Level,
                 Token:     token,
                 IsNewUser: isNewUser,
         })
@@ -411,6 +413,7 @@ func (h *AuthHandler) mockPhoneLogin(w http.ResponseWriter, phone string) {
                 NickName:  nickName,
                 AvatarUrl: avatarUrl,
                 GoldCount: 1000,
+                Level:     1,
                 Token:     token,
                 IsNewUser: true,
         })
@@ -490,6 +493,7 @@ func (h *AuthHandler) WxLogin(w http.ResponseWriter, r *http.Request) {
                 NickName:  nickName,
                 AvatarUrl: avatarUrl,
                 GoldCount: 1000,
+                Level:     1,
                 Token:     token,
                 IsNewUser: true,
         })
@@ -575,6 +579,7 @@ func (h *AuthHandler) WxAppLogin(w http.ResponseWriter, r *http.Request) {
                 NickName:  nickName,
                 AvatarUrl: avatarUrl,
                 GoldCount: 1000,
+                Level:     1,
                 Token:     token,
                 IsNewUser: true,
         })

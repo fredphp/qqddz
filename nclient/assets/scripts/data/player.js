@@ -23,6 +23,7 @@ window.playerData = function(){
     that.avatarUrl = str;
     that.gobal_count = 0;       // 金币
     that.arena_coin = 0;      // 竞技币
+    that.level = 1;           // 玩家等级/星级
     that.master_accountid = 0;
     that.bottom = 100;
     that.rate = 1;
@@ -110,6 +111,7 @@ window.playerData = function(){
             avatarUrl: this.avatarUrl,
             gobal_count: this.gobal_count,
             arena_coin: this.arena_coin,
+            level: this.level,
             master_accountid: this.master_accountid,
             bottom: this.bottom,
             rate: this.rate,
@@ -159,6 +161,7 @@ window.playerData = function(){
         this.avatarUrl = data.avatarUrl || this.avatarUrl;
         this.gobal_count = data.gobal_count || 0;
         this.arena_coin = data.arena_coin || 0;
+        this.level = data.level || 1;
         this.master_accountid = data.master_accountid || 0;
         this.bottom = data.bottom || 100;
         this.rate = data.rate || 1;
@@ -231,6 +234,7 @@ window.playerData = function(){
         this.avatarUrl = loginData.avatarUrl || loginData.avatar || this.avatarUrl;
         this.gobal_count = loginData.goldCount || loginData.gold || loginData.goldcount || this.gobal_count;
         this.arena_coin = loginData.arenaCoin || loginData.arena_coin || this.arena_coin;
+        this.level = loginData.level || this.level;
         this.token = loginData.token || this.token;
         this.loginType = loginData.loginType || this.loginType;
         

@@ -1812,7 +1812,8 @@ cc.Class({
     _onArenaSignupButtonClick: function(roomConfig, btnNode, signupBtnNode) {
         var self = this;
         var myglobal = window.myglobal;
-        var playerArenaCoin = myglobal && myglobal.playerData ? myglobal.playerData.arena_coin : 0;
+        var playerGold = myglobal && myglobal.playerData ? myglobal.playerData.gobal_count : 0;
+        var playerLevel = myglobal && myglobal.playerData ? myglobal.playerData.level : 1;
         var roomId = roomConfig.id;
         
         // 检查是否已报名
@@ -1845,12 +1846,21 @@ cc.Class({
             return;
         }
         
-        // 获取报名费
-        var signupFee = roomConfig.min_arena_coin || roomConfig.minArenaCoin || 0;
+        // 获取报名费（欢乐豆）
+        var signupFee = roomConfig.entry_gold || roomConfig.entryGold || 0;
         
-        // 检查竞技币是否足够
-        if (playerArenaCoin < signupFee) {
-            this._showMessage("竞技币不足，需要 " + signupFee + " 竞技币");
+        // 获取所需星级
+        var requiredLevel = roomConfig.min_level || roomConfig.minLevel || 0;
+        
+        // 检查星级是否满足要求
+        if (playerLevel < requiredLevel) {
+            this._showMessage("会员星级不足，需达到" + requiredLevel + "星。请前往普通场升级");
+            return;
+        }
+        
+        // 检查欢乐豆是否足够
+        if (playerGold < signupFee) {
+            this._showMessage("欢乐豆不足，需要 " + signupFee + " 欢乐豆");
             return;
         }
         
@@ -1871,7 +1881,7 @@ cc.Class({
                     return;
                 }
                 
-                self._showMessage("取消报名成功，竞技币已返还");
+                self._showMessage("取消报名成功，欢乐豆已返还");
                 
                 // 刷新玩家余额
                 if (window.arenaData.refreshBalance) {
