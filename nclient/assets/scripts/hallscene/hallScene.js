@@ -4012,13 +4012,12 @@ cc.Class({
         var now = Date.now();
         var arenaCount = this._arenaRooms.length;
         
+        console.log("🏟️ [Arena] _initLocalArenaStatusFromConfig 开始, arenaCount=" + arenaCount);
+        
         for (var i = 0; i < arenaCount; i++) {
             var room = this._arenaRooms[i];
             var config = room.config;
             var roomId = config.id;
-            
-            // 如果已经有数据，跳过
-            if (this._localArenaStatus[roomId]) continue;
             
             // 🔧【新增】检查是否有开赛配置
             var matchTimeRanges = config.match_time_ranges || config.matchTimeRanges;
@@ -4031,8 +4030,28 @@ cc.Class({
                 hasMatchConfig = (i < arenaCount - 1);
             }
             
+            console.log("🏟️ [Arena] 房间 " + roomId + " i=" + i + " hasMatchConfig=" + hasMatchConfig);
+            
+            // 如果已经有数据，只更新 hasMatchConfig（如果未设置）
+            if (this._localArenaStatus[roomId]) {
+                // 🔧【关键修复】确保 hasMatchConfig 被正确设置
+                if (this._localArenaStatus[roomId].hasMatchConfig === undefined) {
+                    this._localArenaStatus[roomId].hasMatchConfig = hasMatchConfig;
+                    console.log("🏟️ [Arena] 更新房间 " + roomId + " 的 hasMatchConfig=" + hasMatchConfig);
+                }
+                continue;
+            }
+            
             // 使用本地计算作为初始值
             var phaseInfo = this._calculatePhaseInfo(config);
+            
+            // 🔧【关键修复】如果没有开赛时间配置，使用默认值
+            // 默认显示报名阶段，倒计时5分钟
+            if (hasMatchConfig && phaseInfo.phase === 0) {
+                phaseInfo.phase = 2;  // 报名阶段
+                phaseInfo.countdown = 300;  // 5分钟
+                phaseInfo.canSignup = true;
+            }
             
             this._localArenaStatus[roomId] = {
                 periodNo: phaseInfo.periodNo,
@@ -4046,6 +4065,8 @@ cc.Class({
                 isLocalCalculated: true,  // 标记为本地计算
                 hasMatchConfig: hasMatchConfig  // 🔧【新增】标记是否有开赛配置
             };
+            
+            console.log("🏟️ [Arena] 创建房间 " + roomId + " 状态: phase=" + phaseInfo.phase + ", countdown=" + phaseInfo.countdown + ", hasMatchConfig=" + hasMatchConfig);
         }
         
         // 更新显示
@@ -4060,6 +4081,7 @@ cc.Class({
         var arenaCount = this._arenaRooms ? this._arenaRooms.length : 0;
         
         // 🔧 调试：打印收到的完整数据
+        console.log("🏟️ [Arena] 收到服务端推送, arenas.length=" + arenas.length + ", arenaCount=" + arenaCount);
         
         // 更新本地状态缓存
         for (var i = 0; i < arenas.length; i++) {
@@ -4068,6 +4090,7 @@ cc.Class({
             var newPeriodNoStr = arena.period_no_str || arena.periodNoStr || "";
             
             // 🔧 调试：打印每个竞技场的 total_players
+            console.log("🏟️ [Arena] 推送房间 " + roomId + ": phase=" + arena.phase + ", countdown=" + arena.countdown);
             
             // 🔧【新增】检查期号是否变化，如果变化则清除用户报名状态
             var oldStatus = this._localArenaStatus[roomId];
@@ -4101,6 +4124,8 @@ cc.Class({
             // 前 N-1 个默认显示，最后一个不显示
             var hasMatchConfig = (roomIndex >= 0 && roomIndex < arenaCount - 1);
             
+            console.log("🏟️ [Arena] 推送房间 " + roomId + " roomIndex=" + roomIndex + ", hasMatchConfig=" + hasMatchConfig);
+            
             // 保存服务端推送的状态（支持新字段）
             this._localArenaStatus[roomId] = {
                 periodNo: arena.period_no,
@@ -4114,6 +4139,31 @@ cc.Class({
                 isLocalCalculated: false,  // 服务端推送
                 hasMatchConfig: hasMatchConfig  // 🔧【新增】标记是否有开赛配置
             };
+        }
+        
+        // 🔧【关键修复】确保所有竞技场房间都有状态（包括服务端没有推送的）
+        if (this._arenaRooms) {
+            for (var k = 0; k < this._arenaRooms.length; k++) {
+                var r = this._arenaRooms[k];
+                var rid = r.config.id;
+                if (!this._localArenaStatus[rid]) {
+                    // 如果服务端没有推送这个房间的状态，使用默认值
+                    var defaultHasMatchConfig = (k < this._arenaRooms.length - 1);
+                    this._localArenaStatus[rid] = {
+                        periodNo: 0,
+                        periodNoStr: "",
+                        phase: defaultHasMatchConfig ? 2 : 0,
+                        countdown: defaultHasMatchConfig ? 300 : -1,
+                        canSignup: defaultHasMatchConfig,
+                        totalPlayers: 0,
+                        statusText: defaultHasMatchConfig ? "报名中" : "暂未开放",
+                        lastUpdate: now,
+                        isLocalCalculated: true,
+                        hasMatchConfig: defaultHasMatchConfig
+                    };
+                    console.log("🏟️ [Arena] 补充房间 " + rid + " 默认状态: hasMatchConfig=" + defaultHasMatchConfig);
+                }
+            }
         }
         
         // 立即更新显示
@@ -4354,7 +4404,17 @@ cc.Class({
                 var matchTimeRanges = config.match_time_ranges || config.matchTimeRanges;
                 var matchDuration = config.match_duration || config.matchDuration;
                 hasMatchConfig = matchTimeRanges && matchDuration;
+                
+                // 🔧【关键修复】如果配置中没有开赛时间，根据索引位置判断
+                // 前 N-1 个房间默认显示，最后一个不显示
+                if (!hasMatchConfig) {
+                    var arenaCount = this._arenaRooms.length;
+                    hasMatchConfig = (i < arenaCount - 1);
+                }
             }
+            
+            // 🔧【调试日志】打印每个房间的状态
+            console.log("🏟️ [Arena] 房间 " + roomId + " hasMatchConfig=" + hasMatchConfig + ", i=" + i + ", arenaCount=" + (this._arenaRooms ? this._arenaRooms.length : 0));
             
             // 获取状态项节点
             var roomStatusItem = countdownContainer ? countdownContainer.getChildByName("RoomStatusItem_" + roomId) : null;
