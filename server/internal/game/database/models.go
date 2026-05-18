@@ -64,6 +64,7 @@ type RoomConfig struct {
         SortOrder        int            `gorm:"type:int;not null;default:0;comment:排序权重" json:"sort_order"`
         Description      string         `gorm:"type:varchar(256);default:'';comment:房间描述" json:"description"`
         // 竞技场专属字段
+        EntryGold        int64          `gorm:"type:bigint;not null;default:0;comment:竞技场报名费(金币)" json:"entry_gold"`
         MatchTimeRanges  string         `gorm:"type:json;comment:开赛时间段(JSON)" json:"match_time_ranges"`
         MatchRoundDuration int          `gorm:"type:int;not null;default:5;comment:每场时长(分钟)" json:"match_round_duration"`
         MatchRoundCount  int            `gorm:"type:int;not null;default:3;comment:轮次" json:"match_round_count"`
