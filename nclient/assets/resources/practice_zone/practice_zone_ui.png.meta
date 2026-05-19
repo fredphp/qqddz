@@ -20,12 +20,21 @@
       "trimType": "auto",
       "trimThreshold": 1,
       "rotated": false,
+<<<<<<< Updated upstream
       "offsetX": 0,
       "offsetY": 0,
       "trimX": 0,
       "trimY": 0,
       "width": 640,
       "height": 400,
+=======
+      "offsetX": -0.5,
+      "offsetY": 5,
+      "trimX": 104,
+      "trimY": 6,
+      "width": 431,
+      "height": 338,
+>>>>>>> Stashed changes
       "rawWidth": 640,
       "rawHeight": 400,
       "borderTop": 0,
