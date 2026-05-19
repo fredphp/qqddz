@@ -118,9 +118,18 @@ cc.Class({
         
         try {
             myglobal.verifyToken(function(valid, message) {
+                // 🔧【修复】即使验证失败也继续初始化UI
+                // 原因：刚登录成功后token应该是有效的，如果验证失败可能是API问题
+                // 只有在没有本地session时才跳转到登录页面
                 if (!valid) {
-                    cc.director.loadScene("loginScene");
-                    return;
+                    console.warn("Token验证失败:", message);
+                    // 检查是否还有本地session
+                    if (!myglobal.hasLocalSession()) {
+                        console.error("本地session也已失效，返回登录页面");
+                        cc.director.loadScene("loginScene");
+                        return;
+                    }
+                    console.log("使用本地缓存继续");
                 }
                 self._initUIAfterAuth();
             });

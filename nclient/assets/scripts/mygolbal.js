@@ -323,8 +323,9 @@
                         }
                         callback(true, "Token有效");
                     } else {
-                        // Token 明确无效，需要重新登录
-                        self.playerData.clearLocal();
+                        // Token 明确无效，但不清除本地数据
+                        // 让调用者决定如何处理（可能继续使用本地缓存）
+                        console.warn("Token验证失败:", resp.data.message || "Token无效");
                         callback(false, resp.data.message || "Token无效");
                     }
                 } else {
@@ -337,7 +338,8 @@
                             }
                             callback(true, "Token有效");
                         } else {
-                            self.playerData.clearLocal();
+                            // Token 无效，但不清除本地数据
+                            console.warn("Token验证失败:", resp.message || "Token无效");
                             callback(false, resp.message || "Token无效");
                         }
                     } else {
@@ -379,7 +381,8 @@
                                 }
                                 callback(true, "Token有效");
                             } else {
-                                self.playerData.clearLocal();
+                                // Token 无效，但不清除本地数据
+                                console.warn("Token验证失败:", resp.data.message || "Token无效");
                                 callback(false, resp.data.message || "Token无效");
                             }
                         } else {
@@ -391,7 +394,8 @@
                 } else if (xhr.status === 404) {
                     callback(true, "使用本地缓存");
                 } else if (xhr.status === 401 || xhr.status === 403) {
-                    self.playerData.clearLocal();
+                    // Token 无效，但不清除本地数据
+                    console.warn("Token验证失败: HTTP", xhr.status);
                     callback(false, "Token无效或已过期");
                 } else {
                     callback(true, "使用本地缓存");
