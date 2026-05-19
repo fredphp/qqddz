@@ -9,7 +9,7 @@
   "genMipmaps": false,
   "packable": true,
   "width": 640,
-  "height": 400,
+  "height": 361,
   "platformSettings": {},
   "subMetas": {
     "practice_zone_ui": {
@@ -20,23 +20,14 @@
       "trimType": "auto",
       "trimThreshold": 1,
       "rotated": false,
-<<<<<<< Updated upstream
       "offsetX": 0,
       "offsetY": 0,
       "trimX": 0,
       "trimY": 0,
       "width": 640,
-      "height": 400,
-=======
-      "offsetX": -0.5,
-      "offsetY": 5,
-      "trimX": 104,
-      "trimY": 6,
-      "width": 431,
-      "height": 338,
->>>>>>> Stashed changes
+      "height": 361,
       "rawWidth": 640,
-      "rawHeight": 400,
+      "rawHeight": 361,
       "borderTop": 0,
       "borderBottom": 0,
       "borderLeft": 0,
