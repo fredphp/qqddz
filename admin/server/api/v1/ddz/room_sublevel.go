@@ -14,7 +14,7 @@ import (
 
 type DDZRoomSublevelApi struct{}
 
-var ddzRoomSublevelService = service.ServiceGroupApp.DDZServiceGroup.DDZRoomSublevelServiceApp
+var ddzRoomSublevelService = service.ServiceGroupApp.DDZServiceGroup.DDZRoomSublevelService
 
 // GetRoomSublevelList 获取子分区列表
 // @Tags 斗地主-子分区管理
