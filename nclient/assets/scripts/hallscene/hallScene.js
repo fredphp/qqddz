@@ -142,6 +142,36 @@ cc.Class({
     _initUIAfterAuth: function() {
         
         try {
+            var myglobal = window.myglobal;
+            
+            // ==================== 🔧【重要】最先检查是否需要直接跳转到练级区 ====================
+            // 如果从游戏场景点击"换房"返回，应该直接显示练级区，不显示大厅UI
+            if (myglobal && myglobal.goToPracticeZone) {
+                console.log("🔄 检测到换房标志，直接跳转到练级区（不显示大厅UI）");
+                myglobal.goToPracticeZone = false;  // 清除标志
+                
+                // 初始化必要的设置
+                this._initUserSettings();
+                
+                // 隐藏大厅UI元素
+                var elementsToHide = ["CardContainer", "LeftArea", "RightArea", "btn_create_room", "btn_join_room"];
+                for (var i = 0; i < elementsToHide.length; i++) {
+                    var el = this.node.getChildByName(elementsToHide[i]);
+                    if (el) el.active = false;
+                }
+                
+                // 初始化WebSocket
+                this._initWebSocket();
+                
+                // 直接创建并显示练级区场景
+                this._practiceZoneNode = this._createPracticeZoneScene();
+                this._practiceZoneNode.active = true;
+                this._practiceZoneNode.opacity = 255;
+                
+                console.log("✅ 已直接进入练级区，跳过大厅UI显示");
+                return;  // 提前返回，不初始化大厅UI
+            }
+            
             // ==================== 🔧【新增】WebSocket连接Loading界面 ====================
             // 检查WebSocket是否已连接，如果未连接则显示Loading界面
             this._checkAndShowWebSocketLoading();
@@ -149,7 +179,6 @@ cc.Class({
             // ==================== 初始化用户设置（从本地存储加载）====================
             this._initUserSettings();
             
-            var myglobal = window.myglobal;
             var playerData = myglobal ? myglobal.playerData : null;
             
             if (!playerData) {
@@ -208,19 +237,6 @@ cc.Class({
             
             // 初始化顶部按钮（设置、帮助等）
             this._initTopButtons();
-            
-            // ==================== 🔧【新增】检查是否需要跳转到练级区 ====================
-            // 如果从游戏场景点击"换房"返回，应该直接显示练级区
-            if (myglobal && myglobal.goToPracticeZone) {
-                console.log("🔄 检测到换房标志，自动跳转到练级区");
-                myglobal.goToPracticeZone = false;  // 清除标志
-                
-                // 延迟显示练级区，确保UI初始化完成
-                var self = this;
-                this.scheduleOnce(function() {
-                    self._showPracticeZoneScene();
-                }, 0.3);
-            }
             
         } catch (e) {
             console.error("_initUIAfterAuth 异常:", e);
