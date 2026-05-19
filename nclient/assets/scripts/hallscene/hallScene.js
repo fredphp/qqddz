@@ -1351,9 +1351,9 @@ cc.Class({
         bgNode.parent = sceneNode;
         bgNode.zIndex = 0;
         
-        // ==================== 2. UI层 - 使用practice_zone_ui.webp ====================
+        // ==================== 2. UI层 - 使用practice_zone_ui.png ====================
         var uiNode = new cc.Node("UILayer");
-        uiNode.setContentSize(1000, 565);
+        uiNode.setContentSize(1000, 741);
         uiNode.setPosition(0, 0);
         
         var uiSprite = uiNode.addComponent(cc.Sprite);
@@ -1367,8 +1367,8 @@ cc.Class({
                 return;
             }
             uiSprite.spriteFrame = spriteFrame;
-            // UI图片尺寸是1000x565，缩放到屏幕的95%大小，让文字更清晰
-            var scale = Math.min(1280 / 1000, 720 / 565) * 0.95;
+            // UI图片尺寸是1000x741，缩放到屏幕的90%大小，让文字更清晰
+            var scale = Math.min(1280 / 1000, 720 / 741) * 0.90;
             uiNode.setScale(scale);
             console.log("✅ 练级区UI图片加载成功, scale=" + scale);
         });
@@ -1389,15 +1389,15 @@ cc.Class({
         // 创建透明点击区域容器
         var clickContainer = new cc.Node("ClickContainer");
         clickContainer.setPosition(0, -10);  // 稍微下移以匹配UI位置
-        clickContainer.setScale(0.95);  // 与UI层同比例缩放
+        clickContainer.setScale(0.90);  // 与UI层同比例缩放
         clickContainer.parent = sceneNode;
         clickContainer.zIndex = 20;
         
         // 布局参数 - 根据UI图片布局调整
-        // UI图片比例: 1000x565，5个按钮横向排列
-        var cardWidth = 110;    // 每个卡片点击区域宽度
-        var cardHeight = 180;   // 每个卡片点击区域高度
-        var spacing = 10;       // 卡片间距
+        // UI图片比例: 1000x741，5个按钮横向排列
+        var cardWidth = 130;    // 每个卡片点击区域宽度
+        var cardHeight = 220;   // 每个卡片点击区域高度
+        var spacing = 15;       // 卡片间距
         var totalWidth = rooms.length * cardWidth + (rooms.length - 1) * spacing;
         var startX = -totalWidth / 2 + cardWidth / 2;
         
