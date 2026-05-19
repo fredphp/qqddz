@@ -1199,14 +1199,21 @@ cc.Class({
         var isNormalRoom = (roomType === 5);
         
         if (isNormalRoom) {
-            // 练级区/普通场 - 显示房间选择弹窗
-            console.log("=== 点击普通场(练级区)，显示房间选择弹窗 ===");
+            // 练级区/普通场 - 跳转到房间选择场景
+            console.log("=== 点击普通场(练级区)，跳转到房间选择场景 ===");
+            
+            // 保存当前房间配置
+            if (myglobal) {
+                myglobal.currentRoomConfig = roomConfig;
+                myglobal.currentRoomLevel = roomConfig.room_type;
+                myglobal.currentRoomName = roomConfig.room_name || roomConfig.roomName;
+            }
             
             // 播放点击音效
             this._playClickSound();
             
-            // 显示房间选择弹窗
-            this._showRoomSelectDialog(roomConfig);
+            // 跳转到房间选择场景
+            cc.director.loadScene("RoomSelectScene");
             return;
         }
         
@@ -1231,223 +1238,6 @@ cc.Class({
         
         // 直接快速匹配进入游戏
         this._quickMatch(roomConfig, playerGold);
-    },
-    
-    // 显示房间选择弹窗
-    _showRoomSelectDialog: function(roomConfig) {
-        var self = this;
-        var myglobal = window.myglobal;
-        var playerGold = myglobal && myglobal.playerData ? myglobal.playerData.gobal_count : 0;
-        
-        // 如果弹窗不存在，创建它
-        if (!this._roomSelectNode) {
-            this._roomSelectNode = this._createRoomSelectDialog();
-        }
-        
-        // 显示弹窗
-        this._roomSelectNode.active = true;
-        this._roomSelectNode.opacity = 0;
-        cc.tween(this._roomSelectNode)
-            .to(0.3, { opacity: 255 })
-            .start();
-    },
-    
-    // 创建房间选择弹窗
-    _createRoomSelectDialog: function() {
-        var self = this;
-        var myglobal = window.myglobal;
-        
-        // 创建弹窗容器
-        var dialogNode = new cc.Node("RoomSelectDialog");
-        dialogNode.setContentSize(1280, 720);
-        
-        // 半透明背景
-        var bgNode = new cc.Node("Bg");
-        bgNode.setContentSize(1280, 720);
-        var bgGraphics = bgNode.addComponent(cc.Graphics);
-        bgGraphics.fillColor = new cc.Color(0, 0, 0, 180);
-        bgGraphics.rect(-640, -360, 1280, 720);
-        bgGraphics.fill();
-        bgNode.parent = dialogNode;
-        
-        // 点击背景关闭
-        bgNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-            event.stopPropagation();
-        }, this);
-        
-        // 内容容器
-        var contentNode = new cc.Node("Content");
-        contentNode.setPosition(0, 0);
-        contentNode.setContentSize(1000, 500);
-        var contentGraphics = contentNode.addComponent(cc.Graphics);
-        contentGraphics.fillColor = new cc.Color(45, 45, 85, 240);
-        contentGraphics.roundRect(-500, -250, 1000, 500, 20);
-        contentGraphics.fill();
-        contentGraphics.strokeColor = new cc.Color(255, 255, 255, 100);
-        contentGraphics.lineWidth = 2;
-        contentGraphics.roundRect(-500, -250, 1000, 500, 20);
-        contentGraphics.stroke();
-        contentNode.parent = dialogNode;
-        
-        // 标题
-        var titleNode = new cc.Node("Title");
-        titleNode.setPosition(0, 200);
-        var titleLabel = titleNode.addComponent(cc.Label);
-        titleLabel.string = "选择房间";
-        titleLabel.fontSize = 36;
-        titleLabel.lineHeight = 50;
-        titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        titleNode.color = cc.color(255, 215, 0);
-        titleNode.parent = contentNode;
-        
-        // 房间数据
-        var rooms = [
-            { name: "新手场", baseScore: 1, minGold: 0 },
-            { name: "普通场", baseScore: 2, minGold: 1000 },
-            { name: "10分场", baseScore: 10, minGold: 5000 },
-            { name: "50分场", baseScore: 50, minGold: 20000 }
-        ];
-        
-        // 创建房间按钮
-        var startX = -350;
-        var startY = 0;
-        
-        rooms.forEach(function(room, index) {
-            var btnNode = new cc.Node("RoomBtn_" + index);
-            btnNode.setPosition(startX + index * 220, startY);
-            btnNode.setContentSize(200, 280);
-            
-            // 按钮背景
-            var btnGraphics = btnNode.addComponent(cc.Graphics);
-            btnGraphics.fillColor = new cc.Color(80, 120, 180, 230);
-            btnGraphics.roundRect(-100, -140, 200, 280, 15);
-            btnGraphics.fill();
-            btnGraphics.strokeColor = new cc.Color(255, 255, 255, 150);
-            btnGraphics.lineWidth = 2;
-            btnGraphics.roundRect(-100, -140, 200, 280, 15);
-            btnGraphics.stroke();
-            
-            btnNode.parent = contentNode;
-            
-            // 房间名称
-            var nameNode = new cc.Node("Name");
-            nameNode.setPosition(0, 80);
-            var nameLabel = nameNode.addComponent(cc.Label);
-            nameLabel.string = room.name;
-            nameLabel.fontSize = 28;
-            nameLabel.lineHeight = 36;
-            nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            nameNode.color = cc.color(255, 255, 255);
-            nameNode.parent = btnNode;
-            
-            // 底分
-            var scoreNode = new cc.Node("Score");
-            scoreNode.setPosition(0, 20);
-            var scoreLabel = scoreNode.addComponent(cc.Label);
-            scoreLabel.string = "底分: " + room.baseScore;
-            scoreLabel.fontSize = 20;
-            scoreLabel.lineHeight = 28;
-            scoreLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            scoreNode.color = cc.color(255, 215, 0);
-            scoreNode.parent = btnNode;
-            
-            // 最低入场
-            var minGoldNode = new cc.Node("MinGold");
-            minGoldNode.setPosition(0, -20);
-            var minGoldLabel = minGoldNode.addComponent(cc.Label);
-            minGoldLabel.string = "入场: " + self._formatRoomGold(room.minGold);
-            minGoldLabel.fontSize = 18;
-            minGoldLabel.lineHeight = 24;
-            minGoldLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            minGoldNode.color = cc.color(200, 200, 200);
-            minGoldNode.parent = btnNode;
-            
-            // 添加按钮组件
-            var button = btnNode.addComponent(cc.Button);
-            button.transition = cc.Button.Transition.SCALE;
-            button.duration = 0.1;
-            button.zoomScale = 1.05;
-            
-            // 存储房间数据
-            btnNode.roomData = room;
-            
-            // 点击事件
-            btnNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-                event.stopPropagation();
-                self._onRoomSelectClick(room, dialogNode);
-            }, this);
-        });
-        
-        // 关闭按钮
-        var closeBtn = new cc.Node("CloseBtn");
-        closeBtn.setPosition(460, 220);
-        closeBtn.setContentSize(60, 60);
-        var closeGraphics = closeBtn.addComponent(cc.Graphics);
-        closeGraphics.fillColor = new cc.Color(200, 50, 50, 230);
-        closeGraphics.circle(0, 0, 30);
-        closeGraphics.fill();
-        var closeLabel = closeBtn.addComponent(cc.Label);
-        closeLabel.string = "X";
-        closeLabel.fontSize = 24;
-        closeLabel.lineHeight = 30;
-        closeLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        closeBtn.color = cc.color(255, 255, 255);
-        closeBtn.parent = contentNode;
-        
-        closeBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
-            event.stopPropagation();
-            dialogNode.active = false;
-        }, this);
-        
-        dialogNode.parent = this.node;
-        dialogNode.zIndex = 9999;
-        dialogNode.active = false;
-        
-        return dialogNode;
-    },
-    
-    // 格式化金币显示
-    _formatRoomGold: function(gold) {
-        if (gold >= 10000) {
-            return (gold / 10000).toFixed(1) + "万";
-        }
-        return gold.toString();
-    },
-    
-    // 房间选择点击处理
-    _onRoomSelectClick: function(room, dialogNode) {
-        var self = this;
-        var myglobal = window.myglobal;
-        var playerGold = myglobal && myglobal.playerData ? myglobal.playerData.gobal_count : 0;
-        
-        // 播放点击音效
-        this._playClickSound();
-        
-        // 检查金币是否足够
-        if (playerGold < room.minGold) {
-            this._showMessage("欢乐豆不足，需要 " + this._formatRoomGold(room.minGold) + " 欢乐豆");
-            // 显示奖励弹窗
-            this._showAdRewardDialog && this._showAdRewardDialog('gold', room.minGold - playerGold);
-            return;
-        }
-        
-        // 关闭弹窗
-        if (dialogNode) {
-            dialogNode.active = false;
-        }
-        
-        // 保存选择的房间
-        if (myglobal) {
-            myglobal.selectedRoom = room;
-        }
-        
-        // 快速匹配进入游戏
-        this._quickMatch({
-            room_type: room.baseScore,
-            base_score: room.baseScore,
-            min_gold: room.minGold,
-            room_name: room.name
-        }, playerGold);
     },
     
     // 竞技场房间按钮点击处理 - 直接报名（不弹框）
