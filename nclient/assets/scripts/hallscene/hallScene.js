@@ -1367,8 +1367,8 @@ cc.Class({
                 return;
             }
             uiSprite.spriteFrame = spriteFrame;
-            // UI图片尺寸是1000x565，缩放到屏幕的65%大小
-            var scale = Math.min(1280 / 1000, 720 / 565) * 0.65;
+            // UI图片尺寸是1000x565，缩放到屏幕的95%大小，让文字更清晰
+            var scale = Math.min(1280 / 1000, 720 / 565) * 0.95;
             uiNode.setScale(scale);
             console.log("✅ 练级区UI图片加载成功, scale=" + scale);
         });
@@ -1389,7 +1389,7 @@ cc.Class({
         // 创建透明点击区域容器
         var clickContainer = new cc.Node("ClickContainer");
         clickContainer.setPosition(0, -10);  // 稍微下移以匹配UI位置
-        clickContainer.setScale(0.65);  // 与UI层同比例缩放
+        clickContainer.setScale(0.95);  // 与UI层同比例缩放
         clickContainer.parent = sceneNode;
         clickContainer.zIndex = 20;
         

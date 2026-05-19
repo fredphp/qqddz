@@ -118,9 +118,18 @@ cc.Class({
         
         try {
             myglobal.verifyToken(function(valid, message) {
+                // 🔧【修复】即使验证失败也继续初始化UI
+                // 原因：刚登录成功后token应该是有效的，如果验证失败可能是API问题
+                // 只有在没有本地session时才跳转到登录页面
                 if (!valid) {
-                    cc.director.loadScene("loginScene");
-                    return;
+                    console.warn("Token验证失败:", message);
+                    // 检查是否还有本地session
+                    if (!myglobal.hasLocalSession()) {
+                        console.error("本地session也已失效，返回登录页面");
+                        cc.director.loadScene("loginScene");
+                        return;
+                    }
+                    console.log("使用本地缓存继续");
                 }
                 self._initUIAfterAuth();
             });
@@ -1199,21 +1208,14 @@ cc.Class({
         var isNormalRoom = (roomType === 5);
         
         if (isNormalRoom) {
-            // 练级区/普通场 - 跳转到房间选择场景
-            console.log("=== 点击普通场(练级区)，跳转到房间选择场景 ===");
-            
-            // 保存当前房间配置
-            if (myglobal) {
-                myglobal.currentRoomConfig = roomConfig;
-                myglobal.currentRoomLevel = roomConfig.room_type;
-                myglobal.currentRoomName = roomConfig.room_name || roomConfig.roomName;
-            }
+            // 练级区/普通场 - 显示练级区场景
+            console.log("=== 点击普通场(练级区)，显示练级区场景 ===");
             
             // 播放点击音效
             this._playClickSound();
             
-            // 跳转到房间选择场景
-            cc.director.loadScene("RoomSelectScene");
+            // 显示练级区场景
+            this._showPracticeZoneScene(roomConfig);
             return;
         }
         
@@ -1238,6 +1240,328 @@ cc.Class({
         
         // 直接快速匹配进入游戏
         this._quickMatch(roomConfig, playerGold);
+    },
+    
+    // 显示练级区场景
+    _showPracticeZoneScene: function(roomConfig) {
+        var self = this;
+        var myglobal = window.myglobal;
+        var playerGold = myglobal && myglobal.playerData ? myglobal.playerData.gobal_count : 0;
+        
+        // 如果场景不存在，创建它
+        if (!this._practiceZoneNode) {
+            this._practiceZoneNode = this._createPracticeZoneScene();
+        }
+        
+        // 隐藏大厅的其他元素
+        this._hideHallElements();
+        
+        // 显示练级区场景
+        this._practiceZoneNode.active = true;
+        this._practiceZoneNode.opacity = 0;
+        cc.tween(this._practiceZoneNode)
+            .to(0.3, { opacity: 255 })
+            .start();
+    },
+    
+    // 隐藏大厅元素
+    _hideHallElements: function() {
+        // 隐藏房间卡片容器
+        var cardContainer = this.node.getChildByName("CardContainer");
+        if (cardContainer) cardContainer.active = false;
+        
+        // 隐藏其他UI元素
+        var elementsToHide = ["LeftArea", "RightArea", "btn_create_room", "btn_join_room"];
+        for (var i = 0; i < elementsToHide.length; i++) {
+            var el = this.node.getChildByName(elementsToHide[i]);
+            if (el) el.active = false;
+        }
+    },
+    
+    // 显示大厅元素
+    _showHallElements: function() {
+        // 显示房间卡片容器
+        var cardContainer = this.node.getChildByName("CardContainer");
+        if (cardContainer) cardContainer.active = true;
+        
+        // 显示其他UI元素
+        var elementsToShow = ["LeftArea", "RightArea", "btn_create_room", "btn_join_room"];
+        for (var i = 0; i < elementsToShow.length; i++) {
+            var el = this.node.getChildByName(elementsToShow[i]);
+            if (el) el.active = true;
+        }
+    },
+    
+    // 创建练级区场景 - 使用新的背景图和UI图片
+    _createPracticeZoneScene: function() {
+        var self = this;
+        var myglobal = window.myglobal;
+        var playerGold = myglobal && myglobal.playerData ? myglobal.playerData.gobal_count : 0;
+        
+        // 创建场景容器 - 全屏 1280x720
+        var sceneNode = new cc.Node("PracticeZoneScene");
+        sceneNode.setContentSize(1280, 720);
+        
+        // ==================== 1. 背景层 ====================
+        var bgNode = new cc.Node("Background");
+        bgNode.setContentSize(1280, 720);
+        bgNode.setPosition(0, 0);
+        
+        var bgSprite = bgNode.addComponent(cc.Sprite);
+        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        bgSprite.type = cc.Sprite.Type.SIMPLE;
+        
+        // 加载新背景图片 - practice_zone/desktop_bg
+        cc.resources.load("practice_zone/desktop_bg", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.error("加载练级区背景图片失败:", err);
+                // 备用：尝试加载jpg格式
+                cc.resources.load("practice_zone/desktop_bg", cc.Texture2D, function(err2, texture) {
+                    if (err2) {
+                        console.error("备用加载也失败:", err2);
+                        // 使用纯色背景
+                        var graphics = bgNode.addComponent(cc.Graphics);
+                        graphics.fillColor = new cc.Color(139, 0, 0);
+                        graphics.rect(-640, -360, 1280, 720);
+                        graphics.fill();
+                        return;
+                    }
+                    var sf = new cc.SpriteFrame(texture);
+                    bgSprite.spriteFrame = sf;
+                    bgNode.setContentSize(1280, 720);
+                });
+                return;
+            }
+            bgSprite.spriteFrame = spriteFrame;
+            bgNode.setContentSize(1280, 720);
+            console.log("✅ 练级区背景图片加载成功");
+        });
+        
+        // Widget组件 - 全屏适配
+        var bgWidget = bgNode.addComponent(cc.Widget);
+        bgWidget.isAlignTop = true;
+        bgWidget.isAlignBottom = true;
+        bgWidget.isAlignLeft = true;
+        bgWidget.isAlignRight = true;
+        bgWidget.top = 0;
+        bgWidget.bottom = 0;
+        bgWidget.left = 0;
+        bgWidget.right = 0;
+        
+        bgNode.parent = sceneNode;
+        bgNode.zIndex = 0;
+        
+        // ==================== 2. UI层 - 使用practice_zone_ui.webp ====================
+        var uiNode = new cc.Node("UILayer");
+        uiNode.setContentSize(1000, 565);
+        uiNode.setPosition(0, 0);
+        
+        var uiSprite = uiNode.addComponent(cc.Sprite);
+        uiSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        uiSprite.type = cc.Sprite.Type.SIMPLE;
+        
+        // 加载UI图片
+        cc.resources.load("practice_zone/practice_zone_ui", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.error("加载练级区UI图片失败:", err);
+                return;
+            }
+            uiSprite.spriteFrame = spriteFrame;
+            // UI图片尺寸是1000x565，缩放到屏幕的95%大小，让文字更清晰
+            var scale = Math.min(1280 / 1000, 720 / 565) * 0.95;
+            uiNode.setScale(scale);
+            console.log("✅ 练级区UI图片加载成功, scale=" + scale);
+        });
+        
+        uiNode.parent = sceneNode;
+        uiNode.zIndex = 10;
+        
+        // ==================== 3. 点击区域 - 覆盖在UI上 ====================
+        // 场次数据配置
+        var rooms = [
+            { id: 1, name: "10分场", baseScore: 10, minGold: 500, color: cc.color(76, 175, 80) },
+            { id: 2, name: "50分场", baseScore: 50, minGold: 2500, color: cc.color(33, 150, 243) },
+            { id: 3, name: "200分场", baseScore: 200, minGold: 10000, color: cc.color(255, 193, 7) },
+            { id: 4, name: "500分场", baseScore: 500, minGold: 25000, color: cc.color(255, 152, 0) },
+            { id: 5, name: "1000分场", baseScore: 1000, minGold: 50000, color: cc.color(244, 67, 54) }
+        ];
+        
+        // 创建透明点击区域容器
+        var clickContainer = new cc.Node("ClickContainer");
+        clickContainer.setPosition(0, -10);  // 稍微下移以匹配UI位置
+        clickContainer.setScale(0.95);  // 与UI层同比例缩放
+        clickContainer.parent = sceneNode;
+        clickContainer.zIndex = 20;
+        
+        // 布局参数 - 根据UI图片布局调整
+        // UI图片比例: 1000x565，5个按钮横向排列
+        var cardWidth = 110;    // 每个卡片点击区域宽度
+        var cardHeight = 180;   // 每个卡片点击区域高度
+        var spacing = 10;       // 卡片间距
+        var totalWidth = rooms.length * cardWidth + (rooms.length - 1) * spacing;
+        var startX = -totalWidth / 2 + cardWidth / 2;
+        
+        // 为每个场次创建透明点击区域
+        rooms.forEach(function(room, index) {
+            var clickNode = new cc.Node("ClickArea_" + room.id);
+            clickNode.setPosition(startX + index * (cardWidth + spacing), 0);
+            clickNode.setContentSize(cardWidth, cardHeight);
+            
+            // 添加透明背景（用于点击检测）
+            var graphics = clickNode.addComponent(cc.Graphics);
+            graphics.fillColor = new cc.Color(0, 0, 0, 0);  // 完全透明
+            graphics.rect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight);
+            graphics.fill();
+            
+            // 添加按钮组件
+            var button = clickNode.addComponent(cc.Button);
+            button.transition = cc.Button.Transition.SCALE;
+            button.duration = 0.1;
+            button.zoomScale = 1.05;
+            
+            // 存储房间数据
+            clickNode.roomData = room;
+            
+            // 添加场次名称文本
+            var labelNode = new cc.Node("RoomLabel");
+            labelNode.setPosition(0, 0);
+            var label = labelNode.addComponent(cc.Label);
+            label.string = room.name;
+            label.fontSize = 18;
+            label.lineHeight = 24;
+            label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+            label.fontFamily = "Arial, Microsoft YaHei";
+            labelNode.color = cc.color(255, 255, 255);  // 白色文字
+            labelNode.parent = clickNode;
+            
+            // 点击事件
+            clickNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                event.stopPropagation();
+                self._onPracticeRoomClick(room, sceneNode, playerGold);
+            }, this);
+            
+            clickNode.parent = clickContainer;
+        });
+        
+        // ==================== 4. 返回按钮点击区域 ====================
+        var backClickNode = new cc.Node("BackClickArea");
+        backClickNode.setPosition(0, -280);  // 底部位置
+        backClickNode.setContentSize(200, 60);
+        
+        var backGraphics = backClickNode.addComponent(cc.Graphics);
+        backGraphics.fillColor = new cc.Color(0, 0, 0, 0);  // 透明
+        backGraphics.rect(-100, -30, 200, 60);
+        backGraphics.fill();
+        
+        var backButton = backClickNode.addComponent(cc.Button);
+        backButton.transition = cc.Button.Transition.SCALE;
+        backButton.duration = 0.1;
+        backButton.zoomScale = 1.1;
+        
+        backClickNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            self._hidePracticeZoneScene();
+        }, this);
+        
+        backClickNode.parent = sceneNode;
+        backClickNode.zIndex = 30;
+        
+        // ==================== 5. 玩家积分显示（覆盖在UI上）====================
+        var scoreDisplay = new cc.Node("ScoreDisplay");
+        scoreDisplay.setPosition(0, 280);
+        
+        var scoreLabel = scoreDisplay.addComponent(cc.Label);
+        scoreLabel.string = "玩家当前积分: " + self._formatRoomGold(playerGold);
+        scoreLabel.fontSize = 22;
+        scoreLabel.lineHeight = 30;
+        scoreLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        scoreLabel.fontFamily = "Arial, Microsoft YaHei";
+        scoreDisplay.color = cc.color(255, 215, 0);  // 金色
+        
+        var scoreOutline = scoreDisplay.addComponent(cc.LabelOutline);
+        scoreOutline.color = cc.color(0, 0, 0);
+        scoreOutline.width = 2;
+        
+        scoreDisplay.parent = sceneNode;
+        scoreDisplay.zIndex = 25;
+        
+        // ==================== 6. 升级提示 ====================
+        var tipDisplay = new cc.Node("TipDisplay");
+        tipDisplay.setPosition(0, 250);
+        
+        var tipLabel = tipDisplay.addComponent(cc.Label);
+        tipLabel.string = "达到50倍基础分升级场次";
+        tipLabel.fontSize = 16;
+        tipLabel.lineHeight = 22;
+        tipLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        tipLabel.fontFamily = "Arial, Microsoft YaHei";
+        tipDisplay.color = cc.color(200, 200, 200);  // 浅灰色
+        
+        var tipOutline = tipDisplay.addComponent(cc.LabelOutline);
+        tipOutline.color = cc.color(0, 0, 0);
+        tipOutline.width = 1;
+        
+        tipDisplay.parent = sceneNode;
+        tipDisplay.zIndex = 26;
+        
+        // ==================== 添加到场景 ====================
+        sceneNode.parent = this.node;
+        sceneNode.zIndex = 9999;
+        sceneNode.active = false;
+        
+        return sceneNode;
+    },
+    
+    // 隐藏练级区场景
+    _hidePracticeZoneScene: function() {
+        if (this._practiceZoneNode && this._practiceZoneNode.isValid) {
+            this._practiceZoneNode.active = false;
+        }
+        
+        // 显示大厅元素
+        this._showHallElements();
+        
+        // 播放点击音效
+        this._playClickSound();
+    },
+    
+    // 练级区房间点击处理
+    _onPracticeRoomClick: function(room, sceneNode, playerGold) {
+        var self = this;
+        var myglobal = window.myglobal;
+        
+        // 播放点击音效
+        this._playClickSound();
+        
+        // 检查积分是否足够
+        if (playerGold < room.minGold) {
+            this._showMessage("积分不足，需要 " + this._formatRoomGold(room.minGold) + " 积分才能进入" + room.name);
+            return;
+        }
+        
+        // 隐藏练级区场景
+        this._hidePracticeZoneScene();
+        
+        // 保存选择的房间
+        if (myglobal) {
+            myglobal.selectedRoom = room;
+        }
+        
+        // 快速匹配进入游戏
+        this._quickMatch({
+            room_type: room.baseScore,
+            base_score: room.baseScore,
+            min_gold: room.minGold,
+            room_name: room.name
+        }, playerGold);
+    },
+    
+    // 格式化金币/积分显示
+    _formatRoomGold: function(gold) {
+        if (gold >= 10000) {
+            return (gold / 10000).toFixed(1) + "万";
+        }
+        return gold.toString();
     },
     
     // 竞技场房间按钮点击处理 - 直接报名（不弹框）
