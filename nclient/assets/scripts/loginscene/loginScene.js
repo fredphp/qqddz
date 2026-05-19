@@ -2367,8 +2367,28 @@ cc.Class({
                 window.myglobal._fromGameSelect = true;
                 console.log("=== [LoginScene GameSelect] 已设置 _fromGameSelect = true ===");
             }
-            overlay.destroy();
-            // 🔧【修复】立即跳转，不使用延迟
+            
+            // 🔧【关键修复】不销毁游戏选择界面，让它在大厅场景加载后自动销毁
+            // 这样可以避免用户短暂看到登录场景的背景
+            
+            // 显示加载提示
+            var loadingTip = new cc.Node("LoadingTip");
+            loadingTip.setContentSize(200, 60);
+            loadingTip.setPosition(0, -150);
+            var loadingBg = loadingTip.addComponent(cc.Graphics);
+            loadingBg.fillColor = new cc.Color(0, 0, 0, 180);
+            loadingBg.roundRect(-100, -30, 200, 60, 10);
+            loadingBg.fill();
+            var loadingLabel = loadingTip.addComponent(cc.Label);
+            loadingLabel.string = "正在进入游戏...";
+            loadingLabel.fontSize = 20;
+            loadingLabel.lineHeight = 28;
+            loadingLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+            loadingTip.color = new cc.Color(255, 255, 255);
+            loadingTip.parent = overlay;
+            
+            // 🔧【修复】立即跳转到大廳场景，不销毁游戏选择界面
+            // 游戏选择界面会在场景切换后自动销毁
             cc.director.loadScene("hallScene");
         }, this);
         
