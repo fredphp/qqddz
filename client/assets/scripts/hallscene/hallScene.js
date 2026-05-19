@@ -2,8 +2,30 @@
 
 // 脚本加载日志
 
+// 获取默认帮助内容
+var getDefaultHelpContent = function() {
+    return "【游戏规则】\n\n" +
+        "本游戏为经典斗地主扑克牌游戏，支持3人玩法。\n\n" +
+        "【基本规则】\n" +
+        "• 一副牌54张，一人17张，留3张做底牌\n" +
+        "• 叫地主：玩家可选择叫地主或不叫，叫地主者获得3张底牌\n" +
+        "• 出牌：地主先出牌，按逆时针顺序出牌\n" +
+        "• 牌型：单张、对子、三张、三带一、三带二、顺子、连对、飞机、炸弹、王炸等\n\n" +
+        "【牌型大小】\n" +
+        "• 王炸 > 炸弹 > 其他牌型\n" +
+        "• 同牌型按点数比较大小\n" +
+        "• 大王 > 小王 > 2 > A > K > Q > J > 10 > 9 > 8 > 7 > 6 > 5 > 4 > 3\n\n" +
+        "【获胜条件】\n" +
+        "• 地主：先出完所有牌即获胜\n" +
+        "• 农民：任一农民先出完牌，农民方获胜\n\n" +
+        "【货币说明】\n" +
+        "• 欢乐豆：普通场游戏货币，用于报名参赛\n" +
+        "• 竞技币：竞技场专用货币，参与锦标赛使用\n\n" +
+        "【联系客服】\n" +
+        "如有问题，请联系客服处理。";
+};
+
 cc.Class({
-    name: 'hallScene',
     extends: cc.Component,
 
     properties: {
@@ -38,6 +60,10 @@ cc.Class({
         if (this._quickEnterAnimating && this._quickEnterLoadingNode && this._quickEnterLoadingNode.isValid) {
             this._quickEnterLoadingNode.angle += dt * 180;
         }
+        // 🔧【新增】WebSocket连接Loading的旋转动画
+        if (this._wsLoadingAnimating && this._wsLoadingSpriteNode && this._wsLoadingSpriteNode.isValid) {
+            this._wsLoadingSpriteNode.angle += dt * 180;
+        }
     },
     
     _waitForMyglobal: function() {
@@ -63,17 +89,61 @@ cc.Class({
     _initWithPlayerData: function() {
         var myglobal = window.myglobal;
         
+        // 🔧【关键修复】如果 myglobal 或 playerData 未定义，尝试等待并恢复
+        // 不再直接跳转到登录场景，而是等待全局变量初始化
         if (!myglobal || !myglobal.playerData) {
-            console.error("myglobal 或 playerData 未定义");
-            cc.director.loadScene("loginScene");
+            console.warn("[HallScene] myglobal 或 playerData 未定义，等待初始化...");
+            var self = this;
+            var attempts = 0;
+            var maxAttempts = 10;
+            var checkInterval = setInterval(function() {
+                attempts++;
+                if (window.myglobal && window.myglobal.playerData) {
+                    clearInterval(checkInterval);
+                    console.log("[HallScene] myglobal 初始化成功，继续初始化UI");
+                    self._initWithPlayerData();
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    console.error("[HallScene] myglobal 初始化超时");
+                    // 🔧【修复】即使超时，也尝试使用本地缓存继续，不跳转到登录场景
+                    if (window.myglobal) {
+                        self._initUIAfterAuth();
+                    } else {
+                        cc.director.loadScene("loginScene");
+                    }
+                }
+            }, 100);
             return;
         }
         
+        // 🔧【关键修复】重置竞技场相关标志，防止重复处理
+        this._arenaRoomJoinedProcessed = false;
+        this._arenaLoadingInProgress = false;
+        this._enterGameSceneInProgress = false;
+        
         var playerData = myglobal.playerData;
         
+        // 🔧【关键修复】如果本地没有 token，但有本地会话，尝试从本地存储恢复
         if (!playerData.token) {
-            cc.director.loadScene("loginScene");
-            return;
+            // 尝试从本地存储加载
+            if (playerData.loadFromLocal && playerData.loadFromLocal()) {
+                console.log("[HallScene] 从本地存储恢复玩家数据成功");
+            } else {
+                // 🔧【修复】即使没有 token，也检查是否有本地会话
+                // 如果有本地会话，说明用户之前登录过，不应该跳转到登录场景
+                var hasLocalSession = playerData.hasLocalSession ? playerData.hasLocalSession() : false;
+                if (hasLocalSession) {
+                    console.log("[HallScene] 有本地会话，尝试继续...");
+                    // 尝试重新加载
+                    if (playerData.loadFromLocal) {
+                        playerData.loadFromLocal();
+                    }
+                } else {
+                    console.warn("[HallScene] 无登录信息，返回登录页面");
+                    cc.director.loadScene("loginScene");
+                    return;
+                }
+            }
         }
         
         var self = this;
@@ -85,17 +155,81 @@ cc.Class({
             return;
         }
         
+        // 🔧【关键修复】检查是否已经登录过（有本地会话）
+        // 如果已经登录过，即使 token 验证失败也继续使用本地缓存
+        var hasLocalSession = playerData.hasLocalSession ? playerData.hasLocalSession() : false;
+        var hasToken = playerData.token && playerData.token.length > 0;
+        var fromGameSelect = myglobal._fromGameSelect;  // 从游戏选择场景跳转的标志
+        
+        // 清除跳转标志
+        if (myglobal._fromGameSelect) {
+            myglobal._fromGameSelect = false;
+        }
+        
+        // 🔧【关键修复】如果是从游戏选择场景跳转过来的，直接初始化 UI，不进行任何验证
+        // 因为用户能进入游戏选择场景，说明已经登录过了
+        if (fromGameSelect) {
+            console.log("[HallScene] 从游戏选择场景跳转，直接初始化UI（跳过验证）");
+            // 异步验证 token（不阻塞 UI 初始化）
+            if (hasToken && myglobal.verifyToken) {
+                myglobal.verifyToken(function(valid, message) {
+                    if (!valid) {
+                        console.warn("[HallScene] Token验证失败:", message, "- 继续使用本地缓存");
+                    }
+                    // 无论验证结果如何，都不跳转到登录场景
+                });
+            }
+            self._initUIAfterAuth();
+            return;
+        }
+        
+        // 如果有 token 或本地会话，直接初始化 UI，不进行服务端验证
+        // 这样可以避免网络延迟导致的跳转问题
+        if (hasToken || hasLocalSession) {
+            console.log("[HallScene] 检测到登录状态，直接初始化UI (token=" + hasToken + ", localSession=" + hasLocalSession + ")");
+            // 异步验证 token（不阻塞 UI 初始化）
+            if (hasToken && myglobal.verifyToken) {
+                myglobal.verifyToken(function(valid, message) {
+                    if (!valid) {
+                        console.warn("[HallScene] Token验证失败:", message, "- 继续使用本地缓存");
+                    }
+                    // 无论验证结果如何，都不跳转到登录场景
+                });
+            }
+            self._initUIAfterAuth();
+            return;
+        }
+        
+        // 没有任何登录信息，需要进行验证
         try {
             myglobal.verifyToken(function(valid, message) {
+                // 🔧【修复】Token验证失败时，只要本地有token就继续初始化UI
+                // 原因：用户能进入大厅说明已经登录过，不应该跳转到登录场景
+                // 只有完全没有登录信息时才跳转到登录页面
                 if (!valid) {
-                    cc.director.loadScene("loginScene");
-                    return;
+                    console.warn("Token验证失败:", message);
+                    // 检查本地是否还有token
+                    if (playerData && playerData.token) {
+                        // 本地还有token，继续使用本地缓存
+                        console.log("✅ 本地有token，继续初始化大厅UI");
+                        self._initUIAfterAuth();
+                    } else {
+                        // 完全没有登录信息，跳转到登录页面
+                        console.error("无登录信息，返回登录页面");
+                        cc.director.loadScene("loginScene");
+                    }
+                } else {
+                    self._initUIAfterAuth();
                 }
-                self._initUIAfterAuth();
             });
         } catch (e) {
             console.error("verifyToken 调用失败:", e);
-            self._initUIAfterAuth();
+            // 出错时也继续初始化UI，使用本地缓存
+            if (playerData && playerData.token) {
+                self._initUIAfterAuth();
+            } else {
+                cc.director.loadScene("loginScene");
+            }
         }
     },
     
@@ -103,6 +237,42 @@ cc.Class({
         
         try {
             var myglobal = window.myglobal;
+            
+            // ==================== 🔧【重要】最先检查是否需要直接跳转到练级区 ====================
+            // 如果从游戏场景点击"换房"返回，应该直接显示练级区，不显示大厅UI
+            if (myglobal && myglobal.goToPracticeZone) {
+                console.log("🔄 检测到换房标志，直接跳转到练级区（不显示大厅UI）");
+                myglobal.goToPracticeZone = false;  // 清除标志
+                
+                // 初始化必要的设置
+                this._initUserSettings();
+                
+                // 隐藏大厅UI元素
+                var elementsToHide = ["CardContainer", "LeftArea", "RightArea", "btn_create_room", "btn_join_room"];
+                for (var i = 0; i < elementsToHide.length; i++) {
+                    var el = this.node.getChildByName(elementsToHide[i]);
+                    if (el) el.active = false;
+                }
+                
+                // 初始化WebSocket
+                this._initWebSocket();
+                
+                // 直接创建并显示练级区场景
+                this._practiceZoneNode = this._createPracticeZoneScene();
+                this._practiceZoneNode.active = true;
+                this._practiceZoneNode.opacity = 255;
+                
+                console.log("✅ 已直接进入练级区，跳过大厅UI显示");
+                return;  // 提前返回，不初始化大厅UI
+            }
+            
+            // ==================== 🔧【新增】WebSocket连接Loading界面 ====================
+            // 检查WebSocket是否已连接，如果未连接则显示Loading界面
+            this._checkAndShowWebSocketLoading();
+            
+            // ==================== 初始化用户设置（从本地存储加载）====================
+            this._initUserSettings();
+            
             var playerData = myglobal ? myglobal.playerData : null;
             
             if (!playerData) {
@@ -143,6 +313,9 @@ cc.Class({
             // 获取最新的玩家余额（金币和竞技币）
             this._refreshPlayerBalance();
             
+            // 🔧【新增】监听竞技币更新事件（报名成功后刷新UI）
+            this._listenArenaCoinUpdate();
+            
             this._playHallBackgroundMusic();
             this._adjustBottomButtons();
             this._hideBackgroundCharacters();
@@ -155,6 +328,9 @@ cc.Class({
             
             // 🚀【性能优化】预加载游戏场景
             this._preloadGameScene();
+            
+            // 初始化顶部按钮（设置、帮助等）
+            this._initTopButtons();
             
         } catch (e) {
             console.error("_initUIAfterAuth 异常:", e);
@@ -200,6 +376,11 @@ cc.Class({
     
     // 显示离线提示
     _showOfflineMessage: function() {
+        // 🔧【修复】安全检查：如果节点已销毁，跳过显示
+        if (!this.node || !this.node.isValid) {
+            console.log("🏟️ [HallScene] 节点已销毁，跳过离线提示");
+            return;
+        }
         this._showMessage("网络连接已断开，正在重新连接...");
     },
     
@@ -251,6 +432,153 @@ cc.Class({
         });
     },
     
+    // ==================== 🔧【新增】WebSocket连接Loading界面 ====================
+    
+    /**
+     * 检查WebSocket连接状态，如果未连接则显示Loading界面
+     * 🔧【修复】只要物理连接已建立，就认为连接可用（服务端可能已发送过connected消息）
+     */
+    _checkAndShowWebSocketLoading: function() {
+        var myglobal = window.myglobal;
+        var socket = myglobal && myglobal.socket;
+        
+        // 检查WebSocket是否已连接
+        var isWebSocketOpen = socket && socket.isWebSocketOpen && socket.isWebSocketOpen();
+        var isConnected = socket && socket.isConnected && socket.isConnected();
+        var isAuthenticated = socket && socket.isAuthenticated && socket.isAuthenticated();
+        var hasConnectionToken = socket && socket.hasConnectionToken && socket.hasConnectionToken();
+        
+        console.log("🔌 [WebSocket] 检查连接状态: isWebSocketOpen=" + isWebSocketOpen + ", isConnected=" + isConnected + ", isAuthenticated=" + isAuthenticated + ", hasConnectionToken=" + hasConnectionToken);
+        
+        // 🔧【修复】只要物理连接已建立，就认为连接可用
+        // 因为服务端可能已经发送过 connected 消息，但大厅场景还没来得及监听
+        if (isWebSocketOpen) {
+            console.log("🔌 [WebSocket] 物理连接已建立，跳过Loading界面");
+            return;
+        }
+        
+        // 物理连接未建立，显示Loading界面
+        this._showWebSocketLoading();
+        
+        // 监听连接成功事件
+        var self = this;
+        // 🔧【修复】使用正确的事件监听器变量名（eventlister 小写 l）
+        var evt = window.evt || (window.myglobal && window.myglobal.eventlister);
+        if (evt) {
+            // 使用一次性监听，连接成功后自动移除
+            var connectionHandler = function(data) {
+                console.log("🔌 [WebSocket] 连接成功，关闭Loading界面");
+                self._hideWebSocketLoading();
+                evt.off("connection_success", connectionHandler);
+            };
+            evt.on("connection_success", connectionHandler);
+            
+            // 🔧【优化】缩短超时时间，物理连接通常很快建立
+            this._wsLoadingTimeout = setTimeout(function() {
+                console.log("🔌 [WebSocket] 连接超时，关闭Loading界面");
+                self._hideWebSocketLoading();
+                evt.off("connection_success", connectionHandler);
+            }, 5000);
+        }
+    },
+    
+    /**
+     * 显示WebSocket连接Loading界面
+     */
+    _showWebSocketLoading: function() {
+        if (this._wsLoadingNode && this._wsLoadingNode.isValid) {
+            return; // 已经显示
+        }
+        
+        console.log("🔌 [WebSocket] 显示Loading界面");
+        
+        var screenWidth = 1280;
+        var screenHeight = 720;
+        
+        // 创建Loading容器节点
+        var loadingNode = new cc.Node("WebSocketLoading");
+        loadingNode.setPosition(0, 0);
+        loadingNode.setContentSize(screenWidth, screenHeight);
+        
+        // 半透明遮罩背景
+        var bgNode = new cc.Node("Background");
+        bgNode.setContentSize(screenWidth, screenHeight);
+        var bgGraphics = bgNode.addComponent(cc.Graphics);
+        bgGraphics.fillColor = new cc.Color(0, 0, 0, 180);
+        bgGraphics.rect(-screenWidth/2, -screenHeight/2, screenWidth, screenHeight);
+        bgGraphics.fill();
+        bgNode.parent = loadingNode;
+        
+        // Loading图片容器
+        var containerNode = new cc.Node("Container");
+        containerNode.setPosition(0, 0);
+        containerNode.setContentSize(200, 200);
+        
+        // 加载并显示 loading_image.png
+        cc.resources.load("UI/loading_image", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.error("🔌 [WebSocket] 加载loading_image失败:", err);
+                return;
+            }
+            
+            if (loadingNode && loadingNode.isValid && containerNode && containerNode.isValid) {
+                var spriteNode = new cc.Node("LoadingSprite");
+                var sprite = spriteNode.addComponent(cc.Sprite);
+                sprite.spriteFrame = spriteFrame;
+                spriteNode.setPosition(0, 0);
+                spriteNode.parent = containerNode;
+                
+                // 设置初始角度，update中会旋转
+                spriteNode.angle = 0;
+                
+                // 保存引用，用于update中旋转
+                this._wsLoadingSpriteNode = spriteNode;
+            }
+        }.bind(this));
+        
+        // 提示文字
+        var tipNode = new cc.Node("TipLabel");
+        tipNode.setPosition(0, -120);
+        var tipLabel = tipNode.addComponent(cc.Label);
+        tipLabel.string = "正在连接服务器...";
+        tipLabel.fontSize = 24;
+        tipLabel.lineHeight = 30;
+        tipLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        tipNode.color = new cc.Color(255, 255, 255);
+        tipNode.parent = containerNode;
+        
+        containerNode.parent = loadingNode;
+        
+        // 添加到场景，设置最高层级
+        this.node.addChild(loadingNode);
+        loadingNode.zIndex = 9999;
+        
+        this._wsLoadingNode = loadingNode;
+        this._wsLoadingAnimating = true;
+    },
+    
+    /**
+     * 隐藏WebSocket连接Loading界面
+     */
+    _hideWebSocketLoading: function() {
+        // 清除超时定时器
+        if (this._wsLoadingTimeout) {
+            clearTimeout(this._wsLoadingTimeout);
+            this._wsLoadingTimeout = null;
+        }
+        
+        // 移除Loading节点
+        if (this._wsLoadingNode && this._wsLoadingNode.isValid) {
+            this._wsLoadingNode.destroy();
+            this._wsLoadingNode = null;
+        }
+        
+        this._wsLoadingAnimating = false;
+        this._wsLoadingSpriteNode = null;
+        
+        console.log("🔌 [WebSocket] Loading界面已关闭");
+    },
+    
     // 初始化 WebSocket 连接
     _initWebSocket: function() {
         var myglobal = window.myglobal;
@@ -259,16 +587,17 @@ cc.Class({
             return;
         }
         
-        // 检查是否已连接
-        if (myglobal.socket.isWebSocketOpen && myglobal.socket.isWebSocketOpen()) {
+        // 🔧【修复】检查连接是否已认证（带Token且有PlayerID）
+        // 不仅仅是检查物理连接，还要确保连接带有Token
+        if (myglobal.socket.isAuthenticated && myglobal.socket.isAuthenticated()) {
             return;
         }
         
-        // 检查逻辑连接状态
-        if (myglobal.socket.isConnected && myglobal.socket.isConnected()) {
-            return;
+        // 检查是否需要重新连接（有Token但连接没有Token）
+        var hasToken = myglobal.playerData && myglobal.playerData.token;
+        if (hasToken && myglobal.socket.hasConnectionToken && !myglobal.socket.hasConnectionToken()) {
+            console.log("🔌 [HallScene] 检测到连接无Token，需要重新连接...");
         }
-        
         
         // 初始化 WebSocket
         if (myglobal.socket.initSocket) {
@@ -375,6 +704,9 @@ cc.Class({
         var self = this;
         if (!this.headimage) return;
 
+        // 不再添加圆形遮罩，让头像正常显示
+        // this._addCircleMaskToAvatar();
+
         if (!avatarUrl) {
             this._loadDefaultAvatar();
             return;
@@ -408,6 +740,9 @@ cc.Class({
         }
     },
 
+    // 圆形遮罩方法已禁用，保留代码以备后用
+    // _addCircleMaskToAvatar: function() { ... },
+
     _loadDefaultAvatar: function() {
         var self = this;
         cc.resources.load('UI/headimage/avatar_1', cc.SpriteFrame, function(err, spriteFrame) {
@@ -417,6 +752,33 @@ cc.Class({
                 } catch (e) {}
             }
         });
+    },
+    
+    // ==================== 初始化用户设置（从本地存储加载）====================
+    _initUserSettings: function() {
+        // 默认设置
+        var defaultSettings = {
+            bgm: 1,
+            sfx: 1,
+            vibration: 1
+        };
+        
+        // 从本地存储读取设置
+        if (typeof StorageUtil !== 'undefined') {
+            var savedSettings = StorageUtil.getItem(StorageUtil.KEYS.USER_SETTINGS, null, true);
+            if (savedSettings && typeof savedSettings === 'object') {
+                defaultSettings.bgm = savedSettings.bgm !== undefined ? savedSettings.bgm : 1;
+                defaultSettings.sfx = savedSettings.sfx !== undefined ? savedSettings.sfx : 1;
+                defaultSettings.vibration = savedSettings.vibration !== undefined ? savedSettings.vibration : 1;
+            }
+        }
+        
+        // 同步到全局变量
+        window.isopen_sound = defaultSettings.bgm;
+        window.isopen_sfx = defaultSettings.sfx;
+        window.isopen_vibration = defaultSettings.vibration;
+        
+        console.log("[Settings] 初始化设置完成:", JSON.stringify(defaultSettings));
     },
 
     _playHallBackgroundMusic: function() {
@@ -436,17 +798,38 @@ cc.Class({
         } catch(e) {}
     },
     
+    // 播放点击音效
+    _playClickSound: function() {
+        var isopen_sfx = window.isopen_sfx;
+        if (isopen_sfx === 0) return;
+        
+        try {
+            cc.resources.load("sound/click", cc.AudioClip, function(err, clip) {
+                if (!err && clip) {
+                    try {
+                        cc.audioEngine.playEffect(clip, false);
+                    } catch(e) {}
+                }
+            });
+        } catch(e) {}
+    },
+    
     _fetchRoomConfigs: function() {
         var self = this;
         var apiUrl = window.defines ? window.defines.apiUrl : '';
         var cryptoKey = window.defines ? window.defines.cryptoKey : '';
         
-        // 如果没有配置 API，使用默认配置
+        // 🚀【优化】先使用默认配置初始化UI，确保用户立即看到界面
+        var defaultConfigs = self._getDefaultRoomConfigs();
+        self.roomConfigs = defaultConfigs;
+        self._initRoomButtons(defaultConfigs);
+        
+        // 如果没有配置 API，直接返回
         if (!apiUrl || !window.HttpAPI) {
-            self._initRoomButtons(self._getDefaultRoomConfigs());
             return;
         }
         
+        // 异步获取最新配置并更新UI
         try {
             // 清除缓存
             if (HttpAPI._roomConfigCache) {
@@ -454,14 +837,13 @@ cc.Class({
             }
             try { localStorage.removeItem('room_config_cache'); } catch (e) {}
             
-            // 请求 API
+            // 请求 API（异步，不阻塞UI渲染）
             HttpAPI.get(
                 apiUrl + '/api/v1/room/config/list',
                 cryptoKey,
                 function(err, result) {
                     if (err) {
-                        console.warn("API请求失败:", err);
-                        self._initRoomButtons(self._getDefaultRoomConfigs());
+                        console.warn("API请求失败，使用默认配置:", err);
                         return;
                     }
                     
@@ -472,25 +854,50 @@ cc.Class({
                         configs = result;
                     }
                     
-                    // 🔧【调试】输出获取到的房间配置
-                    if (configs) {
-                        for (var i = 0; i < configs.length; i++) {
-                            var c = configs[i];
-                        }
-                    }
-                    
                     if (configs && configs.length > 0) {
+                        // 🚀【更新】用最新配置更新UI
                         self.roomConfigs = configs;
-                        self._initRoomButtons(configs);
-                    } else {
-                        self._initRoomButtons(self._getDefaultRoomConfigs());
+                        self._updateRoomButtonsData(configs);
                     }
                 }
             );
         } catch (e) {
             console.error("_fetchRoomConfigs 异常:", e);
-            self._initRoomButtons(self._getDefaultRoomConfigs());
         }
+    },
+    
+    // 🚀【新增】更新房间按钮数据（不重新创建，只更新显示）
+    _updateRoomButtonsData: function(configs) {
+        var self = this;
+        
+        // 按钮名称映射
+        var buttonNameMap = {
+            2: "btn_room_junior",
+            3: "btn_room_middle",
+            4: "btn_room_senior",
+            5: "btn_room_master",
+            6: "btn_room_supreme"
+        };
+        
+        // 更新每个房间的配置和显示
+        for (var i = 0; i < configs.length; i++) {
+            var config = configs[i];
+            var roomType = config.room_type || config.roomType;
+            var buttonName = buttonNameMap[roomType];
+            
+            if (!buttonName) continue;
+            
+            var btnNode = this.node.getChildByName(buttonName);
+            if (!btnNode) continue;
+            
+            // 更新节点上的配置
+            btnNode.roomConfig = config;
+            
+            // 更新最低金币显示
+            self._updateMinGoldLabel(btnNode, config);
+        }
+        
+        console.log("✅ 房间配置已从服务器更新");
     },
     
     // 🔧【修复】默认配置与数据库保持一致（4条有效数据）
@@ -526,6 +933,14 @@ cc.Class({
             5: "btn_room_master",
             6: "btn_room_supreme"
         };
+        
+        // 🔧【调试】打印从服务端获取的房间配置
+        console.log("🏟️ [Arena] ========== 房间配置调试 ==========");
+        console.log("🏟️ [Arena] 从服务端获取的房间数量: " + rooms.length);
+        for (var idx = 0; idx < rooms.length; idx++) {
+            var rc = rooms[idx];
+            console.log("🏟️ [Arena] 房间" + (idx+1) + ": id=" + rc.id + ", room_type=" + (rc.room_type || rc.roomType) + ", room_category=" + (rc.room_category || rc.roomCategory) + ", room_name=" + (rc.room_name || rc.roomName));
+        }
         
         // 先隐藏所有房间按钮
         for (var key in buttonNameMap) {
@@ -584,23 +999,40 @@ cc.Class({
                 button.zoomScale = 1.1;
             }
             
-            // 收集竞技场房间
-            if (room.roomCategory === 2) {
+            // 🔧【修复】收集所有房间到 _allRooms 数组
+            // 竞技场房间的判断使用 room_category
+            if (!self._allRooms) self._allRooms = [];
+            self._allRooms.push(room);
+            
+            // 🔧【修复】使用 room_category 判断是否是竞技场
+            // room_category=1 是普通场，room_category=2 是竞技场
+            var roomCategory = room.config.room_category || room.config.roomCategory || 1;
+            var isArenaByCategory = (roomCategory === 2);
+            if (isArenaByCategory) {
                 if (!self._arenaRooms) self._arenaRooms = [];
                 self._arenaRooms.push(room);
+                console.log("🏟️ [Arena] ✅ 收集竞技场房间(room_category=" + roomCategory + "): ID=" + room.config.id);
+            } else {
+                console.log("🏟️ [Arena] 📋 普通房间: ID=" + room.config.id + ", room_category=" + roomCategory);
             }
+            
+            // 🔧【新增】同时收集前N个房间作为竞技场房间的候选
+            // 服务端会推送竞技场数量，用于判断哪些房间需要显示期号和报名按钮
+            if (!self._arenaCandidateRooms) self._arenaCandidateRooms = [];
+            self._arenaCandidateRooms.push(room);
             
             (function(config, node, roomName, roomCategory) {
                 node.off(cc.Node.EventType.TOUCH_END);
                 node.on(cc.Node.EventType.TOUCH_END, function(event) {
                     event.stopPropagation();
-                    // 竞技场房间：不再响应整个卡片的点击，由报名按钮处理
-                    if (roomCategory === 2) {
+                    // 竞技场房间(room_category=2)：不再响应整个卡片的点击，由报名按钮处理
+                    var isArena = (roomCategory === 2);
+                    if (isArena) {
                         return;
                     }
                     self._onRoomButtonClick(config);
                 });
-            })(room.config, room.node, room.roomName, room.roomCategory);
+            })(room.config, room.node, room.roomName, roomCategory);
         }
         
         // 渲染布局 - 所有卡片排成一行
@@ -609,12 +1041,13 @@ cc.Class({
         // 为竞技场房间添加报名按钮
         this._addArenaSignupButtons();
         
-        // 🔧【新增】先从服务端获取报名状态，再更新UI
-        this._fetchSignupStatusAndUpdateUI();
+        // 🚀【优化】先使用本地缓存更新UI，再异步从服务端获取最新状态
+        this._updateArenaSignupStatus();  // 先用本地缓存
+        this._fetchSignupStatusAsync();   // 异步更新
     },
     
-    // 🔧【新增】从服务端获取报名状态并更新UI
-    _fetchSignupStatusAndUpdateUI: function() {
+    // 🚀【优化】异步获取报名状态（不阻塞UI）
+    _fetchSignupStatusAsync: function() {
         var self = this;
         
         if (window.arenaData && window.arenaData.fetchSignupStatusFromServer) {
@@ -622,13 +1055,11 @@ cc.Class({
                 if (err) {
                     console.warn("🏟️ 获取报名状态失败，使用本地缓存:", err);
                 } else {
+                    console.log("🏟️ 报名状态已从服务器更新");
                 }
-                // 无论成功失败，都更新UI（使用本地缓存）
+                // 用最新数据更新UI
                 self._updateArenaSignupStatus();
             });
-        } else {
-            // 没有API支持，直接使用本地缓存
-            this._updateArenaSignupStatus();
         }
     },
     
@@ -797,13 +1228,16 @@ cc.Class({
         });
     },
     
-    // 更新最低豆子/竞技币显示（根据 room_category 判断）
-    // room_category: 1-普通场(使用min_gold字段显示豆), 2-竞技场(使用min_arena_coin字段显示竞技币)
+    // 更新最低豆子/竞技币显示
+    // 🔧【修复】根据 room_category 判断
+    // room_category=1 是普通场(显示 min_gold)，room_category=2 是竞技场(显示 min_arena_coin)
     _updateMinGoldLabel: function(btnNode, config) {
         var goldLabelNode = btnNode.getChildByName("min_gold_label");
         
-        // 获取房间分类，默认为普通场(1)
+        // 🔧【修复】使用 room_category 判断是否是竞技场
+        // room_category=1 是普通场，room_category=2 是竞技场
         var roomCategory = config.room_category || config.roomCategory || 1;
+        var isArena = (roomCategory === 2);  // room_category=2 是竞技场
         
         if (!goldLabelNode) {
             goldLabelNode = new cc.Node("min_gold_label");
@@ -827,11 +1261,10 @@ cc.Class({
         var label = goldLabelNode.getComponent(cc.Label);
         
         // 根据房间类型获取不同的字段值
-        // room_category: 1-普通场(使用min_gold), 2-竞技场(使用min_arena_coin)
         var minValue;
         var currencyName;
         
-        if (roomCategory === 2) {
+        if (isArena) {
             // 竞技场 - 使用 min_arena_coin 字段
             minValue = config.min_arena_coin || config.minArenaCoin || 0;
             currencyName = "币";
@@ -859,18 +1292,20 @@ cc.Class({
     },
     
     // 房间按钮点击处理 - 根据房间类型区分处理
-    // room_category: 1-普通场(欢乐豆), 2-竞技场(竞技币)
+    // 🔧【修复】使用 room_category 判断是否是竞技场
+    // room_category=1 是普通场，room_category=2 是竞技场
     _onRoomButtonClick: function(roomConfig) {
         var self = this;
         var myglobal = window.myglobal;
         var roomCategory = roomConfig.room_category || roomConfig.roomCategory || 1;
+        var isArena = (roomCategory === 2);  // room_category=2 是竞技场
         
         // 更新货币显示
-        this._currentRoomCategory = roomCategory;
+        this._currentRoomCategory = isArena ? 2 : 1;
         this._updateCurrencyDisplay();
         
         // 根据房间类型处理
-        if (roomCategory === 2) {
+        if (isArena) {
             // 竞技场房间 - 显示报名弹窗
             this._onArenaRoomButtonClick(roomConfig);
         } else {
@@ -887,6 +1322,27 @@ cc.Class({
         
         var minGold = roomConfig.min_gold || roomConfig.minGold || 0;
         var maxGold = roomConfig.max_gold || roomConfig.maxGold || 0;
+        var baseScore = roomConfig.base_score || roomConfig.baseScore || 1;
+        var roomType = roomConfig.room_type || roomConfig.roomType || 2;
+        
+        // 🔧【修复】根据 room_type 判断跳转逻辑
+        // room_type=5 是"练级区/普通场"，跳转到房间选择场景
+        // 其他房间直接进入游戏
+        var isNormalRoom = (roomType === 5);
+        
+        if (isNormalRoom) {
+            // 练级区/普通场 - 显示练级区场景
+            console.log("=== 点击普通场(练级区)，显示练级区场景 ===");
+            
+            // 播放点击音效
+            this._playClickSound();
+            
+            // 显示练级区场景
+            this._showPracticeZoneScene(roomConfig);
+            return;
+        }
+        
+        // 10分场、50分场等 - 检查金币后直接进入游戏
         
         if (playerGold < minGold) {
             this._showAdRewardDialog('gold', minGold - playerGold);
@@ -907,6 +1363,280 @@ cc.Class({
         
         // 直接快速匹配进入游戏
         this._quickMatch(roomConfig, playerGold);
+    },
+    
+    // 显示练级区场景
+    _showPracticeZoneScene: function(roomConfig) {
+        var self = this;
+        var myglobal = window.myglobal;
+        var playerGold = myglobal && myglobal.playerData ? myglobal.playerData.gobal_count : 0;
+        
+        // 如果场景不存在，创建它
+        if (!this._practiceZoneNode) {
+            this._practiceZoneNode = this._createPracticeZoneScene();
+        }
+        
+        // 隐藏大厅的其他元素
+        this._hideHallElements();
+        
+        // 显示练级区场景
+        this._practiceZoneNode.active = true;
+        this._practiceZoneNode.opacity = 0;
+        cc.tween(this._practiceZoneNode)
+            .to(0.3, { opacity: 255 })
+            .start();
+    },
+    
+    // 隐藏大厅元素
+    _hideHallElements: function() {
+        // 隐藏房间卡片容器
+        var cardContainer = this.node.getChildByName("CardContainer");
+        if (cardContainer) cardContainer.active = false;
+        
+        // 隐藏其他UI元素
+        var elementsToHide = ["LeftArea", "RightArea", "btn_create_room", "btn_join_room"];
+        for (var i = 0; i < elementsToHide.length; i++) {
+            var el = this.node.getChildByName(elementsToHide[i]);
+            if (el) el.active = false;
+        }
+    },
+    
+    // 显示大厅元素
+    _showHallElements: function() {
+        // 显示房间卡片容器
+        var cardContainer = this.node.getChildByName("CardContainer");
+        if (cardContainer) cardContainer.active = true;
+        
+        // 显示其他UI元素
+        var elementsToShow = ["LeftArea", "RightArea", "btn_create_room", "btn_join_room"];
+        for (var i = 0; i < elementsToShow.length; i++) {
+            var el = this.node.getChildByName(elementsToShow[i]);
+            if (el) el.active = true;
+        }
+    },
+    
+    // 创建练级区场景 - 使用新的背景图和UI图片
+    _createPracticeZoneScene: function() {
+        var self = this;
+        var myglobal = window.myglobal;
+        var playerGold = myglobal && myglobal.playerData ? myglobal.playerData.gobal_count : 0;
+        
+        // 创建场景容器 - 全屏 1280x720
+        var sceneNode = new cc.Node("PracticeZoneScene");
+        sceneNode.setContentSize(1280, 720);
+        
+        // ==================== 1. 背景层 ====================
+        var bgNode = new cc.Node("Background");
+        bgNode.setContentSize(1280, 720);
+        bgNode.setPosition(0, 0);
+        
+        var bgSprite = bgNode.addComponent(cc.Sprite);
+        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        bgSprite.type = cc.Sprite.Type.SIMPLE;
+        
+        // 加载新背景图片 - practice_zone/desktop_bg
+        cc.resources.load("practice_zone/desktop_bg", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.error("加载练级区背景图片失败:", err);
+                // 备用：尝试加载jpg格式
+                cc.resources.load("practice_zone/desktop_bg", cc.Texture2D, function(err2, texture) {
+                    if (err2) {
+                        console.error("备用加载也失败:", err2);
+                        // 使用纯色背景
+                        var graphics = bgNode.addComponent(cc.Graphics);
+                        graphics.fillColor = new cc.Color(139, 0, 0);
+                        graphics.rect(-640, -360, 1280, 720);
+                        graphics.fill();
+                        return;
+                    }
+                    var sf = new cc.SpriteFrame(texture);
+                    bgSprite.spriteFrame = sf;
+                    bgNode.setContentSize(1280, 720);
+                });
+                return;
+            }
+            bgSprite.spriteFrame = spriteFrame;
+            bgNode.setContentSize(1280, 720);
+            console.log("✅ 练级区背景图片加载成功");
+        });
+        
+        // Widget组件 - 全屏适配
+        var bgWidget = bgNode.addComponent(cc.Widget);
+        bgWidget.isAlignTop = true;
+        bgWidget.isAlignBottom = true;
+        bgWidget.isAlignLeft = true;
+        bgWidget.isAlignRight = true;
+        bgWidget.top = 0;
+        bgWidget.bottom = 0;
+        bgWidget.left = 0;
+        bgWidget.right = 0;
+        
+        bgNode.parent = sceneNode;
+        bgNode.zIndex = 0;
+        
+        // ==================== 2. UI层 - 使用practice_zone_ui.png ====================
+        var uiNode = new cc.Node("UILayer");
+        uiNode.setContentSize(660, 700);
+        uiNode.setPosition(0, 0);
+        
+        var uiSprite = uiNode.addComponent(cc.Sprite);
+        uiSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        uiSprite.type = cc.Sprite.Type.SIMPLE;
+        
+        // 加载UI图片
+        cc.resources.load("practice_zone/practice_zone_ui", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.error("加载练级区UI图片失败:", err);
+                return;
+            }
+            uiSprite.spriteFrame = spriteFrame;
+            // UI图片尺寸是660x700，缩放到适合屏幕大小
+            var scale = Math.min(1280 / 660, 720 / 700) * 0.95;
+            uiNode.setScale(scale);
+            console.log("✅ 练级区UI图片加载成功, scale=" + scale);
+        });
+        
+        uiNode.parent = sceneNode;
+        uiNode.zIndex = 10;
+        
+        // ==================== 3. 点击区域 - 覆盖在UI上 ====================
+        // 场次数据配置
+        var rooms = [
+            { id: 1, name: "10分场", baseScore: 10, minGold: 500, color: cc.color(76, 175, 80) },
+            { id: 2, name: "50分场", baseScore: 50, minGold: 2500, color: cc.color(33, 150, 243) },
+            { id: 3, name: "200分场", baseScore: 200, minGold: 10000, color: cc.color(255, 193, 7) },
+            { id: 4, name: "500分场", baseScore: 500, minGold: 25000, color: cc.color(255, 152, 0) },
+            { id: 5, name: "1000分场", baseScore: 1000, minGold: 50000, color: cc.color(244, 67, 54) }
+        ];
+        
+        // 创建透明点击区域容器
+        var clickContainer = new cc.Node("ClickContainer");
+        clickContainer.setPosition(0, -10);  // 稍微下移以匹配UI位置
+        clickContainer.setScale(0.95);  // 与UI层同比例缩放
+        clickContainer.parent = sceneNode;
+        clickContainer.zIndex = 20;
+        
+        // 布局参数 - 根据UI图片布局调整
+        // UI图片比例: 660x700，5个按钮横向排列
+        var cardWidth = 100;    // 每个卡片点击区域宽度
+        var cardHeight = 180;   // 每个卡片点击区域高度
+        var spacing = 10;       // 卡片间距
+        var totalWidth = rooms.length * cardWidth + (rooms.length - 1) * spacing;
+        var startX = -totalWidth / 2 + cardWidth / 2;
+        
+        // 为每个场次创建透明点击区域
+        rooms.forEach(function(room, index) {
+            var clickNode = new cc.Node("ClickArea_" + room.id);
+            clickNode.setPosition(startX + index * (cardWidth + spacing), 0);
+            clickNode.setContentSize(cardWidth, cardHeight);
+            
+            // 添加透明背景（用于点击检测）
+            var graphics = clickNode.addComponent(cc.Graphics);
+            graphics.fillColor = new cc.Color(0, 0, 0, 0);  // 完全透明
+            graphics.rect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight);
+            graphics.fill();
+            
+            // 添加按钮组件
+            var button = clickNode.addComponent(cc.Button);
+            button.transition = cc.Button.Transition.SCALE;
+            button.duration = 0.1;
+            button.zoomScale = 1.05;
+            
+            // 存储房间数据
+            clickNode.roomData = room;
+            
+            // 点击事件
+            clickNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+                event.stopPropagation();
+                self._onPracticeRoomClick(room, sceneNode, playerGold);
+            }, this);
+            
+            clickNode.parent = clickContainer;
+        });
+        
+        // ==================== 4. 返回按钮点击区域 ====================
+        var backClickNode = new cc.Node("BackClickArea");
+        backClickNode.setPosition(0, -280);  // 底部位置
+        backClickNode.setContentSize(200, 60);
+        
+        var backGraphics = backClickNode.addComponent(cc.Graphics);
+        backGraphics.fillColor = new cc.Color(0, 0, 0, 0);  // 透明
+        backGraphics.rect(-100, -30, 200, 60);
+        backGraphics.fill();
+        
+        var backButton = backClickNode.addComponent(cc.Button);
+        backButton.transition = cc.Button.Transition.SCALE;
+        backButton.duration = 0.1;
+        backButton.zoomScale = 1.1;
+        
+        backClickNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            self._hidePracticeZoneScene();
+        }, this);
+        
+        backClickNode.parent = sceneNode;
+        backClickNode.zIndex = 30;
+        
+        // ==================== 添加到场景 ====================
+        sceneNode.parent = this.node;
+        sceneNode.zIndex = 9999;
+        sceneNode.active = false;
+        
+        return sceneNode;
+    },
+    
+    // 隐藏练级区场景
+    _hidePracticeZoneScene: function() {
+        if (this._practiceZoneNode && this._practiceZoneNode.isValid) {
+            this._practiceZoneNode.active = false;
+        }
+        
+        // 显示大厅元素
+        this._showHallElements();
+        
+        // 播放点击音效
+        this._playClickSound();
+    },
+    
+    // 练级区房间点击处理
+    _onPracticeRoomClick: function(room, sceneNode, playerGold) {
+        var self = this;
+        var myglobal = window.myglobal;
+        
+        // 播放点击音效
+        this._playClickSound();
+        
+        // 检查积分是否足够
+        if (playerGold < room.minGold) {
+            this._showMessage("积分不足，需要 " + this._formatRoomGold(room.minGold) + " 积分才能进入" + room.name);
+            return;
+        }
+        
+        // 只隐藏练级区场景（不显示大厅，直接进入游戏）
+        if (this._practiceZoneNode && this._practiceZoneNode.isValid) {
+            this._practiceZoneNode.active = false;
+        }
+        
+        // 保存选择的房间
+        if (myglobal) {
+            myglobal.selectedRoom = room;
+        }
+        
+        // 快速匹配进入游戏
+        this._quickMatch({
+            room_type: room.baseScore,
+            base_score: room.baseScore,
+            min_gold: room.minGold,
+            room_name: room.name
+        }, playerGold);
+    },
+    
+    // 格式化金币/积分显示
+    _formatRoomGold: function(gold) {
+        if (gold >= 10000) {
+            return (gold / 10000).toFixed(1) + "万";
+        }
+        return gold.toString();
     },
     
     // 竞技场房间按钮点击处理 - 直接报名（不弹框）
@@ -938,10 +1668,12 @@ cc.Class({
     
     // 检查是否已报名其他竞技场（初级、中级、高级场只能报一个）
     _hasSignedUpOtherArena: function(currentRoomId) {
-        if (!window.arenaData || !this._arenaRooms) return false;
+        // 🔧【修复】使用所有候选房间进行检查
+        var targetRooms = this._arenaCandidateRooms || this._arenaRooms;
+        if (!window.arenaData || !targetRooms) return false;
         
-        for (var i = 0; i < this._arenaRooms.length; i++) {
-            var room = this._arenaRooms[i];
+        for (var i = 0; i < targetRooms.length; i++) {
+            var room = targetRooms[i];
             var roomId = room.config.id;
             if (roomId !== currentRoomId && window.arenaData.isSignedUp(roomId)) {
                 return true;
@@ -981,9 +1713,12 @@ cc.Class({
     
     // 为竞技场房间添加报名按钮（使用图片资源）
     // 报名按钮放在房间卡片的外部下方，紧贴卡片底部
+    // 🔧【修复】使用 _arenaCandidateRooms（所有房间），根据服务端推送的数量决定显示哪些
     _addArenaSignupButtons: function() {
         var self = this;
-        if (!this._arenaRooms) return;
+        // 🔧【修复】使用 _arenaCandidateRooms（所有房间），不再只使用 _arenaRooms
+        var targetRooms = this._arenaCandidateRooms || this._arenaRooms;
+        if (!targetRooms || targetRooms.length === 0) return;
         
         // 获取卡片容器
         var cardPanel = this.node.getChildByName("CardContainer");
@@ -1006,8 +1741,9 @@ cc.Class({
         var countdownContainer = new cc.Node("ArenaCountdowns");
         countdownContainer.parent = cardPanel;
         
-        for (var i = 0; i < this._arenaRooms.length; i++) {
-            var room = this._arenaRooms[i];
+        // 🔧【修复】遍历所有候选房间
+        for (var i = 0; i < targetRooms.length; i++) {
+            var room = targetRooms[i];
             var btnNode = room.node;
             var config = room.config;
             
@@ -1141,6 +1877,46 @@ cc.Class({
         // 扩展容器高度以容纳按钮
         var originalHeight = cardPanel.height;
         cardPanel.setContentSize(cardPanel.width, originalHeight + 70);
+        
+        // 🔧【修复】先初始化本地状态，再加载图片和启动定时器
+        // 确保 _localArenaStatus 在 _loadSignupButtonImages 回调前已初始化
+        if (!this._localArenaStatus) {
+            this._localArenaStatus = {};
+        }
+        
+        // 🔧【修复】立即为所有房间设置默认状态
+        // 🔧【重要】使用 room_category 判断是否是竞技场
+        // room_category=1 是普通场（不显示期号和报名按钮）
+        // room_category=2 是竞技场（显示期号和报名按钮）
+        // 🔧【修复】使用 targetRooms（所有候选房间）
+        var arenaCount = targetRooms.length;
+        for (var j = 0; j < arenaCount; j++) {
+            var roomInfo = targetRooms[j];
+            var roomConfig = roomInfo.config;
+            var roomConfigId = roomConfig.id;
+            
+            // 🔧【关键修复】使用 room_category 判断是否是竞技场
+            var roomCategory = roomConfig.room_category || roomConfig.roomCategory || 1;
+            var isArena = (roomCategory === 2);
+            
+            // 设置默认状态
+            this._localArenaStatus[roomConfigId] = {
+                periodNo: 0,
+                periodNoStr: "",
+                phase: isArena ? 2 : 0,  // 竞技场默认报名阶段，普通场默认未开放
+                countdown: isArena ? 300 : -1,  // 竞技场默认5分钟，普通场-1
+                canSignup: isArena,  // 竞技场可以报名
+                totalPlayers: 0,
+                statusText: isArena ? "报名中" : "暂未开放",
+                lastUpdate: Date.now(),
+                isLocalCalculated: true,
+                hasMatchConfig: isArena,  // 🔧【修复】使用 room_category 判断
+                roomCategory: roomCategory  // 🔧【新增】保存 room_category
+            };
+        }
+        
+        // 🔧【修复】立即更新显示为默认状态
+        this._updateCountdownFromLocalCache();
         
         // 加载按钮图片并更新状态
         this._loadSignupButtonImages();
@@ -1583,7 +2359,8 @@ cc.Class({
     _onArenaSignupButtonClick: function(roomConfig, btnNode, signupBtnNode) {
         var self = this;
         var myglobal = window.myglobal;
-        var playerArenaCoin = myglobal && myglobal.playerData ? myglobal.playerData.arena_coin : 0;
+        var playerGold = myglobal && myglobal.playerData ? myglobal.playerData.gobal_count : 0;
+        var playerLevel = myglobal && myglobal.playerData ? myglobal.playerData.level : 1;
         var roomId = roomConfig.id;
         
         // 检查是否已报名
@@ -1616,12 +2393,21 @@ cc.Class({
             return;
         }
         
-        // 获取报名费
-        var signupFee = roomConfig.min_arena_coin || roomConfig.minArenaCoin || 0;
+        // 获取报名费（欢乐豆）
+        var signupFee = roomConfig.entry_gold || roomConfig.entryGold || 0;
         
-        // 检查竞技币是否足够
-        if (playerArenaCoin < signupFee) {
-            this._showMessage("竞技币不足，需要 " + signupFee + " 竞技币");
+        // 获取所需星级
+        var requiredLevel = roomConfig.min_level || roomConfig.minLevel || 0;
+        
+        // 检查星级是否满足要求
+        if (playerLevel < requiredLevel) {
+            this._showMessage("会员星级不足，需达到" + requiredLevel + "星。请前往普通场升级");
+            return;
+        }
+        
+        // 检查欢乐豆是否足够
+        if (playerGold < signupFee) {
+            this._showMessage("欢乐豆不足，需要 " + signupFee + " 欢乐豆");
             return;
         }
         
@@ -1642,7 +2428,7 @@ cc.Class({
                     return;
                 }
                 
-                self._showMessage("取消报名成功，竞技币已返还");
+                self._showMessage("取消报名成功，欢乐豆已返还");
                 
                 // 刷新玩家余额
                 if (window.arenaData.refreshBalance) {
@@ -1659,50 +2445,157 @@ cc.Class({
     // 🔧【重构】客户端基于服务端推送的倒计时本地计算
     _startCountdownTimer: function() {
         var self = this;
+        
+        console.log("🏟️ [Arena] ========== 开始初始化竞技场监听器 ==========");
+        console.log("🏟️ [Arena] _startCountdownTimer 被调用");
 
         // 清理旧的定时器
         if (this._countdownTimer) {
             clearInterval(this._countdownTimer);
         }
 
-        // 🔧【新增】初始化本地倒计时状态缓存
-        // 格式: { roomId: { periodNo, countdown, canSignup, lastUpdate } }
-        this._localArenaStatus = {};
+        // 🔧【关键修复】不要重新初始化 _localArenaStatus，保留之前的默认值
+        // 如果还没有初始化，才创建空对象
+        if (!this._localArenaStatus) {
+            this._localArenaStatus = {};
+        }
 
-        // 监听服务端推送的竞技场状态
-        // 🔧【修复】使用 myglobal.socket 实例，而不是 window.socketCtr 函数
+        // 🔧【修复】将 socket 变量定义移到外面，确保整个函数可用
         var socket = window.myglobal && window.myglobal.socket;
-        if (socket && socket.onArenaStatus) {
-            socket.onArenaStatus(function(data) {
-                if (self.node && self.node.isValid && data && data.arenas) {
-                    // 🔧【修改】收到服务端推送时，保存到本地状态
-                    self._onArenaStatusPush(data.arenas);
-                }
-            });
+        console.log("🏟️ [Arena] socket 对象:", socket ? "存在" : "不存在");
+        console.log("🏟️ [Arena] socket.onArenaStatus:", socket && socket.onArenaStatus ? "存在" : "不存在");
+        console.log("🏟️ [Arena] socket.onArenaMatchStart:", socket && socket.onArenaMatchStart ? "存在" : "不存在");
+        console.log("🏟️ [Arena] socket.onArenaCloseDialog:", socket && socket.onArenaCloseDialog ? "存在" : "不存在");
+
+        // 🔧【关键修复】防止重复注册监听器
+        // 如果已经注册过监听器，跳过注册
+        if (this._arenaSocketListenersRegistered) {
+            console.log("🏟️ [Arena] ⚠️ 监听器已注册，跳过重复注册");
         } else {
-            console.warn("🏟️ [Arena] socket 或 onArenaStatus 方法不可用，无法监听竞技场状态");
+            if (socket && socket.onArenaStatus) {
+                socket.onArenaStatus(function(data) {
+                    if (self.node && self.node.isValid && data && data.arenas) {
+                        // 🔧【修改】收到服务端推送时，保存到本地状态
+                        self._onArenaStatusPush(data.arenas);
+                    }
+                });
+                console.log("🏟️ [Arena] ✅ onArenaStatus 监听器注册成功");
+            } else {
+                console.warn("🏟️ [Arena] socket 或 onArenaStatus 方法不可用，无法监听竞技场状态");
+            }
+
+            // 🔧【新增】监听竞技场比赛开始通知
+            if (socket && socket.onArenaMatchStart) {
+                socket.onArenaMatchStart(function(data) {
+                    console.log("🏆 [Arena] ========== 收到 arena_match_start 消息 ==========");
+                    console.log("🏆 [Arena] 数据:", JSON.stringify(data));
+                    if (self.node && self.node.isValid) {
+                        console.log("🏆 [Arena] 节点有效，准备显示弹窗");
+                        self._onArenaMatchStart(data);
+                    } else {
+                        console.warn("🏆 [Arena] 节点无效，无法显示弹窗");
+                    }
+                });
+                console.log("🏟️ [Arena] ✅ onArenaMatchStart 监听器注册成功");
+            } else {
+                console.warn("🏟️ [Arena] ⚠️ socket 或 onArenaMatchStart 方法不可用");
+            }
+
+            // 🔧【新增】监听竞技场关闭弹窗通知（新期号开始时关闭上一轮弹窗）
+            if (socket && socket.onArenaCloseDialog) {
+                socket.onArenaCloseDialog(function(data) {
+                    console.log("🏟️ [Arena] 收到关闭弹窗通知:", JSON.stringify(data));
+                    if (self.node && self.node.isValid) {
+                        self._onArenaCloseDialog(data);
+                    }
+                });
+                console.log("🏟️ [Arena] ✅ onArenaCloseDialog 监听器注册成功");
+            } else {
+                console.warn("🏟️ [Arena] ⚠️ socket 或 onArenaCloseDialog 方法不可用");
+            }
+
+            // 🏆 监听冠军跑马灯广播
+            if (socket && socket.onArenaChampionBroadcast) {
+                socket.onArenaChampionBroadcast(function(data) {
+                    console.log("🏆 [Arena] 收到冠军跑马灯广播:", JSON.stringify(data));
+                    if (self.node && self.node.isValid) {
+                        self._showChampionBroadcast(data);
+                    }
+                });
+                console.log("🏆 [Arena] ✅ onArenaChampionBroadcast 监听器注册成功");
+            } else {
+                console.warn("🏆 [Arena] ⚠️ socket 或 onArenaChampionBroadcast 方法不可用");
+            }
+            
+            // 🔧【关键修复】在大厅场景也监听 room_joined 消息
+            // 这样即使玩家没有点击"进入"按钮，弹窗倒计时结束后也能进入游戏
+            if (socket && socket.onRoomJoined) {
+                this._hallSceneRoomJoinedHandler = function(roomData) {
+                    console.log("🏟️ [HallScene] ✅ 收到 room_joined 消息:", JSON.stringify(roomData));
+                    
+                    // 检查是否是竞技场房间
+                    var roomCategory = roomData.room_category || 1;
+                    if (roomCategory !== 2) {
+                        console.log("🏟️ [HallScene] 不是竞技场房间，忽略");
+                        return;
+                    }
+                    
+                    // 🔧【关键】防止重复处理
+                    if (self._arenaRoomJoinedProcessed) {
+                        console.log("🏟️ [HallScene] room_joined 已处理过，跳过");
+                        return;
+                    }
+                    self._arenaRoomJoinedProcessed = true;
+                    
+                    // 关闭弹窗（如果存在）
+                    if (self._arenaMatchStartDialog && self._arenaMatchStartDialog.isValid) {
+                        self._arenaMatchStartDialog.destroy();
+                        self._arenaMatchStartDialog = null;
+                    }
+                    
+                    // 进入游戏场景
+                    console.log("🏟️ [HallScene] 从 room_joined 进入游戏场景");
+                    self._enterArenaGameSceneFromRoomJoined(roomData);
+                };
+                socket.onRoomJoined(this._hallSceneRoomJoinedHandler);
+                console.log("🏟️ [Arena] ✅ room_joined 监听器已注册（大厅场景）");
+            } else {
+                console.warn("🏟️ [Arena] ⚠️ socket 或 onRoomJoined 方法不可用");
+            }
+            
+            // 标记已注册
+            this._arenaSocketListenersRegistered = true;
+            console.log("🏟️ [Arena] ========== 竞技场监听器注册完成 ==========");
         }
 
-        // 🔧【新增】监听竞技场比赛开始通知
-        if (socket && socket.onArenaMatchStart) {
-            socket.onArenaMatchStart(function(data) {
-                if (self.node && self.node.isValid) {
-                    self._onArenaMatchStart(data);
+        // 🔧【关键修复】确保连接后请求竞技场状态
+        // 这是解决弹窗不显示问题的核心修复！
+        // 如果 WebSocket 已连接，立即请求；否则主动初始化连接后请求
+        if (socket) {
+            console.log("🏟️ [Arena] 🔄 请求竞技场状态（智能连接）...");
+            // 🔧【改进】直接调用 requestArenaStatusWhenConnected，它会自动处理连接逻辑
+            if (socket.requestArenaStatusWhenConnected) {
+                socket.requestArenaStatusWhenConnected();
+            } else {
+                // 🔧【兜底】如果新方法不存在，先尝试初始化连接再请求
+                console.log("🏟️ [Arena] ⚠️ requestArenaStatusWhenConnected 不存在，尝试初始化连接...");
+                if (socket.initSocket && !socket.isConnected()) {
+                    socket.initSocket();
                 }
-            });
-        }
-
-        // 🔧【新增】监听竞技场关闭弹窗通知（新期号开始时关闭上一轮弹窗）
-        if (socket && socket.onArenaCloseDialog) {
-            socket.onArenaCloseDialog(function(data) {
-                if (self.node && self.node.isValid) {
-                    self._onArenaCloseDialog(data);
-                }
-            });
+                // 延迟请求，等待连接
+                setTimeout(function() {
+                    if (socket.requestArenaStatus) {
+                        socket.requestArenaStatus();
+                    }
+                }, 1000);
+            }
         }
 
         // 🔧【新增】立即初始化本地状态（使用本地计算作为初始值）
         this._initLocalArenaStatusFromConfig();
+        
+        // 🔧【关键新增】监听页面可见性变化，恢复时重新请求竞技场状态
+        this._setupVisibilityChangeListener();
 
         // 🔧【修改】每秒更新本地倒计时（减1）
         this._countdownTimer = setInterval(function() {
@@ -1712,9 +2605,74 @@ cc.Class({
         }, 1000);
     },
 
+    // 🔧【关键新增】监听页面可见性变化
+    // 当页面从后台恢复时，重新请求竞技场状态，确保不会错过弹窗
+    _setupVisibilityChangeListener: function() {
+        var self = this;
+        
+        // 避免重复注册
+        if (this._visibilityChangeListenerAdded) {
+            return;
+        }
+        this._visibilityChangeListenerAdded = true;
+        
+        // 记录上次请求时间，避免频繁请求
+        this._lastArenaStatusRequestTime = 0;
+        
+        var handleVisibilityChange = function() {
+            if (document.visibilityState === 'visible') {
+                console.log("📱 [Visibility] 页面从后台恢复，重新请求竞技场状态");
+                
+                // 检查是否需要重新请求（避免频繁请求）
+                var now = Date.now();
+                var timeSinceLastRequest = now - self._lastArenaStatusRequestTime;
+                
+                // 如果距离上次请求超过 5 秒，才重新请求
+                if (timeSinceLastRequest > 5000) {
+                    self._lastArenaStatusRequestTime = now;
+                    
+                    // 延迟一点时间，确保 WebSocket 连接恢复
+                    setTimeout(function() {
+                        if (self.node && self.node.isValid) {
+                            var socket = window.myglobal && window.myglobal.socket;
+                            if (socket && socket.requestArenaStatusWhenConnected) {
+                                console.log("🏟️ [Arena] 页面恢复后重新请求竞技场状态");
+                                socket.requestArenaStatusWhenConnected();
+                            }
+                        }
+                    }, 500);
+                } else {
+                    console.log("📱 [Visibility] 距离上次请求时间较短，跳过重新请求");
+                }
+            }
+        };
+        
+        // 注册监听器
+        if (typeof document !== 'undefined' && document.addEventListener) {
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+            console.log("📱 [Visibility] 已注册页面可见性监听器");
+            
+            // 保存引用，以便在销毁时移除
+            this._visibilityChangeHandler = handleVisibilityChange;
+        }
+    },
+
     // 🔧【新增】处理竞技场比赛开始通知
     _onArenaMatchStart: function(data) {
         var self = this;
+        console.log("🏆 [Arena] _onArenaMatchStart 开始处理，data:", JSON.stringify(data));
+        
+        // 🔧【修复】如果已经在等待界面，不显示弹窗
+        if (this._arenaWaitingNode && this._arenaWaitingNode.isValid) {
+            console.log("🏆 [Arena] 已在等待界面，跳过弹窗显示");
+            // 更新等待界面数据
+            if (this._arenaWaitingData) {
+                this._arenaWaitingData.periodNo = data.period_no || this._arenaWaitingData.periodNo;
+                this._arenaWaitingData.totalPlayers = data.total_players || this._arenaWaitingData.totalPlayers;
+                this._arenaWaitingData.countdown = data.countdown || this._arenaWaitingData.countdown;
+            }
+            return;
+        }
         
         // 🔧【修复】先关闭之前可能存在的弹窗
         this._closeArenaMatchStartDialog();
@@ -1723,6 +2681,7 @@ cc.Class({
         this._currentMatchData = data;
         
         // 弹出进入游戏弹窗
+        console.log("🏆 [Arena] 准备调用 _showArenaMatchStartDialog");
         this._showArenaMatchStartDialog(data);
     },
     
@@ -1730,6 +2689,11 @@ cc.Class({
     _closeArenaMatchStartDialog: function() {
         // 关闭并销毁之前显示的弹窗
         if (this._arenaMatchStartDialog && this._arenaMatchStartDialog.isValid) {
+        // 🔧【新增】清除倒计时定时器
+        if (this._matchStartCountdownTimer) {
+            clearInterval(this._matchStartCountdownTimer);
+            this._matchStartCountdownTimer = null;
+        }
             this._arenaMatchStartDialog.destroy();
             this._arenaMatchStartDialog = null;
         }
@@ -1757,14 +2721,86 @@ cc.Class({
         }
     },
 
-    // 🔧【新增】显示竞技场比赛开始弹窗
-    _showArenaMatchStartDialog: function(data) {
+    // 🏆 显示冠军跑马灯广播
+    _showChampionBroadcast: function(data) {
+        console.log("🏆 [Champion] 显示冠军跑马灯:", data.message);
+        
         var self = this;
+        
+        // 构建跑马灯消息
+        var message = data.message || ("恭喜 " + data.champion_name + " 在期号 " + data.period_no + " 夺得" + (data.room_name || "竞技场") + "冠军！");
         
         // 获取画布尺寸
         var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
         var screenHeight = canvas ? canvas.designResolution.height : 720;
         var screenWidth = canvas ? canvas.designResolution.width : 1280;
+        
+        // 创建跑马灯节点
+        var marqueeNode = new cc.Node("ChampionMarquee");
+        marqueeNode.setPosition(cc.v2(0, screenHeight / 2 - 80)); // 顶部位置
+        marqueeNode.zIndex = 9999; // 最高层级
+        
+        // 背景
+        var bgNode = new cc.Node("Bg");
+        bgNode.setContentSize(cc.size(screenWidth - 40, 50));
+        var bgGraphics = bgNode.addComponent(cc.Graphics);
+        bgGraphics.fillColor = cc.color(255, 215, 0, 230); // 金色背景
+        bgGraphics.roundRect(-(screenWidth - 40) / 2, -25, screenWidth - 40, 50, 10);
+        bgGraphics.fill();
+        bgNode.parent = marqueeNode;
+        
+        // 冠军图标
+        var iconNode = new cc.Node("Icon");
+        iconNode.setPosition(cc.v2(-screenWidth / 2 + 50, 0));
+        var iconLabel = iconNode.addComponent(cc.Label);
+        iconLabel.string = "🏆";
+        iconLabel.fontSize = 28;
+        iconLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        iconNode.parent = marqueeNode;
+        
+        // 消息文本
+        var textNode = new cc.Node("Text");
+        textNode.setPosition(cc.v2(0, 0));
+        var textLabel = textNode.addComponent(cc.Label);
+        textLabel.string = message;
+        textLabel.fontSize = 22;
+        textLabel.lineHeight = 28;
+        textLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        textNode.color = cc.color(139, 69, 19); // 深棕色文字
+        textNode.parent = marqueeNode;
+        
+        // 添加到场景
+        marqueeNode.parent = this.node;
+        
+        // 动画效果：从上方滑入
+        marqueeNode.y = screenHeight / 2 + 100;
+        var moveIn = cc.moveTo(0.5, cc.v2(0, screenHeight / 2 - 80)).easing(cc.easeBackOut());
+        var delay = cc.delayTime(5); // 显示5秒
+        var moveOut = cc.moveTo(0.5, cc.v2(0, screenHeight / 2 + 100));
+        var remove = cc.callFunc(function() {
+            if (marqueeNode && marqueeNode.isValid) {
+                marqueeNode.destroy();
+            }
+        });
+        
+        marqueeNode.runAction(cc.sequence(moveIn, delay, moveOut, remove));
+        
+        // 播放音效（如果有的话）
+        // cc.audioEngine.playEffect("sounds/champion.mp3", false);
+        
+        console.log("🏆 [Champion] 跑马灯显示完成:", message);
+    },
+
+    // 🔧【新增】显示竞技场比赛开始弹窗
+    _showArenaMatchStartDialog: function(data) {
+        var self = this;
+        console.log("🏆 [Arena] _showArenaMatchStartDialog 开始创建弹窗...");
+        
+        // 获取画布尺寸
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
+        var screenHeight = canvas ? canvas.designResolution.height : 720;
+        var screenWidth = canvas ? canvas.designResolution.width : 1280;
+        console.log("🏆 [Arena] 屏幕尺寸:", screenWidth, "x", screenHeight);
         
         // 创建弹窗容器
         var dialogNode = new cc.Node("ArenaMatchStartDialog");
@@ -1775,6 +2811,7 @@ cc.Class({
         dialogNode.y = 0;
         dialogNode.zIndex = 5000;
         dialogNode.parent = this.node;
+        console.log("🏆 [Arena] 弹窗容器已创建，zIndex=", dialogNode.zIndex);
         
         // 🔧【修复】保存弹窗引用，用于后续关闭
         this._arenaMatchStartDialog = dialogNode;
@@ -1839,15 +2876,80 @@ cc.Class({
         roomNode.color = cc.color(180, 180, 200);
         roomNode.parent = cardNode;
         
-        // 参赛人数
-        var playersNode = new cc.Node("Players");
-        playersNode.y = cardHeight/2 - 165;
-        var playersLabel = playersNode.addComponent(cc.Label);
-        playersLabel.string = "参赛人数: " + (data.total_players || 0) + " 人";
-        playersLabel.fontSize = 20;
-        playersLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        playersNode.color = cc.color(100, 200, 100);
-        playersNode.parent = cardNode;
+        // 🔧【新增】倒计时显示 - 使用服务端返回的 start_time 计算剩余时间
+        var countdownNode = new cc.Node("Countdown");
+        countdownNode.y = cardHeight/2 - 165;
+        var countdownLabel = countdownNode.addComponent(cc.Label);
+        
+        // 计算剩余时间：优先使用 start_time，否则使用 countdown
+        var remainingSeconds = data.countdown || 60;
+        if (data.start_time) {
+            var nowMs = Date.now();
+            var elapsedMs = nowMs - data.start_time;
+            var elapsedSec = Math.floor(elapsedMs / 1000);
+            remainingSeconds = Math.max(0, (data.countdown || 60) - elapsedSec);
+            console.log("🏆 [Arena] 使用 start_time 计算剩余时间: start_time=" + data.start_time + ", now=" + nowMs + ", elapsed=" + elapsedSec + "s, remaining=" + remainingSeconds + "s");
+        }
+        
+        countdownLabel.string = "倒计时: " + remainingSeconds + " 秒";
+        countdownLabel.fontSize = 24;
+        countdownLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        countdownNode.color = cc.color(255, 100, 100);
+        countdownNode.parent = cardNode;
+        
+        // 🔧【新增】启动倒计时定时器
+        if (self._matchStartCountdownTimer) {
+            clearInterval(self._matchStartCountdownTimer);
+        }
+        self._matchStartCountdownTimer = setInterval(function() {
+            if (!dialogNode || !dialogNode.isValid) {
+                clearInterval(self._matchStartCountdownTimer);
+                self._matchStartCountdownTimer = null;
+                return;
+            }
+            
+            // 重新计算剩余时间
+            var newRemaining = data.countdown || 60;
+            if (data.start_time) {
+                var nowMs = Date.now();
+                var elapsedMs = nowMs - data.start_time;
+                var elapsedSec = Math.floor(elapsedMs / 1000);
+                newRemaining = Math.max(0, (data.countdown || 60) - elapsedSec);
+            } else {
+                newRemaining = remainingSeconds - 1;
+            }
+            remainingSeconds = newRemaining;
+            
+            if (newRemaining <= 0) {
+                clearInterval(self._matchStartCountdownTimer);
+                self._matchStartCountdownTimer = null;
+                
+                // 🔧【关键修复】弹窗倒计时结束，自动进入独立的等待场景
+                // 这样玩家不会先看到大厅界面再跳转游戏场景，体验更流畅
+                console.log("🏟️ [Arena] 弹窗倒计时结束，自动进入等待场景 ArenaMatchWaitingScene");
+                
+                // 清除弹窗引用
+                self._arenaMatchStartDialog = null;
+                self._arenaMatchStartDialogRoomId = null;
+                self._arenaMatchStartDialogPeriodNo = null;
+                
+                // 销毁弹窗
+                if (dialogNode && dialogNode.isValid) {
+                    dialogNode.destroy();
+                }
+                
+                // 跳转到等待场景（等待场景会监听 room_joined 消息并直接进入游戏场景）
+                self._enterArenaMatch(data);
+                return;
+            }
+            
+            countdownLabel.string = "倒计时: " + newRemaining + " 秒";
+            
+            // 最后10秒变红闪烁
+            if (newRemaining <= 10) {
+                countdownLabel.color = newRemaining % 2 === 0 ? cc.color(255, 50, 50) : cc.color(255, 150, 150);
+            }
+        }, 1000);
         
         // 提示消息
         var msgNode = new cc.Node("Message");
@@ -1952,6 +3054,9 @@ cc.Class({
             self._arenaMatchStartDialogPeriodNo = null;
             dialogNode.destroy();
         });
+        
+        console.log("🏆 [Arena] ✅ 弹窗创建完成！dialogNode.parent =", dialogNode.parent ? "已挂载" : "未挂载");
+        console.log("🏆 [Arena] 弹窗子节点数量:", dialogNode.children.length);
     },
 
     // 🔧【新增】取消竞技场报名并退还竞技币
@@ -1980,11 +3085,16 @@ cc.Class({
     },
 
     // 🔧【新增】进入竞技场比赛
+    // 🔧【关键修改】跳转到独立的等待场景 ArenaMatchWaitingScene，而不是在大厅显示等待UI
+    // 这样倒计时结束后可以直接从等待场景进入游戏场景，体验更流畅
     _enterArenaMatch: function(data) {
         var self = this;
         var myglobal = window.myglobal;
         
         console.log("🏟️ [Arena] 进入竞技场比赛，data:", JSON.stringify(data));
+        
+        // 🔧【关键修复】不在本地计算倒计时，完全依赖服务端推送
+        // 所有倒计时由服务端计算并推送
         
         // 保存比赛信息
         if (myglobal) {
@@ -1997,147 +3107,977 @@ cc.Class({
             window.arenaData.saveToLocal && window.arenaData.saveToLocal();
         }
         
-        // 🔧【关键修复】发送 arena_enter 请求，等待 room_joined 消息后再进入游戏场景
-        var socket = myglobal && myglobal.socket;
-        if (socket && socket.sendArenaEnter) {
-            // 显示加载提示
-            this._showMessageCenter("正在进入竞技场...");
-            
-            // 注册一次性 room_joined 监听器
-            var roomJoinedHandler = function(roomData) {
-                console.log("🏟️ [Arena] 收到 room_joined，准备进入游戏场景:", JSON.stringify(roomData));
-                
-                // 取消超时定时器
-                if (self._arenaEnterTimeout) {
-                    clearTimeout(self._arenaEnterTimeout);
-                    self._arenaEnterTimeout = null;
-                }
-                
-                // 🔧【关键修复】转换数据格式：players → playerdata
-                // 游戏场景期望的数据格式与普通场一致
-                var players = roomData.players || [];
-                
-                // 🔧【优化】获取房间配置信息（从预加载的房间列表中）
-                var roomConfig = self._arenaRooms ? self._arenaRooms.find(function(r) {
-                    return r.config && r.config.id === data.room_id;
-                }) : null;
-                var baseScore = roomConfig ? (roomConfig.config.base_score || 1) : 1;
-                var multiplier = roomConfig ? (roomConfig.config.multiplier || 1) : 1;
-                
-                // 🔧【优化】计算玩家初始竞技金币（从服务端数据或配置）
-                var initialArenaGold = roomData.initial_arena_gold || (roomConfig ? roomConfig.config.min_gold : 1000);
-                
-                var convertedRoomData = {
-                    roomid: roomData.room_code || "ARENA",
-                    room_code: roomData.room_code || "ARENA",
-                    seatindex: roomData.player ? roomData.player.seat + 1 : 1,
-                    playerdata: players.map(function(p, idx) {
-                        return {
-                            accountid: p.id,
-                            nick_name: p.name,
-                            avatarUrl: p.avatar || "avatar_1",  // 🔧【修复】使用实际头像URL
-                            gold_count: p.gold_count || p.arena_gold || initialArenaGold,  // 🔧【优化】使用预加载的初始金币
-                            goldcount: p.gold_count || p.arena_gold || initialArenaGold,
-                            seatindex: (p.seat !== undefined ? p.seat : idx) + 1,
-                            isready: p.ready || true,  // 🔧【优化】竞技场玩家默认已准备
-                            arena_gold: p.arena_gold || initialArenaGold,  // 🔧【优化】使用预加载的初始金币
-                            match_coin: p.match_coin || 0,  // 兼容字段
-                            period_no: data.period_no || roomData.period_no || ""  // 期号
-                        };
-                    }),
-                    housemanageid: roomData.creator_id || "",
-                    creator_id: roomData.creator_id || "",
-                    room_category: 2,  // 竞技场
-                    period_no: data.period_no || roomData.period_no || "",
-                    // 🔧【新增】传递预加载的房间配置信息
-                    base_score: baseScore,
-                    multiplier: multiplier,
-                    room_id: data.room_id,
-                    room_name: data.room_name,
-                    match_rounds: data.match_rounds,
-                    match_duration: data.match_duration,
-                    signup_fee: data.signup_fee,
-                    total_players: data.total_players || players.length,
-                    initial_arena_gold: initialArenaGold
-                };
-                
-                console.log("🏟️ [Arena] 转换后的房间数据:", JSON.stringify(convertedRoomData));
-                
-                // 🔧【优化】保存完整的竞技场预加载数据
-                if (myglobal) {
-                    myglobal.roomData = convertedRoomData;
-                    // 🔧【新增】保存竞技场专用数据，供游戏场景使用
-                    myglobal.arenaMatchData = {
-                        period_no: data.period_no,
-                        room_id: data.room_id,
-                        room_name: data.room_name,
-                        match_rounds: data.match_rounds,
-                        match_duration: data.match_duration,
-                        signup_fee: data.signup_fee,
-                        base_score: baseScore,
-                        multiplier: multiplier,
-                        initial_arena_gold: initialArenaGold,
-                        players: convertedRoomData.playerdata,
-                        table_id: roomData.table_id || 1,
-                        start_time: Date.now()
-                    };
-                    console.log("🏟️ [Arena] 已保存竞技场预加载数据:", JSON.stringify(myglobal.arenaMatchData));
-                }
-                
-                // 进入游戏场景
-                self._enterGameScene(convertedRoomData);
+        // 🔧【关键修改】保存等待数据到全局变量，供 ArenaMatchWaitingScene 使用
+        // 等待场景会从这个变量读取初始数据
+        if (myglobal) {
+            myglobal.arenaWaitingData = {
+                period_no: data.period_no || "",
+                room_id: data.room_id || 0,
+                room_name: data.room_name || "竞技场",
+                total_players: data.total_players || 0,
+                entered_players: 1,  // 当前玩家已进入
+                start_time: data.start_time || Date.now(),
+                countdown: data.countdown || 60,
+                players: [],  // 玩家列表会由服务端推送
+                message: data.message || "比赛即将开始！"
             };
             
-            // 注册监听器
-            socket.onRoomJoined(roomJoinedHandler);
+            // 同时保存房间配置
+            myglobal.currentRoomConfig = {
+                id: data.room_id,
+                room_name: data.room_name,
+                room_config_id: data.room_config_id,
+                room_category: 2,  // 竞技场
+                min_arena_coin: data.signup_fee,
+                match_rounds: data.match_rounds,
+                match_duration: data.match_duration
+            };
+            myglobal.currentRoomLevel = data.room_id;
+            myglobal.currentRoomName = data.room_name;
             
-            // 设置超时（10秒后如果没收到 room_joined，也进入场景）
-            this._arenaEnterTimeout = setTimeout(function() {
-                console.log("🏟️ [Arena] 等待 room_joined 超时，直接进入游戏场景");
-                self._arenaEnterTimeout = null;
-                
-                // 构造临时房间数据
-                var tempRoomData = {
-                    room_code: "arena_" + data.period_no,
-                    room_id: data.room_id,
-                    room_name: data.room_name,
-                    room_category: 2,
-                    period_no: data.period_no
-                };
-                
-                if (myglobal) {
-                    myglobal.roomData = tempRoomData;
-                }
-                
-                self._enterGameScene(tempRoomData);
-            }, 10000);
-            
+            console.log("🏟️ [Arena] 已保存等待数据到 myglobal.arenaWaitingData");
+        }
+        
+        // 🔧【关键修改】发送 arena_enter 请求
+        var socket = myglobal && myglobal.socket;
+        if (socket && socket.sendArenaEnter) {
             // 发送 arena_enter 请求
             socket.sendArenaEnter({
                 period_no: data.period_no,
                 room_id: data.room_id
             });
-        } else {
-            console.warn("🏟️ [Arena] socket 或 sendArenaEnter 方法不可用");
-            // 降级处理：直接进入游戏场景
-            var roomConfig = {
-                id: data.room_id,
-                room_name: data.room_name,
-                room_config_id: data.room_config_id,
-                room_category: 2,
-                min_arena_coin: data.signup_fee,
-                match_rounds: data.match_rounds,
-                match_duration: data.match_duration
-            };
             
-            if (myglobal) {
-                myglobal.currentRoomConfig = roomConfig;
-                myglobal.currentRoomLevel = data.room_id;
-                myglobal.currentRoomName = data.room_name;
+            console.log("🏟️ [Arena] 已发送 arena_enter 请求");
+        }
+        
+        // 🔧【关键修改】跳转到独立的等待场景
+        // 等待场景会监听服务端消息，倒计时结束后直接进入游戏场景
+        console.log("🏟️ [Arena] 跳转到等待场景 ArenaMatchWaitingScene");
+        cc.director.loadScene("ArenaMatchWaitingScene");
+    },
+    
+    // ============================================================
+    // 🔧【新增】竞技场等待界面（在当前场景显示，不跳转场景）
+    // ============================================================
+    
+    /**
+     * 显示竞技场等待界面
+     */
+    _showArenaWaitingUI: function(data) {
+        var self = this;
+        
+        console.log("🏟️ [Arena] 显示等待界面");
+        
+        // 如果已存在等待界面，先移除
+        this._hideArenaWaitingUI();
+        
+        // hallScene 挂载在 Canvas 节点上，this.node 就是 Canvas
+        var canvas = this.node;
+        if (!canvas || !canvas.isValid) {
+            console.error("🏟️ [Arena] Canvas 节点无效");
+            return;
+        }
+        
+        console.log("🏟️ [Arena] Canvas 节点已找到:", canvas.name);
+        
+        // 创建等待界面容器
+        var waitingNode = new cc.Node("ArenaWaitingUI");
+        waitingNode.setContentSize(cc.size(1280, 720));
+        waitingNode.setPosition(0, 0);
+        waitingNode.zIndex = 1000;  // 确保在最上层
+        
+        // 1. 创建半透明遮罩
+        var maskNode = new cc.Node("Mask");
+        maskNode.setContentSize(cc.size(1280, 720));
+        maskNode.setPosition(0, 0);
+        var maskGraphics = maskNode.addComponent(cc.Graphics);
+        maskGraphics.fillColor = cc.color(0, 0, 0, 180);
+        maskGraphics.rect(-640, -360, 1280, 720);
+        maskGraphics.fill();
+        maskNode.parent = waitingNode;
+        
+        // 2. 创建背景图
+        var bgNode = new cc.Node("Background");
+        bgNode.setContentSize(cc.size(1280, 720));
+        bgNode.setPosition(0, 0);
+        var bgSprite = bgNode.addComponent(cc.Sprite);
+        bgSprite.type = cc.Sprite.Type.SIMPLE;
+        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        
+        // 加载背景图
+        cc.resources.load('join_bk', cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.warn("🏟️ [Arena] 无法加载背景图 join_bk.png");
+                // 使用纯色背景作为后备
+                var bgGraphics = bgNode.addComponent(cc.Graphics);
+                bgGraphics.fillColor = cc.color(25, 30, 50, 255);
+                bgGraphics.rect(-640, -360, 1280, 720);
+                bgGraphics.fill();
+                return;
+            }
+            if (bgSprite && bgSprite.node && bgSprite.node.isValid) {
+                bgSprite.spriteFrame = spriteFrame;
+            }
+        });
+        bgNode.parent = waitingNode;
+        
+        // 3. 创建顶部信息栏
+        var topBar = new cc.Node("TopBar");
+        topBar.setContentSize(cc.size(1180, 100));
+        topBar.setPosition(0, 280);
+        
+        // 顶部栏背景
+        var topBarBg = new cc.Node("Bg");
+        topBarBg.setContentSize(cc.size(1180, 100));
+        var topBarGraphics = topBarBg.addComponent(cc.Graphics);
+        topBarGraphics.fillColor = cc.color(0, 0, 0, 150);
+        topBarGraphics.roundRect(-590, -50, 1180, 100, 10);
+        topBarGraphics.fill();
+        topBarBg.parent = topBar;
+        
+        // 期号
+        var periodNode = new cc.Node("PeriodNo");
+        periodNode.setPosition(-480, 20);
+        var periodLabel = periodNode.addComponent(cc.Label);
+        periodLabel.string = "期号: " + (data.period_no || "--");
+        periodLabel.fontSize = 22;
+        periodLabel.lineHeight = 28;
+        periodNode.color = cc.color(255, 215, 0);
+        var periodOutline = periodNode.addComponent(cc.LabelOutline);
+        periodOutline.color = cc.color(0, 0, 0);
+        periodOutline.width = 2;
+        periodNode.parent = topBar;
+        
+        // 房间名称
+        var roomNode = new cc.Node("RoomName");
+        roomNode.setPosition(0, 20);
+        var roomLabel = roomNode.addComponent(cc.Label);
+        roomLabel.string = data.room_name || "竞技场";
+        roomLabel.fontSize = 28;
+        roomLabel.lineHeight = 36;
+        roomNode.color = cc.color(255, 255, 255);
+        var roomOutline = roomNode.addComponent(cc.LabelOutline);
+        roomOutline.color = cc.color(0, 0, 0);
+        roomOutline.width = 2;
+        roomNode.parent = topBar;
+        
+        // 🔧【关键修复】直接使用服务端推送的倒计时
+        // 服务端已经根据 StartTime 计算了正确的剩余时间
+        // 注意：不能使用 || 运算符，因为 0 会被当作假值
+        var actualCountdownForLabel = (data.countdown !== undefined && data.countdown !== null) ? data.countdown : 60;
+        console.log("🏟️ [Arena] 等待界面初始倒计时: data.countdown=" + data.countdown + ", 使用值=" + actualCountdownForLabel);
+        
+        // 倒计时
+        var countdownNode = new cc.Node("Countdown");
+        countdownNode.setPosition(480, 20);
+        var countdownLabel = countdownNode.addComponent(cc.Label);
+        countdownLabel.string = actualCountdownForLabel + "秒";  // 🔧【修复】直接使用服务端推送的倒计时
+        countdownLabel.fontSize = 24;
+        countdownLabel.lineHeight = 32;
+        countdownNode.color = cc.color(100, 255, 100);
+        var countdownOutline = countdownNode.addComponent(cc.LabelOutline);
+        countdownOutline.color = cc.color(0, 0, 0);
+        countdownOutline.width = 2;
+        countdownNode.parent = topBar;
+        
+        // 玩家数量
+        var playerCountNode = new cc.Node("PlayerCount");
+        playerCountNode.setPosition(0, -20);
+        var playerCountLabel = playerCountNode.addComponent(cc.Label);
+        playerCountLabel.string = "已进入: 0 / " + (data.total_players || 0);
+        playerCountLabel.fontSize = 20;
+        playerCountLabel.lineHeight = 28;
+        playerCountNode.color = cc.color(200, 200, 220);
+        playerCountNode.parent = topBar;
+        
+        topBar.parent = waitingNode;
+        
+        // 4. 创建玩家列表容器（一排10个，从左上角开始排列）
+        // 玩家卡片尺寸：每个卡片100x120，间距10px
+        // 一排10个：10 * 100 + 9 * 10 = 1090px 宽度
+        
+        // 创建容器背景
+        var containerNode = new cc.Node("PlayerArea");
+        containerNode.setContentSize(cc.size(1160, 440));
+        containerNode.setPosition(0, -25);
+        
+        // 半透明背景
+        var bgNode = new cc.Node("Bg");
+        bgNode.setContentSize(cc.size(1160, 440));
+        var bgGraphics = bgNode.addComponent(cc.Graphics);
+        bgGraphics.fillColor = cc.color(0, 0, 0, 80);
+        bgGraphics.roundRect(-580, -220, 1160, 440, 10);
+        bgGraphics.fill();
+        bgNode.parent = containerNode;
+        
+        // 内容容器（锚点设在左上角，从左上角开始排列）
+        var contentNode = new cc.Node("Content");
+        contentNode.setContentSize(cc.size(1150, 420));
+        contentNode.anchorX = 0;  // 左锚点
+        contentNode.anchorY = 1;  // 上锚点
+        contentNode.setPosition(-575, 210);  // 对应左上角位置
+        contentNode.parent = containerNode;
+        
+        containerNode.parent = waitingNode;
+        
+        // 添加到 Canvas
+        waitingNode.parent = canvas;
+        
+        // 🔧【关键修复】直接使用服务端推送的倒计时
+        // 服务端已经根据 StartTime 计算了正确的剩余时间
+        // 注意：不能使用 || 运算符，因为 0 会被当作假值
+        var actualCountdown = (data.countdown !== undefined && data.countdown !== null) ? data.countdown : 60;
+        console.log("🏟️ [Arena] 等待界面保存数据: data.countdown=" + data.countdown + ", 使用值=" + actualCountdown);
+        
+        // 保存引用
+        this._arenaWaitingNode = waitingNode;
+        this._arenaWaitingData = {
+            periodNo: data.period_no || "",
+            roomId: data.room_id || 0,
+            roomName: data.room_name || "竞技场",
+            countdown: actualCountdown,  // 🔧【修复】直接使用服务端推送的倒计时
+            totalPlayers: data.total_players || 0,
+            enteredPlayers: 0,
+            players: [],
+            serverCountdown: actualCountdown,  // 🔧【修复】直接使用服务端推送的倒计时
+            lastServerUpdateTime: Date.now(),  // 最后收到服务端更新的时间
+            startTime: data.start_time || Date.now()  // 🔧【保留】用于日志参考
+        };
+        this._arenaWaitingLabels = {
+            period: periodLabel,
+            room: roomLabel,
+            countdown: countdownLabel,
+            playerCount: playerCountLabel
+        };
+        this._arenaWaitingContent = contentNode;
+        
+        // 🔧【新增】启动本地备用计时器（服务端断线时使用）
+        this._startArenaLocalCountdownTimer();
+        
+        // 注册事件监听（确保不重复注册）
+        this._ensureArenaWaitingEventsRegistered();
+        
+        // 检查是否有缓存数据
+        console.log("🏟️ [Arena] 检查缓存数据...");
+        var myglobal = window.myglobal;
+        if (myglobal && myglobal.arenaWaitingStatusCache) {
+            console.log("🏟️ [Arena] 发现缓存数据:", JSON.stringify(myglobal.arenaWaitingStatusCache));
+        }
+        
+        var hasCacheData = this._checkArenaWaitingCache();
+        console.log("🏟️ [Arena] 缓存数据检查结果:", hasCacheData);
+        
+        // 如果没有缓存数据，先显示自己占位
+        if (!hasCacheData) {
+            console.log("🏟️ [Arena] 没有缓存数据，显示占位");
+            this._showArenaWaitingPlaceholder(data);
+        }
+        
+        console.log("🏟️ [Arena] 等待界面已创建，当前玩家列表:", this._arenaWaitingData.players.length);
+    },
+    
+    /**
+     * 显示占位玩家（仅在没有真实数据时）
+     */
+    _showArenaWaitingPlaceholder: function(data) {
+        // 获取当前玩家信息
+        var myglobal = window.myglobal;
+        var currentPlayer = myglobal && myglobal.playerData ? myglobal.playerData : null;
+        var currentAvatar = currentPlayer && currentPlayer.avatar ? currentPlayer.avatar : "";
+        var currentName = currentPlayer && currentPlayer.player_name ? currentPlayer.player_name : "我";
+        var currentId = currentPlayer && currentPlayer.player_id ? currentPlayer.player_id : "me";
+        
+        // 只添加自己作为占位
+        this._arenaWaitingData.players = [{
+            player_id: currentId,
+            player_name: currentName,
+            avatar: currentAvatar,
+            is_robot: false,
+            entered_at: Date.now()
+        }];
+        this._arenaWaitingData.enteredPlayers = 1;
+        
+        // 更新UI
+        this._updateArenaPlayerListUI();
+        
+        // 更新玩家数量显示
+        if (this._arenaWaitingLabels && this._arenaWaitingLabels.playerCount) {
+            this._arenaWaitingLabels.playerCount.string = "已进入: 1 / " + (data.total_players || 1);
+        }
+        
+        console.log("🏟️ [Arena] 显示占位玩家");
+    },
+    
+    /**
+     * 隐藏竞技场等待界面
+     */
+    _hideArenaWaitingUI: function() {
+        // 🔧【新增】停止本地计时器
+        this._stopArenaLocalCountdownTimer();
+        
+        if (this._arenaWaitingNode) {
+            this._arenaWaitingNode.destroy();
+            this._arenaWaitingNode = null;
+        }
+        this._arenaWaitingLabels = null;
+        this._arenaWaitingContent = null;
+        
+        // 取消事件监听
+        this._unregisterArenaWaitingEvents();
+    },
+    
+    /**
+     * 注册竞技场等待界面事件监听
+     */
+    _registerArenaWaitingEvents: function() {
+        var self = this;
+        var myglobal = window.myglobal;
+        var evt = myglobal && myglobal.eventlister;
+        
+        console.log("🏟️ [ArenaWaiting] 注册事件监听, evt:", evt ? "存在" : "不存在");
+        
+        if (!evt) {
+            console.warn("🏟️ [ArenaWaiting] eventlister 不存在，无法注册事件");
+            return;
+        }
+        
+        // 等待状态推送
+        this._arenaWaitingStatusHandler = function(data) {
+            console.log("🏟️ [ArenaWaiting] ✅ 收到等待状态通知，玩家数:", data.players ? data.players.length : 0);
+            console.log("🏟️ [ArenaWaiting] 等待状态数据:", JSON.stringify(data));
+            self._onArenaWaitingStatus(data);
+        };
+        evt.on("arena_waiting_status_notify", this._arenaWaitingStatusHandler);
+        
+        // 倒计时更新
+        this._arenaWaitingTickHandler = function(data) {
+            self._onArenaWaitingTick(data);
+        };
+        evt.on("arena_waiting_tick_notify", this._arenaWaitingTickHandler);
+        
+        // 玩家加入广播
+        this._arenaPlayerJoinedHandler = function(data) {
+            console.log("🏟️ [ArenaWaiting] ✅ 收到玩家加入通知，玩家数:", data.players ? data.players.length : 0);
+            console.log("🏟️ [ArenaWaiting] 玩家加入数据:", JSON.stringify(data));
+            self._onArenaPlayerJoined(data);
+        };
+        evt.on("arena_player_joined_notify", this._arenaPlayerJoinedHandler);
+        
+        // 分配阶段开始
+        this._arenaAssignStartHandler = function(data) {
+            console.log("🏟️ [ArenaWaiting] ✅ 收到分配阶段开始通知:", JSON.stringify(data));
+            self._onArenaAssignStart(data);
+        };
+        evt.on("arena_assign_start_notify", this._arenaAssignStartHandler);
+        
+        // 🔧【新增】监听 room_joined 消息以进入游戏场景
+        var socket = myglobal && myglobal.socket;
+        if (socket && socket.onRoomJoined) {
+            this._arenaRoomJoinedHandler = function(roomData) {
+                console.log("🏟️ [ArenaWaiting] ✅ 收到 room_joined，准备进入游戏场景:", JSON.stringify(roomData));
+                
+                // 检查是否是竞技场房间
+                var roomCategory = roomData.room_category || 1;
+                if (roomCategory !== 2) {
+                    console.log("🏟️ [ArenaWaiting] 不是竞技场房间，忽略");
+                    return;
+                }
+                
+                // 🔧【关键修复】防止重复处理 room_joined
+                if (self._arenaRoomJoinedProcessed) {
+                    console.log("🏟️ [ArenaWaiting] room_joined 已处理过，跳过");
+                    return;
+                }
+                self._arenaRoomJoinedProcessed = true;
+                
+                // 隐藏等待界面
+                self._hideArenaWaitingUI();
+                
+                // 进入游戏场景
+                self._enterArenaGameSceneFromRoomJoined(roomData);
+            };
+            socket.onRoomJoined(this._arenaRoomJoinedHandler);
+        }
+    },
+    
+    /**
+     * 确保竞技场等待界面事件监听已注册（防止重复注册）
+     */
+    _ensureArenaWaitingEventsRegistered: function() {
+        // 如果已经注册过，直接返回
+        if (this._arenaWaitingEventsRegistered) {
+            console.log("🏟️ [ArenaWaiting] 事件监听器已注册，跳过");
+            return;
+        }
+        
+        console.log("🏟️ [ArenaWaiting] 注册事件监听器");
+        this._registerArenaWaitingEvents();
+        this._arenaWaitingEventsRegistered = true;
+    },
+    
+    /**
+     * 取消竞技场等待界面事件监听
+     */
+    _unregisterArenaWaitingEvents: function() {
+        var myglobal = window.myglobal;
+        var evt = myglobal && myglobal.eventlister;
+        
+        if (!evt) return;
+        
+        if (this._arenaWaitingStatusHandler) {
+            evt.off("arena_waiting_status_notify", this._arenaWaitingStatusHandler);
+        }
+        if (this._arenaWaitingTickHandler) {
+            evt.off("arena_waiting_tick_notify", this._arenaWaitingTickHandler);
+        }
+        if (this._arenaPlayerJoinedHandler) {
+            evt.off("arena_player_joined_notify", this._arenaPlayerJoinedHandler);
+        }
+        if (this._arenaAssignStartHandler) {
+            evt.off("arena_assign_start_notify", this._arenaAssignStartHandler);
+        }
+        
+        // 重置注册标志
+        this._arenaWaitingEventsRegistered = false;
+    },
+    
+    /**
+     * 检查缓存数据
+     * @returns {boolean} 是否有有效的缓存数据
+     */
+    _checkArenaWaitingCache: function() {
+        var myglobal = window.myglobal;
+        
+        if (myglobal && myglobal.arenaWaitingStatusCache) {
+            var cachedData = myglobal.arenaWaitingStatusCache;
+            console.log("🏟️ [ArenaWaiting] 发现缓存数据，玩家数量:", cachedData.players ? cachedData.players.length : 0);
+            
+            // 检查期号是否匹配
+            if (!this._arenaWaitingData.periodNo || cachedData.period_no === this._arenaWaitingData.periodNo) {
+                // 检查是否有有效的玩家数据
+                var players = cachedData.players || [];
+                if (players.length > 0) {
+                    this._onArenaWaitingStatus(cachedData);
+                    
+                    // 清除缓存
+                    myglobal.arenaWaitingStatusCache = null;
+                    return true;
+                }
+            }
+        }
+        return false;
+    },
+    
+    /**
+     * 处理等待状态更新
+     * 🔧【关键修复】完全依赖服务端推送的倒计时，不做本地计算
+     */
+    _onArenaWaitingStatus: function(data) {
+        console.log("🏟️ [ArenaWaiting] 收到等待状态，countdown=" + data.countdown + ", players=" + (data.players ? data.players.length : 0));
+        
+        // 🔧【关键修复】如果等待界面不存在，创建它（使用服务端推送的倒计时）
+        if (!this._arenaWaitingNode) {
+            // 检查是否有保存的弹窗数据
+            if (this._pendingArenaEnterData) {
+                // 合并服务端推送的数据和保存的弹窗数据
+                var waitingData = {
+                    period_no: data.period_no || this._pendingArenaEnterData.period_no,
+                    room_id: data.room_id || this._pendingArenaEnterData.room_id,
+                    room_name: data.room_name || this._pendingArenaEnterData.room_name,
+                    countdown: data.countdown,  // 🔧【关键】直接使用服务端推送的倒计时
+                    total_players: data.total_players || this._pendingArenaEnterData.total_players,
+                    start_time: data.start_time,
+                    entered_players: data.entered_players || 0,
+                    players: data.players || [],
+                    message: data.message || this._pendingArenaEnterData.message
+                };
+                console.log("🏟️ [ArenaWaiting] 创建等待界面，服务端倒计时=" + data.countdown);
+                this._showArenaWaitingUI(waitingData);
+                this._pendingArenaEnterData = null;  // 清除保存的数据
+                return;
             }
             
-            this._enterArenaGameScene(data, roomConfig);
+            // 如果没有保存的数据，直接用服务端数据创建
+            if (data.period_no && data.countdown !== undefined) {
+                console.log("🏟️ [ArenaWaiting] 直接创建等待界面，服务端倒计时=" + data.countdown);
+                this._showArenaWaitingUI({
+                    period_no: data.period_no,
+                    room_id: data.room_id,
+                    room_name: data.room_name,
+                    countdown: data.countdown,  // 🔧【关键】直接使用服务端推送的倒计时
+                    total_players: data.total_players,
+                    start_time: data.start_time,
+                    entered_players: data.entered_players || 0,
+                    players: data.players || [],
+                    message: data.message
+                });
+                return;
+            }
+            
+            console.warn("🏟️ [ArenaWaiting] 没有足够数据创建等待界面");
+            return;
         }
+        
+        // 检查期号是否匹配
+        if (this._arenaWaitingData.periodNo && data.period_no !== this._arenaWaitingData.periodNo) {
+            return;
+        }
+        
+        // 更新数据（直接使用服务端返回的真实数据）
+        this._arenaWaitingData.periodNo = data.period_no || "";
+        this._arenaWaitingData.roomId = data.room_id || 0;
+        this._arenaWaitingData.roomName = data.room_name || "竞技场";
+        this._arenaWaitingData.countdown = data.countdown;  // 🔧【关键】直接使用服务端推送的倒计时
+        this._arenaWaitingData.totalPlayers = data.total_players || 0;
+        this._arenaWaitingData.enteredPlayers = data.entered_players || 0;
+        this._arenaWaitingData.players = data.players || [];
+        
+        console.log("🏟️ [ArenaWaiting] 更新等待状态，倒计时=" + data.countdown + "，玩家数量:", this._arenaWaitingData.players.length);
+        
+        // 更新UI
+        this._updateArenaWaitingUI();
+    },
+    
+    /**
+     * 处理倒计时更新（服务端推送）
+     * 🔧【关键修复】直接使用服务端推送的倒计时，不做本地计算
+     */
+    _onArenaWaitingTick: function(data) {
+        if (!this._arenaWaitingNode) return;
+        
+        // 检查期号是否匹配
+        if (this._arenaWaitingData.periodNo && data.period_no !== this._arenaWaitingData.periodNo) {
+            return;
+        }
+        
+        // 🔧【关键修复】直接使用服务端推送的倒计时
+        // 服务端已经根据 StartTime 计算了正确的剩余时间
+        this._arenaWaitingData.serverCountdown = data.countdown;
+        this._arenaWaitingData.countdown = data.countdown;
+        this._arenaWaitingData.lastServerUpdateTime = Date.now();
+        this._arenaWaitingData.enteredPlayers = data.entered_players;
+        
+        // 更新倒计时显示
+        if (this._arenaWaitingLabels && this._arenaWaitingLabels.countdown) {
+            this._arenaWaitingLabels.countdown.string = data.countdown + "秒";
+            
+            // 最后10秒变红
+            if (data.countdown <= 10 && data.countdown > 0) {
+                this._arenaWaitingLabels.countdown.node.color = cc.color(255, 100, 100);
+            } else {
+                this._arenaWaitingLabels.countdown.node.color = cc.color(100, 255, 100);
+            }
+        }
+        
+        // 更新玩家数量
+        if (this._arenaWaitingLabels && this._arenaWaitingLabels.playerCount) {
+            this._arenaWaitingLabels.playerCount.string = "已进入: " + data.entered_players + " / " + this._arenaWaitingData.totalPlayers;
+        }
+    },
+    
+    /**
+     * 🔧【新增】启动本地备用计时器（服务端断线时使用）
+     * 🔧【关键修复】直接使用服务端推送的倒计时，断线时本地递减
+     */
+    _startArenaLocalCountdownTimer: function() {
+        var self = this;
+        
+        // 清理已有的计时器
+        if (this._arenaLocalCountdownTimer) {
+            clearInterval(this._arenaLocalCountdownTimer);
+            this._arenaLocalCountdownTimer = null;
+        }
+        
+        // 每秒检查一次
+        this._arenaLocalCountdownTimer = setInterval(function() {
+            if (!self._arenaWaitingNode || !self._arenaWaitingData) {
+                return;
+            }
+            
+            // 检查连接状态
+            var myglobal = window.myglobal;
+            var socket = myglobal && myglobal.socket;
+            var isConnected = socket && socket.isConnected && socket.isConnected();
+            
+            // 计算距离上次服务端更新的时间
+            var timeSinceLastUpdate = Date.now() - (self._arenaWaitingData.lastServerUpdateTime || 0);
+            
+            // 如果连接断开超过2秒，使用本地递减
+            if (!isConnected || timeSinceLastUpdate > 2000) {
+                // 本地倒计时递减
+                if (self._arenaWaitingData.countdown > 0) {
+                    self._arenaWaitingData.countdown--;
+                    
+                    // 更新倒计时显示
+                    if (self._arenaWaitingLabels && self._arenaWaitingLabels.countdown) {
+                        self._arenaWaitingLabels.countdown.string = self._arenaWaitingData.countdown + "秒";
+                        
+                        // 最后10秒变红
+                        if (self._arenaWaitingData.countdown <= 10 && self._arenaWaitingData.countdown > 0) {
+                            self._arenaWaitingLabels.countdown.node.color = cc.color(255, 100, 100);
+                        } else {
+                            self._arenaWaitingLabels.countdown.node.color = cc.color(100, 255, 100);
+                        }
+                    }
+                    
+                    console.log("🏟️ [ArenaWaiting] 本地倒计时(断线递减):", self._arenaWaitingData.countdown);
+                }
+            }
+            // 如果连接恢复，同步服务端倒计时
+            else if (isConnected && self._arenaWaitingData.serverCountdown !== undefined) {
+                self._arenaWaitingData.countdown = self._arenaWaitingData.serverCountdown;
+            }
+        }, 1000);
+    },
+    
+    /**
+     * 🔧【新增】停止本地备用计时器
+     */
+    _stopArenaLocalCountdownTimer: function() {
+        if (this._arenaLocalCountdownTimer) {
+            clearInterval(this._arenaLocalCountdownTimer);
+            this._arenaLocalCountdownTimer = null;
+        }
+    },
+    
+    /**
+     * 处理玩家加入
+     */
+    _onArenaPlayerJoined: function(data) {
+        if (!this._arenaWaitingNode) return;
+        
+        // 检查期号是否匹配
+        if (this._arenaWaitingData.periodNo && data.period_no !== this._arenaWaitingData.periodNo) {
+            return;
+        }
+        
+        // 更新玩家列表（直接使用服务端返回的真实数据）
+        this._arenaWaitingData.players = data.players || [];
+        this._arenaWaitingData.enteredPlayers = data.entered_players;
+        this._arenaWaitingData.totalPlayers = data.total_players;
+        
+        console.log("🏟️ [ArenaWaiting] 玩家加入，更新列表，玩家数量:", this._arenaWaitingData.players.length);
+        
+        // 更新玩家列表UI
+        this._updateArenaPlayerListUI();
+        
+        // 更新玩家数量
+        if (this._arenaWaitingLabels && this._arenaWaitingLabels.playerCount) {
+            this._arenaWaitingLabels.playerCount.string = "已进入: " + data.entered_players + " / " + data.total_players;
+        }
+    },
+    
+    /**
+     * 处理分配阶段开始
+     */
+    _onArenaAssignStart: function(data) {
+        if (!this._arenaWaitingNode) return;
+        
+        console.log("🏟️ [ArenaWaiting] 分配阶段开始，准备进入游戏");
+        
+        // 🔧【关键修复】设置标志，防止 room_joined 再次触发进入游戏场景
+        this._arenaRoomJoinedProcessed = true;
+        
+        // 隐藏等待界面
+        this._hideArenaWaitingUI();
+        
+        // 直接进入游戏场景
+        var myglobal = window.myglobal;
+        if (myglobal && myglobal.currentArenaMatch) {
+            var matchData = myglobal.currentArenaMatch;
+            var roomConfig = {
+                id: matchData.room_id,
+                room_name: matchData.room_name,
+                room_category: 2
+            };
+            this._enterArenaGameScene(matchData, roomConfig);
+        }
+    },
+    
+    /**
+     * 更新等待界面UI
+     */
+    _updateArenaWaitingUI: function() {
+        if (!this._arenaWaitingNode) return;
+        
+        var labels = this._arenaWaitingLabels;
+        if (!labels) return;
+        
+        // 更新期号
+        if (labels.period) {
+            labels.period.string = "期号: " + this._arenaWaitingData.periodNo;
+        }
+        
+        // 更新房间名称
+        if (labels.room) {
+            labels.room.string = this._arenaWaitingData.roomName;
+        }
+        
+        // 更新倒计时
+        if (labels.countdown) {
+            labels.countdown.string = this._arenaWaitingData.countdown + "秒";
+        }
+        
+        // 更新玩家数量
+        if (labels.playerCount) {
+            labels.playerCount.string = "已进入: " + this._arenaWaitingData.enteredPlayers + " / " + this._arenaWaitingData.totalPlayers;
+        }
+        
+        // 更新玩家列表
+        this._updateArenaPlayerListUI();
+    },
+    
+    /**
+     * 更新玩家列表UI（一排10个，从左上角开始排列）
+     * 排序规则：已进入的玩家排在前面，等待中的玩家排在后面
+     */
+    _updateArenaPlayerListUI: function() {
+        if (!this._arenaWaitingContent) return;
+        
+        // 清空现有列表
+        this._arenaWaitingContent.removeAllChildren();
+        
+        var players = this._arenaWaitingData.players || [];
+        console.log("🏟️ [ArenaWaiting] 更新玩家列表，玩家数量:", players.length);
+        
+        if (players.length === 0) {
+            console.log("🏟️ [ArenaWaiting] 没有玩家数据，跳过渲染");
+            return;
+        }
+        
+        // 排序：已进入的玩家（entered_at > 0）排在前面，等待中的排在后面
+        var sortedPlayers = players.slice().sort(function(a, b) {
+            var aEntered = a.entered_at && a.entered_at > 0;
+            var bEntered = b.entered_at && b.entered_at > 0;
+            
+            // 已进入的排在前面
+            if (aEntered && !bEntered) return -1;
+            if (!aEntered && bEntered) return 1;
+            
+            // 同状态按进入时间排序
+            return (a.entered_at || 0) - (b.entered_at || 0);
+        });
+        
+        console.log("🏟️ [ArenaWaiting] 排序后玩家:", sortedPlayers.map(function(p) { 
+            return p.player_name + (p.entered_at > 0 ? '(已进入)' : '(等待中)'); 
+        }).join(', '));
+        
+        // 布局参数：一排10个，从左上角开始排列
+        var itemWidth = 100;   // 卡片宽度
+        var itemHeight = 120;  // 卡片高度
+        var spacingX = 10;     // 水平间距
+        var spacingY = 10;     // 垂直间距
+        var cols = 10;         // 一排10个
+        var marginX = 10;      // 左边距
+        var marginY = 10;      // 上边距
+        
+        // 添加玩家项
+        for (var i = 0; i < sortedPlayers.length; i++) {
+            var player = sortedPlayers[i];
+            var statusText = (player.entered_at && player.entered_at > 0) ? '(已进入)' : '(等待中)';
+            console.log("🏟️ [ArenaWaiting] 创建玩家卡片:", i, player.player_name, statusText);
+            var itemNode = this._createArenaPlayerItemNew(player, i);
+            
+            // 计算位置（从左上角开始，锚点为左上角）
+            // contentNode 的锚点是 (0, 1)，即左上角
+            // (0, 0) 是左上角，x 向右增加，y 向下减少
+            var col = i % cols;
+            var row = Math.floor(i / cols);
+            var x = marginX + col * (itemWidth + spacingX) + itemWidth / 2;  // 卡片中心位置
+            var y = -marginY - row * (itemHeight + spacingY) - itemHeight / 2;  // Y向下为负
+            
+            itemNode.setPosition(x, y);
+            itemNode.parent = this._arenaWaitingContent;
+        }
+    },
+    
+    /**
+     * 创建玩家卡片（新设计：紧凑卡片，圆形头像）
+     */
+    _createArenaPlayerItemNew: function(player, index) {
+        var itemNode = new cc.Node("PlayerCard_" + index);
+        itemNode.setContentSize(cc.size(100, 120));
+        
+        // 卡片背景（圆角矩形）
+        var bgNode = new cc.Node("Bg");
+        bgNode.setContentSize(cc.size(95, 115));
+        var bgGraphics = bgNode.addComponent(cc.Graphics);
+        
+        // 🔧【修复】机器人和真人使用相同背景色，不再区分
+        bgGraphics.fillColor = cc.color(40, 60, 80, 230);  // 统一蓝色调
+        bgGraphics.roundRect(-47.5, -57.5, 95, 115, 8);
+        bgGraphics.fill();
+        bgNode.parent = itemNode;
+        
+        // ========== 圆形头像（使用 Mask 实现圆形裁剪）==========
+        // 创建遮罩节点
+        var maskNode = new cc.Node("AvatarMask");
+        maskNode.setPosition(0, 25);
+        maskNode.setContentSize(cc.size(60, 60));
+        
+        // 添加 Mask 组件
+        var mask = maskNode.addComponent(cc.Mask);
+        mask.type = cc.Mask.Type.ELLIPSE;  // 椭圆形遮罩（圆形）
+        mask.segements = 64;  // 圆滑度
+        
+        // 头像背景圆圈
+        var avatarBg = new cc.Node("AvatarBg");
+        var avatarBgGraphics = avatarBg.addComponent(cc.Graphics);
+        avatarBgGraphics.fillColor = cc.color(80, 80, 100, 255);
+        avatarBgGraphics.circle(0, 0, 32);
+        avatarBgGraphics.fill();
+        avatarBg.parent = maskNode;
+        
+        // 头像节点（在遮罩内部，会被裁剪成圆形）
+        var avatarNode = new cc.Node("Avatar");
+        avatarNode.setContentSize(cc.size(60, 60));
+        var avatarSprite = avatarNode.addComponent(cc.Sprite);
+        avatarSprite.type = cc.Sprite.Type.SIMPLE;
+        avatarSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        
+        // 加载头像
+        this._loadArenaPlayerAvatar(player.avatar, avatarSprite);
+        avatarNode.parent = maskNode;
+        
+        maskNode.parent = itemNode;
+        
+        // 昵称
+        var nameNode = new cc.Node("Name");
+        nameNode.setPosition(0, -25);
+        var nameLabel = nameNode.addComponent(cc.Label);
+        nameLabel.string = player.player_name || player.name || ("玩家" + (index + 1));
+        nameLabel.fontSize = 14;
+        nameLabel.lineHeight = 18;
+        nameNode.setContentSize(cc.size(90, 18));
+        nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        
+        // 🔧【修复】机器人和真人使用相同颜色，不再区分
+        nameNode.color = cc.color(255, 255, 255);  // 统一白色
+        nameNode.parent = itemNode;
+        
+        // 状态标签
+        // 规则：根据 entered_at 判断是否已进入
+        // - 已进入的玩家（包括机器人和真人）显示"已进入"
+        // - 未进入的玩家显示"等待中"
+        var statusNode = new cc.Node("Status");
+        statusNode.setPosition(0, -45);
+        var statusLabel = statusNode.addComponent(cc.Label);
+        statusLabel.fontSize = 12;
+        statusLabel.lineHeight = 14;
+        statusLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        
+        // 判断是否已进入：有 entered_at 且值大于0表示已进入
+        if (player.entered_at && player.entered_at > 0) {
+            statusLabel.string = "已进入";
+            statusNode.color = cc.color(100, 255, 150);  // 绿色
+        } else {
+            statusLabel.string = "等待中";
+            statusNode.color = cc.color(255, 200, 100);  // 橙色
+        }
+        statusNode.parent = itemNode;
+        
+        return itemNode;
+    },
+    
+    /**
+     * 加载玩家头像
+     */
+    _loadArenaPlayerAvatar: function(avatarUrl, sprite) {
+        if (!sprite) return;
+        
+        var self = this;
+        
+        // 如果没有头像URL，使用默认头像
+        if (!avatarUrl) {
+            cc.resources.load('UI/headimage/avatar_1', cc.SpriteFrame, function(err, spriteFrame) {
+                if (!err && spriteFrame && sprite && sprite.node && sprite.node.isValid) {
+                    sprite.spriteFrame = spriteFrame;
+                }
+            });
+            return;
+        }
+        
+        // 如果是网络URL
+        if (avatarUrl.indexOf('http://') === 0 || avatarUrl.indexOf('https://') === 0) {
+            cc.assetManager.loadRemote(avatarUrl, { ext: '.png' }, function(err, texture) {
+                if (!err && texture && sprite && sprite.node && sprite.node.isValid) {
+                    try {
+                        var sf = new cc.SpriteFrame(texture);
+                        sprite.spriteFrame = sf;
+                    } catch (e) {}
+                }
+            });
+            return;
+        }
+        
+        // 服务端上传的头像路径处理
+        // 支持两种格式: "/uploads/file/..." 和 "uploads/file/..."
+        var myglobal = window.myglobal;
+        var cdnUrl = myglobal && myglobal.cdnUrl ? myglobal.cdnUrl : "https://apis.hongxiu88.com";
+        
+        if (avatarUrl.indexOf('/uploads/') === 0) {
+            // 格式: /uploads/file/...
+            var fullUrl = cdnUrl + avatarUrl;
+            console.log("🏟️ [Avatar] 加载头像(格式1):", fullUrl);
+            cc.assetManager.loadRemote(fullUrl, { ext: '.png' }, function(err, texture) {
+                if (!err && texture && sprite && sprite.node && sprite.node.isValid) {
+                    try {
+                        var sf = new cc.SpriteFrame(texture);
+                        sprite.spriteFrame = sf;
+                    } catch (e) {
+                        console.warn("🏟️ [Avatar] 头像加载失败:", fullUrl);
+                    }
+                } else if (err) {
+                    console.warn("🏟️ [Avatar] 头像加载错误:", err);
+                }
+            });
+            return;
+        }
+        
+        if (avatarUrl.indexOf('uploads/') === 0) {
+            // 格式: uploads/file/... (没有前导斜杠)
+            var fullUrl = cdnUrl + '/' + avatarUrl;
+            console.log("🏟️ [Avatar] 加载头像(格式2):", fullUrl);
+            cc.assetManager.loadRemote(fullUrl, { ext: '.png' }, function(err, texture) {
+                if (!err && texture && sprite && sprite.node && sprite.node.isValid) {
+                    try {
+                        var sf = new cc.SpriteFrame(texture);
+                        sprite.spriteFrame = sf;
+                    } catch (e) {
+                        console.warn("🏟️ [Avatar] 头像加载失败:", fullUrl);
+                    }
+                } else if (err) {
+                    console.warn("🏟️ [Avatar] 头像加载错误:", err);
+                }
+            });
+            return;
+        }
+        
+        // 默认本地资源
+        cc.resources.load('UI/headimage/' + avatarUrl.replace(/\.png$|\.jpg$|\.jpeg$/gi, ''), cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err && spriteFrame && sprite && sprite.node && sprite.node.isValid) {
+                sprite.spriteFrame = spriteFrame;
+            }
+        });
+    },
+    
+    /**
+     * 取消进入竞技场
+     */
+    _onArenaWaitingCancel: function() {
+        console.log("🏟️ [ArenaWaiting] 玩家点击取消");
+        
+        // 发送取消进入请求
+        var myglobal = window.myglobal;
+        if (myglobal && myglobal.socket) {
+            myglobal.socket.emit("arena_cancel_enter", {
+                period_no: this._arenaWaitingData.periodNo,
+                room_id: this._arenaWaitingData.roomId
+            });
+        }
+        
+        // 隐藏等待界面
+        this._hideArenaWaitingUI();
     },
     
     // 🔧【新增】竞技场直接进入游戏场景（最多等待2秒）
@@ -2145,19 +4085,52 @@ cc.Class({
         var self = this;
         var myglobal = window.myglobal;
         
+        // 🔧【关键修复】防止重复进入游戏场景
+        if (this._enterGameSceneInProgress) {
+            console.log("🏟️ [Arena] 已在进入游戏场景中，跳过");
+            return;
+        }
+        
+        // 🔧【关键修复】设置标志，防止 room_joined 再次触发
+        this._arenaRoomJoinedProcessed = true;
+        
         // 显示简短加载提示
         this._showMessageCenter("正在进入竞技场...");
         
+        // 🔧【关键修复】从 _arenaWaitingData 获取玩家数据
+        var waitingPlayers = this._arenaWaitingData && this._arenaWaitingData.players ? this._arenaWaitingData.players : [];
+        console.log("🏟️ [Arena] 从等待数据获取玩家数量:", waitingPlayers.length);
+        
+        // 🔧【关键修复】转换 players 数组为 playerdata 格式
+        var playerdata = waitingPlayers.map(function(p, idx) {
+            return {
+                accountid: p.player_id || p.id,
+                nick_name: p.player_name || p.name,
+                avatar: p.avatar || "avatar_1",
+                avatarUrl: p.avatar || "avatar_1",
+                gold_count: p.gold_count || 0,
+                goldcount: p.gold_count || 0,
+                seatindex: idx + 1,
+                isready: p.entered_at && p.entered_at > 0,
+                is_robot: p.is_robot || false,
+                room_category: 2,  // 竞技场
+                period_no: matchData.period_no
+            };
+        });
+        
         // 构造房间数据
+        // 🔧【修复】竞技场房间号不添加 arena_ 前缀
+        // 🔧【关键修复】如果 room_code 为空，不使用期号作为后备值，等待 ROOM_JOINED 消息更新
         var roomData = {
-            room_code: matchData.room_code || ("arena_" + matchData.period_no),
+            room_code: matchData.room_code || "",  // 房间号不带前缀，为空时等待服务端更新
             room_id: matchData.room_id,
             room_name: matchData.room_name,
             room_category: 2,  // 竞技场
             base_score: roomConfig.base_score || 1,
             multiplier: roomConfig.multiplier || 1,
             period_no: matchData.period_no,
-            match_rounds: matchData.match_rounds
+            match_rounds: matchData.match_rounds,
+            playerdata: playerdata  // 🔧【关键修复】添加玩家数据
         };
         
         // 保存房间数据
@@ -2166,6 +4139,7 @@ cc.Class({
             myglobal.playerData = myglobal.playerData || {};
             myglobal.playerData.bottom = roomConfig.base_score || 1;
             myglobal.playerData.rate = roomConfig.multiplier || 1;
+            console.log("🏟️ [Arena] myglobal.roomData 已设置, playerdata 数量:", playerdata.length);
         }
         
         // 🔧【关键】最多等待2秒后直接进入游戏场景
@@ -2185,35 +4159,385 @@ cc.Class({
             self._enterGameScene(roomData);
         }, enterDelay);
     },
+    
+    /**
+     * 🔧【新增】从 room_joined 消息进入游戏场景
+     * 🔧【修复】正确转换 players 数组为 playerdata 格式，确保头像、金币等显示正常
+     * 🔧【优化】检查是否有预加载数据，避免重复预加载
+     */
+    _enterArenaGameSceneFromRoomJoined: function(roomData) {
+        console.log("🏟️ [Arena] 从 room_joined 进入游戏场景, roomData=" + JSON.stringify(roomData));
+        
+        // 🔧【关键修复】防止重复进入游戏场景
+        if (this._enterGameSceneInProgress) {
+            console.log("🏟️ [Arena] 已在进入游戏场景中，跳过（来自 room_joined）");
+            return;
+        }
+        
+        var myglobal = window.myglobal;
+        
+        // 🔧【关键修复】转换 players 数组为 playerdata 格式
+        var players = roomData.players || [];
+        var roomCategory = roomData.room_category || 2;  // 竞技场默认为2
+        var periodNo = roomData.period_no || "";
+        
+        var playerdata = players.map(function(p, idx) {
+            return {
+                accountid: p.id,
+                nick_name: p.name,
+                avatar: p.avatar || "avatar_1",           // 🔧【修复】使用 avatar 字段
+                avatarUrl: p.avatar || "avatar_1",        // 兼容两种写法
+                gold_count: p.gold_count || 0,
+                goldcount: p.gold_count || 0,             // 兼容旧客户端
+                seatindex: (p.seat !== undefined ? p.seat : idx) + 1,
+                isready: p.ready || true,                 // 竞技场玩家默认已准备
+                match_coin: p.match_coin || 0,            // 竞技币
+                arena_gold: p.arena_gold || 0,            // 🔧【新增】竞技场金币
+                room_category: roomCategory,              // 🔧【关键修复】传递房间类型
+                period_no: periodNo                       // 🔧【关键修复】传递期号
+            };
+        });
+        
+        console.log("🏟️ [Arena] 转换后的 playerdata 数量: " + playerdata.length + ", room_category=" + roomCategory);
+        
+        // 保存房间数据
+        if (myglobal) {
+            myglobal.roomData = {
+                roomid: roomData.room_code,
+                room_code: roomData.room_code,
+                room_id: roomData.room_id,
+                room_name: roomData.room_name || "竞技场",
+                room_category: roomCategory,
+                period_no: periodNo,
+                base_score: roomData.base_score || 1,
+                multiplier: roomData.multiplier || 1,
+                seatindex: roomData.player ? roomData.player.seat + 1 : 1,
+                playerdata: playerdata,                   // 🔧【关键修复】添加玩家数据
+                housemanageid: roomData.creator_id || "",
+                creator_id: roomData.creator_id || ""
+            };
+            
+            myglobal.playerData = myglobal.playerData || {};
+            myglobal.playerData.bottom = roomData.base_score || 1;
+            myglobal.playerData.rate = roomData.multiplier || 1;
+            
+            // 保存玩家座位信息
+            if (roomData.player) {
+                myglobal.playerData.seatIndex = roomData.player.seat + 1;
+            }
+            
+            console.log("🏟️ [Arena] myglobal.roomData 已保存, playerdata=" + playerdata.length + "人");
+        }
+        
+        // 🔧【优化】检查是否有预加载的头像缓存
+        var hasAvatarCache = myglobal && myglobal._avatarCache && Object.keys(myglobal._avatarCache).length > 0;
+        console.log("🏟️ [Arena] 头像缓存状态:", hasAvatarCache ? "已有缓存" : "无缓存");
+        
+        // 🔧【优化】如果有预加载数据，直接进入场景；否则显示加载界面
+        if (hasAvatarCache) {
+            console.log("🏟️ [Arena] 使用预加载的头像缓存，直接进入场景");
+            this._enterGameScene(myglobal.roomData);
+        } else {
+            // 没有预加载，显示加载界面并预加载头像
+            this._showArenaLoadingAndPreload(playerdata, myglobal.roomData);
+        }
+    },
+
+    /**
+     * 🔧【新增】显示竞技场加载界面并预加载头像资源
+     * 优化用户体验：倒计时结束后先显示加载动画，预加载完成后再进入场景
+     */
+    _showArenaLoadingAndPreload: function(playerdata, roomData) {
+        var self = this;
+        
+        // 🔧【关键修复】防止重复调用
+        if (this._arenaLoadingInProgress) {
+            console.log("🏟️ [ArenaLoading] 已在进行中，跳过");
+            return;
+        }
+        this._arenaLoadingInProgress = true;
+        
+        console.log("🏟️ [ArenaLoading] 显示加载界面，准备预加载头像...");
+        
+        // 显示加载界面
+        self._showArenaLoadingUI();
+        
+        // 预加载所有玩家的头像
+        var avatarUrls = [];
+        for (var i = 0; i < playerdata.length; i++) {
+            var avatarUrl = playerdata[i].avatar || playerdata[i].avatarUrl || "avatar_1";
+            if (avatarUrl && avatarUrls.indexOf(avatarUrl) === -1) {
+                avatarUrls.push(avatarUrl);
+            }
+        }
+        
+        console.log("🏟️ [ArenaLoading] 需要预加载的头像数量:", avatarUrls.length);
+        
+        // 如果没有头像需要加载，直接进入场景
+        if (avatarUrls.length === 0) {
+            self._hideArenaLoadingUI();
+            self._enterGameScene(roomData);
+            return;
+        }
+        
+        // 预加载头像资源
+        var loadedCount = 0;
+        var totalCount = avatarUrls.length;
+        
+        var checkAllLoaded = function() {
+            loadedCount++;
+            console.log("🏟️ [ArenaLoading] 头像加载进度:", loadedCount + "/" + totalCount);
+            
+            if (loadedCount >= totalCount) {
+                console.log("🏟️ [ArenaLoading] 所有头像预加载完成，准备进入场景");
+                // 短暂延迟，让加载动画显示一会儿（至少500ms）
+                setTimeout(function() {
+                    self._hideArenaLoadingUI();
+                    self._enterGameScene(roomData);
+                }, 500);
+            }
+        };
+        
+        for (var j = 0; j < avatarUrls.length; j++) {
+            var url = avatarUrls[j];
+            self._preloadAvatar(url, checkAllLoaded);
+        }
+        
+        // 设置超时保护（最多等待3秒）
+        self._arenaLoadingTimeout = setTimeout(function() {
+            console.warn("🏟️ [ArenaLoading] 预加载超时，强制进入场景");
+            self._hideArenaLoadingUI();
+            self._enterGameScene(roomData);
+        }, 3000);
+    },
+
+    /**
+     * 🔧【新增】预加载单个头像
+     */
+    _preloadAvatar: function(avatarUrl, callback) {
+        // 判断是否是远程URL
+        if (avatarUrl.indexOf('http://') === 0 || avatarUrl.indexOf('https://') === 0) {
+            // 远程URL头像
+            cc.assetManager.loadRemote(avatarUrl, { ext: '.png' }, function(err, texture) {
+                if (err || !texture) {
+                    console.warn("🏟️ [ArenaLoading] 远程头像预加载失败:", avatarUrl);
+                } else {
+                    console.log("🏟️ [ArenaLoading] 远程头像预加载成功:", avatarUrl);
+                    // 缓存到 myglobal
+                    var myglobal = window.myglobal;
+                    if (myglobal) {
+                        if (!myglobal._avatarCache) myglobal._avatarCache = {};
+                        try {
+                            myglobal._avatarCache[avatarUrl] = new cc.SpriteFrame(texture);
+                        } catch (e) {
+                            console.warn("🏟️ [ArenaLoading] 缓存头像失败:", e);
+                        }
+                    }
+                }
+                if (callback) callback();
+            });
+        } else {
+            // 本地资源头像
+            var localPath = "UI/headimage/" + avatarUrl;
+            cc.loader.loadRes(localPath, cc.SpriteFrame, function(err, spriteFrame) {
+                if (err || !spriteFrame) {
+                    console.warn("🏟️ [ArenaLoading] 本地头像预加载失败:", localPath);
+                } else {
+                    console.log("🏟️ [ArenaLoading] 本地头像预加载成功:", localPath);
+                    // 缓存到 myglobal
+                    var myglobal = window.myglobal;
+                    if (myglobal) {
+                        if (!myglobal._avatarCache) myglobal._avatarCache = {};
+                        myglobal._avatarCache[avatarUrl] = spriteFrame;
+                    }
+                }
+                if (callback) callback();
+            });
+        }
+    },
+
+    /**
+     * 🔧【新增】显示竞技场加载界面
+     */
+    _showArenaLoadingUI: function() {
+        var self = this;
+        
+        // 安全检查
+        if (!this.node || !this.node.isValid) {
+            console.warn("🏟️ [ArenaLoading] 节点不存在，无法显示加载界面");
+            return;
+        }
+        
+        // 如果已经有加载界面，先销毁
+        this._hideArenaLoadingUI();
+        
+        // 获取画布尺寸
+        var canvas = this.node.getComponent(cc.Canvas) || cc.find('Canvas').getComponent(cc.Canvas);
+        var screenHeight = canvas ? canvas.designResolution.height : 720;
+        var screenWidth = canvas ? canvas.designResolution.width : 1280;
+        
+        // 创建遮罩层
+        var maskNode = new cc.Node("ArenaLoadingMask");
+        maskNode.setContentSize(cc.size(screenWidth * 2, screenHeight * 2));
+        maskNode.color = cc.color(0, 0, 0);
+        maskNode.opacity = 0;
+        maskNode.zIndex = 9999;
+        
+        // 添加 BlockInputEvents 防止点击穿透
+        maskNode.addComponent(cc.BlockInputEvents);
+        maskNode.parent = this.node;
+        
+        // 创建加载动画容器
+        var loadingContainer = new cc.Node("LoadingContainer");
+        loadingContainer.parent = maskNode;
+        
+        // 尝试加载加载图片
+        cc.resources.load('UI/loading_image', cc.SpriteFrame, function(err, spriteFrame) {
+            if (!maskNode || !maskNode.isValid) return;
+            
+            if (err || !spriteFrame) {
+                console.warn("🏟️ [ArenaLoading] 加载图片不存在，使用文字提示");
+                // 降级：使用文字提示
+                var loadingLabel = new cc.Node("LoadingLabel");
+                var label = loadingLabel.addComponent(cc.Label);
+                label.string = "房间分配中...";
+                label.fontSize = 28;
+                label.lineHeight = 36;
+                label.fontFamily = "Arial";
+                loadingLabel.color = cc.color(255, 255, 255);
+                loadingLabel.parent = loadingContainer;
+                
+                // 添加"请稍候"提示
+                var tipLabel = new cc.Node("TipLabel");
+                tipLabel.y = -50;
+                var tip = tipLabel.addComponent(cc.Label);
+                tip.string = "请稍候";
+                tip.fontSize = 20;
+                tip.lineHeight = 28;
+                tip.fontFamily = "Arial";
+                tipLabel.color = cc.color(200, 200, 200);
+                tipLabel.parent = loadingContainer;
+            } else {
+                // 使用加载图片
+                var loadingImage = new cc.Node("LoadingImage");
+                loadingImage.setContentSize(cc.size(100, 100));
+                
+                var sprite = loadingImage.addComponent(cc.Sprite);
+                sprite.spriteFrame = spriteFrame;
+                sprite.type = cc.Sprite.Type.SIMPLE;
+                sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+                
+                loadingImage.parent = loadingContainer;
+                
+                // 保存引用用于旋转动画
+                self._arenaLoadingImageNode = loadingImage;
+                
+                // 添加"房间分配中"文字
+                var textLabel = new cc.Node("TextLabel");
+                textLabel.y = -80;
+                var label = textLabel.addComponent(cc.Label);
+                label.string = "房间分配中...";
+                label.fontSize = 24;
+                label.lineHeight = 32;
+                label.fontFamily = "Arial";
+                textLabel.color = cc.color(255, 255, 255);
+                textLabel.parent = loadingContainer;
+            }
+        });
+        
+        // 淡入动画
+        cc.tween(maskNode)
+            .to(0.2, { opacity: 220 })
+            .start();
+        
+        // 保存引用
+        this._arenaLoadingMask = maskNode;
+        
+        console.log("🏟️ [ArenaLoading] 加载界面已显示");
+    },
+
+    /**
+     * 🔧【新增】隐藏竞技场加载界面
+     */
+    _hideArenaLoadingUI: function() {
+        // 清除超时定时器
+        if (this._arenaLoadingTimeout) {
+            clearTimeout(this._arenaLoadingTimeout);
+            this._arenaLoadingTimeout = null;
+        }
+        
+        // 销毁加载界面
+        if (this._arenaLoadingMask) {
+            if (this._arenaLoadingMask.isValid) {
+                this._arenaLoadingMask.destroy();
+            }
+            this._arenaLoadingMask = null;
+        }
+        
+        this._arenaLoadingImageNode = null;
+        
+        console.log("🏟️ [ArenaLoading] 加载界面已隐藏");
+    },
 
     // 🔧【新增】从配置初始化本地状态（作为备用）
+    // 🔧【修复】使用 _arenaCandidateRooms（所有房间），根据 room_category 判断
     _initLocalArenaStatusFromConfig: function() {
-        if (!this._arenaRooms) return;
+        // 🔧【修复】使用所有候选房间
+        var targetRooms = this._arenaCandidateRooms || this._arenaRooms;
+        if (!targetRooms) return;
         
         var now = Date.now();
+        var arenaCount = targetRooms.length;
         
-        for (var i = 0; i < this._arenaRooms.length; i++) {
-            var room = this._arenaRooms[i];
+        console.log("🏟️ [Arena] _initLocalArenaStatusFromConfig 开始, arenaCount=" + arenaCount);
+        
+        for (var i = 0; i < arenaCount; i++) {
+            var room = targetRooms[i];
             var config = room.config;
             var roomId = config.id;
             
-            // 如果已经有服务端推送的数据，跳过
-            if (this._localArenaStatus[roomId]) continue;
+            // 🔧【关键修复】使用 room_category 判断是否是竞技场
+            var roomCategory = config.room_category || config.roomCategory || 1;
+            var isArena = (roomCategory === 2);
+            
+            console.log("🏟️ [Arena] 房间 " + roomId + " i=" + i + " isArena=" + isArena + ", room_category=" + roomCategory);
+            
+            // 如果已经有数据，只更新 hasMatchConfig（如果未设置）
+            if (this._localArenaStatus[roomId]) {
+                // 🔧【关键修复】确保 hasMatchConfig 被正确设置
+                if (this._localArenaStatus[roomId].hasMatchConfig === undefined) {
+                    this._localArenaStatus[roomId].hasMatchConfig = isArena;
+                    console.log("🏟️ [Arena] 更新房间 " + roomId + " 的 hasMatchConfig=" + isArena);
+                }
+                continue;
+            }
             
             // 使用本地计算作为初始值
             var phaseInfo = this._calculatePhaseInfo(config);
             
+            // 🔧【关键修复】如果是竞技场，使用默认值
+            // 默认显示报名阶段，倒计时5分钟
+            if (isArena && phaseInfo.phase === 0) {
+                phaseInfo.phase = 2;  // 报名阶段
+                phaseInfo.countdown = 300;  // 5分钟
+                phaseInfo.canSignup = true;
+            }
+            
             this._localArenaStatus[roomId] = {
                 periodNo: phaseInfo.periodNo,
                 periodNoStr: phaseInfo.periodNoStr,  // 新增：字符串格式期号
-                phase: phaseInfo.phase,
-                countdown: phaseInfo.countdown,
-                canSignup: phaseInfo.canSignup,
+                phase: isArena ? phaseInfo.phase : 0,
+                countdown: isArena ? phaseInfo.countdown : -1,
+                canSignup: isArena ? phaseInfo.canSignup : false,
                 totalPlayers: 0,  // 🔧【修复】初始化报名人数为0
                 statusText: "",
                 lastUpdate: now,
-                isLocalCalculated: true  // 标记为本地计算
+                isLocalCalculated: true,  // 标记为本地计算
+                hasMatchConfig: isArena,  // 🔧【修复】使用 room_category 判断
+                roomCategory: roomCategory  // 🔧【新增】保存 room_category
             };
+            
+            console.log("🏟️ [Arena] 创建房间 " + roomId + " 状态: phase=" + (isArena ? phaseInfo.phase : 0) + ", countdown=" + (isArena ? phaseInfo.countdown : -1) + ", isArena=" + isArena);
         }
         
         // 更新显示
@@ -2225,36 +4549,81 @@ cc.Class({
         if (!arenas) return;
         
         var now = Date.now();
+        // 🔧【修复】使用所有候选房间进行匹配
+        var targetRooms = this._arenaCandidateRooms || this._arenaRooms;
+        var arenaCount = targetRooms ? targetRooms.length : 0;
+        var serverArenaCount = arenas.length;
         
         // 🔧 调试：打印收到的完整数据
+        console.log("🏟️ [Arena] ========== 收到服务端推送 ==========");
+        console.log("🏟️ [Arena] arenas.length=" + serverArenaCount + ", 客户端 targetRooms.length=" + arenaCount);
         
-        // 更新本地状态缓存
+        // 🔧【调试】打印客户端的所有房间 ID 列表
+        if (targetRooms) {
+            var clientRoomIds = [];
+            for (var k = 0; k < targetRooms.length; k++) {
+                clientRoomIds.push(targetRooms[k].config.id);
+            }
+            console.log("🏟️ [Arena] 客户端所有房间 ID 列表: " + JSON.stringify(clientRoomIds));
+        }
+        
+        // 🔧【关键修复】按 room_type 匹配服务端数据到客户端房间
+        // 服务端的 room_type 和客户端的 room_type 是一致的
+        // room_type=2 → 初级房, room_type=3 → 中级房, room_type=4 → 高级房
+        
         for (var i = 0; i < arenas.length; i++) {
             var arena = arenas[i];
-            var roomId = arena.room_id;
+            var serverRoomId = arena.room_id;
+            var serverRoomType = arena.room_type;
             var newPeriodNoStr = arena.period_no_str || arena.periodNoStr || "";
             
-            // 🔧 调试：打印每个竞技场的 total_players
+            // 🔧 调试：打印每个竞技场的详细信息
+            console.log("🏟️ [Arena] 推送房间 room_id=" + serverRoomId + ", room_type=" + serverRoomType + ", phase=" + arena.phase + ", countdown=" + arena.countdown);
             
-            // 🔧【新增】检查期号是否变化，如果变化则清除用户报名状态
-            var oldStatus = this._localArenaStatus[roomId];
+            // 🔧【关键修复】按 room_type 匹配到客户端房间
+            var clientRoomId = null;
+            var matchedRoomIndex = -1;
+            var matchedRoomConfig = null;
+            
+            for (var j = 0; j < targetRooms.length; j++) {
+                var clientRoom = targetRooms[j];
+                var clientRoomType = clientRoom.config.room_type || clientRoom.config.roomType || clientRoom.roomType;
+                if (clientRoomType === serverRoomType) {
+                    clientRoomId = clientRoom.config.id;
+                    matchedRoomIndex = j;
+                    matchedRoomConfig = clientRoom.config;
+                    console.log("🏟️ [Arena] 服务端 room_type=" + serverRoomType + " 匹配到客户端房间 ID=" + clientRoomId + ", room_type=" + clientRoomType);
+                    break;
+                }
+            }
+            
+            // 如果客户端没有对应的房间，跳过
+            if (clientRoomId === null) {
+                console.log("🏟️ [Arena] 客户端没有 room_type=" + serverRoomType + " 的房间，跳过");
+                continue;
+            }
+            
+            // 🔧【新增】获取房间的 room_category，默认值是 1（普通场）
+            var matchedRoomCategory = matchedRoomConfig ? (matchedRoomConfig.room_category || matchedRoomConfig.roomCategory || 1) : 1;
+            
+            // 🔧【关键修复】检查期号是否变化，如果变化则清除用户报名状态
+            var oldStatus = this._localArenaStatus[clientRoomId];
             if (oldStatus && oldStatus.periodNoStr && newPeriodNoStr && oldStatus.periodNoStr !== newPeriodNoStr) {
-                // 🔧【修复】不在期号变化时关闭弹窗
-                // 弹窗应该只在以下情况关闭：
-                // 1. 玩家点击"进入"或"取消"按钮
-                // 2. 服务端发送 arena_close_dialog 消息（进入阶段倒计时结束）
-                // 3. 玩家手动关闭弹窗
-                
                 // 清除用户在该房间的报名状态
-                if (window.arenaData && window.arenaData._signedUpArenas && window.arenaData._signedUpArenas[roomId]) {
-                    var oldPeriodNo = window.arenaData._signedUpArenas[roomId].periodNo;
-                    delete window.arenaData._signedUpArenas[roomId];
+                if (window.arenaData && window.arenaData._signedUpArenas && window.arenaData._signedUpArenas[clientRoomId]) {
+                    delete window.arenaData._signedUpArenas[clientRoomId];
                     window.arenaData.saveToLocal && window.arenaData.saveToLocal();
                 }
             }
             
-            // 保存服务端推送的状态（支持新字段）
-            this._localArenaStatus[roomId] = {
+            // 🔧【关键修复】只有 room_category=2 的房间才显示期号和报名按钮
+            // 根据匹配到的客户端房间的 room_category 判断
+            var hasMatchConfig = (matchedRoomCategory === 2);
+            
+            console.log("🏟️ [Arena] 客户端房间 " + clientRoomId + " hasMatchConfig=" + hasMatchConfig + ", room_category=" + matchedRoomCategory + ", i=" + i + ", serverArenaCount=" + serverArenaCount);
+            
+            // 保存服务端推送的状态（使用客户端房间 ID 作为 key）
+            this._localArenaStatus[clientRoomId] = {
                 periodNo: arena.period_no,
                 periodNoStr: newPeriodNoStr,
                 phase: arena.phase || 0,
@@ -2263,8 +4632,40 @@ cc.Class({
                 totalPlayers: arena.total_players || arena.totalPlayers || 0,
                 statusText: arena.status_text || arena.statusText || "",
                 lastUpdate: now,
-                isLocalCalculated: false  // 服务端推送
+                isLocalCalculated: false,  // 服务端推送
+                hasMatchConfig: hasMatchConfig,  // 🔧【新增】标记是否有开赛配置
+                roomCategory: matchedRoomCategory  // 🔧【新增】保存 room_category
             };
+        }
+        
+        // 🔧【关键修复】确保所有房间都有状态（包括服务端没有推送的）
+        // 🔧【修复】使用 room_category 判断是否是竞技场
+        if (targetRooms) {
+            for (var k = 0; k < targetRooms.length; k++) {
+                var r = targetRooms[k];
+                var rid = r.config.id;
+                if (!this._localArenaStatus[rid]) {
+                    // 如果服务端没有推送这个房间的状态，使用默认值
+                    // 🔧【关键修复】使用 room_category 判断
+                    var rCategory = r.config.room_category || r.config.roomCategory || 1;
+                    var rIsArena = (rCategory === 2);
+                    
+                    this._localArenaStatus[rid] = {
+                        periodNo: 0,
+                        periodNoStr: "",
+                        phase: rIsArena ? 2 : 0,
+                        countdown: rIsArena ? 300 : -1,
+                        canSignup: rIsArena,
+                        totalPlayers: 0,
+                        statusText: rIsArena ? "报名中" : "暂未开放",
+                        lastUpdate: now,
+                        isLocalCalculated: true,
+                        hasMatchConfig: rIsArena,
+                        roomCategory: rCategory
+                    };
+                    console.log("🏟️ [Arena] 补充房间 " + rid + " 默认状态: isArena=" + rIsArena + ", room_category=" + rCategory);
+                }
+            }
         }
         
         // 立即更新显示
@@ -2281,6 +4682,9 @@ cc.Class({
         // 遍历所有竞技场，每秒减1
         for (var roomId in this._localArenaStatus) {
             var status = this._localArenaStatus[roomId];
+            
+            // 🔧【重要】保存当前的 hasMatchConfig 值
+            var savedHasMatchConfig = status.hasMatchConfig;
             
             // 🔧【新增】容错机制：如果超过35秒没收到服务端推送，使用本地计算校准
             var timeSinceLastUpdate = (now - status.lastUpdate) / 1000;
@@ -2309,6 +4713,8 @@ cc.Class({
                     status.periodNo = phaseInfo.periodNo;
                     status.periodNoStr = phaseInfo.periodNoStr;
                     status.isLocalCalculated = true;
+                    // 🔧【重要】保持 hasMatchConfig 值不变
+                    status.hasMatchConfig = savedHasMatchConfig;
                     needUpdate = true;
                 }
                 continue;
@@ -2343,6 +4749,8 @@ cc.Class({
                         status.canSignup = phaseInfo.canSignup;
                         status.periodNo = phaseInfo.periodNo;
                         status.periodNoStr = phaseInfo.periodNoStr;
+                        // 🔧【重要】保持 hasMatchConfig 值不变
+                        status.hasMatchConfig = savedHasMatchConfig;
                     }
                 }
             }
@@ -2463,26 +4871,31 @@ cc.Class({
 
     // 🔧【新增】根据roomId获取竞技场配置
     _getArenaConfigByRoomId: function(roomId) {
-        if (!this._arenaRooms) return null;
+        // 🔧【修复】使用所有候选房间
+        var targetRooms = this._arenaCandidateRooms || this._arenaRooms;
+        if (!targetRooms) return null;
         
-        for (var i = 0; i < this._arenaRooms.length; i++) {
-            if (this._arenaRooms[i].config.id === roomId) {
-                return this._arenaRooms[i].config;
+        for (var i = 0; i < targetRooms.length; i++) {
+            if (targetRooms[i].config.id === roomId) {
+                return targetRooms[i].config;
             }
         }
         return null;
     },
 
     // 🔧【新增】从本地缓存更新倒计时显示
+    // 🔧【修复】根据 hasMatchConfig 决定是否显示期号和报名按钮
     _updateCountdownFromLocalCache: function() {
-        if (!this._arenaRooms || !this._localArenaStatus) return;
+        // 🔧【修复】使用所有候选房间
+        var targetRooms = this._arenaCandidateRooms || this._arenaRooms;
+        if (!targetRooms || !this._localArenaStatus) return;
         
         var cardPanel = this.node.getChildByName("CardContainer");
         var countdownContainer = cardPanel ? cardPanel.getChildByName("ArenaCountdowns") : null;
         var buttonContainer = cardPanel ? cardPanel.getChildByName("ArenaSignupButtons") : null;
         
-        for (var i = 0; i < this._arenaRooms.length; i++) {
-            var room = this._arenaRooms[i];
+        for (var i = 0; i < targetRooms.length; i++) {
+            var room = targetRooms[i];
             var config = room.config;
             var roomId = config.id;
             
@@ -2490,23 +4903,57 @@ cc.Class({
             var localStatus = this._localArenaStatus[roomId];
             if (!localStatus) continue;
             
+            // 🔧【关键】检查是否有开赛配置
+            var hasMatchConfig = localStatus.hasMatchConfig;
+            if (hasMatchConfig === undefined) {
+                // 🔧【关键修复】使用 room_category 判断是否是竞技场
+                var roomCategory = config.room_category || config.roomCategory || localStatus.roomCategory || 1;
+                hasMatchConfig = (roomCategory === 2);
+            }
+            
+            // 🔧【调试日志】打印每个房间的状态
+            console.log("🏟️ [Arena] 房间 " + roomId + " hasMatchConfig=" + hasMatchConfig + ", i=" + i + ", arenaCount=" + (targetRooms ? targetRooms.length : 0));
+            
             // 获取状态项节点
             var roomStatusItem = countdownContainer ? countdownContainer.getChildByName("RoomStatusItem_" + roomId) : null;
             if (!roomStatusItem) continue;
             
             var periodLabel = roomStatusItem.getChildByName("PeriodLabel");
             var titleLabel = roomStatusItem.getChildByName("TitleLabel");
+            var bgNode = roomStatusItem.getChildByName("Bg");
             
             // 获取报名按钮
             var signupBtn = buttonContainer ? buttonContainer.getChildByName("SignupBtn_" + roomId) : null;
             
-            // 更新时期号显示（使用新的字符串格式期号）
+            // 🔧【关键修复】没有开赛配置的房间（大师房）：隐藏状态栏和报名按钮
+            if (!hasMatchConfig) {
+                // 隐藏整个状态项
+                roomStatusItem.active = false;
+                // 隐藏报名按钮
+                if (signupBtn) signupBtn.active = false;
+                continue;
+            }
+            
+            // 有开赛配置的房间：显示状态栏和报名按钮
+            roomStatusItem.active = true;
+            
+            // 更新时期号显示
             if (periodLabel) {
                 var periodLabelComp = periodLabel.getComponent(cc.Label);
                 var periodNoStr = localStatus.period_no_str || localStatus.periodNoStr || localStatus.periodNo;
-                if (periodNoStr && localStatus.phase !== 0) {
+                if (periodNoStr && periodNoStr !== "") {
                     periodLabelComp.string = "期号: " + periodNoStr;
                     periodLabel.color = cc.color(255, 215, 0);  // 金色
+                } else if (localStatus.phase === 2) {
+                    // 报名阶段但没有期号字符串，显示期号数字
+                    var periodNo = localStatus.periodNo || 0;
+                    if (periodNo > 0) {
+                        periodLabelComp.string = "期号: " + periodNo;
+                        periodLabel.color = cc.color(255, 215, 0);  // 金色
+                    } else {
+                        periodLabelComp.string = "期号: --";
+                        periodLabel.color = cc.color(180, 180, 180);  // 灰色
+                    }
                 } else {
                     periodLabelComp.string = "期号: --";
                     periodLabel.color = cc.color(180, 180, 180);  // 灰色
@@ -2540,6 +4987,7 @@ cc.Class({
             
             // 更新报名按钮状态
             if (signupBtn) {
+                signupBtn.active = true;  // 有配置的房间显示按钮
                 var sprite = signupBtn.getComponent(cc.Sprite);
                 var button = signupBtn.getComponent(cc.Button);
                 
@@ -2556,7 +5004,6 @@ cc.Class({
                     if (this._signupBtnFrames && this._signupBtnFrames['btn_no_baoming']) {
                         sprite.spriteFrame = this._signupBtnFrames['btn_no_baoming'];
                     }
-                    signupBtn.active = true;
                     if (button) button.enabled = false;
                 } else {
                     // 检查是否已报名
@@ -2567,14 +5014,12 @@ cc.Class({
                         if (this._signupBtnFrames && this._signupBtnFrames['btn_quxiaobaoming']) {
                             sprite.spriteFrame = this._signupBtnFrames['btn_quxiaobaoming'];
                         }
-                        signupBtn.active = true;
                         if (button) button.enabled = true;
                     } else {
                         // 未报名：显示报名按钮
                         if (this._signupBtnFrames && this._signupBtnFrames['btn_baoming']) {
                             sprite.spriteFrame = this._signupBtnFrames['btn_baoming'];
                         }
-                        signupBtn.active = true;
                         if (button) button.enabled = true;
                     }
                 }
@@ -5267,53 +7712,62 @@ cc.Class({
     _enterGameScene: function(roomData) {
         var startTime = Date.now();
         
-        // 🔧【关键修复】防止重复加载游戏场景
-        // 当 room_joined 消息被多个监听器处理时，可能会导致多次调用此方法
-        if (this._isEnteringGameScene) {
-            console.log("🚀 [进入场景] 已在加载游戏场景中，跳过重复请求");
+        // 🔧【关键修复】防止重复加载场景
+        if (this._enterGameSceneInProgress) {
+            console.log("🚀 [进入场景] 已在进行中，跳过");
             return;
         }
-        this._isEnteringGameScene = true;
+        this._enterGameSceneInProgress = true;
         
-        // 隐藏加载提示
-        this._hideMessageCenter();
-        
-        // 🔧【优化】显示快速进入动画
-        this._showQuickEnterAnimation();
+        // 🔧【新增】5秒后自动重置标志位（防止卡死）
+        var self = this;
+        setTimeout(function() {
+            if (self._enterGameSceneInProgress) {
+                console.log("🚀 [进入场景] 超时自动重置标志位");
+                self._enterGameSceneInProgress = false;
+            }
+        }, 5000);
         
         console.log("🚀 [进入场景] 开始加载游戏场景");
         
+        // 🔧【修复】添加安全检查，防止节点已销毁时报错
+        if (this.node && this.node.isValid) {
+            // 隐藏加载提示
+            this._hideMessageCenter();
+            
+            // 🔧【优化】显示快速进入动画
+            this._showQuickEnterAnimation();
+        }
+        
+        // 🔧【关键修复】确保 roomData 已保存到 myglobal
+        var myglobal = window.myglobal;
+        if (myglobal && roomData) {
+            // 如果 roomData 没有正确设置，使用传入的 roomData
+            if (!myglobal.roomData || !myglobal.roomData.playerdata || myglobal.roomData.playerdata.length === 0) {
+                myglobal.roomData = roomData;
+                console.log("🚀 [进入场景] 保存 roomData 到 myglobal, playerdata 数量:", 
+                    (roomData.playerdata ? roomData.playerdata.length : 0));
+            }
+        }
+        
         // 🔧【优化】使用预加载的场景，切换更快
-        var self = this;
         if (this._gameScenePreloaded) {
             cc.director.runSceneImmediate(new cc.Scene(), function() {
                 cc.director.loadScene("gameScene", function(err) {
                     if (err) {
                         console.error("🚀 [进入场景] 加载游戏场景失败:", err);
-                        self._isEnteringGameScene = false;
                         return;
                     }
                     var elapsed = Date.now() - startTime;
-                    console.log("🚀 [进入场景] 游戏场景加载完成，耗时:", elapsed, "ms");
-                    // 🔧【关键修复】延迟重置标志，确保场景完全加载
-                    setTimeout(function() {
-                        self._isEnteringGameScene = false;
-                    }, 2000);
                 });
             });
         } else {
             cc.director.loadScene("gameScene", function(err) {
                 if (err) {
                     console.error("🚀 [进入场景] 加载游戏场景失败:", err);
-                    self._isEnteringGameScene = false;
                     return;
                 }
                 var elapsed = Date.now() - startTime;
-                console.log("🚀 [进入场景] 游戏场景加载完成，耗时:", elapsed, "ms");
-                // 🔧【关键修复】延迟重置标志，确保场景完全加载
-                setTimeout(function() {
-                    self._isEnteringGameScene = false;
-                }, 2000);
             });
         }
     },
@@ -5498,9 +7952,12 @@ cc.Class({
             this._centerTipNode = null;
         }
         
-        var tipNode = this.node.getChildByName("center_tip");
-        if (tipNode && tipNode.isValid) {
-            tipNode.destroy();
+        // 🔧【修复】添加空指针检查，防止节点已销毁时出错
+        if (this.node && this.node.isValid) {
+            var tipNode = this.node.getChildByName("center_tip");
+            if (tipNode && tipNode.isValid) {
+                tipNode.destroy();
+            }
         }
     },
     
@@ -5550,34 +8007,169 @@ cc.Class({
         var playerNode = this.node.getChildByName("player_node");
         if (!playerNode) return;
         
-        // 🔧【修改】将昵称往上移一点
+        // 获取头像背景节点，计算货币显示位置
+        var headBg = playerNode.getChildByName("head_bg");
+        var headRightEdge = 135;  // 头像右边缘约 85 + 50
+        var currencyStartX = headRightEdge + 10;  // 距离头像10px开始
+        
+        // 获取用户名节点位置作为参考
         var nicknameNode = playerNode.getChildByName("nickname_label");
+        var nicknameY = nicknameNode ? nicknameNode.y : 43;
+        
+        // 🔧【修改】将昵称往上移一点（+10px）
         if (nicknameNode) {
-            nicknameNode.y = nicknameNode.y + 10;
+            nicknameNode.y = nicknameY + 10;
+            nicknameY = nicknameNode.y;  // 更新 nicknameY 供后续使用
         }
         
+        // 昵称位置已调整，货币显示在昵称下方
+        // 昵称高度约40px，货币显示在昵称下方20px处
+        
+        // 隐藏原来的金豆图标、金框和原来的金币显示节点（避免重复显示）
         var yuanbaoIcon = playerNode.getChildByName("yuanbaoIcon");
         var goldFrame = playerNode.getChildByName("gold_frame");
+        var oldGobalLabel = playerNode.getChildByName("gobal_count_label");
+        if (yuanbaoIcon) yuanbaoIcon.active = false;
+        if (goldFrame) goldFrame.active = false;
+        if (oldGobalLabel) oldGobalLabel.active = false;  // 隐藏原来的金币显示，避免重复
         
-        // 调整金豆图标位置
-        if (yuanbaoIcon) {
-            yuanbaoIcon.y = 80;
-            yuanbaoIcon.x = -50;  // 向左偏移
-        }
-        if (goldFrame) {
-            goldFrame.y = 80;
+        // 创建货币显示容器（只显示欢乐豆，竞技币已隐藏）
+        // 位置：距离头像10px，在昵称下方
+        var currencyY = nicknameY - 35;  // 昵称下方35px
+        var currencyContainer = this._createCurrencyContainerRow(
+            playerNode, 
+            "currency_display_row", 
+            currencyStartX,  // 距离头像10px
+            currencyY        // 昵称下方
+        );
+        
+        // 存储引用，方便后续更新
+        this._happyBeanLabelNode = currencyContainer ? currencyContainer.happyBeanLabel : null;
+        this._arenaCoinLabelNode = currencyContainer ? currencyContainer.arenaCoinLabel : null;
+        
+        // 立即更新显示值
+        this._updateBothCurrencyDisplay();
+    },
+    
+    // 【新增】创建货币显示容器（欢乐豆和竞技币放在同一行，垂直居中布局）
+    _createCurrencyContainerRow: function(parentNode, name, x, y) {
+        var self = this;
+        if (!parentNode) return null;
+        
+        // 检查是否已存在
+        var existing = parentNode.getChildByName(name);
+        if (existing) {
+            return {
+                happyBeanLabel: existing.getChildByName("happy_bean_value"),
+                arenaCoinLabel: existing.getChildByName("arena_coin_value")
+            };
         }
         
-        // 调整金币文字位置 - 放在金豆图标后面
-        if (this.gobal_count && this.gobal_count.node) {
-            var labelNode = this.gobal_count.node;
-            var widget = labelNode.getComponent(cc.Widget);
-            if (widget) widget.enabled = false;
-            
-            // 文字放在金豆图标右侧
-            labelNode.anchorX = 0;  // 左锚点，从左侧开始
-            labelNode.x = 20;       // 金豆图标后面20px
-            labelNode.y = 80;       // 与金豆图标同一高度
+        // ========== 布局参数 ==========
+        var containerHeight = 40;   // 容器高度40px
+        var iconSize = 22;          // 图标大小22px
+        var valueFontSize = 20;     // 数字字体大小
+        var iconTextGap = 5;        // 图标与数字间距（调整为5px）
+        var currencyGap = 25;       // 两种货币之间的间距
+        
+        // ========== 创建容器节点 ==========
+        var container = new cc.Node(name);
+        container.setPosition(x, y);
+        container.anchorX = 0;
+        container.anchorY = 0.5;    // 垂直居中锚点
+        container.setContentSize(200, containerHeight);  // 设置固定高度40px
+        container.zIndex = 100;
+        container.parent = parentNode;
+        
+        // ========== 欢乐豆显示 ==========
+        // 欢乐豆图标 - 22px圆形带"豆"字
+        var happyBeanIcon = new cc.Node("happy_bean_icon");
+        happyBeanIcon.anchorX = 0.5;   // 修改：锚点设在中心，方便文字居中
+        happyBeanIcon.anchorY = 0.5;   // 垂直居中
+        happyBeanIcon.x = iconSize / 2; // 修改：调整位置使图标正确显示
+        happyBeanIcon.y = 0;           // 容器中心
+        happyBeanIcon.setContentSize(iconSize, iconSize);
+        
+        // 绘制图标背景 - 橙黄色
+        var happyBeanGraphics = happyBeanIcon.addComponent(cc.Graphics);
+        happyBeanGraphics.fillColor = cc.color(255, 180, 50);
+        happyBeanGraphics.circle(0, 0, iconSize / 2);
+        happyBeanGraphics.fill();
+        happyBeanIcon.parent = container;
+        
+        // 图标上的"豆"字 - 居中显示在圆形背景中
+        var happyBeanTextNode = new cc.Node("text");
+        happyBeanTextNode.anchorX = 0.5;
+        happyBeanTextNode.anchorY = 0.5;
+        happyBeanTextNode.x = 0;      // 修改：明确设置位置在图标中心
+        happyBeanTextNode.y = 0;      // 修改：明确设置位置在图标中心
+        var happyBeanText = happyBeanTextNode.addComponent(cc.Label);
+        happyBeanText.string = "豆";
+        happyBeanText.fontSize = 13;
+        happyBeanText.lineHeight = iconSize;  // 修改：行高等于图标大小，确保垂直居中
+        happyBeanText.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        happyBeanText.verticalAlign = cc.Label.VerticalAlign.CENTER;  // 修改：添加垂直居中对齐
+        happyBeanTextNode.color = cc.color(139, 69, 19);  // 深棕色
+        happyBeanTextNode.parent = happyBeanIcon;
+        
+        // 欢乐豆数值 - line-height=40px，垂直居中
+        var happyBeanValueLabel = new cc.Node("happy_bean_value");
+        happyBeanValueLabel.anchorX = 0;
+        happyBeanValueLabel.anchorY = 0.5;  // 垂直居中
+        happyBeanValueLabel.x = iconSize + iconTextGap;  // 图标宽度 + 间距（图标锚点已改为中心，所以这里不需要调整）
+        happyBeanValueLabel.y = 0;          // 容器中心
+        var happyBeanValue = happyBeanValueLabel.addComponent(cc.Label);
+        happyBeanValue.string = "0";
+        happyBeanValue.fontSize = valueFontSize;
+        happyBeanValue.lineHeight = containerHeight;  // line-height = 40px
+        happyBeanValue.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+        happyBeanValue.verticalAlign = cc.Label.VerticalAlign.CENTER;  // 垂直居中
+        happyBeanValueLabel.color = cc.color(255, 215, 0);  // 金色
+        var outline2 = happyBeanValueLabel.addComponent(cc.LabelOutline);
+        outline2.color = cc.color(0, 0, 0);
+        outline2.width = 1;
+        happyBeanValueLabel.parent = container;
+        
+        // ========== 竞技币显示（已隐藏）==========
+        // 🔧【修改】用户要求隐藏竞技币图标和数字
+        // var arenaStartX = iconSize + iconTextGap + 55 + currencyGap;
+        // ... 竞技币相关代码已注释 ...
+        
+        // 不创建竞技币显示，返回空的引用
+        var arenaCoinValueLabel = null;
+        
+        return {
+            happyBeanLabel: happyBeanValueLabel,
+            arenaCoinLabel: arenaCoinValueLabel  // 返回null，不显示竞技币
+        };
+    },
+    
+    // 【新增】同时更新欢乐豆和竞技币显示
+    _updateBothCurrencyDisplay: function() {
+        var myglobal = window.myglobal;
+        var playerData = myglobal ? myglobal.playerData : null;
+        
+        if (!playerData) return;
+        
+        // 更新欢乐豆显示
+        if (this._happyBeanLabelNode) {
+            var label = this._happyBeanLabelNode.getComponent(cc.Label);
+            if (label) {
+                label.string = this._formatGold(playerData.gobal_count || 0);
+            }
+        }
+        
+        // 更新竞技币显示
+        if (this._arenaCoinLabelNode) {
+            var label = this._arenaCoinLabelNode.getComponent(cc.Label);
+            if (label) {
+                label.string = this._formatGold(playerData.arena_coin || 0);
+            }
+        }
+        
+        // 同时也更新原来的 gobal_count（兼容性）
+        if (this.gobal_count) {
+            this.gobal_count.string = this._formatGold(playerData.gobal_count || 0);
         }
     },
     
@@ -6027,6 +8619,7 @@ cc.Class({
     
     // ============================================================
     // 【竞技场功能】更新货币显示（欢乐豆/竞技币）
+    // 修改：同时显示欢乐豆和竞技币，而不是切换显示
     // ============================================================
     _updateCurrencyDisplay: function() {
         var myglobal = window.myglobal;
@@ -6034,22 +8627,8 @@ cc.Class({
         
         if (!playerData) return;
         
-        var roomCategory = this._currentRoomCategory || 1;
-        
-        if (roomCategory === 2) {
-            // 竞技场 - 显示竞技币
-            if (this.gobal_count) {
-                this.gobal_count.string = ":" + this._formatGold(playerData.arena_coin || 0);
-            }
-            // 隐藏欢乐豆图标，显示竞技币图标（如果有）
-            this._updateCurrencyIcon(2);
-        } else {
-            // 普通场 - 显示欢乐豆
-            if (this.gobal_count) {
-                this.gobal_count.string = ":" + this._formatGold(playerData.gobal_count || 0);
-            }
-            this._updateCurrencyIcon(1);
-        }
+        // 同时更新欢乐豆和竞技币显示
+        this._updateBothCurrencyDisplay();
     },
     
     // 更新货币图标
@@ -6086,15 +8665,49 @@ cc.Class({
     },
     
     // 初始化竞技币显示
+    // 修改：货币显示已在 _adjustGoldElementsPosition 中统一创建，这里只需要确保数据更新
     _initArenaCoinDisplay: function() {
         var myglobal = window.myglobal;
         var playerData = myglobal ? myglobal.playerData : null;
         
-        // 如果有竞技币Label，初始化显示
+        // 如果有竞技币Label属性，更新显示
         if (this.arena_coin_label && playerData) {
             this.arena_coin_label.string = "竞技币: " + this._formatGold(playerData.arena_coin || 0);
-            this.arena_coin_label.node.active = false; // 默认隐藏
         }
+        
+        // 确保新创建的货币显示节点也已更新
+        this._updateBothCurrencyDisplay();
+    },
+    
+    // 🔧【新增】监听竞技币更新事件（报名成功后刷新UI）
+    _listenArenaCoinUpdate: function() {
+        var self = this;
+        var myglobal = window.myglobal;
+        
+        if (!myglobal || !myglobal.eventlister) {
+            console.warn("🏟️ [HallScene] eventlister 未初始化，无法监听竞技币更新");
+            return;
+        }
+        
+        // 监听竞技币更新事件
+        myglobal.eventlister.on('arena_coin_updated', function(data) {
+            console.log("🏟️ [HallScene] 收到竞技币更新事件:", data);
+            
+            // 更新玩家数据
+            if (data && data.arena_coin !== undefined && myglobal.playerData) {
+                myglobal.playerData.arena_coin = data.arena_coin;
+            }
+            
+            // 刷新UI显示
+            self._updateBothCurrencyDisplay();
+            
+            // 同时也更新竞技币 Label（如果有）
+            if (self.arena_coin_label && data && data.arena_coin !== undefined) {
+                self.arena_coin_label.string = "竞技币: " + self._formatGold(data.arena_coin);
+            }
+        });
+        
+        console.log("🏟️ [HallScene] 已注册竞技币更新事件监听");
     },
     
     // 获取最新的玩家余额（金币和竞技币）
@@ -6689,6 +9302,1519 @@ cc.Class({
         }, 1.5);
     },
     
+    // ============================================================
+    // 初始化顶部按钮（设置、帮助等）
+    // ============================================================
+    _initTopButtons: function() {
+        var self = this;
+        
+        // 设置按钮 - 场景中节点名为 "shezhi"
+        var settingBtn = this.node.getChildByName("shezhi");
+        if (settingBtn) {
+            settingBtn.off(cc.Node.EventType.TOUCH_END);
+            settingBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+                event.stopPropagation();
+                self._showSettingsDialog();
+            });
+        }
+        
+        // 帮助按钮 - 场景中节点名为 "bangzhu"
+        var helpBtn = this.node.getChildByName("bangzhu");
+        if (helpBtn) {
+            helpBtn.off(cc.Node.EventType.TOUCH_END);
+            helpBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+                event.stopPropagation();
+                self._showHelpDialog();
+            });
+        }
+        
+        // 消息按钮 - 场景中节点名为 "xiao'xi"
+        var msgBtn = this.node.getChildByName("xiao'xi");
+        if (msgBtn) {
+            msgBtn.off(cc.Node.EventType.TOUCH_END);
+            msgBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+                event.stopPropagation();
+                self._showMessageCenter("暂无新消息");
+            });
+        }
+        
+        // 分享按钮 - 场景中节点名为 "share"、"fenxiang" 或 "btn_share"
+        var shareBtn = this.node.getChildByName("share") || this.node.getChildByName("fenxiang") || this.node.getChildByName("btn_share");
+        if (shareBtn) {
+            shareBtn.off(cc.Node.EventType.TOUCH_END);
+            shareBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+                event.stopPropagation();
+                self._onShareButtonClick();
+            });
+            console.log('[HallScene] 分享按钮已初始化:', shareBtn.name);
+        } else {
+            console.log('[HallScene] 未找到分享按钮节点');
+        }
+    },
+    
+    // ============================================================
+    // 分享按钮点击事件
+    // ============================================================
+    _onShareButtonClick: function() {
+        console.log('[HallScene] 分享按钮点击');
+        
+        var self = this;
+        
+        // 获取玩家信息
+        var playerName = '玩家';
+        var roomId = '';
+        
+        if (window.myglobal && window.myglobal.playerData) {
+            playerName = window.myglobal.playerData.nickName || '玩家';
+        }
+        
+        // 构建分享内容
+        var shareTitle = '欢乐斗地主';
+        var shareText = playerName + ' 邀请你一起来玩欢乐斗地主！精彩刺激的棋牌游戏等你来挑战！';
+        var shareUrl = 'https://h5ss.hongxiu88.com/';
+        
+        // 检查分享工具是否可用
+        if (typeof ShareUtil === 'undefined') {
+            console.error('[HallScene] ShareUtil 未加载');
+            this._showToast('分享功能暂不可用');
+            return;
+        }
+        
+        // 调用分享
+        ShareUtil.share({
+            title: shareTitle,
+            text: shareText,
+            url: shareUrl,
+            success: function() {
+                console.log('[HallScene] 分享成功');
+                self._showToast('分享成功！');
+            },
+            fail: function(error) {
+                console.error('[HallScene] 分享失败:', error);
+                if (error && error.message) {
+                    self._showToast('分享失败: ' + error.message);
+                }
+            }
+        });
+    },
+    
+    // 显示 Toast 提示
+    _showToast: function(message) {
+        console.log('[Toast]', message);
+        
+        // 尝试使用全局 Toast
+        if (window.myglobal && window.myglobal.showToast) {
+            window.myglobal.showToast(message);
+            return;
+        }
+        
+        // 创建简单的 Toast 提示
+        var scene = cc.director.getScene();
+        if (!scene) return;
+        
+        var toast = new cc.Node('Toast');
+        toast.parent = scene;
+        toast.zIndex = 99999;
+        
+        // 背景
+        var bg = new cc.Node('Bg');
+        bg.parent = toast;
+        var bgSprite = bg.addComponent(cc.Sprite);
+        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        bg.setContentSize(300, 50);
+        bg.color = new cc.Color(0, 0, 0);
+        bg.opacity = 180;
+        
+        // 文字
+        var label = new cc.Node('Label');
+        label.parent = toast;
+        var labelComponent = label.addComponent(cc.Label);
+        labelComponent.string = message;
+        labelComponent.fontSize = 20;
+        labelComponent.lineHeight = 50;
+        labelComponent.fontColor = new cc.Color(255, 255, 255);
+        
+        // 位置
+        toast.setPosition(0, -200);
+        
+        // 动画
+        toast.opacity = 0;
+        toast.y = -250;
+        
+        cc.tween(toast)
+            .to(0.3, { opacity: 255, y: -200 })
+            .delay(2)
+            .to(0.3, { opacity: 0 })
+            .call(function() {
+                toast.destroy();
+            })
+            .start();
+    },
+    
+    // ============================================================
+    // 显示设置弹窗
+    // ============================================================
+    _showSettingsDialog: function() {
+        var self = this;
+        
+        // 检查是否已有设置弹窗
+        var existingDialog = this.node.getChildByName("SettingsDialog");
+        if (existingDialog) {
+            existingDialog.destroy();
+            return;
+        }
+        
+        // ==================== 从本地存储加载设置 ====================
+        var loadSettings = function() {
+            var settings = {
+                bgm: 1,
+                sfx: 1,
+                vibration: 1
+            };
+            
+            if (typeof StorageUtil !== 'undefined') {
+                var savedSettings = StorageUtil.getItem(StorageUtil.KEYS.USER_SETTINGS, null, true);
+                if (savedSettings && typeof savedSettings === 'object') {
+                    settings.bgm = savedSettings.bgm !== undefined ? savedSettings.bgm : 1;
+                    settings.sfx = savedSettings.sfx !== undefined ? savedSettings.sfx : 1;
+                    settings.vibration = savedSettings.vibration !== undefined ? savedSettings.vibration : 1;
+                }
+            }
+            
+            // 同步到全局变量
+            window.isopen_sound = settings.bgm;
+            window.isopen_vibration = settings.vibration;
+            window.isopen_sfx = settings.sfx;
+            
+            return settings;
+        };
+        
+        // ==================== 保存设置到本地存储 ====================
+        var saveSettings = function(key, value) {
+            var settings = {
+                bgm: window.isopen_sound !== undefined ? window.isopen_sound : 1,
+                sfx: window.isopen_sfx !== undefined ? window.isopen_sfx : 1,
+                vibration: window.isopen_vibration !== undefined ? window.isopen_vibration : 1,
+                savedAt: Date.now()
+            };
+            
+            // 更新指定键值
+            settings[key] = value;
+            
+            if (typeof StorageUtil !== 'undefined') {
+                StorageUtil.setItem(StorageUtil.KEYS.USER_SETTINGS, settings);
+                console.log("[Settings] 已保存设置:", key, "=", value);
+            }
+        };
+        
+        // 加载当前设置
+        var currentSettings = loadSettings();
+        
+        // 创建弹窗容器
+        var dialog = new cc.Node("SettingsDialog");
+        dialog.setPosition(0, 0);
+        dialog.anchorX = 0.5;
+        dialog.anchorY = 0.5;
+        dialog.zIndex = 1000;
+        dialog.parent = this.node;
+        
+        // 遮罩层 - 深色半透明
+        var mask = new cc.Node("Mask");
+        mask.setPosition(0, 0);
+        mask.setContentSize(cc.size(1280, 720));
+        mask.anchorX = 0.5;
+        mask.anchorY = 0.5;
+        var maskGraphics = mask.addComponent(cc.Graphics);
+        maskGraphics.fillColor = cc.color(0, 0, 0, 160);
+        maskGraphics.rect(-640, -360, 1280, 720);
+        maskGraphics.fill();
+        mask.parent = dialog;
+        
+        // 点击遮罩关闭
+        mask.on(cc.Node.EventType.TOUCH_END, function() {
+            dialog.destroy();
+        });
+        
+        // ==================== 弹窗背景 - 美化样式 ====================
+        var bgWidth = 420;
+        var bgHeight = 380;
+        var bgNode = new cc.Node("BgNode");
+        bgNode.setPosition(0, 0);
+        bgNode.setContentSize(cc.size(bgWidth, bgHeight));
+        bgNode.anchorX = 0.5;
+        bgNode.anchorY = 0.5;
+        var bgGraphics = bgNode.addComponent(cc.Graphics);
+        
+        // 绘制阴影效果
+        bgGraphics.fillColor = cc.color(0, 0, 0, 60);
+        bgGraphics.roundRect(-bgWidth/2 + 5, -bgHeight/2 - 5, bgWidth, bgHeight, 16);
+        bgGraphics.fill();
+        
+        // 主背景 - 深色渐变风格
+        bgGraphics.fillColor = cc.color(35, 35, 50, 250);
+        bgGraphics.roundRect(-bgWidth/2, -bgHeight/2, bgWidth, bgHeight, 16);
+        bgGraphics.fill();
+        
+        // 金色边框
+        bgGraphics.strokeColor = cc.color(218, 165, 32, 255);
+        bgGraphics.lineWidth = 2;
+        bgGraphics.stroke();
+        bgNode.parent = dialog;
+        
+        // ==================== 标题栏背景 ====================
+        var titleBarHeight = 50;
+        var titleBar = new cc.Node("TitleBar");
+        titleBar.setPosition(0, bgHeight/2 - titleBarHeight/2);
+        titleBar.setContentSize(cc.size(bgWidth - 4, titleBarHeight));
+        titleBar.anchorX = 0.5;
+        titleBar.anchorY = 0.5;
+        var titleBarGraphics = titleBar.addComponent(cc.Graphics);
+        titleBarGraphics.fillColor = cc.color(60, 50, 80, 255);
+        titleBarGraphics.roundRect(-(bgWidth - 4)/2, -titleBarHeight/2, bgWidth - 4, titleBarHeight, 14);
+        titleBarGraphics.fill();
+        titleBar.parent = dialog;
+        
+        // 标题文字 - 垂直居中
+        var titleNode = new cc.Node("Title");
+        titleNode.setPosition(0, bgHeight/2 - titleBarHeight/2);
+        var titleLabel = titleNode.addComponent(cc.Label);
+        titleLabel.string = "设  置";
+        titleLabel.fontSize = 24;
+        titleLabel.lineHeight = titleBarHeight;
+        titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        titleLabel.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        titleNode.color = cc.color(255, 215, 0);
+        titleNode.parent = dialog;
+        
+        // ==================== 设置项容器 ====================
+        var settingsStartY = bgHeight/2 - titleBarHeight - 30;
+        var itemHeight = 52;
+        var itemGap = 8;
+        
+        // ==================== 创建开关项的函数 - 优化版 ====================
+        var createToggleItem = function(title, icon, y, isEnabled, key, callback) {
+            // 选项背景容器
+            var itemContainer = new cc.Node("ItemContainer_" + key);
+            itemContainer.setPosition(0, y);
+            itemContainer.setContentSize(cc.size(bgWidth - 30, itemHeight));
+            itemContainer.anchorX = 0.5;
+            itemContainer.anchorY = 0.5;
+            itemContainer.parent = dialog;
+            
+            // 背景条 - 圆角矩形
+            var itemBg = new cc.Node("ItemBg");
+            itemBg.setPosition(0, 0);
+            itemBg.setContentSize(cc.size(bgWidth - 30, itemHeight - 4));
+            itemBg.anchorX = 0.5;
+            itemBg.anchorY = 0.5;
+            var itemGraphics = itemBg.addComponent(cc.Graphics);
+            itemGraphics.fillColor = cc.color(55, 50, 70, 255);
+            itemGraphics.roundRect(-(bgWidth - 30)/2, -(itemHeight - 4)/2, bgWidth - 30, itemHeight - 4, 10);
+            itemGraphics.fill();
+            itemBg.parent = itemContainer;
+            
+            // 图标节点
+            var iconNode = new cc.Node("Icon");
+            iconNode.setPosition(-(bgWidth - 30)/2 + 28, 0);
+            var iconLabel = iconNode.addComponent(cc.Label);
+            iconLabel.string = icon;
+            iconLabel.fontSize = 22;
+            iconLabel.lineHeight = itemHeight;
+            iconLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+            iconLabel.verticalAlign = cc.Label.VerticalAlign.CENTER;
+            iconNode.parent = itemContainer;
+            
+            // 标签文字 - 确保垂直居中
+            var labelNode = new cc.Node("Label");
+            labelNode.setPosition(-(bgWidth - 30)/2 + 65, 0);
+            var labelComp = labelNode.addComponent(cc.Label);
+            labelComp.string = title;
+            labelComp.fontSize = 18;
+            labelComp.lineHeight = itemHeight;
+            labelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+            labelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
+            labelNode.color = cc.color(240, 240, 240);
+            labelNode.parent = itemContainer;
+            
+            // ==================== 开关组件 - 美化版 ====================
+            var toggleWidth = 56;
+            var toggleHeight = 28;
+            var toggleContainer = new cc.Node("ToggleContainer");
+            toggleContainer.setPosition((bgWidth - 30)/2 - 38, 0);
+            toggleContainer.setContentSize(cc.size(toggleWidth, toggleHeight));
+            toggleContainer.anchorX = 0.5;
+            toggleContainer.anchorY = 0.5;
+            toggleContainer.parent = itemContainer;
+            
+            // 开关状态
+            var toggleState = isEnabled ? 1 : 0;
+            
+            // 绘制开关 - 带阴影效果
+            var drawToggle = function(state, node) {
+                var g = node.getComponent(cc.Graphics) || node.addComponent(cc.Graphics);
+                g.clear();
+                
+                var halfWidth = toggleWidth / 2;
+                var halfHeight = toggleHeight / 2;
+                var knobRadius = 11;
+                
+                // 背景轨道 - 根据状态变色
+                if (state === 1) {
+                    // 开启状态 - 翠绿色
+                    g.fillColor = cc.color(76, 175, 80, 255);
+                } else {
+                    // 关闭状态 - 深灰色
+                    g.fillColor = cc.color(80, 80, 80, 255);
+                }
+                g.roundRect(-halfWidth, -halfHeight, toggleWidth, toggleHeight, halfHeight);
+                g.fill();
+                
+                // 滑块 - 白色带阴影效果
+                var knobX = state === 1 ? halfWidth - knobRadius - 3 : -halfWidth + knobRadius + 3;
+                
+                // 滑块阴影
+                g.fillColor = cc.color(0, 0, 0, 50);
+                g.circle(knobX, -2, knobRadius);
+                g.fill();
+                
+                // 滑块本体
+                g.fillColor = cc.color(255, 255, 255, 255);
+                g.circle(knobX, 0, knobRadius);
+                g.fill();
+            };
+            
+            drawToggle(toggleState, toggleContainer);
+            
+            // 存储状态和回调
+            toggleContainer._toggleState = toggleState;
+            toggleContainer._key = key;
+            toggleContainer._callback = callback;
+            
+            // 整个选项区域点击切换
+            itemContainer.on(cc.Node.EventType.TOUCH_END, function(event) {
+                event.stopPropagation();
+                var newState = toggleContainer._toggleState === 1 ? 0 : 1;
+                toggleContainer._toggleState = newState;
+                drawToggle(newState, toggleContainer);
+                
+                // 更新全局状态并保存到本地
+                if (toggleContainer._key === 'bgm') {
+                    window.isopen_sound = newState;
+                    saveSettings('bgm', newState);
+                    if (newState === 1) {
+                        self._playHallBackgroundMusic();
+                    } else {
+                        cc.audioEngine.stopMusic();
+                    }
+                } else if (toggleContainer._key === 'sfx') {
+                    window.isopen_sfx = newState;
+                    saveSettings('sfx', newState);
+                    // 播放点击音效提示
+                    if (newState === 1 && self._playClickSound) {
+                        self._playClickSound();
+                    }
+                } else if (toggleContainer._key === 'vibration') {
+                    window.isopen_vibration = newState;
+                    saveSettings('vibration', newState);
+                    // 触发震动提示
+                    if (newState === 1 && cc.vibrateShort) {
+                        cc.vibrateShort();
+                    }
+                }
+                
+                if (callback) callback(newState);
+            });
+            
+            return itemContainer;
+        };
+        
+        // ==================== 添加设置项 ====================
+        createToggleItem("背景音乐", "🎵", settingsStartY - itemHeight/2, currentSettings.bgm, 'bgm');
+        createToggleItem("游戏音效", "🔊", settingsStartY - itemHeight - itemGap - itemHeight/2, currentSettings.sfx, 'sfx');
+        createToggleItem("震动反馈", "📳", settingsStartY - itemHeight * 2 - itemGap * 2 - itemHeight/2, currentSettings.vibration, 'vibration');
+        
+        // ==================== 分隔线 ====================
+        var lineY = settingsStartY - itemHeight * 3 - itemGap * 2 - 15;
+        var line = new cc.Node("Line");
+        line.setPosition(0, lineY);
+        var lineGraphics = line.addComponent(cc.Graphics);
+        lineGraphics.strokeColor = cc.color(100, 90, 120, 150);
+        lineGraphics.lineWidth = 1;
+        lineGraphics.moveTo(-bgWidth/2 + 20, 0);
+        lineGraphics.lineTo(bgWidth/2 - 20, 0);
+        lineGraphics.stroke();
+        line.parent = dialog;
+        
+        // ==================== 退出登录按钮 - 美化版 ====================
+        var logoutBtnY = lineY - 35;
+        var logoutBtn = new cc.Node("LogoutBtn");
+        logoutBtn.setPosition(0, logoutBtnY);
+        logoutBtn.setContentSize(cc.size(140, 42));
+        logoutBtn.anchorX = 0.5;
+        logoutBtn.anchorY = 0.5;
+        var logoutGraphics = logoutBtn.addComponent(cc.Graphics);
+        
+        // 按钮阴影
+        logoutGraphics.fillColor = cc.color(0, 0, 0, 80);
+        logoutGraphics.roundRect(-72, -23, 144, 46, 8);
+        logoutGraphics.fill();
+        
+        // 按钮本体 - 红色渐变效果
+        logoutGraphics.fillColor = cc.color(220, 53, 69, 255);
+        logoutGraphics.roundRect(-70, -21, 140, 42, 8);
+        logoutGraphics.fill();
+        logoutBtn.parent = dialog;
+        
+        // 退出登录文字 - 垂直居中
+        var logoutLabel = new cc.Node("Label");
+        var logoutLabelComp = logoutLabel.addComponent(cc.Label);
+        logoutLabelComp.string = "退出登录";
+        logoutLabelComp.fontSize = 18;
+        logoutLabelComp.lineHeight = 42;
+        logoutLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        logoutLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        logoutLabel.color = cc.color(255, 255, 255);
+        logoutLabel.parent = logoutBtn;
+        
+        // 退出登录点击事件
+        logoutBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            self._showLogoutConfirm(dialog);
+        });
+        
+        // ==================== 关闭按钮（右上角X）- 美化版 ====================
+        var closeBtn = new cc.Node("CloseBtn");
+        closeBtn.setPosition(bgWidth/2 - 28, bgHeight/2 - 28);
+        closeBtn.setContentSize(cc.size(32, 32));
+        closeBtn.anchorX = 0.5;
+        closeBtn.anchorY = 0.5;
+        var closeGraphics = closeBtn.addComponent(cc.Graphics);
+        closeGraphics.fillColor = cc.color(100, 90, 110, 230);
+        closeGraphics.circle(0, 0, 16);
+        closeGraphics.fill();
+        closeGraphics.strokeColor = cc.color(180, 170, 190, 150);
+        closeGraphics.lineWidth = 1;
+        closeGraphics.circle(0, 0, 16);
+        closeGraphics.stroke();
+        closeBtn.parent = dialog;
+        
+        // 关闭按钮X标记 - 垂直居中
+        var closeX = new cc.Node("X");
+        var closeXLabel = closeX.addComponent(cc.Label);
+        closeXLabel.string = "✕";
+        closeXLabel.fontSize = 18;
+        closeXLabel.lineHeight = 32;
+        closeXLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        closeXLabel.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        closeX.color = cc.color(255, 255, 255);
+        closeX.parent = closeBtn;
+        
+        closeBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            dialog.destroy();
+        });
+    },
+    
+    // 显示退出登录确认弹窗
+    _showLogoutConfirm: function(parentDialog) {
+        var self = this;
+        
+        // 创建确认弹窗
+        var confirmDialog = new cc.Node("LogoutConfirmDialog");
+        confirmDialog.setPosition(0, 0);
+        confirmDialog.anchorX = 0.5;
+        confirmDialog.anchorY = 0.5;
+        confirmDialog.zIndex = 1100;
+        confirmDialog.parent = this.node;
+        
+        // 遮罩
+        var mask = new cc.Node("Mask");
+        mask.setContentSize(cc.size(1280, 720));
+        var maskGraphics = mask.addComponent(cc.Graphics);
+        maskGraphics.fillColor = cc.color(0, 0, 0, 100);
+        maskGraphics.rect(-640, -360, 1280, 720);
+        maskGraphics.fill();
+        mask.parent = confirmDialog;
+        
+        // 背景 - 美化样式
+        var bgWidth = 320;
+        var bgHeight = 170;
+        var bg = new cc.Node("Bg");
+        bg.setContentSize(cc.size(bgWidth, bgHeight));
+        bg.anchorX = 0.5;
+        bg.anchorY = 0.5;
+        var bgGraphics = bg.addComponent(cc.Graphics);
+        
+        // 阴影
+        bgGraphics.fillColor = cc.color(0, 0, 0, 50);
+        bgGraphics.roundRect(-bgWidth/2 + 4, -bgHeight/2 - 4, bgWidth, bgHeight, 12);
+        bgGraphics.fill();
+        
+        // 主背景
+        bgGraphics.fillColor = cc.color(40, 38, 55, 255);
+        bgGraphics.roundRect(-bgWidth/2, -bgHeight/2, bgWidth, bgHeight, 12);
+        bgGraphics.fill();
+        
+        // 边框
+        bgGraphics.strokeColor = cc.color(218, 165, 32, 200);
+        bgGraphics.lineWidth = 2;
+        bgGraphics.stroke();
+        bg.parent = confirmDialog;
+        
+        // 提示文字 - 垂直居中
+        var tipLabel = new cc.Node("Tip");
+        tipLabel.setPosition(0, 25);
+        var tipLabelComp = tipLabel.addComponent(cc.Label);
+        tipLabelComp.string = "确定要退出登录吗？";
+        tipLabelComp.fontSize = 20;
+        tipLabelComp.lineHeight = 50;
+        tipLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        tipLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        tipLabel.color = cc.color(255, 255, 255);
+        tipLabel.parent = confirmDialog;
+        
+        // 按钮区域
+        var btnY = -bgHeight/2 + 45;
+        var btnWidth = 100;
+        var btnHeight = 38;
+        
+        // 取消按钮 - 美化版
+        var cancelBtn = new cc.Node("CancelBtn");
+        cancelBtn.setPosition(-60, btnY);
+        cancelBtn.setContentSize(cc.size(btnWidth, btnHeight));
+        cancelBtn.anchorX = 0.5;
+        cancelBtn.anchorY = 0.5;
+        var cancelGraphics = cancelBtn.addComponent(cc.Graphics);
+        cancelGraphics.fillColor = cc.color(70, 65, 85, 255);
+        cancelGraphics.roundRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 6);
+        cancelGraphics.fill();
+        cancelGraphics.strokeColor = cc.color(100, 95, 115, 200);
+        cancelGraphics.lineWidth = 1;
+        cancelGraphics.stroke();
+        cancelBtn.parent = confirmDialog;
+        
+        // 取消按钮文字 - 垂直居中
+        var cancelLabel = new cc.Node("Label");
+        var cancelLabelComp = cancelLabel.addComponent(cc.Label);
+        cancelLabelComp.string = "取消";
+        cancelLabelComp.fontSize = 16;
+        cancelLabelComp.lineHeight = btnHeight;
+        cancelLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        cancelLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        cancelLabel.color = cc.color(240, 240, 240);
+        cancelLabel.parent = cancelBtn;
+        
+        cancelBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            confirmDialog.destroy();
+        });
+        
+        // 确认按钮 - 美化版
+        var confirmBtn = new cc.Node("ConfirmBtn");
+        confirmBtn.setPosition(60, btnY);
+        confirmBtn.setContentSize(cc.size(btnWidth, btnHeight));
+        confirmBtn.anchorX = 0.5;
+        confirmBtn.anchorY = 0.5;
+        var confirmGraphics = confirmBtn.addComponent(cc.Graphics);
+        confirmGraphics.fillColor = cc.color(220, 53, 69, 255);
+        confirmGraphics.roundRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 6);
+        confirmGraphics.fill();
+        confirmBtn.parent = confirmDialog;
+        
+        // 确认按钮文字 - 垂直居中
+        var confirmLabel = new cc.Node("Label");
+        var confirmLabelComp = confirmLabel.addComponent(cc.Label);
+        confirmLabelComp.string = "退出";
+        confirmLabelComp.fontSize = 16;
+        confirmLabelComp.lineHeight = btnHeight;
+        confirmLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        confirmLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        confirmLabel.color = cc.color(255, 255, 255);
+        confirmLabel.parent = confirmBtn;
+        
+        confirmBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            
+            // 清理数据
+            if (window.myglobal) {
+                window.myglobal.playerData = null;
+            }
+            
+            // 清除本地存储
+            if (typeof StorageUtil !== 'undefined') {
+                StorageUtil.clearPlayerSession();
+            } else {
+                try {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('playerData');
+                } catch (e) {}
+            }
+            
+            // 关闭弹窗
+            confirmDialog.destroy();
+            if (parentDialog) parentDialog.destroy();
+            
+            // 跳转到登录页
+            cc.director.loadScene("loginScene");
+        });
+    },
+    
+    // 显示帮助弹窗
+    _showHelpDialog: function() {
+        var self = this;
+        
+        // 检查是否已有弹窗
+        var existingDialog = this.node.getChildByName("HelpDialog");
+        if (existingDialog) {
+            existingDialog.destroy();
+            return;
+        }
+        
+        // ==================== 创建弹窗容器 ====================
+        var dialog = new cc.Node("HelpDialog");
+        dialog.setPosition(0, 0);
+        dialog.anchorX = 0.5;
+        dialog.anchorY = 0.5;
+        dialog.zIndex = 1000;
+        dialog.parent = this.node;
+        
+        // 遮罩层
+        var mask = new cc.Node("Mask");
+        mask.setContentSize(cc.size(1280, 720));
+        mask.anchorX = 0.5;
+        mask.anchorY = 0.5;
+        var maskGraphics = mask.addComponent(cc.Graphics);
+        maskGraphics.fillColor = cc.color(0, 0, 0, 160);
+        maskGraphics.rect(-640, -360, 1280, 720);
+        maskGraphics.fill();
+        mask.parent = dialog;
+        
+        mask.on(cc.Node.EventType.TOUCH_END, function() {
+            self._helpScrollView = null;  // 清理引用
+            dialog.destroy();
+        });
+        
+        // ==================== 弹窗背景 - 美化样式 ====================
+        var bgWidth = 650;  // 加宽弹窗
+        var bgHeight = 520;
+        var bgNode = new cc.Node("BgNode");
+        bgNode.setPosition(0, 0);
+        bgNode.setContentSize(cc.size(bgWidth, bgHeight));
+        bgNode.anchorX = 0.5;
+        bgNode.anchorY = 0.5;
+        var bgGraphics = bgNode.addComponent(cc.Graphics);
+        
+        // 阴影效果
+        bgGraphics.fillColor = cc.color(0, 0, 0, 60);
+        bgGraphics.roundRect(-bgWidth/2 + 5, -bgHeight/2 - 5, bgWidth, bgHeight, 16);
+        bgGraphics.fill();
+        
+        // 主背景
+        bgGraphics.fillColor = cc.color(35, 35, 50, 250);
+        bgGraphics.roundRect(-bgWidth/2, -bgHeight/2, bgWidth, bgHeight, 16);
+        bgGraphics.fill();
+        
+        // 金色边框
+        bgGraphics.strokeColor = cc.color(218, 165, 32, 255);
+        bgGraphics.lineWidth = 2;
+        bgGraphics.stroke();
+        bgNode.parent = dialog;
+        
+        // ==================== 标题栏背景 ====================
+        var titleBarHeight = 50;
+        var titleBar = new cc.Node("TitleBar");
+        titleBar.setPosition(0, bgHeight/2 - titleBarHeight/2);
+        titleBar.setContentSize(cc.size(bgWidth - 4, titleBarHeight));
+        titleBar.anchorX = 0.5;
+        titleBar.anchorY = 0.5;
+        var titleBarGraphics = titleBar.addComponent(cc.Graphics);
+        titleBarGraphics.fillColor = cc.color(60, 50, 80, 255);
+        titleBarGraphics.roundRect(-(bgWidth - 4)/2, -titleBarHeight/2, bgWidth - 4, titleBarHeight, 14);
+        titleBarGraphics.fill();
+        titleBar.parent = dialog;
+        
+        // 标题文字 - 垂直居中
+        var titleNode = new cc.Node("Title");
+        titleNode.setPosition(0, bgHeight/2 - titleBarHeight/2);
+        var titleLabel = titleNode.addComponent(cc.Label);
+        titleLabel.string = "游 戏 帮 助";
+        titleLabel.fontSize = 24;
+        titleLabel.lineHeight = titleBarHeight;
+        titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        titleLabel.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        titleNode.color = cc.color(255, 215, 0);
+        titleNode.parent = dialog;
+        
+        // ==================== 内容区域 - 带滚动视图 ====================
+        var contentWidth = bgWidth - 40;
+        var contentHeight = bgHeight - titleBarHeight - 80;
+        var contentStartY = bgHeight/2 - titleBarHeight - 20;
+        
+        // 创建滚动视图容器
+        var scrollViewNode = new cc.Node("ScrollView");
+        scrollViewNode.setPosition(0, contentStartY - contentHeight/2);
+        scrollViewNode.setContentSize(cc.size(contentWidth, contentHeight));
+        scrollViewNode.anchorX = 0.5;
+        scrollViewNode.anchorY = 0.5;
+        scrollViewNode.parent = dialog;
+        
+        // 添加 ScrollView 组件
+        var scrollView = scrollViewNode.addComponent(cc.ScrollView);
+        scrollView.horizontal = false;
+        scrollView.vertical = true;
+        scrollView.inertia = true;
+        scrollView.brake = 0.5;
+        scrollView.elastic = true;
+        scrollView.bounceDuration = 0.5;
+        
+        // 创建 view 节点（滚动视口）
+        var viewNode = new cc.Node("view");
+        viewNode.setContentSize(cc.size(contentWidth, contentHeight));
+        viewNode.anchorX = 0.5;
+        viewNode.anchorY = 0.5;
+        viewNode.x = 0;
+        viewNode.y = 0;
+        viewNode.parent = scrollViewNode;
+        
+        // 添加 Mask 组件隐藏超出内容
+        var mask = viewNode.addComponent(cc.Mask);
+        mask.type = cc.Mask.Type.RECT;
+        
+        // 创建 content 节点（滚动内容容器）
+        var contentContainer = new cc.Node("content");
+        contentContainer.setContentSize(cc.size(contentWidth, contentHeight));
+        contentContainer.anchorX = 0.5;
+        contentContainer.anchorY = 1;  // 锚点在顶部
+        contentContainer.x = 0;
+        contentContainer.y = contentHeight / 2;  // 顶部对齐
+        contentContainer.parent = viewNode;
+        
+        // 设置 ScrollView 的 content
+        scrollView.content = contentContainer;
+        
+        // 加载提示
+        var loadingLabel = new cc.Node("LoadingLabel");
+        loadingLabel.setPosition(0, -contentHeight/2 + 20);  // 居中显示
+        var loadingLabelComp = loadingLabel.addComponent(cc.Label);
+        loadingLabelComp.string = "正在加载帮助内容...";
+        loadingLabelComp.fontSize = 18;
+        loadingLabelComp.lineHeight = 24;
+        loadingLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        loadingLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        loadingLabel.color = cc.color(180, 180, 180);
+        loadingLabel.parent = contentContainer;
+        
+        // 存储 scrollView 引用，后续更新高度时使用
+        self._helpScrollView = scrollView;
+        
+        // ==================== 从API获取帮助内容 ====================
+        var fetchHelpContent = function() {
+            var apiUrl = window.defines ? window.defines.apiUrl : '';
+            var cryptoKey = window.defines ? window.defines.cryptoKey : '';
+
+            console.log("【帮助弹窗】开始获取帮助内容，apiUrl:", apiUrl);
+
+            if (!apiUrl) {
+                console.warn("【帮助弹窗】apiUrl 为空，使用默认内容");
+                self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+                return;
+            }
+
+            // 使用列表接口获取所有帮助文章
+            var url = apiUrl + '/api/v1/help-article/list';
+            console.log("【帮助弹窗】请求URL:", url);
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', url, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    console.log("【帮助弹窗】请求完成，状态:", xhr.status);
+                    if (xhr.status === 200) {
+                        try {
+                            var response = JSON.parse(xhr.responseText);
+                            console.log("【帮助弹窗】响应数据:", JSON.stringify(response).substring(0, 500));
+
+                            // 检查是否是加密响应 (有 data 和 timestamp 字段，且 data 是字符串)
+                            if (response.data && response.timestamp && typeof response.data === 'string') {
+                                console.log("【帮助弹窗】检测到加密响应，准备解密");
+                                // 加密响应，使用 HttpAPI.decryptAESGCM 解密
+                                if (window.HttpAPI && window.HttpAPI.decryptAESGCM) {
+                                    window.HttpAPI.decryptAESGCM(response.data, cryptoKey).then(function(decrypted) {
+                                        console.log("【帮助弹窗】解密成功，数据类型:", typeof decrypted, "是否数组:", Array.isArray(decrypted));
+                                        console.log("【帮助弹窗】解密后数据:", JSON.stringify(decrypted).substring(0, 1000));
+                                        
+                                        // 打印对象的所有属性名
+                                        if (decrypted && typeof decrypted === 'object') {
+                                            console.log("【帮助弹窗】解密后对象的属性:", Object.keys(decrypted));
+                                        }
+                                        
+                                        // 解密成功，处理数据 - 支持多种数据结构
+                                        var helpItems = null;
+                                        
+                                        if (Array.isArray(decrypted)) {
+                                            // 直接是数组
+                                            helpItems = decrypted;
+                                        } else if (decrypted && typeof decrypted === 'object') {
+                                            // 尝试各种可能的属性名
+                                            if (Array.isArray(decrypted.data)) {
+                                                helpItems = decrypted.data;
+                                            } else if (Array.isArray(decrypted.list)) {
+                                                helpItems = decrypted.list;
+                                            } else if (Array.isArray(decrypted.items)) {
+                                                helpItems = decrypted.items;
+                                            } else if (Array.isArray(decrypted.records)) {
+                                                helpItems = decrypted.records;
+                                            } else if (Array.isArray(decrypted.rows)) {
+                                                helpItems = decrypted.rows;
+                                            } else if (Array.isArray(decrypted.articles)) {
+                                                helpItems = decrypted.articles;
+                                            } else {
+                                                // 尝试查找对象中第一个数组类型的属性
+                                                for (var key in decrypted) {
+                                                    if (Array.isArray(decrypted[key])) {
+                                                        helpItems = decrypted[key];
+                                                        console.log("【帮助弹窗】从属性 '" + key + "' 提取到数组");
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        console.log("【帮助弹窗】解析后helpItems条数:", helpItems ? helpItems.length : 0);
+
+                                        if (helpItems && helpItems.length > 0) {
+                                            console.log("【帮助弹窗】helpItems[0]原始content:", helpItems[0].content ? helpItems[0].content.substring(0, 200) : "空");
+                                            var accordionData = helpItems.map(function(item) {
+                                                var strippedContent = self._stripHtmlTags(item.content || '');
+                                                console.log("【帮助弹窗】处理后标题:", item.title, "内容长度:", strippedContent.length);
+                                                return {
+                                                    title: item.title || '无标题',
+                                                    content: strippedContent
+                                                };
+                                            });
+                                            console.log("【帮助弹窗】准备显示手风琴数据，条数:", accordionData.length);
+                                            self._showHelpContentFromList(contentContainer, loadingLabel, accordionData);
+                                        } else {
+                                            console.warn("【帮助弹窗】helpItems为空，使用默认内容");
+                                            self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+                                        }
+                                    }).catch(function(err) {
+                                        console.error("【帮助弹窗】解密失败:", err);
+                                        self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+                                    });
+                                } else {
+                                    console.warn("【帮助弹窗】HttpAPI.decryptAESGCM 不可用，使用默认内容");
+                                    self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+                                }
+                            } else if (response.code === 0 && response.data) {
+                                console.log("【帮助弹窗】检测到非加密响应，code=0");
+                                // 未加密响应，data是数组
+                                var helpItems = null;
+                                if (Array.isArray(response.data)) {
+                                    helpItems = response.data;
+                                }
+
+                                console.log("【帮助弹窗】非加密响应helpItems条数:", helpItems ? helpItems.length : 0);
+
+                                if (helpItems && helpItems.length > 0) {
+                                    console.log("【帮助弹窗】非加密helpItems[0]原始content:", helpItems[0].content ? helpItems[0].content.substring(0, 200) : "空");
+                                    var accordionData = helpItems.map(function(item) {
+                                        var strippedContent = self._stripHtmlTags(item.content || '');
+                                        console.log("【帮助弹窗】处理后标题:", item.title, "内容长度:", strippedContent.length);
+                                        return {
+                                            title: item.title || '无标题',
+                                            content: strippedContent
+                                        };
+                                    });
+                                    console.log("【帮助弹窗】准备显示手风琴数据，条数:", accordionData.length);
+                                    self._showHelpContentFromList(contentContainer, loadingLabel, accordionData);
+                                } else {
+                                    console.warn("【帮助弹窗】helpItems为空，使用默认内容");
+                                    self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+                                }
+                            } else {
+                                console.warn("【帮助弹窗】响应格式不正确，code:", response.code, "data:", response.data ? "存在" : "不存在");
+                                self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+                            }
+                        } catch (e) {
+                            console.error("【帮助弹窗】解析帮助内容失败:", e);
+                            self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+                        }
+                    } else {
+                        console.warn("【帮助弹窗】获取帮助内容失败，状态码:", xhr.status);
+                        self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+                    }
+                }
+            };
+
+            xhr.onerror = function() {
+                console.error("【帮助弹窗】请求失败，网络错误");
+                self._showHelpContent(contentContainer, loadingLabel, getDefaultHelpContent());
+            };
+
+            xhr.send();
+        };
+        
+        // 延迟获取内容
+        setTimeout(fetchHelpContent, 100);
+        
+        // ==================== 确定按钮 ====================
+        var confirmBtn = new cc.Node("ConfirmBtn");
+        confirmBtn.setPosition(0, -bgHeight/2 + 40);
+        confirmBtn.setContentSize(cc.size(120, 40));
+        confirmBtn.anchorX = 0.5;
+        confirmBtn.anchorY = 0.5;
+        var confirmGraphics = confirmBtn.addComponent(cc.Graphics);
+        confirmGraphics.fillColor = cc.color(76, 175, 80, 255);
+        confirmGraphics.roundRect(-60, -20, 120, 40, 8);
+        confirmGraphics.fill();
+        confirmBtn.parent = dialog;
+        
+        // 确定按钮文字 - 垂直居中
+        var confirmLabel = new cc.Node("Label");
+        var confirmLabelComp = confirmLabel.addComponent(cc.Label);
+        confirmLabelComp.string = "我知道了";
+        confirmLabelComp.fontSize = 16;
+        confirmLabelComp.lineHeight = 40;
+        confirmLabelComp.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        confirmLabelComp.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        confirmLabel.color = cc.color(255, 255, 255);
+        confirmLabel.parent = confirmBtn;
+        
+        confirmBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            self._helpScrollView = null;  // 清理引用
+            dialog.destroy();
+        });
+        
+        // ==================== 关闭按钮（右上角X）====================
+        var closeBtn = new cc.Node("CloseBtn");
+        closeBtn.setPosition(bgWidth/2 - 28, bgHeight/2 - 28);
+        closeBtn.setContentSize(cc.size(32, 32));
+        closeBtn.anchorX = 0.5;
+        closeBtn.anchorY = 0.5;
+        var closeGraphics = closeBtn.addComponent(cc.Graphics);
+        closeGraphics.fillColor = cc.color(100, 90, 110, 230);
+        closeGraphics.circle(0, 0, 16);
+        closeGraphics.fill();
+        closeGraphics.strokeColor = cc.color(180, 170, 190, 150);
+        closeGraphics.lineWidth = 1;
+        closeGraphics.circle(0, 0, 16);
+        closeGraphics.stroke();
+        closeBtn.parent = dialog;
+        
+        // 关闭按钮X标记 - 垂直居中
+        var closeX = new cc.Node("X");
+        var closeXLabel = closeX.addComponent(cc.Label);
+        closeXLabel.string = "✕";
+        closeXLabel.fontSize = 18;
+        closeXLabel.lineHeight = 32;
+        closeXLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        closeXLabel.verticalAlign = cc.Label.VerticalAlign.CENTER;
+        closeX.color = cc.color(255, 255, 255);
+        closeX.parent = closeBtn;
+        
+        closeBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+            event.stopPropagation();
+            self._helpScrollView = null;  // 清理引用
+            dialog.destroy();
+        });
+    },
+    
+    // 去除HTML标签，只保留纯文本
+    _stripHtmlTags: function(html) {
+        if (!html) return '';
+        // 去除HTML标签
+        var text = html.replace(/<br\s*\/?>/gi, '\n');  // 保留换行
+        text = text.replace(/<\/p>/gi, '\n');  // 段落换行
+        text = text.replace(/<\/h[1-6]>/gi, '\n\n');  // 标题换行
+        text = text.replace(/<li>/gi, '• ');  // 列表项
+        text = text.replace(/<[^>]+>/g, '');  // 去除其他HTML标签
+        // 解码HTML实体
+        text = text.replace(/&nbsp;/g, ' ');
+        text = text.replace(/&lt;/g, '<');
+        text = text.replace(/&gt;/g, '>');
+        text = text.replace(/&amp;/g, '&');
+        text = text.replace(/&quot;/g, '"');
+        text = text.replace(/&#39;/g, "'");
+        // 清理多余空白
+        text = text.replace(/\n\s*\n\s*\n/g, '\n\n');
+        text = text.trim();
+        return text;
+    },
+    
+    // 直接从列表数据显示帮助内容（手风琴效果）
+    _showHelpContentFromList: function(container, loadingLabel, helpItems) {
+        console.log("【帮助弹窗】_showHelpContentFromList 被调用，数据条数:", helpItems ? helpItems.length : 0);
+        
+        // 移除加载提示
+        if (loadingLabel && loadingLabel.parent) {
+            loadingLabel.parent = null;
+        }
+        
+        if (!Array.isArray(helpItems) || helpItems.length === 0) {
+            console.warn("【帮助弹窗】helpItems 为空或不是数组，使用默认内容");
+            this._showPlainText(container, getDefaultHelpContent());
+            return;
+        }
+        
+        console.log("【帮助弹窗】第一条数据:", JSON.stringify(helpItems[0]));
+        console.log("【帮助弹窗】第一条数据content字段:", helpItems[0].content);
+        console.log("【帮助弹窗】第一条数据content长度:", helpItems[0].content ? helpItems[0].content.length : 0);
+        
+        var self = this;
+        var itemHeight = 45;
+        var expandedItems = {};  // 记录展开状态
+        var contentBoxes = [];   // 存储所有contentBox引用，用于后续更新高度
+        
+        // ==================== 创建内容容器（适配 ScrollView）====================
+        // container 已经是 ScrollView 的 content 节点，锚点在顶部
+        var contentNode = new cc.Node("HelpContent");
+        contentNode.setContentSize(cc.size(container.width, 100));  // 初始高度，后续会更新
+        contentNode.anchorX = 0.5;
+        contentNode.anchorY = 1;  // 锚点在顶部
+        contentNode.x = 0;
+        contentNode.y = 0;  // 顶部对齐
+        contentNode.parent = container;
+        
+        console.log("【帮助弹窗】contentNode 创建完成，尺寸:", container.width, "x", container.height);
+        
+        // 为每个帮助项创建标题和内容
+        helpItems.forEach(function(item, index) {
+            var itemNode = new cc.Node("item_" + index);
+            itemNode.width = contentNode.width;
+            itemNode.anchorX = 0.5;  // 重要：设置水平锚点居中
+            itemNode.anchorY = 1;    // 锚点在顶部
+            itemNode.x = 0;          // 水平居中
+
+            // 使用固定的内容宽度，确保换行正确
+            var itemWidth = 560;  // 固定宽度，与弹窗宽度匹配
+
+            // 创建标题背景 - 使用Graphics绘制确保可见
+            var titleBg = new cc.Node("titleBg");
+            titleBg.setPosition(0, 0);
+            titleBg.setContentSize(cc.size(itemWidth, itemHeight));
+            titleBg.anchorX = 0.5;
+            titleBg.anchorY = 1;  // 锚点在顶部
+
+            // 使用Graphics绘制背景，确保可见性
+            // 注意：anchorY=1时，绘制从-y到0（负方向向下）
+            var bgGraphics = titleBg.addComponent(cc.Graphics);
+            bgGraphics.fillColor = cc.color(60, 55, 75, 255);  // 深紫色背景
+            bgGraphics.roundRect(-itemWidth/2, -itemHeight, itemWidth, itemHeight, 6);
+            bgGraphics.fill();
+            // 添加边框
+            bgGraphics.strokeColor = cc.color(100, 90, 120, 255);
+            bgGraphics.lineWidth = 1;
+            bgGraphics.stroke();
+            
+            // 创建标题文字
+            var titleNode = new cc.Node("title");
+            var titleLabel = titleNode.addComponent(cc.Label);
+            titleLabel.string = (index + 1) + ". " + item.title;
+            titleLabel.fontSize = 18;
+            titleLabel.lineHeight = 22;
+            titleLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+            titleNode.color = cc.color(255, 220, 100);
+            titleNode.anchorX = 0;
+            titleNode.anchorY = 0.5;
+            titleNode.x = -itemWidth / 2 + 15;
+            titleNode.y = -itemHeight / 2;  // 垂直居中（anchorY=1时向下为负）
+
+            // 创建展开/收缩图标
+            var iconNode = new cc.Node("icon");
+            var iconLabel = iconNode.addComponent(cc.Label);
+            iconLabel.string = "▶";
+            iconLabel.fontSize = 14;
+            iconNode.color = cc.color(200, 200, 200);
+            iconNode.anchorY = 0.5;
+            iconNode.x = itemWidth / 2 - 20;
+            iconNode.y = -itemHeight / 2;  // 垂直居中（anchorY=1时向下为负）
+            
+            // 创建内容节点（初始隐藏）
+            var contentBox = new cc.Node("contentBox");
+            contentBox.setPosition(0, -itemHeight);
+            contentBox.setContentSize(cc.size(itemWidth, 200));  // 使用固定宽度
+            contentBox.anchorX = 0.5;
+            contentBox.anchorY = 1;
+
+            // 内容背景
+            var contentBg = new cc.Node("contentBg");
+            contentBg.setContentSize(cc.size(itemWidth, 200));  // 使用固定宽度
+            contentBg.anchorX = 0.5;
+            contentBg.anchorY = 1;  // 锚点在顶部
+            var contentBgGraphics = contentBg.addComponent(cc.Graphics);
+            contentBgGraphics.fillColor = cc.color(45, 42, 55, 200);  // 稍暗的背景
+            // anchorY=1时，绘制从-height到0
+            contentBgGraphics.roundRect(-itemWidth/2, -200, itemWidth, 200, 4);
+            contentBgGraphics.fill();
+            contentBg.y = 0;
+            contentBg.parent = contentBox;
+            
+            var contentLabel = new cc.Node("contentLabel");
+            var labelComp = contentLabel.addComponent(cc.Label);
+            
+            // 重要：Cocos Creator中Label属性设置顺序很关键
+            // 1. 先设置基础属性
+            labelComp.fontSize = 14;
+            labelComp.lineHeight = 20;
+            labelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+            
+            // 2. 设置换行模式 - 关键！
+            labelComp.enableWrapText = true;  // 启用文本换行
+            
+            // 3. 设置overflow为RESIZE_HEIGHT
+            labelComp.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
+            
+            // 4. 设置wrapWidth（换行宽度）
+            var wrapWidth = itemWidth - 30;
+            console.log("【帮助弹窗】第" + (index+1) + "条wrapWidth:", wrapWidth);
+            labelComp.wrapWidth = wrapWidth;
+            
+            // 5. 设置节点尺寸
+            contentLabel.setContentSize(cc.size(wrapWidth, 20));
+            
+            // 设置颜色和锚点
+            contentLabel.color = cc.color(220, 220, 220);
+            contentLabel.anchorX = 0;
+            contentLabel.anchorY = 1;
+            contentLabel.x = -itemWidth / 2 + 15;
+            contentLabel.y = -10;  // 留出顶部边距
+            
+            // 先添加到父节点
+            contentLabel.parent = contentBox;
+            
+            // 最后设置文本内容
+            var displayContent = item.content || '暂无内容';
+            console.log("【帮助弹窗】第" + (index+1) + "条内容长度:", displayContent.length);
+            labelComp.string = displayContent;
+            
+            console.log("【帮助弹窗】第" + (index+1) + "条contentLabel初始高度:", contentLabel.height);
+            console.log("【帮助弹窗】第" + (index+1) + "条contentBox初始高度:", contentBox.height);
+            
+            // 存储引用，稍后更新高度
+            contentBoxes.push({
+                contentBox: contentBox,
+                labelComp: labelComp,
+                contentBg: contentBg,
+                index: index
+            });
+            
+            // 注意：不要在这里设置 contentBox.active = false
+            // 因为Label需要在激活状态下才能正确计算高度
+            // 将在延迟回调中设置
+            
+            // 添加点击事件
+            titleBg.on(cc.Node.EventType.TOUCH_END, function() {
+                var isExpanded = contentBox.active;
+                
+                // 收起所有其他项
+                for (var key in expandedItems) {
+                    if (key != index && expandedItems[key]) {
+                        var otherContent = contentNode.getChildByName("item_" + key);
+                        if (otherContent) {
+                            var otherBox = otherContent.getChildByName("contentBox");
+                            var otherIcon = otherContent.getChildByName("titleBg").getChildByName("icon");
+                            if (otherBox) otherBox.active = false;
+                            if (otherIcon) otherIcon.getComponent(cc.Label).string = "▶";
+                            expandedItems[key] = false;
+                        }
+                    }
+                }
+                
+                // 切换当前项
+                contentBox.active = !isExpanded;
+                iconLabel.string = contentBox.active ? "▼" : "▶";
+                expandedItems[index] = contentBox.active;
+                
+                // 重新计算布局
+                self._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
+            });
+            
+            titleNode.parent = titleBg;
+            iconNode.parent = titleBg;
+            titleBg.parent = itemNode;
+            contentBox.parent = itemNode;
+            itemNode.parent = contentNode;
+            
+            expandedItems[index] = false;
+        });
+        
+        // 延迟更新高度，确保Label已计算完成
+        // 注意：必须在contentBox.active = true的状态下才能正确计算Label高度
+        var fixedItemWidth = 560;  // 使用固定宽度
+        this.scheduleOnce(function() {
+            console.log("【帮助弹窗】延迟更新Label高度");
+            contentBoxes.forEach(function(item, idx) {
+                // 强制Label更新布局
+                var labelNode = item.labelComp.node;
+                var actualHeight = labelNode.height;
+                console.log("【帮助弹窗】第" + (idx+1) + "条actualHeight:", actualHeight);
+                
+                var newHeight = 200;  // 默认高度
+                if (actualHeight > 0 && actualHeight < 5000) {  // 合理的高度范围
+                    newHeight = actualHeight + 30;  // 上下各留15px边距
+                } else {
+                    // 使用文本长度估算高度
+                    var text = item.labelComp.string;
+                    var wrapWidth = fixedItemWidth - 30;
+                    var charWidth = 14 * 0.6;  // 字体大小 * 估算宽度比例
+                    var lineHeight = 20;
+                    var charsPerLine = Math.floor(wrapWidth / charWidth);
+                    var lines = Math.ceil(text.length / charsPerLine);
+                    newHeight = lines * lineHeight + 30;
+                    console.log("【帮助弹窗】第" + (idx+1) + "条估算高度:", newHeight);
+                }
+                
+                // 更新高度
+                item.contentBox.setContentSize(cc.size(fixedItemWidth, newHeight));
+                item.contentBg.setContentSize(cc.size(fixedItemWidth, newHeight));
+                
+                // 重绘背景
+                var g = item.contentBg.getComponent(cc.Graphics);
+                if (g) {
+                    g.clear();
+                    g.fillColor = cc.color(45, 42, 55, 200);
+                    g.roundRect(-fixedItemWidth/2, -newHeight, fixedItemWidth, newHeight, 4);
+                    g.fill();
+                }
+                console.log("【帮助弹窗】第" + (idx+1) + "条更新后高度:", newHeight);
+                
+                // 现在可以隐藏contentBox了
+                item.contentBox.active = false;
+            });
+            
+            // 重新计算初始布局
+            self._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
+        }, 0.2);  // 增加延迟时间确保布局完成
+        
+        // 初始布局
+        this._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
+
+        console.log("【帮助弹窗】UI创建完成，内容高度:", contentNode.height);
+        console.log("【帮助弹窗】itemNode 数量:", contentNode.children.length);
+    },
+    
+    // 显示帮助内容（手风琴效果）
+    _showHelpContent: function(container, loadingLabel, content) {
+        // 移除加载提示
+        if (loadingLabel && loadingLabel.parent) {
+            loadingLabel.parent = null;
+        }
+
+        // 尝试解析JSON格式的帮助内容
+        var helpItems = null;
+        try {
+            helpItems = JSON.parse(content);
+        } catch (e) {
+            // 如果不是JSON格式，显示为普通文本
+            this._showPlainText(container, content);
+            return;
+        }
+
+        if (!Array.isArray(helpItems) || helpItems.length === 0) {
+            this._showPlainText(container, content);
+            return;
+        }
+
+        // ==================== 创建内容容器（适配 ScrollView）====================
+        var contentNode = new cc.Node("HelpContent");
+        contentNode.setContentSize(cc.size(container.width, 100));  // 初始高度，后续会更新
+        contentNode.anchorX = 0.5;
+        contentNode.anchorY = 1;  // 锚点在顶部
+        contentNode.x = 0;
+        contentNode.y = 0;  // 顶部对齐
+        contentNode.parent = container;
+        
+        var self = this;
+        var itemHeight = 45;
+        var expandedItems = {};  // 记录展开状态
+
+        // 为每个帮助项创建标题和内容
+        helpItems.forEach(function(item, index) {
+            var itemNode = new cc.Node("item_" + index);
+            itemNode.width = contentNode.width;
+            itemNode.anchorX = 0.5;
+            itemNode.anchorY = 1;
+            itemNode.x = 0;
+
+            // 创建标题背景 - 使用Graphics绘制
+            var titleBg = new cc.Node("titleBg");
+            titleBg.setPosition(0, 0);
+            titleBg.width = contentNode.width - 10;
+            titleBg.height = itemHeight;
+            titleBg.anchorX = 0.5;
+            titleBg.anchorY = 1;
+
+            var bgGraphics = titleBg.addComponent(cc.Graphics);
+            bgGraphics.fillColor = cc.color(60, 55, 75, 255);
+            bgGraphics.roundRect(-titleBg.width/2, -titleBg.height, titleBg.width, titleBg.height, 6);
+            bgGraphics.fill();
+            bgGraphics.strokeColor = cc.color(100, 90, 120, 255);
+            bgGraphics.lineWidth = 1;
+            bgGraphics.stroke();
+
+            // 创建标题文字
+            var titleNode = new cc.Node("title");
+            var titleLabel = titleNode.addComponent(cc.Label);
+            titleLabel.string = (index + 1) + ". " + item.title;
+            titleLabel.fontSize = 18;
+            titleLabel.lineHeight = 22;
+            titleLabel.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+            titleNode.color = cc.color(255, 220, 100);
+            titleNode.anchorX = 0;
+            titleNode.anchorY = 0.5;
+            titleNode.x = -titleBg.width / 2 + 15;
+            titleNode.y = -itemHeight / 2;
+
+            // 创建展开/收缩图标
+            var iconNode = new cc.Node("icon");
+            var iconLabel = iconNode.addComponent(cc.Label);
+            iconLabel.string = "▶";
+            iconLabel.fontSize = 14;
+            iconNode.color = cc.color(200, 200, 200);
+            iconNode.anchorY = 0.5;
+            iconNode.x = titleBg.width / 2 - 20;
+            iconNode.y = -itemHeight / 2;
+
+            // 创建内容节点（初始隐藏）
+            var contentBox = new cc.Node("contentBox");
+            contentBox.setPosition(0, -itemHeight);
+            contentBox.width = contentNode.width - 20;
+            contentBox.anchorX = 0.5;
+            contentBox.anchorY = 1;
+
+            var contentLabel = new cc.Node("contentLabel");
+            var labelComp = contentLabel.addComponent(cc.Label);
+            labelComp.string = item.content;
+            labelComp.fontSize = 14;
+            labelComp.lineHeight = 20;
+            labelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+            labelComp.overflow = cc.Label.Overflow.RESIZE_HEIGHT;
+            labelComp.wrapWidth = contentBox.width - 30;
+            contentLabel.color = cc.color(220, 220, 220);
+            contentLabel.anchorX = 0;
+            contentLabel.anchorY = 1;
+            contentLabel.x = -contentBox.width / 2 + 15;
+            contentLabel.y = -10;
+
+            contentLabel.parent = contentBox;
+            contentBox.height = labelComp.node.height + 20;
+            contentBox.active = false;  // 初始隐藏
+            
+            // 添加点击事件
+            titleBg.on(cc.Node.EventType.TOUCH_END, function() {
+                var isExpanded = contentBox.active;
+                
+                // 收起所有其他项
+                for (var key in expandedItems) {
+                    if (key != index && expandedItems[key]) {
+                        var otherContent = contentNode.getChildByName("item_" + key);
+                        if (otherContent) {
+                            var otherBox = otherContent.getChildByName("contentBox");
+                            var otherIcon = otherContent.getChildByName("titleBg").getChildByName("icon");
+                            if (otherBox) otherBox.active = false;
+                            if (otherIcon) otherIcon.getComponent(cc.Label).string = "▶";
+                            expandedItems[key] = false;
+                        }
+                    }
+                }
+                
+                // 切换当前项
+                contentBox.active = !isExpanded;
+                iconLabel.string = contentBox.active ? "▼" : "▶";
+                expandedItems[index] = contentBox.active;
+                
+                // 重新计算布局
+                this._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
+            }.bind(this));
+            
+            titleNode.parent = titleBg;
+            iconNode.parent = titleBg;
+            titleBg.parent = itemNode;
+            contentBox.parent = itemNode;
+            itemNode.parent = contentNode;
+            
+            expandedItems[index] = false;
+        }.bind(this));
+        
+        // 初始布局
+        this._relayoutHelpItems(contentNode, helpItems, itemHeight, expandedItems);
+
+        console.log("【帮助弹窗】UI创建完成（简化版），内容高度:", contentNode.height);
+    },
+    
+    // 重新布局帮助项
+    _relayoutHelpItems: function(contentNode, helpItems, itemHeight, expandedItems) {
+        var totalHeight = 0;
+        var gap = 8;  // 项目间距
+        
+        helpItems.forEach(function(item, index) {
+            var itemNode = contentNode.getChildByName("item_" + index);
+            if (itemNode) {
+                // 设置当前项的Y位置
+                itemNode.y = -totalHeight;
+                totalHeight += itemHeight + gap;
+                
+                var contentBox = itemNode.getChildByName("contentBox");
+                if (contentBox && expandedItems[index]) {
+                    // 获取内容实际高度
+                    var boxHeight = contentBox.height || 80;
+                    // 更新contentBox位置（紧跟在标题下方）
+                    contentBox.y = -itemHeight - 5;
+                    totalHeight += boxHeight + gap;
+                }
+            }
+        });
+        
+        // 更新内容容器高度，确保最小高度
+        contentNode.height = Math.max(totalHeight + 20, 100);
+        
+        // 同时更新 ScrollView 的 content 高度
+        var container = contentNode.parent;  // container 是 ScrollView 的 content 节点
+        if (container) {
+            var scrollView = this._helpScrollView;
+            if (scrollView) {
+                // 更新 container 的高度
+                container.height = Math.max(totalHeight + 40, container.height);
+                // 滚动到顶部
+                scrollView.scrollToTop(0.1);
+            }
+        }
+        
+        console.log("【帮助弹窗】布局更新，总高度:", contentNode.height);
+    },
+    
+    // 显示普通文本
+    _showPlainText: function(container, content) {
+        var contentLabel = new cc.Node("ContentLabel");
+        contentLabel.setPosition(0, 0);  // 顶部对齐
+        var labelComp = contentLabel.addComponent(cc.Label);
+        labelComp.string = content;
+        labelComp.fontSize = 16;
+        labelComp.lineHeight = 24;
+        labelComp.horizontalAlign = cc.Label.HorizontalAlign.LEFT;
+        labelComp.verticalAlign = cc.Label.VerticalAlign.TOP;
+        labelComp.overflow = cc.Label.Overflow.RESIZE_HEIGHT;  // 自动调整高度
+        labelComp.wrapWidth = container.width - 20;
+        contentLabel.color = cc.color(240, 240, 240);
+        contentLabel.anchorX = 0.5;
+        contentLabel.anchorY = 1;  // 锚点在顶部
+        contentLabel.parent = container;
+        
+        // 延迟更新容器高度
+        var self = this;
+        this.scheduleOnce(function() {
+            var actualHeight = contentLabel.height + 40;
+            container.height = Math.max(actualHeight, container.height);
+            if (self._helpScrollView) {
+                self._helpScrollView.scrollToTop(0);
+            }
+        }, 0.05);
+    },
+    
     // 场景销毁时清理资源
     onDestroy: function() {
         
@@ -6701,6 +10827,12 @@ cc.Class({
         // 清理竞技场倒计时
         if (window.arenaData && window.arenaData.clearAllCountdowns) {
             window.arenaData.clearAllCountdowns();
+        }
+        
+        // 🔧【新增】移除页面可见性监听器
+        if (this._visibilityChangeHandler && document.removeEventListener) {
+            document.removeEventListener('visibilitychange', this._visibilityChangeHandler);
+            this._visibilityChangeHandler = null;
         }
         
         // 停止在线状态监测（大厅场景需要持续监测，所以只有场景销毁时才停止）

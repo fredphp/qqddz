@@ -348,6 +348,12 @@ cc.Class({
         // 显示加载提示
         this._showLoadingTip();
         
+        // 🔧【修复】设置跳转标志，让大厅场景知道是从游戏选择场景跳转过来的
+        // 这样大厅场景会优先使用本地缓存，不进行阻塞式验证
+        if (window.myglobal) {
+            window.myglobal._fromGameSelect = true;
+        }
+        
         // 跳转到大厅场景
         this.scheduleOnce(function() {
             cc.director.loadScene("hallScene");

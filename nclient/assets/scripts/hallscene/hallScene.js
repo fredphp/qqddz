@@ -89,9 +89,30 @@ cc.Class({
     _initWithPlayerData: function() {
         var myglobal = window.myglobal;
         
+        // 🔧【关键修复】如果 myglobal 或 playerData 未定义，尝试等待并恢复
+        // 不再直接跳转到登录场景，而是等待全局变量初始化
         if (!myglobal || !myglobal.playerData) {
-            console.error("myglobal 或 playerData 未定义");
-            cc.director.loadScene("loginScene");
+            console.warn("[HallScene] myglobal 或 playerData 未定义，等待初始化...");
+            var self = this;
+            var attempts = 0;
+            var maxAttempts = 10;
+            var checkInterval = setInterval(function() {
+                attempts++;
+                if (window.myglobal && window.myglobal.playerData) {
+                    clearInterval(checkInterval);
+                    console.log("[HallScene] myglobal 初始化成功，继续初始化UI");
+                    self._initWithPlayerData();
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    console.error("[HallScene] myglobal 初始化超时");
+                    // 🔧【修复】即使超时，也尝试使用本地缓存继续，不跳转到登录场景
+                    if (window.myglobal) {
+                        self._initUIAfterAuth();
+                    } else {
+                        cc.director.loadScene("loginScene");
+                    }
+                }
+            }, 100);
             return;
         }
         
@@ -102,9 +123,27 @@ cc.Class({
         
         var playerData = myglobal.playerData;
         
+        // 🔧【关键修复】如果本地没有 token，但有本地会话，尝试从本地存储恢复
         if (!playerData.token) {
-            cc.director.loadScene("loginScene");
-            return;
+            // 尝试从本地存储加载
+            if (playerData.loadFromLocal && playerData.loadFromLocal()) {
+                console.log("[HallScene] 从本地存储恢复玩家数据成功");
+            } else {
+                // 🔧【修复】即使没有 token，也检查是否有本地会话
+                // 如果有本地会话，说明用户之前登录过，不应该跳转到登录场景
+                var hasLocalSession = playerData.hasLocalSession ? playerData.hasLocalSession() : false;
+                if (hasLocalSession) {
+                    console.log("[HallScene] 有本地会话，尝试继续...");
+                    // 尝试重新加载
+                    if (playerData.loadFromLocal) {
+                        playerData.loadFromLocal();
+                    }
+                } else {
+                    console.warn("[HallScene] 无登录信息，返回登录页面");
+                    cc.director.loadScene("loginScene");
+                    return;
+                }
+            }
         }
         
         var self = this;
@@ -116,6 +155,52 @@ cc.Class({
             return;
         }
         
+        // 🔧【关键修复】检查是否已经登录过（有本地会话）
+        // 如果已经登录过，即使 token 验证失败也继续使用本地缓存
+        var hasLocalSession = playerData.hasLocalSession ? playerData.hasLocalSession() : false;
+        var hasToken = playerData.token && playerData.token.length > 0;
+        var fromGameSelect = myglobal._fromGameSelect;  // 从游戏选择场景跳转的标志
+        
+        // 清除跳转标志
+        if (myglobal._fromGameSelect) {
+            myglobal._fromGameSelect = false;
+        }
+        
+        // 🔧【关键修复】如果是从游戏选择场景跳转过来的，直接初始化 UI，不进行任何验证
+        // 因为用户能进入游戏选择场景，说明已经登录过了
+        if (fromGameSelect) {
+            console.log("[HallScene] 从游戏选择场景跳转，直接初始化UI（跳过验证）");
+            // 异步验证 token（不阻塞 UI 初始化）
+            if (hasToken && myglobal.verifyToken) {
+                myglobal.verifyToken(function(valid, message) {
+                    if (!valid) {
+                        console.warn("[HallScene] Token验证失败:", message, "- 继续使用本地缓存");
+                    }
+                    // 无论验证结果如何，都不跳转到登录场景
+                });
+            }
+            self._initUIAfterAuth();
+            return;
+        }
+        
+        // 如果有 token 或本地会话，直接初始化 UI，不进行服务端验证
+        // 这样可以避免网络延迟导致的跳转问题
+        if (hasToken || hasLocalSession) {
+            console.log("[HallScene] 检测到登录状态，直接初始化UI (token=" + hasToken + ", localSession=" + hasLocalSession + ")");
+            // 异步验证 token（不阻塞 UI 初始化）
+            if (hasToken && myglobal.verifyToken) {
+                myglobal.verifyToken(function(valid, message) {
+                    if (!valid) {
+                        console.warn("[HallScene] Token验证失败:", message, "- 继续使用本地缓存");
+                    }
+                    // 无论验证结果如何，都不跳转到登录场景
+                });
+            }
+            self._initUIAfterAuth();
+            return;
+        }
+        
+        // 没有任何登录信息，需要进行验证
         try {
             myglobal.verifyToken(function(valid, message) {
                 // 🔧【修复】Token验证失败时，只要本地有token就继续初始化UI
@@ -127,19 +212,24 @@ cc.Class({
                     if (playerData && playerData.token) {
                         // 本地还有token，继续使用本地缓存
                         console.log("✅ 本地有token，继续初始化大厅UI");
+                        self._initUIAfterAuth();
                     } else {
                         // 完全没有登录信息，跳转到登录页面
                         console.error("无登录信息，返回登录页面");
                         cc.director.loadScene("loginScene");
-                        return;
                     }
+                } else {
+                    self._initUIAfterAuth();
                 }
-                self._initUIAfterAuth();
             });
         } catch (e) {
             console.error("verifyToken 调用失败:", e);
             // 出错时也继续初始化UI，使用本地缓存
-            self._initUIAfterAuth();
+            if (playerData && playerData.token) {
+                self._initUIAfterAuth();
+            } else {
+                cc.director.loadScene("loginScene");
+            }
         }
     },
     

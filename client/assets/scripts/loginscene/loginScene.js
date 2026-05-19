@@ -313,6 +313,9 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         phoneInput.type = 'tel';
         phoneInput.placeholder = '请输入手机号';
         phoneInput.maxLength = 11;
+        phoneInput.setAttribute('autocomplete', 'off');  // 🔧【修复】禁用浏览器自动填充历史记录
+        phoneInput.setAttribute('autocapitalize', 'off'); // 禁用自动大写
+        phoneInput.setAttribute('autocorrect', 'off');    // 禁用自动纠正
         phoneInput.style.cssText = [
             'position: absolute',
             'left: ' + phoneScreen.left + 'px',
@@ -342,6 +345,9 @@ var _createNativeInputElements = function(panel, phoneInputNode, codeInputNode, 
         codeInput.type = 'text';
         codeInput.placeholder = '验证码';
         codeInput.maxLength = 6;
+        codeInput.setAttribute('autocomplete', 'off');  // 🔧【修复】禁用浏览器自动填充历史记录
+        codeInput.setAttribute('autocapitalize', 'off'); // 禁用自动大写
+        codeInput.setAttribute('autocorrect', 'off');    // 禁用自动纠正
         codeInput.style.cssText = [
             'position: absolute',
             'left: ' + codeScreen.left + 'px',
@@ -568,7 +574,6 @@ var _startInputObserver = function() {
 };
 
 cc.Class({
-    name: 'loginScene',
     extends: cc.Component,
 
     properties: {
@@ -730,7 +735,8 @@ cc.Class({
                             if (myglobal.socket && myglobal.socket.initSocket) {
                                 myglobal.socket.initSocket();
                             }
-                            cc.director.loadScene("hallScene");
+                            // 显示游戏选择界面（动态创建，不需要加载新场景）
+                            self._showGameSelectUI();
                         }, 0.5);
                     }
                 } else {
@@ -951,7 +957,15 @@ cc.Class({
     // 🚀【性能优化】预加载场景
     _preloadScenes: function() {
         
-        // 预加载大厅场景
+        // 预加载游戏选择场景
+        cc.director.preloadScene("gameSelectScene", function(err) {
+            if (err) {
+                console.error("🚀 [预加载] 游戏选择场景预加载失败:", err);
+                return;
+            }
+        });
+        
+        // 预加载大厅场景（游戏选择场景会跳转到这里）
         cc.director.preloadScene("hallScene", function(err) {
             if (err) {
                 console.error("🚀 [预加载] 大厅场景预加载失败:", err);
@@ -1249,7 +1263,7 @@ cc.Class({
             }
 
             myglobal.playerData.gobal_count = result.goldcount || 0;
-            cc.director.loadScene("hallScene");
+            cc.director.loadScene("gameSelectScene");
         });
     },
 
@@ -1359,27 +1373,8 @@ cc.Class({
         mask.color = new cc.Color(0, 0, 0);
         mask.opacity = 150;
 
-        // 🔧 修复：点击遮罩层关闭弹窗
-        mask.on(cc.Node.EventType.TOUCH_END, function() {
-            console.log(">>> 点击遮罩层关闭弹窗");
-            // 重置标志位
-            self._phoneLoginPopupShowing = false;
-
-            // 清理原生 HTML input 元素
-            if (cc.sys.isBrowser) {
-                var container = document.getElementById('native-input-container');
-                if (container) {
-                    container.remove();
-                }
-            }
-            // 关闭动画
-            cc.tween(panel)
-                .to(0.15, { scale: 0.8, opacity: 0 }, { easing: 'backIn' })
-                .call(function() {
-                    popup.destroy();
-                })
-                .start();
-        }, this);
+        // 注意：遮罩层只起遮挡作用，不响应点击关闭弹窗
+        // 只有点击关闭按钮才能关闭弹窗
 
         // ==================== 弹窗面板 ====================
         var panel = new cc.Node("Panel");
@@ -1487,7 +1482,9 @@ cc.Class({
             cc.tween(panel)
                 .to(0.15, { scale: 0.8, opacity: 0 }, { easing: 'backIn' })
                 .call(function() {
-                    popup.destroy();
+                    if (cc.isValid(popup)) {
+                        popup.destroy();
+                    }
                 })
                 .start();
         }, this);
@@ -1895,8 +1892,10 @@ cc.Class({
                 showMessage("登录成功", false);
                 self.scheduleOnce(function() {
                     _removeNativeInputElements();
-                    popup.destroy();
-                    cc.director.loadScene("hallScene");
+                    if (cc.isValid(popup)) {
+                        popup.destroy();
+                    }
+                    cc.director.loadScene("gameSelectScene");
                 }, 0.5);
                 return;
             }
@@ -1932,8 +1931,10 @@ cc.Class({
                             }
                             self.scheduleOnce(function() {
                                 _removeNativeInputElements();
-                                popup.destroy();
-                                cc.director.loadScene("hallScene");
+                                if (cc.isValid(popup)) {
+                                    popup.destroy();
+                                }
+                                cc.director.loadScene("gameSelectScene");
                             }, 0.5);
                         } else {
                             showMessage(resp.message || "登录失败", true);
@@ -1971,8 +1972,10 @@ cc.Class({
                                     }
                                     self.scheduleOnce(function() {
                                         _removeNativeInputElements();
-                                        popup.destroy();
-                                        cc.director.loadScene("hallScene");
+                                        if (cc.isValid(popup)) {
+                                            popup.destroy();
+                                        }
+                                        cc.director.loadScene("gameSelectScene");
                                     }, 0.5);
                                 } else {
                                     showMessage(resp.message || "登录失败", true);
@@ -2012,8 +2015,10 @@ cc.Class({
                 showMessage("登录成功", false);
                 self.scheduleOnce(function() {
                     _removeNativeInputElements();
-                    popup.destroy();
-                    cc.director.loadScene("hallScene");
+                    if (cc.isValid(popup)) {
+                        popup.destroy();
+                    }
+                    cc.director.loadScene("gameSelectScene");
                 }, 0.5);
                 return;
             }
@@ -2045,10 +2050,17 @@ cc.Class({
                                 window.myglobal.playerData.saveToLocal();
                                 console.log("【微信登录】用户数据已保存, nickName =", window.myglobal.playerData.nickName);
                             }
+                            // 🔧【关键修复】登录成功后重新建立带Token的WebSocket连接
+                            if (window.myglobal && window.myglobal.socket && window.myglobal.socket.initSocket) {
+                                console.log("🔧 [微信登录] 登录成功后检查WebSocket连接状态...");
+                                window.myglobal.socket.initSocket();
+                            }
                             self.scheduleOnce(function() {
                                 _removeNativeInputElements();
-                                popup.destroy();
-                                cc.director.loadScene("hallScene");
+                                if (cc.isValid(popup)) {
+                                    popup.destroy();
+                                }
+                                cc.director.loadScene("gameSelectScene");
                             }, 0.5);
                         } else {
                             showMessage(resp.message || "登录失败", true);
@@ -2080,10 +2092,17 @@ cc.Class({
                                         window.myglobal.playerData.saveToLocal();
                                         console.log("【微信登录XHR】用户数据已保存, nickName =", window.myglobal.playerData.nickName);
                                     }
+                                    // 🔧【关键修复】登录成功后重新建立带Token的WebSocket连接
+                                    if (window.myglobal && window.myglobal.socket && window.myglobal.socket.initSocket) {
+                                        console.log("🔧 [微信登录XHR] 登录成功后检查WebSocket连接状态...");
+                                        window.myglobal.socket.initSocket();
+                                    }
                                     self.scheduleOnce(function() {
                                         _removeNativeInputElements();
-                                        popup.destroy();
-                                        cc.director.loadScene("hallScene");
+                                        if (cc.isValid(popup)) {
+                                            popup.destroy();
+                                        }
+                                        cc.director.loadScene("gameSelectScene");
                                     }, 0.5);
                                 } else {
                                     showMessage(resp.message || "登录失败", true);
@@ -2276,32 +2295,178 @@ cc.Class({
         }
     },
     
+    // 显示游戏选择界面（动态创建）
+    _showGameSelectUI: function() {
+        var self = this;
+        
+        console.log("=== 显示游戏选择界面 ===");
+        
+        // 创建全屏遮罩
+        var overlay = new cc.Node("GameSelectOverlay");
+        overlay.setContentSize(cc.winSize.width, cc.winSize.height);
+        overlay.setPosition(cc.winSize.width / 2, cc.winSize.height / 2);
+        overlay.zIndex = 10000;
+        
+        // 添加Widget组件实现全屏适配
+        var widget = overlay.addComponent(cc.Widget);
+        widget.isAlignTop = widget.isAlignBottom = widget.isAlignLeft = widget.isAlignRight = true;
+        widget.top = widget.bottom = widget.left = widget.right = 0;
+        
+        // 背景 - 使用纯色或加载背景图
+        var bgNode = new cc.Node("Bg");
+        bgNode.setContentSize(cc.winSize.width, cc.winSize.height);
+        var graphics = bgNode.addComponent(cc.Graphics);
+        graphics.fillColor = new cc.Color(25, 25, 80, 255);
+        graphics.rect(-cc.winSize.width / 2, -cc.winSize.height / 2, cc.winSize.width, cc.winSize.height);
+        graphics.fill();
+        bgNode.parent = overlay;
+        
+        // 尝试加载背景图片
+        cc.resources.load("login_rukou_bg", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err && spriteFrame) {
+                var bgSprite = bgNode.addComponent(cc.Sprite);
+                bgSprite.spriteFrame = spriteFrame;
+                bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+                bgNode.setContentSize(cc.winSize.width, cc.winSize.height);
+                graphics.enabled = false; // 禁用纯色背景
+            }
+        });
+        
+        // 按钮容器
+        var buttonContainer = new cc.Node("ButtonContainer");
+        buttonContainer.setPosition(0, 0);
+        buttonContainer.parent = overlay;
+        
+        // 计算按钮位置和大小
+        var buttonSpacing = 220;  // 按钮间距
+        var buttonSize = 200;     // 按钮大小（调大）
+        
+        // 斗地主按钮
+        var ddzBtn = new cc.Node("DDZButton");
+        ddzBtn.setPosition(-buttonSpacing, 0);
+        ddzBtn.setContentSize(buttonSize, buttonSize);
+        
+        var ddzSprite = ddzBtn.addComponent(cc.Sprite);
+        ddzSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        
+        // 加载斗地主图标
+        cc.resources.load("entrance_doudizhu", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err && spriteFrame) {
+                ddzSprite.spriteFrame = spriteFrame;
+            }
+        });
+        
+        var ddzBtnComp = ddzBtn.addComponent(cc.Button);
+        ddzBtnComp.transition = cc.Button.Transition.SCALE;
+        ddzBtnComp.zoomScale = 1.08;
+        
+        ddzBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            console.log("=== 点击斗地主 ===");
+            // 🔧【修复】设置跳转标志，让大厅场景直接初始化UI
+            if (window.myglobal) {
+                window.myglobal._fromGameSelect = true;
+            }
+            overlay.destroy();
+            cc.director.loadScene("hallScene");
+        }, this);
+        
+        ddzBtn.parent = buttonContainer;
+        
+        // 农场按钮
+        var farmBtn = new cc.Node("FarmButton");
+        farmBtn.setPosition(buttonSpacing, 0);
+        farmBtn.setContentSize(buttonSize, buttonSize);
+        
+        var farmSprite = farmBtn.addComponent(cc.Sprite);
+        farmSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        
+        // 加载农场图标
+        cc.resources.load("entrance_farm", cc.SpriteFrame, function(err, spriteFrame) {
+            if (!err && spriteFrame) {
+                farmSprite.spriteFrame = spriteFrame;
+            }
+        });
+        
+        var farmBtnComp = farmBtn.addComponent(cc.Button);
+        farmBtnComp.transition = cc.Button.Transition.SCALE;
+        farmBtnComp.zoomScale = 1.08;
+        
+        farmBtn.on(cc.Node.EventType.TOUCH_END, function() {
+            console.log("=== 点击农场（敬请期待）===");
+            self._showGameSelectTip("农场游戏", "敬请期待！");
+        }, this);
+        
+        farmBtn.parent = buttonContainer;
+        
+        // 添加到场景
+        this.node.addChild(overlay);
+        this._gameSelectOverlay = overlay;
+    },
+    
+    // 显示游戏选择提示
+    _showGameSelectTip: function(title, message) {
+        var tipNode = new cc.Node("GameSelectTip");
+        tipNode.setPosition(0, 0);
+        tipNode.setContentSize(350, 180);
+        tipNode.zIndex = 10001;
+        
+        // 背景
+        var bgNode = new cc.Node("Bg");
+        bgNode.setContentSize(350, 180);
+        var graphics = bgNode.addComponent(cc.Graphics);
+        graphics.fillColor = new cc.Color(0, 0, 0, 230);
+        graphics.roundRect(-175, -90, 350, 180, 15);
+        graphics.fill();
+        bgNode.parent = tipNode;
+        
+        // 标题
+        var titleNode = new cc.Node("Title");
+        titleNode.setPosition(0, 50);
+        var titleLabel = titleNode.addComponent(cc.Label);
+        titleLabel.string = title;
+        titleLabel.fontSize = 28;
+        titleNode.color = cc.color(255, 215, 0);
+        titleNode.parent = tipNode;
+        
+        // 内容
+        var contentNode = new cc.Node("Content");
+        contentNode.setPosition(0, 0);
+        var contentLabel = contentNode.addComponent(cc.Label);
+        contentLabel.string = message;
+        contentLabel.fontSize = 22;
+        contentNode.color = cc.color(255, 255, 255);
+        contentNode.parent = tipNode;
+        
+        // 确定按钮
+        var btnNode = new cc.Node("OKBtn");
+        btnNode.setPosition(0, -55);
+        btnNode.setContentSize(100, 36);
+        var btnGraphics = btnNode.addComponent(cc.Graphics);
+        btnGraphics.fillColor = new cc.Color(76, 175, 80);
+        btnGraphics.roundRect(-50, -18, 100, 36, 5);
+        btnGraphics.fill();
+        var btnLabel = btnNode.addComponent(cc.Label);
+        btnLabel.string = "确定";
+        btnLabel.fontSize = 18;
+        btnNode.color = cc.color(255, 255, 255);
+        btnNode.parent = tipNode;
+        
+        btnNode.on(cc.Node.EventType.TOUCH_END, function() {
+            tipNode.destroy();
+        }, this);
+        
+        this.node.addChild(tipNode);
+        
+        // 3秒后自动关闭
+        this.scheduleOnce(function() {
+            if (tipNode && tipNode.isValid) {
+                tipNode.destroy();
+            }
+        }, 3);
+    },
+    
     // 销毁时清理
     onDestroy () {
-        // 清理全局触摸监听
         this._removeGlobalTouchForMusic();
-        
-        // 🔧 修复：清理所有弹窗，防止带到其他场景
-        // 清理手机登录弹窗
-        if (this._phoneLoginPopup && cc.isValid(this._phoneLoginPopup)) {
-            this._phoneLoginPopup.destroy();
-            this._phoneLoginPopup = null;
-        }
-        
-        // 清理用户协议弹窗
-        if (this._userAgreementPopup && cc.isValid(this._userAgreementPopup)) {
-            this._userAgreementPopup.destroy();
-            this._userAgreementPopup = null;
-        }
-        
-        // 🔧 关键修复：清理原生 HTML input 元素
-        // 这些元素是直接添加到 document.body 的，不会随场景销毁
-        // 必须手动清理，否则会带到下一个场景
-        _removeNativeInputElements();
-        
-        // 重置弹窗标志位
-        this._phoneLoginPopupShowing = false;
-        
-        console.log("loginScene onDestroy: 已清理所有弹窗和原生元素");
     }
 });
