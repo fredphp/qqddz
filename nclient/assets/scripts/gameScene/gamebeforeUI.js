@@ -228,7 +228,12 @@ cc.Class({
             }
         }
         
-        // 返回大厅
+        // 设置标志，表示要跳转到练级区（积分场景）
+        if (myglobal) {
+            myglobal.goToPracticeZone = true
+        }
+        
+        // 返回大厅，大厅会检查标志并自动显示练级区
         cc.director.loadScene("hallScene")
     },
 

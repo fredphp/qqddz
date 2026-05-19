@@ -209,6 +209,19 @@ cc.Class({
             // 初始化顶部按钮（设置、帮助等）
             this._initTopButtons();
             
+            // ==================== 🔧【新增】检查是否需要跳转到练级区 ====================
+            // 如果从游戏场景点击"换房"返回，应该直接显示练级区
+            if (myglobal && myglobal.goToPracticeZone) {
+                console.log("🔄 检测到换房标志，自动跳转到练级区");
+                myglobal.goToPracticeZone = false;  // 清除标志
+                
+                // 延迟显示练级区，确保UI初始化完成
+                var self = this;
+                this.scheduleOnce(function() {
+                    self._showPracticeZoneScene();
+                }, 0.3);
+            }
+            
         } catch (e) {
             console.error("_initUIAfterAuth 异常:", e);
         }
