@@ -342,22 +342,24 @@ cc.Class({
     _onDDZClick: function() {
         console.log("=== 点击斗地主入口 ===");
         
+        // 🔧【关键修复】立即设置跳转标志，并同步到本地存储
+        // 这样即使页面刷新或场景切换，标志也不会丢失
+        if (window.myglobal) {
+            window.myglobal._fromGameSelect = true;
+            console.log("=== [GameSelect] 已设置 _fromGameSelect = true ===");
+        } else {
+            console.warn("=== [GameSelect] myglobal 不存在，无法设置标志 ===");
+        }
+        
         // 播放音效
         this._playClickSound();
         
         // 显示加载提示
         this._showLoadingTip();
         
-        // 🔧【修复】设置跳转标志，让大厅场景知道是从游戏选择场景跳转过来的
-        // 这样大厅场景会优先使用本地缓存，不进行阻塞式验证
-        if (window.myglobal) {
-            window.myglobal._fromGameSelect = true;
-        }
-        
-        // 跳转到大厅场景
-        this.scheduleOnce(function() {
-            cc.director.loadScene("hallScene");
-        }, 0.3);
+        // 🔧【修复】立即跳转，不使用延迟
+        // 延迟可能导致标志被其他操作覆盖
+        cc.director.loadScene("hallScene");
     },
 
     // 农场按钮点击（预留）

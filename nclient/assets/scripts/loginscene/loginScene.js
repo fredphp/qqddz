@@ -2362,11 +2362,13 @@ cc.Class({
         
         ddzBtn.on(cc.Node.EventType.TOUCH_END, function() {
             console.log("=== 点击斗地主 ===");
-            // 🔧【修复】设置跳转标志，让大厅场景直接初始化UI
+            // 🔧【关键修复】设置跳转标志，让大厅场景直接初始化UI
             if (window.myglobal) {
                 window.myglobal._fromGameSelect = true;
+                console.log("=== [LoginScene GameSelect] 已设置 _fromGameSelect = true ===");
             }
             overlay.destroy();
+            // 🔧【修复】立即跳转，不使用延迟
             cc.director.loadScene("hallScene");
         }, this);
         

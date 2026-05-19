@@ -40,9 +40,19 @@ cc.Class({
     },
 
     onLoad () {
+        console.log("=== [HallScene] onLoad 开始 ===");
+        console.log("=== [HallScene] myglobal 存在:", !!window.myglobal);
+        console.log("=== [HallScene] _fromGameSelect:", window.myglobal ? window.myglobal._fromGameSelect : "myglobal不存在");
+        
+        // 🔧【关键修复】立即捕获并保存跳转标志，防止在异步操作中丢失
+        this._capturedFromGameSelect = window.myglobal ? !!window.myglobal._fromGameSelect : false;
+        if (window.myglobal && window.myglobal._fromGameSelect) {
+            console.log("=== [HallScene] 捕获到 _fromGameSelect 标志 ===");
+            window.myglobal._fromGameSelect = false;  // 立即清除标志
+        }
         
         if (!window.myglobal) {
-            console.warn("myglobal 未定义，等待初始化...");
+            console.warn("=== [HallScene] myglobal 未定义，等待初始化...");
             this._waitForMyglobal();
             return;
         }
@@ -71,15 +81,26 @@ cc.Class({
         var attempts = 0;
         var maxAttempts = 20;
         
+        console.log("=== [HallScene] _waitForMyglobal 开始，已捕获标志:", self._capturedFromGameSelect);
+        
         var check = function() {
             attempts++;
+            console.log("=== [HallScene] _waitForMyglobal 检查第", attempts, "次");
             if (window.myglobal && window.myglobal.playerData) {
+                console.log("=== [HallScene] myglobal 初始化成功");
                 self._initWithPlayerData();
             } else if (attempts < maxAttempts) {
                 setTimeout(check, 100);
             } else {
-                console.error("myglobal 初始化超时");
-                cc.director.loadScene("loginScene");
+                console.error("=== [HallScene] myglobal 初始化超时");
+                // 🔧【修复】即使超时，也检查是否有本地会话
+                // 如果有本地会话，继续初始化UI，不跳转到登录场景
+                if (window.myglobal && window.myglobal.playerData && window.myglobal.playerData.hasLocalSession && window.myglobal.playerData.hasLocalSession()) {
+                    console.log("=== [HallScene] 有本地会话，继续初始化UI");
+                    self._initUIAfterAuth();
+                } else {
+                    cc.director.loadScene("loginScene");
+                }
             }
         };
         
@@ -159,12 +180,8 @@ cc.Class({
         // 如果已经登录过，即使 token 验证失败也继续使用本地缓存
         var hasLocalSession = playerData.hasLocalSession ? playerData.hasLocalSession() : false;
         var hasToken = playerData.token && playerData.token.length > 0;
-        var fromGameSelect = myglobal._fromGameSelect;  // 从游戏选择场景跳转的标志
-        
-        // 清除跳转标志
-        if (myglobal._fromGameSelect) {
-            myglobal._fromGameSelect = false;
-        }
+        // 🔧【关键修复】使用在 onLoad 中捕获的标志，而不是重新读取 myglobal._fromGameSelect
+        var fromGameSelect = this._capturedFromGameSelect;
         
         // 🔧【关键修复】如果是从游戏选择场景跳转过来的，直接初始化 UI，不进行任何验证
         // 因为用户能进入游戏选择场景，说明已经登录过了
