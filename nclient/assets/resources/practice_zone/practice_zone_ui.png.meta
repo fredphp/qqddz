@@ -1,9 +1,38 @@
 {
-  "ver": "2.3.2",
+  "ver": "2.3.7",
   "uuid": "practice-ui-png-1234-5678-abcdef012345",
-  "type": "texture",
+  "importer": "texture",
+  "type": "sprite",
   "wrapMode": "clamp",
   "filterMode": "bilinear",
   "premultiplyAlpha": false,
-  "subMetas": {}
+  "genMipmaps": false,
+  "packable": true,
+  "width": 550,
+  "height": 310,
+  "platformSettings": {},
+  "subMetas": {
+    "practice_zone_ui": {
+      "ver": "1.0.6",
+      "uuid": "practice-ui-png-sprite-1234-5678-abcdef012345",
+      "importer": "sprite-frame",
+      "rawTextureUuid": "practice-ui-png-1234-5678-abcdef012345",
+      "trimType": "auto",
+      "trimThreshold": 1,
+      "rotated": false,
+      "offsetX": 0,
+      "offsetY": 0,
+      "trimX": 0,
+      "trimY": 0,
+      "width": 550,
+      "height": 310,
+      "rawWidth": 550,
+      "rawHeight": 310,
+      "borderTop": 0,
+      "borderBottom": 0,
+      "borderLeft": 0,
+      "borderRight": 0,
+      "subMetas": {}
+    }
+  }
 }
