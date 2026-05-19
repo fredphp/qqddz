@@ -1199,14 +1199,14 @@ cc.Class({
         var isNormalRoom = (roomType === 5);
         
         if (isNormalRoom) {
-            // 练级区/普通场 - 显示房间选择弹窗
-            console.log("=== 点击普通场(练级区)，显示房间选择弹窗 ===");
+            // 练级区/普通场 - 显示练级区场景
+            console.log("=== 点击普通场(练级区)，显示练级区场景 ===");
             
             // 播放点击音效
             this._playClickSound();
             
-            // 显示房间选择弹窗
-            this._showRoomSelectDialog(roomConfig);
+            // 显示练级区场景
+            this._showPracticeZoneScene(roomConfig);
             return;
         }
         
@@ -1233,101 +1233,171 @@ cc.Class({
         this._quickMatch(roomConfig, playerGold);
     },
     
-    // 显示房间选择弹窗
-    _showRoomSelectDialog: function(roomConfig) {
+    // 显示练级区场景
+    _showPracticeZoneScene: function(roomConfig) {
         var self = this;
         var myglobal = window.myglobal;
         var playerGold = myglobal && myglobal.playerData ? myglobal.playerData.gobal_count : 0;
         
-        // 如果弹窗不存在，创建它
-        if (!this._roomSelectNode) {
-            this._roomSelectNode = this._createRoomSelectDialog();
+        // 如果场景不存在，创建它
+        if (!this._practiceZoneNode) {
+            this._practiceZoneNode = this._createPracticeZoneScene();
         }
         
-        // 显示弹窗
-        this._roomSelectNode.active = true;
-        this._roomSelectNode.opacity = 0;
-        cc.tween(this._roomSelectNode)
+        // 隐藏大厅的其他元素
+        this._hideHallElements();
+        
+        // 显示练级区场景
+        this._practiceZoneNode.active = true;
+        this._practiceZoneNode.opacity = 0;
+        cc.tween(this._practiceZoneNode)
             .to(0.3, { opacity: 255 })
             .start();
     },
     
-    // 创建房间选择弹窗
-    _createRoomSelectDialog: function() {
+    // 隐藏大厅元素
+    _hideHallElements: function() {
+        // 隐藏房间卡片容器
+        var cardContainer = this.node.getChildByName("CardContainer");
+        if (cardContainer) cardContainer.active = false;
+        
+        // 隐藏其他UI元素
+        var elementsToHide = ["LeftArea", "RightArea", "btn_create_room", "btn_join_room"];
+        for (var i = 0; i < elementsToHide.length; i++) {
+            var el = this.node.getChildByName(elementsToHide[i]);
+            if (el) el.active = false;
+        }
+    },
+    
+    // 显示大厅元素
+    _showHallElements: function() {
+        // 显示房间卡片容器
+        var cardContainer = this.node.getChildByName("CardContainer");
+        if (cardContainer) cardContainer.active = true;
+        
+        // 显示其他UI元素
+        var elementsToShow = ["LeftArea", "RightArea", "btn_create_room", "btn_join_room"];
+        for (var i = 0; i < elementsToShow.length; i++) {
+            var el = this.node.getChildByName(elementsToShow[i]);
+            if (el) el.active = true;
+        }
+    },
+    
+    // 创建练级区场景
+    _createPracticeZoneScene: function() {
         var self = this;
         var myglobal = window.myglobal;
+        var playerGold = myglobal && myglobal.playerData ? myglobal.playerData.gobal_count : 0;
         
-        // 创建弹窗容器
-        var dialogNode = new cc.Node("RoomSelectDialog");
-        dialogNode.setContentSize(1280, 720);
+        // 创建场景容器 - 全屏
+        var sceneNode = new cc.Node("PracticeZoneScene");
+        sceneNode.setContentSize(1280, 720);
         
-        // 半透明背景
-        var bgNode = new cc.Node("Bg");
+        // 创建背景 - 使用 desktop_bg_filled.jpg
+        var bgNode = new cc.Node("Background");
         bgNode.setContentSize(1280, 720);
-        var bgGraphics = bgNode.addComponent(cc.Graphics);
-        bgGraphics.fillColor = new cc.Color(0, 0, 0, 180);
-        bgGraphics.rect(-640, -360, 1280, 720);
-        bgGraphics.fill();
-        bgNode.parent = dialogNode;
+        bgNode.setPosition(0, 0);
         
-        // 点击背景关闭
-        bgNode.on(cc.Node.EventType.TOUCH_END, function(event) {
-            event.stopPropagation();
-        }, this);
+        var bgSprite = bgNode.addComponent(cc.Sprite);
+        bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        bgSprite.type = cc.Sprite.Type.SIMPLE;
         
-        // 内容容器
-        var contentNode = new cc.Node("Content");
-        contentNode.setPosition(0, 0);
-        contentNode.setContentSize(1000, 500);
-        var contentGraphics = contentNode.addComponent(cc.Graphics);
-        contentGraphics.fillColor = new cc.Color(45, 45, 85, 240);
-        contentGraphics.roundRect(-500, -250, 1000, 500, 20);
-        contentGraphics.fill();
-        contentGraphics.strokeColor = new cc.Color(255, 255, 255, 100);
-        contentGraphics.lineWidth = 2;
-        contentGraphics.roundRect(-500, -250, 1000, 500, 20);
-        contentGraphics.stroke();
-        contentNode.parent = dialogNode;
+        // 加载背景图片
+        cc.resources.load("bg2", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.error("加载练级区背景图片失败:", err);
+                // 使用纯色背景作为备用
+                var graphics = bgNode.addComponent(cc.Graphics);
+                graphics.fillColor = new cc.Color(45, 45, 85);
+                graphics.rect(-640, -360, 1280, 720);
+                graphics.fill();
+                return;
+            }
+            bgSprite.spriteFrame = spriteFrame;
+            bgNode.setContentSize(1280, 720);
+            console.log("练级区背景图片加载成功");
+        });
         
-        // 标题
-        var titleNode = new cc.Node("Title");
-        titleNode.setPosition(0, 200);
-        var titleLabel = titleNode.addComponent(cc.Label);
-        titleLabel.string = "选择房间";
-        titleLabel.fontSize = 36;
-        titleLabel.lineHeight = 50;
+        bgNode.parent = sceneNode;
+        bgNode.zIndex = 0;
+        
+        // 创建顶部标题栏
+        var titleBar = new cc.Node("TitleBar");
+        titleBar.setPosition(0, 300);
+        titleBar.setContentSize(400, 60);
+        
+        var titleBg = titleBar.addComponent(cc.Graphics);
+        titleBg.fillColor = new cc.Color(139, 69, 19, 230);
+        titleBg.roundRect(-200, -30, 400, 60, 10);
+        titleBg.fill();
+        titleBg.strokeColor = new cc.Color(255, 215, 0);
+        titleBg.lineWidth = 3;
+        titleBg.roundRect(-200, -30, 400, 60, 10);
+        titleBg.stroke();
+        
+        var titleLabel = titleBar.addComponent(cc.Label);
+        titleLabel.string = "🏆 练级区 🏆";
+        titleLabel.fontSize = 32;
+        titleLabel.lineHeight = 40;
         titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        titleNode.color = cc.color(255, 215, 0);
-        titleNode.parent = contentNode;
+        titleBar.color = cc.color(255, 215, 0);
+        titleBar.parent = sceneNode;
+        titleBar.zIndex = 10;
         
-        // 房间数据
+        // 创建玩家积分显示
+        var scoreBar = new cc.Node("ScoreBar");
+        scoreBar.setPosition(0, 240);
+        scoreBar.setContentSize(300, 40);
+        
+        var scoreBg = scoreBar.addComponent(cc.Graphics);
+        scoreBg.fillColor = new cc.Color(60, 40, 30, 200);
+        scoreBg.roundRect(-150, -20, 300, 40, 8);
+        scoreBg.fill();
+        
+        var scoreLabel = scoreBar.addComponent(cc.Label);
+        scoreLabel.string = "玩家当前积分: " + self._formatRoomGold(playerGold);
+        scoreLabel.fontSize = 20;
+        scoreLabel.lineHeight = 28;
+        scoreLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        scoreBar.color = cc.color(255, 255, 255);
+        scoreBar.parent = sceneNode;
+        scoreBar.zIndex = 10;
+        
+        // 场次数据
         var rooms = [
-            { name: "新手场", baseScore: 1, minGold: 0 },
-            { name: "普通场", baseScore: 2, minGold: 1000 },
-            { name: "10分场", baseScore: 10, minGold: 5000 },
-            { name: "50分场", baseScore: 50, minGold: 20000 }
+            { name: "10分场", baseScore: 10, minGold: 500, color: cc.color(76, 175, 80) },
+            { name: "50分场", baseScore: 50, minGold: 2500, color: cc.color(33, 150, 243) },
+            { name: "200分场", baseScore: 200, minGold: 10000, color: cc.color(255, 193, 7) },
+            { name: "500分场", baseScore: 500, minGold: 25000, color: cc.color(255, 152, 0) },
+            { name: "1000分场", baseScore: 1000, minGold: 50000, color: cc.color(244, 67, 54) }
         ];
         
-        // 创建房间按钮
-        var startX = -350;
-        var startY = 0;
+        // 创建场次按钮容器
+        var roomsContainer = new cc.Node("RoomsContainer");
+        roomsContainer.setPosition(0, 0);
+        roomsContainer.parent = sceneNode;
+        roomsContainer.zIndex = 10;
+        
+        // 创建场次按钮
+        var startX = -480;
+        var spacing = 240;
         
         rooms.forEach(function(room, index) {
             var btnNode = new cc.Node("RoomBtn_" + index);
-            btnNode.setPosition(startX + index * 220, startY);
-            btnNode.setContentSize(200, 280);
+            btnNode.setPosition(startX + index * spacing, 0);
+            btnNode.setContentSize(200, 300);
             
             // 按钮背景
             var btnGraphics = btnNode.addComponent(cc.Graphics);
-            btnGraphics.fillColor = new cc.Color(80, 120, 180, 230);
-            btnGraphics.roundRect(-100, -140, 200, 280, 15);
+            btnGraphics.fillColor = new cc.Color(room.color.r, room.color.g, room.color.b, 230);
+            btnGraphics.roundRect(-100, -150, 200, 300, 15);
             btnGraphics.fill();
             btnGraphics.strokeColor = new cc.Color(255, 255, 255, 150);
             btnGraphics.lineWidth = 2;
-            btnGraphics.roundRect(-100, -140, 200, 280, 15);
+            btnGraphics.roundRect(-100, -150, 200, 300, 15);
             btnGraphics.stroke();
             
-            btnNode.parent = contentNode;
+            btnNode.parent = roomsContainer;
             
             // 房间名称
             var nameNode = new cc.Node("Name");
@@ -1342,7 +1412,7 @@ cc.Class({
             
             // 底分
             var scoreNode = new cc.Node("Score");
-            scoreNode.setPosition(0, 20);
+            scoreNode.setPosition(0, 30);
             var scoreLabel = scoreNode.addComponent(cc.Label);
             scoreLabel.string = "底分: " + room.baseScore;
             scoreLabel.fontSize = 20;
@@ -1353,14 +1423,33 @@ cc.Class({
             
             // 最低入场
             var minGoldNode = new cc.Node("MinGold");
-            minGoldNode.setPosition(0, -20);
+            minGoldNode.setPosition(0, -10);
             var minGoldLabel = minGoldNode.addComponent(cc.Label);
-            minGoldLabel.string = "入场: " + self._formatRoomGold(room.minGold);
-            minGoldLabel.fontSize = 18;
-            minGoldLabel.lineHeight = 24;
+            minGoldLabel.string = self._formatRoomGold(room.minGold) + "积分准入";
+            minGoldLabel.fontSize = 16;
+            minGoldLabel.lineHeight = 22;
             minGoldLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
             minGoldNode.color = cc.color(200, 200, 200);
             minGoldNode.parent = btnNode;
+            
+            // 锁定图标（如果积分不足）
+            var isLocked = playerGold < room.minGold;
+            if (isLocked) {
+                var lockNode = new cc.Node("Lock");
+                lockNode.setPosition(0, -80);
+                var lockLabel = lockNode.addComponent(cc.Label);
+                lockLabel.string = "🔒";
+                lockLabel.fontSize = 40;
+                lockLabel.lineHeight = 50;
+                lockLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+                lockNode.parent = btnNode;
+                
+                // 半透明遮罩
+                var maskGraphics = btnNode.addComponent(cc.Graphics);
+                maskGraphics.fillColor = new cc.Color(0, 0, 0, 100);
+                maskGraphics.roundRect(-100, -150, 200, 300, 15);
+                maskGraphics.fill();
+            }
             
             // 添加按钮组件
             var button = btnNode.addComponent(cc.Button);
@@ -1374,67 +1463,102 @@ cc.Class({
             // 点击事件
             btnNode.on(cc.Node.EventType.TOUCH_END, function(event) {
                 event.stopPropagation();
-                self._onRoomSelectClick(room, dialogNode);
+                self._onPracticeRoomClick(room, sceneNode, playerGold);
             }, this);
         });
         
-        // 关闭按钮
-        var closeBtn = new cc.Node("CloseBtn");
-        closeBtn.setPosition(460, 220);
-        closeBtn.setContentSize(60, 60);
-        var closeGraphics = closeBtn.addComponent(cc.Graphics);
-        closeGraphics.fillColor = new cc.Color(200, 50, 50, 230);
-        closeGraphics.circle(0, 0, 30);
-        closeGraphics.fill();
-        var closeLabel = closeBtn.addComponent(cc.Label);
-        closeLabel.string = "X";
-        closeLabel.fontSize = 24;
-        closeLabel.lineHeight = 30;
-        closeLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        closeBtn.color = cc.color(255, 255, 255);
-        closeBtn.parent = contentNode;
+        // 底部信息栏
+        var infoBar = new cc.Node("InfoBar");
+        infoBar.setPosition(0, -280);
+        infoBar.setContentSize(600, 50);
         
-        closeBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+        var infoBg = infoBar.addComponent(cc.Graphics);
+        infoBg.fillColor = new cc.Color(139, 69, 19, 230);
+        infoBg.roundRect(-300, -25, 600, 50, 10);
+        infoBg.fill();
+        infoBg.strokeColor = new cc.Color(255, 215, 0);
+        infoBg.lineWidth = 2;
+        infoBg.roundRect(-300, -25, 600, 50, 10);
+        infoBg.stroke();
+        
+        var infoLabel = infoBar.addComponent(cc.Label);
+        infoLabel.string = "积分区积分场 | 1元 = 1000积分 | 已解锁场次请查看";
+        infoLabel.fontSize = 18;
+        infoLabel.lineHeight = 24;
+        infoLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        infoBar.color = cc.color(255, 255, 255);
+        infoBar.parent = sceneNode;
+        infoBar.zIndex = 10;
+        
+        // 返回按钮
+        var backBtn = new cc.Node("BackBtn");
+        backBtn.setPosition(-580, 300);
+        backBtn.setContentSize(120, 50);
+        
+        var backBg = backBtn.addComponent(cc.Graphics);
+        backBg.fillColor = new cc.Color(139, 69, 19, 230);
+        backBg.roundRect(-60, -25, 120, 50, 8);
+        backBg.fill();
+        backBg.strokeColor = new cc.Color(255, 215, 0);
+        backBg.lineWidth = 2;
+        backBg.roundRect(-60, -25, 120, 50, 8);
+        backBg.stroke();
+        
+        var backLabel = backBtn.addComponent(cc.Label);
+        backLabel.string = "返回";
+        backLabel.fontSize = 22;
+        backLabel.lineHeight = 30;
+        backLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        backBtn.color = cc.color(255, 255, 255);
+        backBtn.parent = sceneNode;
+        backBtn.zIndex = 100;
+        
+        var backButton = backBtn.addComponent(cc.Button);
+        backButton.transition = cc.Button.Transition.SCALE;
+        backButton.duration = 0.1;
+        backButton.zoomScale = 1.1;
+        
+        backBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
             event.stopPropagation();
-            dialogNode.active = false;
+            self._hidePracticeZoneScene();
         }, this);
         
-        dialogNode.parent = this.node;
-        dialogNode.zIndex = 9999;
-        dialogNode.active = false;
+        sceneNode.parent = this.node;
+        sceneNode.zIndex = 9999;
+        sceneNode.active = false;
         
-        return dialogNode;
+        return sceneNode;
     },
     
-    // 格式化金币显示
-    _formatRoomGold: function(gold) {
-        if (gold >= 10000) {
-            return (gold / 10000).toFixed(1) + "万";
+    // 隐藏练级区场景
+    _hidePracticeZoneScene: function() {
+        if (this._practiceZoneNode && this._practiceZoneNode.isValid) {
+            this._practiceZoneNode.active = false;
         }
-        return gold.toString();
+        
+        // 显示大厅元素
+        this._showHallElements();
+        
+        // 播放点击音效
+        this._playClickSound();
     },
     
-    // 房间选择点击处理
-    _onRoomSelectClick: function(room, dialogNode) {
+    // 练级区房间点击处理
+    _onPracticeRoomClick: function(room, sceneNode, playerGold) {
         var self = this;
         var myglobal = window.myglobal;
-        var playerGold = myglobal && myglobal.playerData ? myglobal.playerData.gobal_count : 0;
         
         // 播放点击音效
         this._playClickSound();
         
-        // 检查金币是否足够
+        // 检查积分是否足够
         if (playerGold < room.minGold) {
-            this._showMessage("欢乐豆不足，需要 " + this._formatRoomGold(room.minGold) + " 欢乐豆");
-            // 显示奖励弹窗
-            this._showAdRewardDialog && this._showAdRewardDialog('gold', room.minGold - playerGold);
+            this._showMessage("积分不足，需要 " + this._formatRoomGold(room.minGold) + " 积分才能进入" + room.name);
             return;
         }
         
-        // 关闭弹窗
-        if (dialogNode) {
-            dialogNode.active = false;
-        }
+        // 隐藏练级区场景
+        this._hidePracticeZoneScene();
         
         // 保存选择的房间
         if (myglobal) {
@@ -1448,6 +1572,14 @@ cc.Class({
             min_gold: room.minGold,
             room_name: room.name
         }, playerGold);
+    },
+    
+    // 格式化金币/积分显示
+    _formatRoomGold: function(gold) {
+        if (gold >= 10000) {
+            return (gold / 10000).toFixed(1) + "万";
+        }
+        return gold.toString();
     },
     
     // 竞技场房间按钮点击处理 - 直接报名（不弹框）
