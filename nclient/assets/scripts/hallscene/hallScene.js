@@ -666,6 +666,22 @@ cc.Class({
         } catch(e) {}
     },
     
+    // 播放点击音效
+    _playClickSound: function() {
+        var isopen_sfx = window.isopen_sfx;
+        if (isopen_sfx === 0) return;
+        
+        try {
+            cc.resources.load("sound/click", cc.AudioClip, function(err, clip) {
+                if (!err && clip) {
+                    try {
+                        cc.audioEngine.playEffect(clip, false);
+                    } catch(e) {}
+                }
+            });
+        } catch(e) {}
+    },
+    
     _fetchRoomConfigs: function() {
         var self = this;
         var apiUrl = window.defines ? window.defines.apiUrl : '';
@@ -1174,6 +1190,33 @@ cc.Class({
         
         var minGold = roomConfig.min_gold || roomConfig.minGold || 0;
         var maxGold = roomConfig.max_gold || roomConfig.maxGold || 0;
+        var baseScore = roomConfig.base_score || roomConfig.baseScore || 1;
+        
+        // 🔧【新增】根据底分区分跳转逻辑
+        // 底分为1的是"新手场/普通场"，跳转到房间选择场景
+        // 底分>1的是"10分场/50分场等"，直接进入游戏
+        var isNormalRoom = (baseScore === 1);
+        
+        if (isNormalRoom) {
+            // 普通场/新手场 - 跳转到房间选择场景
+            console.log("=== 点击普通场，跳转到房间选择场景 ===");
+            
+            // 保存当前房间配置
+            if (myglobal) {
+                myglobal.currentRoomConfig = roomConfig;
+                myglobal.currentRoomLevel = roomConfig.room_type;
+                myglobal.currentRoomName = roomConfig.room_name || roomConfig.roomName;
+            }
+            
+            // 播放点击音效
+            this._playClickSound();
+            
+            // 跳转到房间选择场景
+            cc.director.loadScene("RoomSelectScene");
+            return;
+        }
+        
+        // 10分场、50分场等 - 检查金币后直接进入游戏
         
         if (playerGold < minGold) {
             this._showAdRewardDialog('gold', minGold - playerGold);
