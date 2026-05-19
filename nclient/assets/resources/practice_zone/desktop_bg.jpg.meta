@@ -2,11 +2,7 @@
   "ver": "2.3.7",
   "uuid": "desktop-bg-jpg-1234-5678-abcdef012345",
   "importer": "texture",
-<<<<<<< Updated upstream
   "type": "sprite",
-=======
-  "type": "texture",
->>>>>>> Stashed changes
   "wrapMode": "clamp",
   "filterMode": "bilinear",
   "premultiplyAlpha": false,
@@ -15,11 +11,10 @@
   "width": 1280,
   "height": 720,
   "platformSettings": {},
-<<<<<<< Updated upstream
   "subMetas": {
     "desktop_bg": {
       "ver": "1.0.6",
-      "uuid": "desktop-bg-sprite-1234-5678-abcdef012345",
+      "uuid": "d3f51c47-898e-4d1b-b747-5c74df5635b3",
       "importer": "sprite-frame",
       "rawTextureUuid": "desktop-bg-jpg-1234-5678-abcdef012345",
       "trimType": "auto",
@@ -40,7 +35,4 @@
       "subMetas": {}
     }
   }
-=======
-  "subMetas": {}
->>>>>>> Stashed changes
 }
