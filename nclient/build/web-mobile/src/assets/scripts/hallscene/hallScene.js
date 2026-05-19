@@ -118,23 +118,27 @@ cc.Class({
         
         try {
             myglobal.verifyToken(function(valid, message) {
-                // 🔧【修复】即使验证失败也继续初始化UI
-                // 原因：刚登录成功后token应该是有效的，如果验证失败可能是API问题
-                // 只有在没有本地session时才跳转到登录页面
+                // 🔧【修复】Token验证失败时，只要本地有token就继续初始化UI
+                // 原因：用户能进入大厅说明已经登录过，不应该跳转到登录场景
+                // 只有完全没有登录信息时才跳转到登录页面
                 if (!valid) {
                     console.warn("Token验证失败:", message);
-                    // 检查是否还有本地session
-                    if (!myglobal.hasLocalSession()) {
-                        console.error("本地session也已失效，返回登录页面");
+                    // 检查本地是否还有token
+                    if (playerData && playerData.token) {
+                        // 本地还有token，继续使用本地缓存
+                        console.log("✅ 本地有token，继续初始化大厅UI");
+                    } else {
+                        // 完全没有登录信息，跳转到登录页面
+                        console.error("无登录信息，返回登录页面");
                         cc.director.loadScene("loginScene");
                         return;
                     }
-                    console.log("使用本地缓存继续");
                 }
                 self._initUIAfterAuth();
             });
         } catch (e) {
             console.error("verifyToken 调用失败:", e);
+            // 出错时也继续初始化UI，使用本地缓存
             self._initUIAfterAuth();
         }
     },
