@@ -1422,18 +1422,6 @@ cc.Class({
             // 存储房间数据
             clickNode.roomData = room;
             
-            // 添加场次名称文本
-            var labelNode = new cc.Node("RoomLabel");
-            labelNode.setPosition(0, 0);
-            var label = labelNode.addComponent(cc.Label);
-            label.string = room.name;
-            label.fontSize = 18;
-            label.lineHeight = 24;
-            label.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            label.fontFamily = "Arial, Microsoft YaHei";
-            labelNode.color = cc.color(255, 255, 255);  // 白色文字
-            labelNode.parent = clickNode;
-            
             // 点击事件
             clickNode.on(cc.Node.EventType.TOUCH_END, function(event) {
                 event.stopPropagation();
@@ -1465,44 +1453,6 @@ cc.Class({
         
         backClickNode.parent = sceneNode;
         backClickNode.zIndex = 30;
-        
-        // ==================== 5. 玩家积分显示（覆盖在UI上）====================
-        var scoreDisplay = new cc.Node("ScoreDisplay");
-        scoreDisplay.setPosition(0, 280);
-        
-        var scoreLabel = scoreDisplay.addComponent(cc.Label);
-        scoreLabel.string = "玩家当前积分: " + self._formatRoomGold(playerGold);
-        scoreLabel.fontSize = 22;
-        scoreLabel.lineHeight = 30;
-        scoreLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        scoreLabel.fontFamily = "Arial, Microsoft YaHei";
-        scoreDisplay.color = cc.color(255, 215, 0);  // 金色
-        
-        var scoreOutline = scoreDisplay.addComponent(cc.LabelOutline);
-        scoreOutline.color = cc.color(0, 0, 0);
-        scoreOutline.width = 2;
-        
-        scoreDisplay.parent = sceneNode;
-        scoreDisplay.zIndex = 25;
-        
-        // ==================== 6. 升级提示 ====================
-        var tipDisplay = new cc.Node("TipDisplay");
-        tipDisplay.setPosition(0, 250);
-        
-        var tipLabel = tipDisplay.addComponent(cc.Label);
-        tipLabel.string = "达到50倍基础分升级场次";
-        tipLabel.fontSize = 16;
-        tipLabel.lineHeight = 22;
-        tipLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        tipLabel.fontFamily = "Arial, Microsoft YaHei";
-        tipDisplay.color = cc.color(200, 200, 200);  // 浅灰色
-        
-        var tipOutline = tipDisplay.addComponent(cc.LabelOutline);
-        tipOutline.color = cc.color(0, 0, 0);
-        tipOutline.width = 1;
-        
-        tipDisplay.parent = sceneNode;
-        tipDisplay.zIndex = 26;
         
         // ==================== 添加到场景 ====================
         sceneNode.parent = this.node;
