@@ -9,7 +9,7 @@
   "genMipmaps": false,
   "packable": true,
   "width": 640,
-  "height": 340,
+  "height": 400,
   "platformSettings": {},
   "subMetas": {
     "practice_zone_ui": {
@@ -25,9 +25,9 @@
       "trimX": 0,
       "trimY": 0,
       "width": 640,
-      "height": 340,
+      "height": 400,
       "rawWidth": 640,
-      "rawHeight": 340,
+      "rawHeight": 400,
       "borderTop": 0,
       "borderBottom": 0,
       "borderLeft": 0,
