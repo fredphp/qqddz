@@ -1303,7 +1303,7 @@ cc.Class({
         bgSprite.type = cc.Sprite.Type.SIMPLE;
         
         // 加载背景图片
-        cc.resources.load("bg2", cc.SpriteFrame, function(err, spriteFrame) {
+        cc.resources.load("table_bg_1", cc.SpriteFrame, function(err, spriteFrame) {
             if (err) {
                 console.error("加载练级区背景图片失败:", err);
                 // 使用纯色背景作为备用
