@@ -1489,8 +1489,10 @@ cc.Class({
             return;
         }
         
-        // 隐藏练级区场景
-        this._hidePracticeZoneScene();
+        // 只隐藏练级区场景（不显示大厅，直接进入游戏）
+        if (this._practiceZoneNode && this._practiceZoneNode.isValid) {
+            this._practiceZoneNode.active = false;
+        }
         
         // 保存选择的房间
         if (myglobal) {
