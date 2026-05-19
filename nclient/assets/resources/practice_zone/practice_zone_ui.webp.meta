@@ -1,0 +1,14 @@
+{
+  "ver": "2.3.1",
+  "uuid": "ui-practice_zone_ui-abcd-1234-5678-abcdef012345",
+  "type": "sprite-frame",
+  "wrapMode": "clamp",
+  "filterMode": "bilinear",
+  "premultiplyAlpha": false,
+  "genMipmaps": false,
+  "packable": true,
+  "width": 813,
+  "height": 460,
+  "platformSettings": {},
+  "subMetas": {}
+}
