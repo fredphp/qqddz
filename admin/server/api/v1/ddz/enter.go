@@ -26,4 +26,5 @@ type ApiGroup struct {
         DDZStatsDetailApi       // 统计详情API
         DDZTournamentApi        // 锦标赛API
         DDZSystemApi            // 系统API
+        DDZRoomSublevelApi      // 子分区API
 }

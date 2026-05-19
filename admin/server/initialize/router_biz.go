@@ -44,5 +44,6 @@ func initBizRouter(routers ...*gin.RouterGroup) {
                 ddzRouter.InitDDZStatsDetailRouter(privateGroup)       // 斗地主统计详情路由
                 ddzRouter.InitDDZTournamentRouter(privateGroup)        // 斗地主锦标赛路由
                 ddzRouter.InitDDZSystemRouter(privateGroup)            // 斗地主系统路由
+                ddzRouter.InitDDZRoomSublevelRouter(privateGroup)      // 斗地主子分区路由
         }
 }

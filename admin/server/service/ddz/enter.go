@@ -25,4 +25,5 @@ type ServiceGroup struct {
         DDZGameDetailService        // 游戏详情服务
         DDZTournamentService        // 锦标赛服务
         DDZSystemService            // 系统服务
+        DDZRoomSublevelService      // 子分区服务
 }

@@ -25,4 +25,5 @@ type RouterGroup struct {
         DDZStatsDetailRouter       // 统计详情路由
         DDZTournamentRouter        // 锦标赛路由
         DDZSystemRouter            // 系统路由
+        DDZRoomSublevelRouter      // 子分区路由
 }

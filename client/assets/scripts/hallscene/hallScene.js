@@ -1517,14 +1517,17 @@ cc.Class({
         uiNode.zIndex = 10;
         
         // ==================== 3. 点击区域 - 覆盖在UI上 ====================
-        // 场次数据配置
-        var rooms = [
-            { id: 1, name: "10分场", baseScore: 10, minGold: 500, color: cc.color(76, 175, 80) },
-            { id: 2, name: "50分场", baseScore: 50, minGold: 2500, color: cc.color(33, 150, 243) },
-            { id: 3, name: "200分场", baseScore: 200, minGold: 10000, color: cc.color(255, 193, 7) },
-            { id: 4, name: "500分场", baseScore: 500, minGold: 25000, color: cc.color(255, 152, 0) },
-            { id: 5, name: "1000分场", baseScore: 1000, minGold: 50000, color: cc.color(244, 67, 54) }
+        // 场次数据配置 - 使用缓存的子分区数据或默认数据
+        var rooms = this._sublevelRooms || [
+            { id: 1, name: "10分场", baseScore: 10, minGold: 500, color: cc.color(76, 175, 80), upgradeScore: 500 },
+            { id: 2, name: "50分场", baseScore: 50, minGold: 2500, color: cc.color(33, 150, 243), upgradeScore: 2500 },
+            { id: 3, name: "200分场", baseScore: 200, minGold: 10000, color: cc.color(255, 193, 7), upgradeScore: 10000 },
+            { id: 4, name: "500分场", baseScore: 500, minGold: 25000, color: cc.color(255, 152, 0), upgradeScore: 25000 },
+            { id: 5, name: "1000分场", baseScore: 1000, minGold: 50000, color: cc.color(244, 67, 54), upgradeScore: 50000 }
         ];
+        
+        // 异步获取子分区配置
+        this._fetchSublevelConfig();
         
         // 创建透明点击区域容器
         var clickContainer = new cc.Node("ClickContainer");
@@ -1613,6 +1616,107 @@ cc.Class({
         
         // 播放点击音效
         this._playClickSound();
+    },
+    
+    // ==================== 子分区配置获取 ====================
+    
+    // 获取子分区配置（从后台API）
+    _fetchSublevelConfig: function() {
+        var self = this;
+        var apiUrl = window.defines ? window.defines.apiUrl : '';
+        var cryptoKey = window.defines ? window.defines.cryptoKey : '';
+        
+        // 如果没有配置 API，使用默认配置
+        if (!apiUrl || !window.HttpAPI) {
+            return;
+        }
+        
+        // 获取练级区房间配置ID（room_category=1的房间）
+        var practiceRoomConfig = this._getPracticeRoomConfig();
+        if (!practiceRoomConfig) {
+            return;
+        }
+        
+        var roomConfigId = practiceRoomConfig.id;
+        
+        try {
+            // 请求子分区配置API
+            HttpAPI.get(
+                apiUrl + '/api/v1/room/sublevel/list?roomConfigId=' + roomConfigId,
+                cryptoKey,
+                function(err, result) {
+                    if (err) {
+                        console.warn("获取子分区配置失败，使用默认配置:", err);
+                        return;
+                    }
+                    
+                    var sublevels = null;
+                    if (result && result.code === 0 && result.data && result.data.list) {
+                        sublevels = result.data.list;
+                    } else if (result && Array.isArray(result)) {
+                        sublevels = result;
+                    }
+                    
+                    if (sublevels && sublevels.length > 0) {
+                        // 转换为客户端格式
+                        var rooms = sublevels.map(function(s, idx) {
+                            return {
+                                id: s.ID || s.id,
+                                name: s.sublevelName || s.sublevel_name || (s.baseScore + "分场"),
+                                baseScore: s.baseScore || s.base_score || 10,
+                                minGold: s.minGold || s.min_gold || 500,
+                                maxGold: s.maxGold || s.max_gold || 0,
+                                upgradeScore: s.upgradeScore || s.upgrade_score || (s.baseScore * 50),
+                                nextSublevelId: s.nextSublevelId || s.next_sublevel_id || 0,
+                                prevSublevelId: s.prevSublevelId || s.prev_sublevel_id || 0,
+                                color: self._getSublevelColor(idx),
+                                sortOrder: s.sortOrder || s.sort_order || idx
+                            };
+                        });
+                        
+                        // 按 sortOrder 排序
+                        rooms.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
+                        
+                        // 缓存子分区配置
+                        self._sublevelRooms = rooms;
+                        
+                        console.log("✅ 子分区配置已从服务器获取:", rooms.length, "个");
+                    }
+                }
+            );
+        } catch (e) {
+            console.error("_fetchSublevelConfig 异常:", e);
+        }
+    },
+    
+    // 获取练级区房间配置
+    _getPracticeRoomConfig: function() {
+        if (!this.roomConfigs || this.roomConfigs.length === 0) {
+            return null;
+        }
+        
+        // 查找 room_category=1 的房间
+        for (var i = 0; i < this.roomConfigs.length; i++) {
+            var config = this.roomConfigs[i];
+            var roomCategory = config.room_category || config.roomCategory || 1;
+            if (roomCategory === 1) {
+                return config;
+            }
+        }
+        
+        return null;
+    },
+    
+    // 根据索引获取子分区颜色
+    _getSublevelColor: function(index) {
+        var colors = [
+            cc.color(76, 175, 80),   // 绿色 - 10分场
+            cc.color(33, 150, 243),  // 蓝色 - 50分场
+            cc.color(255, 193, 7),   // 黄色 - 200分场
+            cc.color(255, 152, 0),   // 橙色 - 500分场
+            cc.color(244, 67, 54)    // 红色 - 1000分场
+        ];
+        return colors[index % colors.length];
     },
     
     // 练级区房间点击处理
