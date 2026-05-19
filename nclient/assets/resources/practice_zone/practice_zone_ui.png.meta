@@ -2,20 +2,15 @@
   "ver": "2.3.7",
   "uuid": "practice-ui-png-1234-5678-abcdef012345",
   "importer": "texture",
-<<<<<<< Updated upstream
   "type": "sprite",
-=======
-  "type": "texture",
->>>>>>> Stashed changes
   "wrapMode": "clamp",
   "filterMode": "bilinear",
   "premultiplyAlpha": false,
   "genMipmaps": false,
   "packable": true,
-  "width": 550,
-  "height": 310,
+  "width": 1280,
+  "height": 720,
   "platformSettings": {},
-<<<<<<< Updated upstream
   "subMetas": {
     "practice_zone_ui": {
       "ver": "1.0.6",
@@ -29,10 +24,10 @@
       "offsetY": 0,
       "trimX": 0,
       "trimY": 0,
-      "width": 550,
-      "height": 310,
-      "rawWidth": 550,
-      "rawHeight": 310,
+      "width": 1280,
+      "height": 720,
+      "rawWidth": 1280,
+      "rawHeight": 720,
       "borderTop": 0,
       "borderBottom": 0,
       "borderLeft": 0,
@@ -40,7 +35,4 @@
       "subMetas": {}
     }
   }
-=======
-  "subMetas": {}
->>>>>>> Stashed changes
 }
