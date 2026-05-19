@@ -1,9 +1,10 @@
 {
-  "ver": "4.0.24",
-  "importer": "javascript",
-  "imported": true,
+  "ver": "1.1.0",
   "uuid": "room-select-script-uuid-001",
-  "files": [],
-  "subMetas": {},
-  "userData": {}
+  "importer": "javascript",
+  "isPlugin": false,
+  "loadPluginInWeb": true,
+  "loadPluginInNative": true,
+  "loadPluginInEditor": false,
+  "subMetas": {}
 }
