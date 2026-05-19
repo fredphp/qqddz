@@ -1,28 +1,9 @@
 {
   "ver": "2.3.2",
   "uuid": "desktop-bg-webp-1234-5678-abcdef012345",
-  "type": "sprite-frame",
+  "type": "texture",
   "wrapMode": "clamp",
   "filterMode": "bilinear",
   "premultiplyAlpha": false,
-  "subMetas": {
-    "desktop_bg": {
-      "frame": [
-        0,
-        0,
-        1280,
-        720
-      ],
-      "offset": [
-        0,
-        0
-      ],
-      "rotated": false,
-      "trimmed": false,
-      "rawSize": [
-        1280,
-        720
-      ]
-    }
-  }
+  "subMetas": {}
 }
