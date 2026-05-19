@@ -1292,17 +1292,17 @@ cc.Class({
         }
     },
     
-    // 创建练级区场景
+    // 创建练级区场景 - 使用新的背景图和UI图片
     _createPracticeZoneScene: function() {
         var self = this;
         var myglobal = window.myglobal;
         var playerGold = myglobal && myglobal.playerData ? myglobal.playerData.gobal_count : 0;
         
-        // 创建场景容器 - 全屏
+        // 创建场景容器 - 全屏 1280x720
         var sceneNode = new cc.Node("PracticeZoneScene");
         sceneNode.setContentSize(1280, 720);
         
-        // 创建背景 - 使用 desktop_bg_filled.jpg
+        // ==================== 1. 背景层 ====================
         var bgNode = new cc.Node("Background");
         bgNode.setContentSize(1280, 720);
         bgNode.setPosition(0, 0);
@@ -1311,227 +1311,168 @@ cc.Class({
         bgSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         bgSprite.type = cc.Sprite.Type.SIMPLE;
         
-        // 加载背景图片
-        cc.resources.load("table_bg_1", cc.SpriteFrame, function(err, spriteFrame) {
+        // 加载新背景图片 - practice_zone/desktop_bg
+        cc.resources.load("practice_zone/desktop_bg", cc.SpriteFrame, function(err, spriteFrame) {
             if (err) {
                 console.error("加载练级区背景图片失败:", err);
-                // 使用纯色背景作为备用
-                var graphics = bgNode.addComponent(cc.Graphics);
-                graphics.fillColor = new cc.Color(45, 45, 85);
-                graphics.rect(-640, -360, 1280, 720);
-                graphics.fill();
+                // 备用：尝试加载jpg格式
+                cc.resources.load("practice_zone/desktop_bg", cc.Texture2D, function(err2, texture) {
+                    if (err2) {
+                        console.error("备用加载也失败:", err2);
+                        // 使用纯色背景
+                        var graphics = bgNode.addComponent(cc.Graphics);
+                        graphics.fillColor = new cc.Color(139, 0, 0);
+                        graphics.rect(-640, -360, 1280, 720);
+                        graphics.fill();
+                        return;
+                    }
+                    var sf = new cc.SpriteFrame(texture);
+                    bgSprite.spriteFrame = sf;
+                    bgNode.setContentSize(1280, 720);
+                });
                 return;
             }
             bgSprite.spriteFrame = spriteFrame;
             bgNode.setContentSize(1280, 720);
-            console.log("练级区背景图片加载成功");
+            console.log("✅ 练级区背景图片加载成功");
         });
+        
+        // Widget组件 - 全屏适配
+        var bgWidget = bgNode.addComponent(cc.Widget);
+        bgWidget.isAlignTop = true;
+        bgWidget.isAlignBottom = true;
+        bgWidget.isAlignLeft = true;
+        bgWidget.isAlignRight = true;
+        bgWidget.top = 0;
+        bgWidget.bottom = 0;
+        bgWidget.left = 0;
+        bgWidget.right = 0;
         
         bgNode.parent = sceneNode;
         bgNode.zIndex = 0;
         
-        // 创建顶部标题栏
-        var titleBar = new cc.Node("TitleBar");
-        titleBar.setPosition(0, 300);
-        titleBar.setContentSize(400, 60);
+        // ==================== 2. UI层 - 使用practice_zone_ui.webp ====================
+        var uiNode = new cc.Node("UILayer");
+        uiNode.setContentSize(1280, 720);
+        uiNode.setPosition(0, 0);
         
-        var titleBg = titleBar.addComponent(cc.Graphics);
-        titleBg.fillColor = new cc.Color(139, 69, 19, 230);
-        titleBg.roundRect(-200, -30, 400, 60, 10);
-        titleBg.fill();
-        titleBg.strokeColor = new cc.Color(255, 215, 0);
-        titleBg.lineWidth = 3;
-        titleBg.roundRect(-200, -30, 400, 60, 10);
-        titleBg.stroke();
+        var uiSprite = uiNode.addComponent(cc.Sprite);
+        uiSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        uiSprite.type = cc.Sprite.Type.SIMPLE;
         
-        var titleLabel = titleBar.addComponent(cc.Label);
-        titleLabel.string = "🏆 练级区 🏆";
-        titleLabel.fontSize = 32;
-        titleLabel.lineHeight = 40;
-        titleLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        titleBar.color = cc.color(255, 215, 0);
-        titleBar.parent = sceneNode;
-        titleBar.zIndex = 10;
+        // 加载UI图片
+        cc.resources.load("practice_zone/practice_zone_ui", cc.SpriteFrame, function(err, spriteFrame) {
+            if (err) {
+                console.error("加载练级区UI图片失败:", err);
+                return;
+            }
+            uiSprite.spriteFrame = spriteFrame;
+            // UI图片尺寸是1000x566，需要缩放到合适大小
+            var scale = Math.min(1280 / 1000, 720 / 566) * 0.9;  // 90%的屏幕尺寸
+            uiNode.setScale(scale);
+            console.log("✅ 练级区UI图片加载成功, scale=" + scale);
+        });
         
-        // 创建玩家积分显示
-        var scoreBar = new cc.Node("ScoreBar");
-        scoreBar.setPosition(0, 240);
-        scoreBar.setContentSize(300, 40);
+        uiNode.parent = sceneNode;
+        uiNode.zIndex = 10;
         
-        var scoreBg = scoreBar.addComponent(cc.Graphics);
-        scoreBg.fillColor = new cc.Color(60, 40, 30, 200);
-        scoreBg.roundRect(-150, -20, 300, 40, 8);
-        scoreBg.fill();
-        
-        var scoreLabel = scoreBar.addComponent(cc.Label);
-        scoreLabel.string = "玩家当前积分: " + self._formatRoomGold(playerGold);
-        scoreLabel.fontSize = 20;
-        scoreLabel.lineHeight = 28;
-        scoreLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        scoreBar.color = cc.color(255, 255, 255);
-        scoreBar.parent = sceneNode;
-        scoreBar.zIndex = 10;
-        
-        // 场次数据
+        // ==================== 3. 点击区域 - 覆盖在UI上 ====================
+        // 场次数据配置
         var rooms = [
-            { name: "10分场", baseScore: 10, minGold: 500, color: cc.color(76, 175, 80) },
-            { name: "50分场", baseScore: 50, minGold: 2500, color: cc.color(33, 150, 243) },
-            { name: "200分场", baseScore: 200, minGold: 10000, color: cc.color(255, 193, 7) },
-            { name: "500分场", baseScore: 500, minGold: 25000, color: cc.color(255, 152, 0) },
-            { name: "1000分场", baseScore: 1000, minGold: 50000, color: cc.color(244, 67, 54) }
+            { id: 1, name: "10分场", baseScore: 10, minGold: 500, color: cc.color(76, 175, 80) },
+            { id: 2, name: "50分场", baseScore: 50, minGold: 2500, color: cc.color(33, 150, 243) },
+            { id: 3, name: "200分场", baseScore: 200, minGold: 10000, color: cc.color(255, 193, 7) },
+            { id: 4, name: "500分场", baseScore: 500, minGold: 25000, color: cc.color(255, 152, 0) },
+            { id: 5, name: "1000分场", baseScore: 1000, minGold: 50000, color: cc.color(244, 67, 54) }
         ];
         
-        // 创建场次按钮容器
-        var roomsContainer = new cc.Node("RoomsContainer");
-        roomsContainer.setPosition(0, 0);
-        roomsContainer.parent = sceneNode;
-        roomsContainer.zIndex = 10;
+        // 创建透明点击区域容器
+        var clickContainer = new cc.Node("ClickContainer");
+        clickContainer.setPosition(0, -20);  // 稍微下移以匹配UI位置
+        clickContainer.parent = sceneNode;
+        clickContainer.zIndex = 20;
         
-        // 创建场次按钮
-        var startX = -480;
-        var spacing = 240;
+        // 布局参数 - 根据UI图片布局调整
+        // UI图片比例: 1000x566，卡片区域约占中间60%宽度
+        var cardWidth = 150;    // 每个卡片点击区域宽度
+        var cardHeight = 200;   // 每个卡片点击区域高度
+        var spacing = 20;       // 卡片间距
+        var totalWidth = rooms.length * cardWidth + (rooms.length - 1) * spacing;
+        var startX = -totalWidth / 2 + cardWidth / 2;
         
+        // 为每个场次创建透明点击区域
         rooms.forEach(function(room, index) {
-            var btnNode = new cc.Node("RoomBtn_" + index);
-            btnNode.setPosition(startX + index * spacing, 0);
-            btnNode.setContentSize(200, 300);
+            var clickNode = new cc.Node("ClickArea_" + room.id);
+            clickNode.setPosition(startX + index * (cardWidth + spacing), 0);
+            clickNode.setContentSize(cardWidth, cardHeight);
             
-            // 按钮背景
-            var btnGraphics = btnNode.addComponent(cc.Graphics);
-            btnGraphics.fillColor = new cc.Color(room.color.r, room.color.g, room.color.b, 230);
-            btnGraphics.roundRect(-100, -150, 200, 300, 15);
-            btnGraphics.fill();
-            btnGraphics.strokeColor = new cc.Color(255, 255, 255, 150);
-            btnGraphics.lineWidth = 2;
-            btnGraphics.roundRect(-100, -150, 200, 300, 15);
-            btnGraphics.stroke();
-            
-            btnNode.parent = roomsContainer;
-            
-            // 房间名称
-            var nameNode = new cc.Node("Name");
-            nameNode.setPosition(0, 80);
-            var nameLabel = nameNode.addComponent(cc.Label);
-            nameLabel.string = room.name;
-            nameLabel.fontSize = 28;
-            nameLabel.lineHeight = 36;
-            nameLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            nameNode.color = cc.color(255, 255, 255);
-            nameNode.parent = btnNode;
-            
-            // 底分
-            var scoreNode = new cc.Node("Score");
-            scoreNode.setPosition(0, 30);
-            var scoreLabel = scoreNode.addComponent(cc.Label);
-            scoreLabel.string = "底分: " + room.baseScore;
-            scoreLabel.fontSize = 20;
-            scoreLabel.lineHeight = 28;
-            scoreLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            scoreNode.color = cc.color(255, 215, 0);
-            scoreNode.parent = btnNode;
-            
-            // 最低入场
-            var minGoldNode = new cc.Node("MinGold");
-            minGoldNode.setPosition(0, -10);
-            var minGoldLabel = minGoldNode.addComponent(cc.Label);
-            minGoldLabel.string = self._formatRoomGold(room.minGold) + "积分准入";
-            minGoldLabel.fontSize = 16;
-            minGoldLabel.lineHeight = 22;
-            minGoldLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-            minGoldNode.color = cc.color(200, 200, 200);
-            minGoldNode.parent = btnNode;
-            
-            // 锁定图标（如果积分不足）
-            var isLocked = playerGold < room.minGold;
-            if (isLocked) {
-                var lockNode = new cc.Node("Lock");
-                lockNode.setPosition(0, -80);
-                var lockLabel = lockNode.addComponent(cc.Label);
-                lockLabel.string = "🔒";
-                lockLabel.fontSize = 40;
-                lockLabel.lineHeight = 50;
-                lockLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-                lockNode.parent = btnNode;
-                
-                // 半透明遮罩
-                var maskGraphics = btnNode.addComponent(cc.Graphics);
-                maskGraphics.fillColor = new cc.Color(0, 0, 0, 100);
-                maskGraphics.roundRect(-100, -150, 200, 300, 15);
-                maskGraphics.fill();
-            }
+            // 添加透明背景（用于点击检测）
+            var graphics = clickNode.addComponent(cc.Graphics);
+            graphics.fillColor = new cc.Color(0, 0, 0, 0);  // 完全透明
+            graphics.rect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight);
+            graphics.fill();
             
             // 添加按钮组件
-            var button = btnNode.addComponent(cc.Button);
+            var button = clickNode.addComponent(cc.Button);
             button.transition = cc.Button.Transition.SCALE;
             button.duration = 0.1;
             button.zoomScale = 1.05;
             
             // 存储房间数据
-            btnNode.roomData = room;
+            clickNode.roomData = room;
             
             // 点击事件
-            btnNode.on(cc.Node.EventType.TOUCH_END, function(event) {
+            clickNode.on(cc.Node.EventType.TOUCH_END, function(event) {
                 event.stopPropagation();
                 self._onPracticeRoomClick(room, sceneNode, playerGold);
             }, this);
+            
+            clickNode.parent = clickContainer;
         });
         
-        // 底部信息栏
-        var infoBar = new cc.Node("InfoBar");
-        infoBar.setPosition(0, -280);
-        infoBar.setContentSize(600, 50);
+        // ==================== 4. 返回按钮点击区域 ====================
+        var backClickNode = new cc.Node("BackClickArea");
+        backClickNode.setPosition(0, -280);  // 底部位置
+        backClickNode.setContentSize(200, 60);
         
-        var infoBg = infoBar.addComponent(cc.Graphics);
-        infoBg.fillColor = new cc.Color(139, 69, 19, 230);
-        infoBg.roundRect(-300, -25, 600, 50, 10);
-        infoBg.fill();
-        infoBg.strokeColor = new cc.Color(255, 215, 0);
-        infoBg.lineWidth = 2;
-        infoBg.roundRect(-300, -25, 600, 50, 10);
-        infoBg.stroke();
+        var backGraphics = backClickNode.addComponent(cc.Graphics);
+        backGraphics.fillColor = new cc.Color(0, 0, 0, 0);  // 透明
+        backGraphics.rect(-100, -30, 200, 60);
+        backGraphics.fill();
         
-        var infoLabel = infoBar.addComponent(cc.Label);
-        infoLabel.string = "积分区积分场 | 1元 = 1000积分 | 已解锁场次请查看";
-        infoLabel.fontSize = 18;
-        infoLabel.lineHeight = 24;
-        infoLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        infoBar.color = cc.color(255, 255, 255);
-        infoBar.parent = sceneNode;
-        infoBar.zIndex = 10;
-        
-        // 返回按钮
-        var backBtn = new cc.Node("BackBtn");
-        backBtn.setPosition(-580, 300);
-        backBtn.setContentSize(120, 50);
-        
-        var backBg = backBtn.addComponent(cc.Graphics);
-        backBg.fillColor = new cc.Color(139, 69, 19, 230);
-        backBg.roundRect(-60, -25, 120, 50, 8);
-        backBg.fill();
-        backBg.strokeColor = new cc.Color(255, 215, 0);
-        backBg.lineWidth = 2;
-        backBg.roundRect(-60, -25, 120, 50, 8);
-        backBg.stroke();
-        
-        var backLabel = backBtn.addComponent(cc.Label);
-        backLabel.string = "返回";
-        backLabel.fontSize = 22;
-        backLabel.lineHeight = 30;
-        backLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
-        backBtn.color = cc.color(255, 255, 255);
-        backBtn.parent = sceneNode;
-        backBtn.zIndex = 100;
-        
-        var backButton = backBtn.addComponent(cc.Button);
+        var backButton = backClickNode.addComponent(cc.Button);
         backButton.transition = cc.Button.Transition.SCALE;
         backButton.duration = 0.1;
         backButton.zoomScale = 1.1;
         
-        backBtn.on(cc.Node.EventType.TOUCH_END, function(event) {
+        backClickNode.on(cc.Node.EventType.TOUCH_END, function(event) {
             event.stopPropagation();
             self._hidePracticeZoneScene();
         }, this);
         
+        backClickNode.parent = sceneNode;
+        backClickNode.zIndex = 30;
+        
+        // ==================== 5. 玩家积分显示（覆盖在UI上）====================
+        var scoreDisplay = new cc.Node("ScoreDisplay");
+        scoreDisplay.setPosition(0, 280);
+        
+        var scoreLabel = scoreDisplay.addComponent(cc.Label);
+        scoreLabel.string = "玩家当前积分: " + self._formatRoomGold(playerGold);
+        scoreLabel.fontSize = 22;
+        scoreLabel.lineHeight = 30;
+        scoreLabel.horizontalAlign = cc.Label.HorizontalAlign.CENTER;
+        scoreLabel.fontFamily = "Arial, Microsoft YaHei";
+        scoreDisplay.color = cc.color(255, 215, 0);  // 金色
+        
+        var scoreOutline = scoreDisplay.addComponent(cc.LabelOutline);
+        scoreOutline.color = cc.color(0, 0, 0);
+        scoreOutline.width = 2;
+        
+        scoreDisplay.parent = sceneNode;
+        scoreDisplay.zIndex = 25;
+        
+        // ==================== 添加到场景 ====================
         sceneNode.parent = this.node;
         sceneNode.zIndex = 9999;
         sceneNode.active = false;
