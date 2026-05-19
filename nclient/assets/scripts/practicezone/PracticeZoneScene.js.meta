@@ -1,9 +1,10 @@
 {
-  "ver": "1.0.8",
-  "importer": "javascript",
-  "imported": true,
+  "ver": "1.1.0",
   "uuid": "practice-zone-scene-script-001",
-  "files": [],
-  "subMetas": {},
-  "userData": {}
+  "importer": "javascript",
+  "isPlugin": false,
+  "loadPluginInWeb": true,
+  "loadPluginInNative": true,
+  "loadPluginInEditor": false,
+  "subMetas": {}
 }

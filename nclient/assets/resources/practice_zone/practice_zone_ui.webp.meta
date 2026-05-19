@@ -2,7 +2,11 @@
   "ver": "2.3.7",
   "uuid": "practice-ui-webp-1234-5678-abcdef012345",
   "importer": "texture",
+<<<<<<< Updated upstream
   "type": "sprite",
+=======
+  "type": "texture",
+>>>>>>> Stashed changes
   "wrapMode": "clamp",
   "filterMode": "bilinear",
   "premultiplyAlpha": false,
@@ -11,6 +15,7 @@
   "width": 1000,
   "height": 566,
   "platformSettings": {},
+<<<<<<< Updated upstream
   "subMetas": {
     "practice_zone_ui": {
       "ver": "1.0.6",
@@ -35,4 +40,7 @@
       "subMetas": {}
     }
   }
+=======
+  "subMetas": {}
+>>>>>>> Stashed changes
 }

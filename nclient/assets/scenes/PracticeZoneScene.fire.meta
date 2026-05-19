@@ -1,13 +1,8 @@
 {
-  "ver": "1.1.50",
-  "importer": "scene",
-  "imported": true,
+  "ver": "1.3.2",
   "uuid": "practice-zone-scene-001",
-  "files": [
-    ".json"
-  ],
-  "subMetas": {},
-  "userData": {
-    "asyncLoadAssets": false
-  }
+  "importer": "scene",
+  "asyncLoadAssets": false,
+  "autoReleaseAssets": false,
+  "subMetas": {}
 }
